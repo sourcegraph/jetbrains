@@ -64,6 +64,7 @@ import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.plaf.ButtonUI;
+import javax.swing.text.BadLocationException;
 import org.jetbrains.annotations.NotNull;
 
 public class CodyToolWindowContent implements UpdatableChat {
@@ -130,12 +131,31 @@ public class CodyToolWindowContent implements UpdatableChat {
         new DumbAwareAction() {
           @Override
           public void actionPerformed(@NotNull AnActionEvent e) {
+            // When no text in prompt, pop from history.
             if (!chatMessageHistory.getUpperStack().isEmpty()
                 && (promptInput.getText().isEmpty()
                     || promptInput.getText().equals(chatMessageHistory.getCurrentValue()))) {
               chatMessageHistory.popUpperMessage(promptInput);
             } else {
-              promptInput.setCaretPosition(0);
+              int caretPosition = promptInput.getCaretPosition();
+              try {
+                int lineNumber = promptInput.getLineOfOffset(caretPosition);
+                // When not on the first line, move caret to the same position in line above.
+                if (lineNumber > 0) {
+                  int maxPreviousLineOffset = promptInput.getLineEndOffset(lineNumber - 1);
+                  int positionInLine = caretPosition - promptInput.getLineStartOffset(lineNumber);
+                  int previousLineStart = promptInput.getLineStartOffset(lineNumber - 1);
+                  int newCaretPosition =
+                      Math.min(maxPreviousLineOffset - 1, previousLineStart + positionInLine);
+                  promptInput.setCaretPosition(newCaretPosition);
+                }
+                // When on the first line, move caret to the beginning of the line.
+                else {
+                  promptInput.setCaretPosition(0);
+                }
+              } catch (BadLocationException ex) {
+                throw new RuntimeException(ex);
+              }
             }
           }
         };
@@ -144,11 +164,31 @@ public class CodyToolWindowContent implements UpdatableChat {
           @Override
           public void actionPerformed(@NotNull AnActionEvent e) {
             int promptLastPosition = promptInput.getText().length();
+            // When no text in prompt, pop from history.
             if (promptInput.getText().isEmpty()
                 || promptInput.getText().equals(chatMessageHistory.getCurrentValue())) {
               chatMessageHistory.popLowerMessage(promptInput);
             } else {
-              promptInput.setCaretPosition(promptLastPosition);
+              int caretPosition = promptInput.getCaretPosition();
+              try {
+                int lineNumber = promptInput.getLineOfOffset(caretPosition);
+                int lineEndOffset = promptInput.getLineEndOffset(lineNumber);
+                int lineCount = promptInput.getLineCount();
+                // When not on the last line, move caret to the same position in line below.
+                if (lineNumber + 1 < lineCount) {
+                  int maxNextLineOffset = promptInput.getLineEndOffset(lineNumber + 1);
+                  int positionInLine = caretPosition - promptInput.getLineStartOffset(lineNumber);
+                  int newCaretPosition =
+                      Math.min(maxNextLineOffset - 1, positionInLine + lineEndOffset);
+                  promptInput.setCaretPosition(newCaretPosition);
+                }
+                // When on last line, move caret to the end of prompt.
+                else {
+                  promptInput.setCaretPosition(promptLastPosition);
+                }
+              } catch (BadLocationException ex) {
+                throw new RuntimeException(ex);
+              }
             }
           }
         };
