@@ -168,6 +168,7 @@ class CodyAgent(private val project: Project) : Disposable {
   }
 
   override fun dispose() {
+    shutdown()
     disposable.dispose()
   }
 
