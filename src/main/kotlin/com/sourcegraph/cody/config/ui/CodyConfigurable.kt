@@ -7,6 +7,7 @@ import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.updateSettings.impl.UpdateSettings
 import com.intellij.ui.ColorPanel
 import com.intellij.ui.JBColor
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.dsl.gridLayout.HorizontalAlign
@@ -59,7 +60,9 @@ class CodyConfigurable(val project: Project) : BoundConfigurable(ConfigUtil.CODY
       group("Plugin") {
         row {
           label("Update channel:")
-          comboBox(UpdateChannel.values().toList())
+          comboBox(
+                  UpdateChannel.values().toList(),
+                  SimpleListCellRenderer.create("") { it.presentableText })
               .bindItem(settingsModel::channel.toNullableProperty())
         }
       }

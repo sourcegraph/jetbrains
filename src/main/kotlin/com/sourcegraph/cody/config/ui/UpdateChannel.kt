@@ -9,7 +9,7 @@ enum class UpdateChannel(val channelUrl: String?) : PresentableEnum {
   override fun getPresentableText(): String {
     return when (this) {
       Stable -> "Stable"
-      Alpha -> "Alpha"
+      Alpha -> "Nightly"
     }
   }
 }
