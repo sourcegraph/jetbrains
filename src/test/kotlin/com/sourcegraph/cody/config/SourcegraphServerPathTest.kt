@@ -14,6 +14,8 @@ class SourcegraphServerPathTest {
     // when
     val serverPath = SourcegraphServerPath.from(url, "")
 
+    println()
+
     // then
     assertThat(serverPath.url).isEqualTo(url)
   }

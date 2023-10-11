@@ -161,6 +161,10 @@ tasks {
       commandLine("pnpm", "install", "--frozen-lockfile")
     }
     exec {
+      workingDir(sourcegraphDirectory)
+      commandLine("pnpm", "generate")
+    }
+    exec {
       workingDir(jetbrainsClientDirectory.toString())
       commandLine("pnpm", "build")
     }
