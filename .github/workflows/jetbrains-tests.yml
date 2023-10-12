@@ -21,7 +21,7 @@ jobs:
           java-version: 11
           cache: gradle
       - name: Run Tests
-        run: ./gradlew --info test
+        run: ./gradlew --stacktrace --info test
       - name: Run Build Plugin
         run: ./gradlew --info buildPlugin
       - name: Check formatting
