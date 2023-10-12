@@ -176,6 +176,8 @@ tasks {
           println("Cached $destinationDir")
           return@register
         }
+        println("pnpm install in directory $codyDir")
+        println("children ${codyDir.listFiles()?.map { it.absolutePath }}")
         exec {
           workingDir(codyDir.toString())
           commandLine("pnpm", "install", "--frozen-lockfile")
