@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-
+# Run this script to cut a new alpha release.
+# No arguments needed, the version is automatically computed.
 set -eux
 
 SCRIPT_DIR="$(dirname "$0")"
