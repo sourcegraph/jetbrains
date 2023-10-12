@@ -8,7 +8,7 @@ jobs:
     steps:
       - name: Fetch Sources
         uses: actions/checkout@v3
-      - run: yarn global add pnpm
+      - run: yarn global add pnpm@8.6.7
       - name: Gradle Wrapper Validation
         uses: gradle/wrapper-validation-action@v1.0.4
       - name: Setup Java
