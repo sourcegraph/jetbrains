@@ -109,31 +109,33 @@ tasks {
         } else {
           println("Cached $unzipDir")
         }
-        val sourcegraphDir = unzipCodeSearch.get().destinationDir
-        val destinationDir =
-            rootDir.resolve("src").resolve("main").resolve("resources").resolve("dist")
-        if (destinationDir.isDirectory && !isForceCodeSearchBuild) {
-          println("Cached $destinationDir")
-          return@register
+        doLast {
+          val sourcegraphDir = unzipCodeSearch.get().destinationDir
+          val destinationDir =
+              rootDir.resolve("src").resolve("main").resolve("resources").resolve("dist")
+          if (destinationDir.isDirectory && !isForceCodeSearchBuild) {
+            println("Cached $destinationDir")
+            return@doLast
+          }
+          exec {
+            workingDir(sourcegraphDir.toString())
+            commandLine("pnpm", "install", "--frozen-lockfile")
+          }
+          exec {
+            workingDir(sourcegraphDir.toString())
+            commandLine("pnpm", "generate")
+          }
+          val jetbrainsDir = sourcegraphDir.resolve("client").resolve("jetbrains")
+          exec {
+            commandLine("pnpm", "build")
+            workingDir(jetbrainsDir)
+          }
+          val buildOutput =
+              jetbrainsDir.resolve("src").resolve("main").resolve("resources").resolve("dist")
+          from(fileTree(buildOutput))
+          into(destinationDir)
+          include("**/*")
         }
-        exec {
-          workingDir(sourcegraphDir.toString())
-          commandLine("pnpm", "install", "--frozen-lockfile")
-        }
-        exec {
-          workingDir(sourcegraphDir.toString())
-          commandLine("pnpm", "generate")
-        }
-        val jetbrainsDir = sourcegraphDir.resolve("client").resolve("jetbrains")
-        exec {
-          commandLine("pnpm", "build")
-          workingDir(jetbrainsDir)
-        }
-        val buildOutput =
-            jetbrainsDir.resolve("src").resolve("main").resolve("resources").resolve("dist")
-        from(fileTree(buildOutput))
-        into(destinationDir)
-        include("**/*")
       }
 
   processResources { dependsOn(buildCodeSearch) }
@@ -170,22 +172,24 @@ tasks {
         } else {
           println("Cached $unzipDir")
         }
-        val codyDir = unzipCody.get().destinationDir
-        destinationDir = buildDir.resolve("sourcegraph").resolve("agent")
-        if (destinationDir.isDirectory && !isForceAgentBuild) {
-          println("Cached $destinationDir")
-          return@register
-        }
-        println("pnpm install in directory $codyDir")
-        println("children ${codyDir.listFiles()?.map { it.absolutePath }}")
-        exec {
-          workingDir(codyDir.toString())
-          commandLine("pnpm", "install", "--frozen-lockfile")
-        }
-        exec {
-          commandLine("pnpm", "run", "build-agent-binaries")
-          workingDir(codyDir.resolve("agent").toString())
-          environment("AGENT_EXECUTABLE_TARGET_DIRECTORY", destinationDir.toString())
+        doLast {
+          val codyDir = unzipCody.get().destinationDir
+          destinationDir = buildDir.resolve("sourcegraph").resolve("agent")
+          if (destinationDir.isDirectory && !isForceAgentBuild) {
+            println("Cached $destinationDir")
+            return@doLast
+          }
+          println("pnpm install in directory $codyDir")
+          println("children ${codyDir.listFiles()?.map { it.absolutePath }}")
+          exec {
+            workingDir(codyDir.toString())
+            commandLine("pnpm", "install", "--frozen-lockfile")
+          }
+          exec {
+            commandLine("pnpm", "run", "build-agent-binaries")
+            workingDir(codyDir.resolve("agent").toString())
+            environment("AGENT_EXECUTABLE_TARGET_DIRECTORY", destinationDir.toString())
+          }
         }
       }
 
