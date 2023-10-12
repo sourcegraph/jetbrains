@@ -33,7 +33,7 @@ class AccountConfigurable(val project: Project) :
   private val accountsModel = CodyAccountListModel(project)
   private val activeAccountHolder = project.service<CodyProjectActiveAccountHolder>()
   private lateinit var dialogPanel: DialogPanel
-  var channel: UpdateChannel = findConfiguredChannel()
+  private var channel: UpdateChannel = findConfiguredChannel()
 
   override fun createPanel(): DialogPanel {
     dialogPanel = panel {
