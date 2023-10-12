@@ -13,4 +13,5 @@ jobs:
           java-version: 11
           cache: 'gradle'
       - run: echo "RELEASE_VERSION=$(./scripts/version-from-git-tag.sh)-alpha" >> $GITHUB_ENV
+      - run: echo "Publishing version $RELEASE_VERSION"
       - run: ./gradle "-DpluginVersion=$RELEASE_VERSION" publishPlugin
