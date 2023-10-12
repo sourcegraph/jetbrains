@@ -172,9 +172,9 @@ tasks {
         } else {
           println("Cached $unzipDir")
         }
+        destinationDir = buildDir.resolve("sourcegraph").resolve("agent")
         doLast {
           val codyDir = unzipCody.get().destinationDir
-          destinationDir = buildDir.resolve("sourcegraph").resolve("agent")
           if (destinationDir.isDirectory && !isForceAgentBuild) {
             println("Cached $destinationDir")
             return@doLast
