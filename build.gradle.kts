@@ -95,6 +95,7 @@ fun download(url: String, output: File) {
     return
   }
   println("Downloading... $url")
+  assert(output.parentFile.mkdirs()) { output.parentFile }
   Files.copy(URL(url).openStream(), output.toPath())
 }
 
