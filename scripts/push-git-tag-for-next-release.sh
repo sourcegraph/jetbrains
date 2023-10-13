@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run this script to cut a new alpha release.
+# Run this script to cut a new nightly release.
 # No arguments needed, the version is automatically computed.
 set -eux
 

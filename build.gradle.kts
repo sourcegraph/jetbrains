@@ -354,7 +354,7 @@ tasks {
     dependsOn("patchChangelog")
     token.set(System.getenv("PUBLISH_TOKEN"))
     // pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels,
-    // like 2.1.7-alpha.3
+    // like 2.1.7-nightly
     // Specify pre-release label to publish the plugin in a custom Release Channel automatically.
     // Read more:
     // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
