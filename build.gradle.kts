@@ -177,7 +177,8 @@ tasks {
     return dir.resolve("sourcegraph-$codeSearchCommit")
   }
 
-  fun buildCodeSearch(): File {
+  fun buildCodeSearch(): File? {
+    if (System.getenv("SKIP_CODE_SEARCH_BUILD") == "true") return null
     val sourcegraphDir = unzipCodeSearch()
     val destinationDir = rootDir.resolve("src").resolve("main").resolve("resources").resolve("dist")
     if (!isForceCodeSearchBuild && destinationDir.exists()) {
