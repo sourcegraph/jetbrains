@@ -9,9 +9,12 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
+          distribution: "temurin"
           java-version: 11
-          cache: 'gradle'
-      - run: echo "RELEASE_VERSION=$(./scripts/version-from-git-tag.sh)-alpha" >> $GITHUB_ENV
+          cache: "gradle"
+      - run: |
+          echo "RELEASE_VERSION=$(./scripts/version-from-git-tag.sh)-alpha" >> $GITHUB_ENV
       - run: echo "Publishing version $RELEASE_VERSION"
       - run: ./gradle "-DpluginVersion=$RELEASE_VERSION" publishPlugin
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
