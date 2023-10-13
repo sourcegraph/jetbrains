@@ -81,7 +81,7 @@ CI. When you have a local cache of IDEA installations then this script can run d
 ## Publishing a new stable version
 
 This workflow is not automated yet. Our goal is to publish stable releases by promoting nightly releases that have been
-manually tested. What we're missing is a script to download the zip file of an nightly release, correct the version
+manually tested. What we're missing is a script to download the zip file of a nightly release, correct the version
 to be non-nightly and then upload it to the JetBrains Marketplace.
 
 ## Enabling web view debugging
