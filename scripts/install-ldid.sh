@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Script to install `ldid2` on Linux computers to codesign the macos-arm64 binary for the agent.
+
 set -eux
 
 # Check if ldid is installed
@@ -12,6 +15,3 @@ unzip ldid.zip
 cd ldid-master
 ./make.sh
 cp ldid2 /usr/local/bin/
-
-
-
