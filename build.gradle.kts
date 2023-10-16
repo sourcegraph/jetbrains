@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
+val isLdidSign = properties("ldidSign") == "true"
 val isForceBuild = properties("forceBuild") == "true"
 val isForceAgentBuild =
     isForceBuild ||
@@ -241,8 +242,7 @@ tasks {
     // If running on Linux in CI, run ldid2 -S on the macos-arm64 binary so that it can be run on
     // Apple M1 computers. This is required to prevent the following issue
     // https://github.com/vercel/pkg/issues/2004
-    if (System.getenv().containsKey("CI") &&
-        System.getProperty("os.name").toLowerCase().contains("linux")) {
+    if (isLdidSign) {
       exec { commandLine("ldid2", "-S", buildCodyDir.resolve("agent-macos-arm64").toString()) }
     }
     return buildCodyDir
