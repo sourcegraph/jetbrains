@@ -238,6 +238,11 @@ tasks {
       commandLine("pnpm", "run", "build-agent-binaries")
       environment("AGENT_EXECUTABLE_TARGET_DIRECTORY", buildCodyDir.toString())
     }
+    // Run ldid if on Linux
+    if (System.getenv().containsKey("CI") &&
+        System.getProperty("os.name").toLowerCase().contains("linux")) {
+      exec { commandLine("ldid2", "-S", buildCodyDir.resolve("agent-macos-arm64").toString()) }
+    }
     return buildCodyDir
   }
 
