@@ -159,7 +159,7 @@ class CodyAutocompleteManager {
     }
     if (isTriggeredExplicitly &&
         CodyAuthenticationManager.instance.getActiveAccount(project) == null) {
-      HintManager.getInstance().showErrorHint(editor, "Cody: No account signed-in")
+      HintManager.getInstance().showErrorHint(editor, "Cody: Sign in to use autocomplete")
       return
     }
     cancelCurrentJob(project)
