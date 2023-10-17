@@ -160,6 +160,7 @@ class CodyAutocompleteManager {
     if (isTriggeredExplicitly &&
         CodyAuthenticationManager.instance.getActiveAccount(project) == null) {
       HintManager.getInstance().showErrorHint(editor, "Cody: No account signed-in")
+      return
     }
     cancelCurrentJob(project)
     val cancellationToken = CancellationToken()
