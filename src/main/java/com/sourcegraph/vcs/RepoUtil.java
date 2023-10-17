@@ -6,6 +6,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.vcsUtil.VcsUtil;
+import com.sourcegraph.cody.agent.CodyAgent;
 import com.sourcegraph.cody.config.CodyProjectSettings;
 import com.sourcegraph.common.ErrorNotification;
 import git4idea.GitVcs;
@@ -14,6 +15,7 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.idea.perforce.perforce.PerforceAuthenticationException;
@@ -47,7 +49,7 @@ public class RepoUtil {
         relativePath = relativePath.substring(relativePath.indexOf("/") + 1);
       }
 
-      remoteUrl = getRemoteRepoUrl(project, file);
+      remoteUrl = getRemoteRepoUrl(project, file).join(); // todo
       remoteUrl = doReplacements(codyProjectSettings, remoteUrl);
 
       // If the current branch doesn't exist on the remote or if the remote
@@ -85,11 +87,10 @@ public class RepoUtil {
     if (fileFromTheRepository == null) {
       return null;
     }
-    try {
-      return RepoUtil.getRemoteRepoUrlWithoutScheme(project, fileFromTheRepository);
-    } catch (Exception e) {
-      return RepoUtil.getSimpleRepositoryName(project, fileFromTheRepository);
-    }
+
+    return RepoUtil.getRemoteRepoUrlWithoutScheme(project, fileFromTheRepository)
+        .exceptionally(e -> RepoUtil.getSimpleRepositoryName(project, fileFromTheRepository))
+        .join(); // todo
   }
 
   @Nullable
@@ -122,39 +123,51 @@ public class RepoUtil {
 
   // Returned format: github.com/sourcegraph/sourcegraph
   // Must be called from non-EDT context
-  private static @NotNull String getRemoteRepoUrlWithoutScheme(
-      @NotNull Project project, @NotNull VirtualFile file) throws Exception {
-    String remoteUrl = getRemoteRepoUrl(project, file);
-    String repoName;
-    try {
-      URL url = new URL(remoteUrl);
-      repoName = url.getHost() + url.getPath();
-    } catch (MalformedURLException e) {
-      repoName = remoteUrl.substring(remoteUrl.indexOf('@') + 1).replaceFirst(":", "/");
-    }
-    return repoName.replaceFirst(".git$", "");
+  private static @NotNull CompletableFuture<String> getRemoteRepoUrlWithoutScheme(
+      @NotNull Project project, @NotNull VirtualFile file) {
+    return getRemoteRepoUrl(project, file)
+        .thenApply(
+            remoteUrl -> {
+              String repoName;
+              try {
+                URL url = new URL(remoteUrl);
+                repoName = url.getHost() + url.getPath();
+              } catch (MalformedURLException e) {
+                repoName = remoteUrl.substring(remoteUrl.indexOf('@') + 1).replaceFirst(":", "/");
+              }
+              return repoName.replaceFirst(".git$", "");
+            });
   }
 
   // Returned format: git@github.com:sourcegraph/sourcegraph.git
   // Must be called from non-EDT context
-  public static @NotNull String getRemoteRepoUrl(
-      @NotNull Project project, @NotNull VirtualFile file) throws Exception {
+  public static @NotNull CompletableFuture<String> getRemoteRepoUrl(
+      @NotNull Project project, @NotNull VirtualFile file) {
     Repository repository = VcsRepositoryManager.getInstance(project).getRepositoryForFile(file);
     VCSType vcsType = getVcsType(project, file);
 
     if (vcsType == VCSType.GIT && repository != null) {
-      return GitUtil.getRemoteRepoUrl((GitRepository) repository, project);
+      return CodyAgent.withServer(
+          project,
+          server -> server.convertGitCloneURLToCodebaseName(repository.getPresentableUrl()));
     }
 
     if (vcsType == VCSType.PERFORCE) {
-      return PerforceUtil.getRemoteRepoUrl(project, file);
+      try {
+        return CompletableFuture.completedFuture(PerforceUtil.getRemoteRepoUrl(project, file));
+      } catch (Exception e) {
+        return CompletableFuture.failedFuture(e);
+      }
     }
 
     if (repository == null) {
-      throw new Exception("Could not find repository for file " + file.getPath());
+      return CompletableFuture.failedFuture(
+          new Exception("Could not find repository for file " + file.getPath()));
     }
 
-    throw new Exception("Unsupported VCS: " + repository.getVcs().getName());
+    // completable future error
+    return CompletableFuture.failedFuture(
+        new Exception("Unsupported VCS: " + repository.getVcs().getName()));
   }
 
   /** Returns the repository root directory for any path within a repository. */

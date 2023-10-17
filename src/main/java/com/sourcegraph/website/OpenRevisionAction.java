@@ -74,36 +74,37 @@ public class OpenRevisionAction extends DumbAwareAction {
     ApplicationManager.getApplication()
         .executeOnPooledThread(
             () -> {
-              String remoteUrl;
-              try {
-                remoteUrl = RepoUtil.getRemoteRepoUrl(project, context.getRepoRoot());
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-
-              String url;
-              try {
-                url =
-                    URLBuilder.buildCommitUrl(
-                        ConfigUtil.getServerPath(project).getUrl(),
-                        context.getRevisionNumber(),
-                        remoteUrl,
-                        productName,
-                        productVersion);
-              } catch (IllegalArgumentException e) {
-                logger.warn(
-                    "Unable to build commit view URI for url "
-                        + ConfigUtil.getServerPath(project).getUrl()
-                        + ", revision "
-                        + context.getRevisionNumber()
-                        + ", product "
-                        + productName
-                        + ", version "
-                        + productVersion,
-                    e);
-                return;
-              }
-              BrowserOpener.openInBrowser(project, url);
+              RepoUtil.getRemoteRepoUrl(project, context.getRepoRoot())
+                  .thenAccept(
+                      remoteUrl -> {
+                        String url;
+                        try {
+                          url =
+                              URLBuilder.buildCommitUrl(
+                                  ConfigUtil.getServerPath(project).getUrl(),
+                                  context.getRevisionNumber(),
+                                  remoteUrl,
+                                  productName,
+                                  productVersion);
+                        } catch (IllegalArgumentException e) {
+                          logger.warn(
+                              "Unable to build commit view URI for url "
+                                  + ConfigUtil.getServerPath(project).getUrl()
+                                  + ", revision "
+                                  + context.getRevisionNumber()
+                                  + ", product "
+                                  + productName
+                                  + ", version "
+                                  + productVersion,
+                              e);
+                          return;
+                        }
+                        BrowserOpener.openInBrowser(project, url);
+                      })
+                  .exceptionally(
+                      e -> {
+                        throw new RuntimeException(e);
+                      });
             });
   }
 
