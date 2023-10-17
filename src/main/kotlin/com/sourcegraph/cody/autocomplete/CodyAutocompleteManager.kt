@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.autocomplete
 
+import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.CommandProcessor
@@ -22,6 +23,7 @@ import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteBlockElementRend
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteSingleLineRenderer
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil.getAllInlaysForEditor
+import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.statusbar.CodyAutocompleteStatus
 import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService.Companion.notifyApplication
 import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService.Companion.resetApplication
@@ -154,6 +156,10 @@ class CodyAutocompleteManager {
     val autoCompleteDocumentContext = textDocument.getAutocompleteContext(offset)
     if (isTriggeredImplicitly && !autoCompleteDocumentContext.isCompletionTriggerValid()) {
       return
+    }
+    if (isTriggeredExplicitly &&
+        CodyAuthenticationManager.instance.getActiveAccount(project) == null) {
+      HintManager.getInstance().showErrorHint(editor, "Cody: No account signed-in")
     }
     cancelCurrentJob(project)
     val cancellationToken = CancellationToken()
