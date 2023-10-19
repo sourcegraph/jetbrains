@@ -224,7 +224,11 @@ tasks {
       println("Cached $buildCodyDir")
       return buildCodyDir
     }
-    val codyDir = unzipCody()
+    val codyDirEnv: String? =
+        System.getenv("CODY_DIR")?.replace("~", System.getProperty("user.home"))
+    val codyDir: File =
+        if (codyDirEnv.isNullOrEmpty()) unzipCody() else Paths.get(codyDirEnv).normalize().toFile()
+    println("Using cody from codyDir=$codyDir")
     exec {
       workingDir(codyDir)
       commandLine("pnpm", "install", "--frozen-lockfile")
