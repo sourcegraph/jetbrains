@@ -213,6 +213,11 @@ tasks {
     return destination
   }
   fun unzipCody(): File {
+    val fromEnvironmentVariable = System.getenv("CODY_DIR")
+    if (!fromEnvironmentVariable.isNullOrEmpty()) {
+      return Paths.get(fromEnvironmentVariable.replace("~", System.getProperty("user.home")))
+          .toFile()
+    }
     val zipFile = downloadCody()
     val destination = githubArchiveCache.resolve("cody").resolve("cody-$codyCommit")
     unzip(zipFile, destination.parentFile)
@@ -224,10 +229,7 @@ tasks {
       println("Cached $buildCodyDir")
       return buildCodyDir
     }
-    val codyDirEnv: String? =
-        System.getenv("CODY_DIR")?.replace("~", System.getProperty("user.home"))
-    val codyDir: File =
-        if (codyDirEnv.isNullOrEmpty()) unzipCody() else Paths.get(codyDirEnv).normalize().toFile()
+    val codyDir = unzipCody()
     println("Using cody from codyDir=$codyDir")
     exec {
       workingDir(codyDir)
