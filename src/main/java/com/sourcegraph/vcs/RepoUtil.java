@@ -147,9 +147,21 @@ public class RepoUtil {
     VCSType vcsType = getVcsType(project, file);
 
     if (vcsType == VCSType.GIT && repository != null) {
+      String cloneURL;
+      try {
+        cloneURL = GitUtil.getRemoteRepoUrl((GitRepository) repository, project);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
       return CodyAgent.withServer(
           project,
-          server -> server.convertGitCloneURLToCodebaseName(repository.getPresentableUrl()));
+          server -> {
+            System.out.println("[debug] cloneURL="+ cloneURL);
+            return server.convertGitCloneURLToCodebaseName(cloneURL).thenApply(result -> {
+              System.out.println("[debug] result="+ result);
+              return result;
+            });
+          });
     }
 
     if (vcsType == VCSType.PERFORCE) {
