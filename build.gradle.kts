@@ -215,8 +215,14 @@ tasks {
   fun unzipCody(): File {
     val fromEnvironmentVariable = System.getenv("CODY_DIR")
     if (!fromEnvironmentVariable.isNullOrEmpty()) {
-      return Paths.get(fromEnvironmentVariable.replace("~", System.getProperty("user.home")))
-          .toFile()
+      // "~" works fine from the terminal, however it breaks IntelliJ's run configurations
+      val pathString =
+          if (fromEnvironmentVariable.startsWith("~")) {
+            System.getProperty("user.home") + fromEnvironmentVariable.substring(1)
+          } else {
+            fromEnvironmentVariable
+          }
+      return Paths.get(pathString).toFile()
     }
     val zipFile = downloadCody()
     val destination = githubArchiveCache.resolve("cody").resolve("cody-$codyCommit")
