@@ -45,7 +45,7 @@ public interface CodyAgentServer {
   CompletableFuture<@Nullable String> getRepoId(GetRepoID repoName);
 
   @JsonRequest("git/codebaseName")
-  CompletableFuture<@Nullable String> convertGitCloneURLToCodebaseName(String cloneURL);
+  CompletableFuture<@Nullable String> convertGitCloneURLToCodebaseName(CloneURL cloneURL);
 
   // Notifications
   @JsonNotification("initialized")
