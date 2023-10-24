@@ -49,6 +49,7 @@ import com.sourcegraph.telemetry.GraphQlLogger;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -393,7 +394,7 @@ public class CodyToolWindowContent implements UpdatableChat {
   private void addWelcomeMessage() {
     String welcomeText =
         "Hello! I'm Cody. I can write code and answer questions for you. See [Cody documentation](https://docs.sourcegraph.com/cody) for help and tips.";
-    addMessageToChat(new ChatMessage(Speaker.ASSISTANT, welcomeText));
+    addMessageToChat(new ChatMessage(Speaker.ASSISTANT, welcomeText), false);
   }
 
   @NotNull
@@ -410,7 +411,8 @@ public class CodyToolWindowContent implements UpdatableChat {
     return sendButton;
   }
 
-  public synchronized void addMessageToChat(@NotNull ChatMessage message) {
+  public synchronized void addMessageToChat(
+      @NotNull ChatMessage message, boolean shouldDisplayBlinkingCursor) {
     ApplicationManager.getApplication()
         .invokeLater(
             () -> {
@@ -422,6 +424,10 @@ public class CodyToolWindowContent implements UpdatableChat {
                       messagesPanel,
                       ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH);
               addComponentToChat(messagePanel);
+              ensureBlinkingCursorIsNotDisplayed();
+              if (shouldDisplayBlinkingCursor) {
+                messagesPanel.add(BlinkingCursorComponent.instance);
+              }
             });
   }
 
@@ -472,6 +478,7 @@ public class CodyToolWindowContent implements UpdatableChat {
             () -> {
               stopGeneratingButton.setVisible(false);
               sendButton.setEnabled(true);
+              ensureBlinkingCursorIsNotDisplayed();
             });
   }
 
@@ -488,7 +495,14 @@ public class CodyToolWindowContent implements UpdatableChat {
               messagesPanel.repaint();
               chatMessageHistory.clearHistory();
               CodyAgent.getInitializedServer(project).thenAccept(CodyAgentServer::transcriptReset);
+              ensureBlinkingCursorIsNotDisplayed();
             });
+  }
+
+  private void ensureBlinkingCursorIsNotDisplayed() {
+    Arrays.stream(messagesPanel.getComponents())
+        .filter(x -> x == BlinkingCursorComponent.instance)
+        .forEach(x -> messagesPanel.remove(BlinkingCursorComponent.instance));
   }
 
   @Override
@@ -521,7 +535,7 @@ public class CodyToolWindowContent implements UpdatableChat {
 
     String displayText = XmlStringUtil.escapeString(message);
     ChatMessage humanMessage = new ChatMessage(Speaker.HUMAN, message, displayText);
-    addMessageToChat(humanMessage);
+    addMessageToChat(humanMessage, true);
     activateChatTab();
 
     // This cannot run on EDT (Event Dispatch Thread) because it may block for a long time.
@@ -551,7 +565,8 @@ public class CodyToolWindowContent implements UpdatableChat {
                         Speaker.ASSISTANT,
                         "Cody is not able to reply at the moment. "
                             + "This is a bug, please report an issue to https://github.com/sourcegraph/sourcegraph/issues/new?template=jetbrains.md "
-                            + "and include as many details as possible to help troubleshoot the problem."));
+                            + "and include as many details as possible to help troubleshoot the problem."),
+                    false);
                 this.finishMessageProcessing();
               }
               GraphQlLogger.logCodyEvent(this.project, "recipe:chat-question", "executed");

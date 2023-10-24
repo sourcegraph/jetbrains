@@ -6,7 +6,7 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 public interface UpdatableChat {
-  void addMessageToChat(@NotNull ChatMessage message);
+  void addMessageToChat(@NotNull ChatMessage message, boolean shouldDisplayBlinkingCursor);
 
   void updateLastMessage(@NotNull ChatMessage message);
 
