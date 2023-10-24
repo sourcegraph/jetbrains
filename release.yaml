@@ -1,0 +1,38 @@
+meta:
+  productName: cody-jetbrains
+  repository: "github.com/sourcegraph/jetbrains"
+  owners:
+    - "@sourcegraph/cody"
+
+requirements:
+  - name: "Github CLI"
+    cmd: gh version
+    fixInstructions: brew install gh
+  - name: "JVM 11"
+    cmd: echo "todo"
+
+internal:
+  finalize:
+    steps:
+      - name: "build"
+        cmd: |
+          ./gradlew buildPlugin
+      - name: "artifact"
+        cmd: |
+          # TODO
+          gsutil gs://...
+
+test: 
+  steps: 
+    - name: "placeholder"
+      cmd: |
+        echo "-- pretending to test release ..."
+
+promoteToPublic:
+  finalize: 
+    steps:
+      - name: "publish"
+        cmd: |
+          echo "TODO"
+          # fetch the previous build for arch X 
+          # publish that build on the marketplace
