@@ -7,8 +7,10 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
+import com.sourcegraph.cody.auth.SsoAuthMethod
 import java.awt.Component
 import javax.swing.Action
+import javax.swing.JButton
 import javax.swing.JComponent
 
 class LogInToSourcegraphAction : BaseAddAccountWithTokenAction() {
@@ -17,11 +19,19 @@ class LogInToSourcegraphAction : BaseAddAccountWithTokenAction() {
 
   override fun actionPerformed(e: AnActionEvent) {
     val accountsHost = getCodyAccountsHost(e) ?: return
+    val authMethod =
+        when ((e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT) as JButton).text) {
+          "Sign in with GitHub" -> SsoAuthMethod.GITHUB
+          "Sign in with GitLab" -> SsoAuthMethod.GITLAB
+          "Sign in with Google" -> SsoAuthMethod.GOOGLE
+          else -> SsoAuthMethod.DEFAULT
+        }
     val dialog =
         CodyAuthLoginDialog(
             e.project,
             e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT),
-            accountsHost::isAccountUnique)
+            accountsHost::isAccountUnique,
+            authMethod)
     dialog.setServer(defaultServer)
     if (dialog.showAndGet()) {
       accountsHost.addAccount(dialog.server, dialog.login, dialog.displayName, dialog.token)
@@ -66,7 +76,7 @@ private fun newAddAccountDialog(
     parent: Component?,
     isAccountUnique: UniqueLoginPredicate
 ): BaseLoginDialog =
-    SourcegraphTokenLoginDialog(project, parent, isAccountUnique).apply {
+    SourcegraphTokenLoginDialog(project, parent, isAccountUnique, SsoAuthMethod.DEFAULT).apply {
       title = "Add Sourcegraph Account"
       setLoginButtonText("Add Account")
     }
@@ -76,7 +86,7 @@ fun signInWithSourcegrapDialog(
     parent: Component?,
     isAccountUnique: UniqueLoginPredicate
 ): BaseLoginDialog =
-    SourcegraphTokenLoginDialog(project, parent, isAccountUnique).apply {
+    SourcegraphTokenLoginDialog(project, parent, isAccountUnique, SsoAuthMethod.DEFAULT).apply {
       title = "Sign in with Sourcegraph"
       setLoginButtonText("Sign in")
     }
@@ -84,10 +94,15 @@ fun signInWithSourcegrapDialog(
 internal class SourcegraphTokenLoginDialog(
     project: Project?,
     parent: Component?,
-    isAccountUnique: UniqueLoginPredicate
+    isAccountUnique: UniqueLoginPredicate,
+    authMethod: SsoAuthMethod
 ) :
     BaseLoginDialog(
-        project, parent, SourcegraphApiRequestExecutor.Factory.instance, isAccountUnique) {
+        project,
+        parent,
+        SourcegraphApiRequestExecutor.Factory.instance,
+        isAccountUnique,
+        authMethod) {
 
   init {
     title = "Login to Sourcegraph"
@@ -102,10 +117,15 @@ internal class SourcegraphTokenLoginDialog(
 internal class CodyAuthLoginDialog(
     project: Project?,
     parent: Component?,
-    isAccountUnique: UniqueLoginPredicate
+    isAccountUnique: UniqueLoginPredicate,
+    authMethod: SsoAuthMethod
 ) :
     BaseLoginDialog(
-        project, parent, SourcegraphApiRequestExecutor.Factory.instance, isAccountUnique) {
+        project,
+        parent,
+        SourcegraphApiRequestExecutor.Factory.instance,
+        isAccountUnique,
+        authMethod) {
 
   init {
     title = "Login to Sourcegraph"
