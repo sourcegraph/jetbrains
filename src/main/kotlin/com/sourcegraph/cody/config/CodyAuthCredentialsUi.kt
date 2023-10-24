@@ -26,9 +26,10 @@ class CodyAuthCredentialsUi(
   override fun acquireDetailsAndToken(
       server: SourcegraphServerPath,
       executor: SourcegraphApiRequestExecutor,
-      indicator: ProgressIndicator
+      indicator: ProgressIndicator,
+      experiment: String
   ): Pair<CodyAccountDetails, String> {
-    val token = acquireToken(indicator)
+    val token = acquireToken(indicator, experiment)
     val withTokenAuth = executor as SourcegraphApiRequestExecutor.WithTokenAuth
     withTokenAuth.token = token
 
@@ -54,8 +55,8 @@ class CodyAuthCredentialsUi(
     }
   }
 
-  private fun acquireToken(indicator: ProgressIndicator): String {
-    val credentialsFuture = SourcegraphAuthService.instance.authorize()
+  private fun acquireToken(indicator: ProgressIndicator, experiment: String): String {
+    val credentialsFuture = SourcegraphAuthService.instance.authorize(experiment)
     try {
       return ProgressIndicatorUtils.awaitWithCheckCanceled(credentialsFuture, indicator)
     } catch (pce: ProcessCanceledException) {

@@ -20,7 +20,8 @@ abstract class CodyCredentialsUi {
   abstract fun acquireDetailsAndToken(
       server: SourcegraphServerPath,
       executor: SourcegraphApiRequestExecutor,
-      indicator: ProgressIndicator
+      indicator: ProgressIndicator,
+      experiment: String
   ): Pair<CodyAccountDetails, String>
 
   abstract fun handleAcquireError(error: Throwable): ValidationInfo

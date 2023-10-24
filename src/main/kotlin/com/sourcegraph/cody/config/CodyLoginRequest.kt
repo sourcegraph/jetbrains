@@ -18,7 +18,7 @@ internal fun CodyLoginRequest.loginWithToken(
     project: Project?,
     parentComponent: Component?
 ): CodyAuthData? {
-  val dialog = SourcegraphTokenLoginDialog(project, parentComponent, isLoginUniqueChecker)
+  val dialog = SourcegraphTokenLoginDialog(project, parentComponent, isLoginUniqueChecker, "github")
   configure(dialog)
 
   return dialog.getAuthData()

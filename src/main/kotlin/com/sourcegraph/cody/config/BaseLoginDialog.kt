@@ -18,7 +18,8 @@ abstract class BaseLoginDialog(
     project: Project?,
     parent: Component?,
     executorFactory: SourcegraphApiRequestExecutor.Factory,
-    isAccountUnique: UniqueLoginPredicate
+    isAccountUnique: UniqueLoginPredicate,
+    private val experiment: String
 ) : DialogWrapper(project, parent, false, IdeModalityType.PROJECT) {
 
   protected val loginPanel = CodyLoginPanel(executorFactory, isAccountUnique)
@@ -62,8 +63,9 @@ abstract class BaseLoginDialog(
     Disposer.register(disposable) { emptyProgressIndicator.cancel() }
 
     startGettingToken()
+    //      HERE FOR SURE
     loginPanel
-        .acquireDetailsAndToken(emptyProgressIndicator)
+        .acquireDetailsAndToken(emptyProgressIndicator, experiment)
         .completionOnEdt(modalityState) { finishGettingToken() }
         .successOnEdt(modalityState) { (details, newToken) ->
           login = details.username

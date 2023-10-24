@@ -95,7 +95,8 @@ class CodyLoginPanel(
   }
 
   fun acquireDetailsAndToken(
-      progressIndicator: ProgressIndicator
+      progressIndicator: ProgressIndicator,
+      experiment: String
   ): CompletableFuture<Pair<CodyAccountDetails, String>> {
     setBusy(true)
     tokenAcquisitionError = null
@@ -104,7 +105,9 @@ class CodyLoginPanel(
     val executor = currentUi.createExecutor()
 
     return service<ProgressManager>()
-        .submitIOTask(progressIndicator) { currentUi.acquireDetailsAndToken(server, executor, it) }
+        .submitIOTask(progressIndicator) {
+          currentUi.acquireDetailsAndToken(server, executor, it, experiment)
+        }
         .completionOnEdt(progressIndicator.modalityState) { setBusy(false) }
         .errorOnEdt(progressIndicator.modalityState) { setError(it) }
   }

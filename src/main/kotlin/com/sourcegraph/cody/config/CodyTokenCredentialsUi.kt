@@ -107,7 +107,8 @@ internal class CodyTokenCredentialsUi(
   override fun acquireDetailsAndToken(
       server: SourcegraphServerPath,
       executor: SourcegraphApiRequestExecutor,
-      indicator: ProgressIndicator
+      indicator: ProgressIndicator,
+      experiment: String
   ): Pair<CodyAccountDetails, String> {
     val details = acquireDetails(server, executor, indicator, isAccountUnique, fixedLogin)
     return details to tokenTextField.text
