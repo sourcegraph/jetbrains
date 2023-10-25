@@ -49,7 +49,7 @@ public class CodyEditorFactoryListener implements EditorFactoryListener {
       return;
     }
     Editor editor = event.getEditor();
-    informAgentAboutEditorChange(editor);
+    informAgentAboutEditorChange(editor, false);
     Project project = editor.getProject();
     if (project == null || project.isDisposed()) {
       return;
@@ -72,7 +72,7 @@ public class CodyEditorFactoryListener implements EditorFactoryListener {
       if (Objects.equals(commandName, VIM_EXIT_INSERT_MODE_ACTION)) {
         return;
       }
-      informAgentAboutEditorChange(e.getEditor());
+      informAgentAboutEditorChange(e.getEditor(), true);
       CodyAutocompleteManager suggestions = CodyAutocompleteManager.getInstance();
       Editor editor = e.getEditor();
       if (CodyEditorUtil.isEditorValidForAutocomplete(editor)
@@ -94,7 +94,7 @@ public class CodyEditorFactoryListener implements EditorFactoryListener {
         return;
       }
       Editor editor = e.getEditor();
-      informAgentAboutEditorChange(editor);
+      informAgentAboutEditorChange(editor, true);
       if (CodyEditorUtil.isEditorValidForAutocomplete(editor)
           && ConfigUtil.isCodyEnabled()
           && CodyEditorFactoryListener.isSelectedEditor(editor))
@@ -118,7 +118,7 @@ public class CodyEditorFactoryListener implements EditorFactoryListener {
       if (CodyEditorUtil.isImplicitAutocompleteEnabledForEditor(this.editor)
           && CodyEditorUtil.isEditorValidForAutocomplete(this.editor)
           && !CommandProcessor.getInstance().isUndoTransparentActionInProgress()) {
-        informAgentAboutEditorChange(this.editor);
+        informAgentAboutEditorChange(this.editor, true);
         int changeOffset = event.getOffset() + event.getNewLength();
         if (this.editor.getCaretModel().getOffset() == changeOffset) {
           InlineAutocompleteTriggerKind requestType =
@@ -186,7 +186,8 @@ public class CodyEditorFactoryListener implements EditorFactoryListener {
   }
 
   // Sends a textDocument/didChange notification to the agent server.
-  public static void informAgentAboutEditorChange(@Nullable Editor editor) {
+  public static void informAgentAboutEditorChange(
+      @Nullable Editor editor, boolean skipCodebaseOnFileOpened) {
     if (editor == null) {
       return;
     }
@@ -211,7 +212,7 @@ public class CodyEditorFactoryListener implements EditorFactoryListener {
             .setSelection(getSelection(editor));
     client.server.textDocumentDidChange(document);
 
-    if (client.codebase == null) {
+    if (client.codebase == null || skipCodebaseOnFileOpened) {
       return;
     }
     client.codebase.onFileOpened(editor.getProject(), file);
