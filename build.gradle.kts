@@ -212,26 +212,56 @@ tasks {
     download(url, destination)
     return destination
   }
+  fun customCodyDir(): File? {
+    val fromEnvironmentVariable = System.getenv("CODY_DIR") ?: return null
+    // "~" works fine from the terminal, however it breaks IntelliJ's run configurations
+    val pathString =
+        if (fromEnvironmentVariable.startsWith("~")) {
+          System.getProperty("user.home") + fromEnvironmentVariable.substring(1)
+        } else {
+          fromEnvironmentVariable
+        }
+    return Paths.get(pathString).toFile()
+  }
+
   fun unzipCody(): File {
-    val fromEnvironmentVariable = System.getenv("CODY_DIR")
-    if (!fromEnvironmentVariable.isNullOrEmpty()) {
-      // "~" works fine from the terminal, however it breaks IntelliJ's run configurations
-      val pathString =
-          if (fromEnvironmentVariable.startsWith("~")) {
-            System.getProperty("user.home") + fromEnvironmentVariable.substring(1)
-          } else {
-            fromEnvironmentVariable
-          }
-      return Paths.get(pathString).toFile()
+    val customDir = customCodyDir()
+    if (customDir != null) {
+      return customDir
     }
+
     val zipFile = downloadCody()
     val destination = githubArchiveCache.resolve("cody").resolve("cody-$codyCommit")
     unzip(zipFile, destination.parentFile)
     return destination
   }
   val buildCodyDir = buildDir.resolve("sourcegraph").resolve("agent")
+  fun isCodyBuildDirCached(): Boolean {
+
+    val children = buildCodyDir.listFiles().map { it.name }
+
+    if (customCodyDir() != null) {
+      return children.isNotEmpty()
+    }
+
+    val expectedBinaries =
+        listOf(
+            "agent-linux-arm64",
+            "agent-linux-x64",
+            "agent-macos-arm64",
+            "agent-macos-x64",
+            "agent-win-x64.exe",
+            "cody-revision.txt")
+    if (children.sorted() != expectedBinaries.sorted()) {
+      return false
+    }
+
+    val revision = buildCodyDir.resolve("cody-revision.txt").readText()
+    return revision == codyCommit
+  }
+
   fun buildCody(): File {
-    if (!isForceAgentBuild && (buildCodyDir.listFiles()?.size ?: 0) > 0) {
+    if (!isForceAgentBuild && isCodyBuildDirCached()) {
       println("Cached $buildCodyDir")
       return buildCodyDir
     }
@@ -246,6 +276,9 @@ tasks {
       workingDir(agentDir)
       commandLine("pnpm", "run", "build-agent-binaries")
       environment("AGENT_EXECUTABLE_TARGET_DIRECTORY", buildCodyDir.toString())
+    }
+    if (customCodyDir() == null) {
+      buildCodyDir.resolve("cody-revision.txt").writeText(codyCommit)
     }
     // If running on Linux in CI, run ldid -S on the macos-arm64 binary so that it can be run on
     // Apple M1 computers. This is required to prevent the following issue
