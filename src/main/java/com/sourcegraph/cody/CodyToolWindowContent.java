@@ -426,7 +426,7 @@ public class CodyToolWindowContent implements UpdatableChat {
               addComponentToChat(messagePanel);
               ensureBlinkingCursorIsNotDisplayed();
               if (shouldDisplayBlinkingCursor) {
-                messagesPanel.add(BlinkingCursorComponent.instance);
+                messagesPanel.add(BlinkingCursorComponent.Companion.getInstance());
               }
             });
   }
@@ -501,8 +501,8 @@ public class CodyToolWindowContent implements UpdatableChat {
 
   private void ensureBlinkingCursorIsNotDisplayed() {
     Arrays.stream(messagesPanel.getComponents())
-        .filter(x -> x == BlinkingCursorComponent.instance)
-        .forEach(x -> messagesPanel.remove(BlinkingCursorComponent.instance));
+        .filter(x -> x == BlinkingCursorComponent.Companion.getInstance())
+        .forEach(x -> messagesPanel.remove(BlinkingCursorComponent.Companion.getInstance()));
   }
 
   @Override

@@ -1,0 +1,36 @@
+package com.sourcegraph.cody.chat
+
+import java.awt.Dimension
+import java.awt.Font
+import java.awt.Graphics
+import javax.swing.JPanel
+import javax.swing.Timer
+
+class BlinkingCursorComponent private constructor() : JPanel() {
+  private var showCursor = true
+  private val timer: Timer =
+      Timer(500) {
+        showCursor = !showCursor
+        repaint()
+      }
+
+  init {
+    timer.start()
+  }
+
+  override fun paintComponent(g: Graphics) {
+    super.paintComponent(g)
+    if (showCursor) {
+      g.font = Font("Monospaced", Font.PLAIN, 12)
+      g.drawString("█", 10, 20)
+    }
+  }
+
+  override fun getPreferredSize(): Dimension {
+    return Dimension(30, 30)
+  }
+
+  companion object {
+    var instance = BlinkingCursorComponent()
+  }
+}
