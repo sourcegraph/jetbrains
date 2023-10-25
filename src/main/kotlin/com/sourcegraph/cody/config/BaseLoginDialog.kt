@@ -64,7 +64,6 @@ abstract class BaseLoginDialog(
     Disposer.register(disposable) { emptyProgressIndicator.cancel() }
 
     startGettingToken()
-    //      HERE FOR SURE
     loginPanel
         .acquireDetailsAndToken(emptyProgressIndicator, authMethod)
         .completionOnEdt(modalityState) { finishGettingToken() }

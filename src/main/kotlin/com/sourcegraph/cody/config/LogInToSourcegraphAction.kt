@@ -20,14 +20,10 @@ class LogInToSourcegraphAction : BaseAddAccountWithTokenAction() {
 
   override fun actionPerformed(e: AnActionEvent) {
     val accountsHost = getCodyAccountsHost(e) ?: return
-    val authMethod =
+    val authMethod: SsoAuthMethod =
         try {
-          when ((e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT) as JButton).text) {
-            "Sign in with GitHub" -> SsoAuthMethod.GITHUB
-            "Sign in with GitLab" -> SsoAuthMethod.GITLAB
-            "Sign in with Google" -> SsoAuthMethod.GOOGLE
-            else -> SsoAuthMethod.DEFAULT
-          }
+          val text = (e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT) as JButton).text
+          SsoAuthMethod.from(text)
         } catch (e: ClassCastException) {
           SsoAuthMethod.DEFAULT
         }

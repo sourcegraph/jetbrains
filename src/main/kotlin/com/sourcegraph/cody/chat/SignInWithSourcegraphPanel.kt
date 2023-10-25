@@ -16,6 +16,7 @@ import com.intellij.ui.components.AnActionLink
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.Icons
+import com.sourcegraph.cody.auth.SsoAuthMethod.*
 import com.sourcegraph.cody.auth.ui.SignInWithEnterpriseInstanceAction
 import com.sourcegraph.cody.config.CodyAccountsHost
 import com.sourcegraph.cody.config.CodyPersistentAccountsHost
@@ -36,11 +37,11 @@ import javax.swing.border.Border
 class SignInWithSourcegraphPanel(private val project: Project) : JPanel() {
 
   private val signInWithGithubButton =
-      UIComponents.createMainButton("Sign in with GitHub", Icons.SignIn.Github)
+      UIComponents.createMainButton(GITHUB.value, Icons.SignIn.Github)
   private val signInWithGitlabButton =
-      UIComponents.createMainButton("Sign in with GitLab", Icons.SignIn.Gitlab)
+      UIComponents.createMainButton(GITLAB.value, Icons.SignIn.Gitlab)
   private val signInWithGoogleButton =
-      UIComponents.createMainButton("Sign in with Google", Icons.SignIn.Google)
+      UIComponents.createMainButton(GOOGLE.value, Icons.SignIn.Google)
 
   init {
     val jEditorPane = createHtmlViewer(UIUtil.getPanelBackground())
