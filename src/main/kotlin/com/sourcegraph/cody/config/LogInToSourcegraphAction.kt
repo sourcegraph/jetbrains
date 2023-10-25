@@ -9,6 +9,7 @@ import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.auth.SsoAuthMethod
 import java.awt.Component
+import java.lang.ClassCastException
 import javax.swing.Action
 import javax.swing.JButton
 import javax.swing.JComponent
@@ -20,11 +21,15 @@ class LogInToSourcegraphAction : BaseAddAccountWithTokenAction() {
   override fun actionPerformed(e: AnActionEvent) {
     val accountsHost = getCodyAccountsHost(e) ?: return
     val authMethod =
-        when ((e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT) as JButton).text) {
-          "Sign in with GitHub" -> SsoAuthMethod.GITHUB
-          "Sign in with GitLab" -> SsoAuthMethod.GITLAB
-          "Sign in with Google" -> SsoAuthMethod.GOOGLE
-          else -> SsoAuthMethod.DEFAULT
+        try {
+          when ((e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT) as JButton).text) {
+            "Sign in with GitHub" -> SsoAuthMethod.GITHUB
+            "Sign in with GitLab" -> SsoAuthMethod.GITLAB
+            "Sign in with Google" -> SsoAuthMethod.GOOGLE
+            else -> SsoAuthMethod.DEFAULT
+          }
+        } catch (e: ClassCastException) {
+          SsoAuthMethod.DEFAULT
         }
     val dialog =
         CodyAuthLoginDialog(
