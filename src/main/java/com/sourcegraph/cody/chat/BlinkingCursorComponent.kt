@@ -8,15 +8,11 @@ import javax.swing.Timer
 
 class BlinkingCursorComponent private constructor() : JPanel() {
   private var showCursor = true
-  private val timer: Timer =
+  val timer: Timer =
       Timer(500) {
         showCursor = !showCursor
         repaint()
       }
-
-  init {
-    timer.start()
-  }
 
   override fun paintComponent(g: Graphics) {
     super.paintComponent(g)
