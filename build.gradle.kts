@@ -236,6 +236,7 @@ tasks {
     return destination
   }
   val buildCodyDir = buildDir.resolve("sourcegraph").resolve("agent")
+  val codyRevisionPath = buildCodyDir.resolve("cody-revision.txt")
   fun isCodyBuildDirCached(): Boolean {
 
     val children = buildCodyDir.listFiles().map { it.name }
@@ -256,8 +257,13 @@ tasks {
       return false
     }
 
-    val revision = buildCodyDir.resolve("cody-revision.txt").readText()
-    return revision == codyCommit
+    val revision = codyRevisionPath.readText()
+    val revisionHasChanged = revision == codyCommit
+    if (revisionHasChanged) {
+      println(
+          "Rebuilding agent binaries because the commit hash $codyCommit does not match the contents of $codyRevisionPath")
+    }
+    return revisionHasChanged
   }
 
   fun buildCody(): File {
@@ -278,7 +284,7 @@ tasks {
       environment("AGENT_EXECUTABLE_TARGET_DIRECTORY", buildCodyDir.toString())
     }
     if (customCodyDir() == null) {
-      buildCodyDir.resolve("cody-revision.txt").writeText(codyCommit)
+      codyRevisionPath.writeText(codyCommit)
     }
     // If running on Linux in CI, run ldid -S on the macos-arm64 binary so that it can be run on
     // Apple M1 computers. This is required to prevent the following issue
