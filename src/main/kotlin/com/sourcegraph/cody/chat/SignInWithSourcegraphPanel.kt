@@ -27,7 +27,6 @@ import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.GridBagLayout
 import java.awt.event.ActionEvent
-import java.awt.event.ActionListener
 import javax.swing.BoxLayout
 import javax.swing.JButton
 import javax.swing.JLabel
@@ -119,10 +118,6 @@ class SignInWithSourcegraphPanel(private val project: Project) : JPanel() {
       }
     }
     return functionGithub
-  }
-
-  fun addMainButtonActionListener(actionListener: ActionListener) {
-    signInWithGithubButton.addActionListener(actionListener)
   }
 
   private fun createPanelWithSignInWithAnEnterpriseInstance(): JPanel {
