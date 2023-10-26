@@ -394,7 +394,8 @@ public class CodyToolWindowContent implements UpdatableChat {
   private void addWelcomeMessage() {
     String welcomeText =
         "Hello! I'm Cody. I can write code and answer questions for you. See [Cody documentation](https://docs.sourcegraph.com/cody) for help and tips.";
-    addMessageToChat(new ChatMessage(Speaker.ASSISTANT, welcomeText), false);
+    addMessageToChat(
+        new ChatMessage(Speaker.ASSISTANT, welcomeText), /* shouldDisplayBlinkingCursor= */ false);
   }
 
   @NotNull
@@ -537,7 +538,7 @@ public class CodyToolWindowContent implements UpdatableChat {
 
     String displayText = XmlStringUtil.escapeString(message);
     ChatMessage humanMessage = new ChatMessage(Speaker.HUMAN, message, displayText);
-    addMessageToChat(humanMessage, true);
+    addMessageToChat(humanMessage, /* shouldDisplayBlinkingCursor= */ true);
     activateChatTab();
 
     // This cannot run on EDT (Event Dispatch Thread) because it may block for a long time.
@@ -568,7 +569,7 @@ public class CodyToolWindowContent implements UpdatableChat {
                         "Cody is not able to reply at the moment. "
                             + "This is a bug, please report an issue to https://github.com/sourcegraph/sourcegraph/issues/new?template=jetbrains.md "
                             + "and include as many details as possible to help troubleshoot the problem."),
-                    false);
+                    /* shouldDisplayBlinkingCursor= */ false);
                 this.finishMessageProcessing();
               }
               GraphQlLogger.logCodyEvent(this.project, "recipe:chat-question", "executed");
