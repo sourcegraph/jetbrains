@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -51,6 +52,7 @@ import javax.swing.event.DocumentEvent
 import javax.swing.plaf.ButtonUI
 import javax.swing.text.DefaultEditorKit
 
+@Service(Service.Level.PROJECT)
 class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private val allContentLayout = CardLayout()
   private val allContentPanel = JPanel(allContentLayout)
