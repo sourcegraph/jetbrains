@@ -9,8 +9,8 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl
 import com.intellij.openapi.util.Disposer
+import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgent.Companion.getClient
-import com.sourcegraph.cody.agent.CodyAgent.Companion.isConnected
 import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.TextDocument
@@ -37,7 +37,7 @@ class CodyEditorFactoryListener : EditorFactoryListener {
       return
     }
     val editor = event.editor
-    informAgentAboutEditorChange(editor, skipCodebaseOnFileOpened = false)
+    Util.informAgentAboutEditorChange(editor, skipCodebaseOnFileOpened = false)
     val project = editor.project
     if (project == null || project.isDisposed) {
       return
@@ -58,10 +58,10 @@ class CodyEditorFactoryListener : EditorFactoryListener {
       if (commandName == VIM_EXIT_INSERT_MODE_ACTION) {
         return
       }
-      informAgentAboutEditorChange(e.editor)
+      Util.informAgentAboutEditorChange(e.editor)
       val suggestions = instance
       val editor = e.editor
-      if (isEditorValidForAutocomplete(editor) && isSelectedEditor(editor)) {
+      if (isEditorValidForAutocomplete(editor) && Util.isSelectedEditor(editor)) {
         suggestions.clearAutocompleteSuggestions(e.editor)
         if (isImplicitAutocompleteEnabledForEditor(editor))
             suggestions.triggerAutocomplete(
@@ -76,15 +76,15 @@ class CodyEditorFactoryListener : EditorFactoryListener {
         return
       }
       val editor = e.editor
-      informAgentAboutEditorChange(editor)
-      if (isEditorValidForAutocomplete(editor) && isCodyEnabled() && isSelectedEditor(editor))
+      Util.informAgentAboutEditorChange(editor)
+      if (isEditorValidForAutocomplete(editor) && isCodyEnabled() && Util.isSelectedEditor(editor))
           instance.clearAutocompleteSuggestions(editor)
     }
   }
 
   private class CodyDocumentListener(private val editor: Editor) : BulkAwareDocumentListener {
     override fun documentChangedNonBulk(event: DocumentEvent) {
-      if (!isSelectedEditor(editor)) {
+      if (!Util.isSelectedEditor(editor)) {
         return
       }
       val completions = instance
@@ -92,7 +92,7 @@ class CodyEditorFactoryListener : EditorFactoryListener {
       if (isImplicitAutocompleteEnabledForEditor(editor) &&
           isEditorValidForAutocomplete(editor) &&
           !CommandProcessor.getInstance().isUndoTransparentActionInProgress) {
-        informAgentAboutEditorChange(editor)
+        Util.informAgentAboutEditorChange(editor)
         val changeOffset = event.offset + event.newLength
         if (editor.caretModel.offset == changeOffset) {
           completions.triggerAutocomplete(
@@ -102,12 +102,12 @@ class CodyEditorFactoryListener : EditorFactoryListener {
     }
   }
 
-  companion object {
+  object Util {
     /**
      * Returns true if this editor is currently open and focused by the user. Returns true if this
      * editor is in a separate tab or not focused/selected by the user.
      */
-    private fun isSelectedEditor(editor: Editor?): Boolean {
+    internal fun isSelectedEditor(editor: Editor?): Boolean {
       if (editor == null) {
         return false
       }
@@ -140,7 +140,7 @@ class CodyEditorFactoryListener : EditorFactoryListener {
                     .setCharacter(selectionEndPosition.column))
       }
       val carets = editor.caretModel.allCarets
-      if (!carets.isEmpty()) {
+      if (carets.isNotEmpty()) {
         val caret = carets[0]
         val position =
             Position()
@@ -154,13 +154,7 @@ class CodyEditorFactoryListener : EditorFactoryListener {
 
     // Sends a textDocument/didChange notification to the agent server.
     fun informAgentAboutEditorChange(editor: Editor?, skipCodebaseOnFileOpened: Boolean = true) {
-      if (editor == null) {
-        return
-      }
-      if (editor.project == null) {
-        return
-      }
-      if (!isConnected(editor.project!!)) {
+      if (editor?.project?.let(CodyAgent.Companion::isConnected) != true) {
         return
       }
       val client = getClient(editor.project!!)
