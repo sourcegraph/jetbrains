@@ -51,7 +51,7 @@ public class Chat {
                                     contextFile.revision)))
                     .collect(Collectors.toList());
             chat.displayUsedContext(contextMessages);
-            chat.addMessageToChat(chatMessage, false);
+            chat.addMessageToChat(chatMessage);
           } else {
             chat.updateLastMessage(chatMessage);
           }
