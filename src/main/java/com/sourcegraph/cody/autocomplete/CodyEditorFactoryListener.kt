@@ -15,7 +15,6 @@ import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.TextDocument
 import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager.Companion.instance
-import com.sourcegraph.cody.vscode.InlineAutocompleteTriggerKind
 import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil.VIM_EXIT_INSERT_MODE_ACTION
@@ -38,7 +37,7 @@ class CodyEditorFactoryListener : EditorFactoryListener {
       return
     }
     val editor = event.editor
-    informAgentAboutEditorChange(editor, skipCodebaseOnFileOpened=false)
+    informAgentAboutEditorChange(editor, skipCodebaseOnFileOpened = false)
     val project = editor.project
     if (project == null || project.isDisposed) {
       return
@@ -96,9 +95,6 @@ class CodyEditorFactoryListener : EditorFactoryListener {
         informAgentAboutEditorChange(editor)
         val changeOffset = event.offset + event.newLength
         if (editor.caretModel.offset == changeOffset) {
-          val requestType =
-              if (event.oldLength != event.newLength) InlineAutocompleteTriggerKind.Invoke
-              else InlineAutocompleteTriggerKind.Automatic
           completions.triggerAutocomplete(
               editor, changeOffset, InlineCompletionTriggerKind.AUTOMATIC)
         }
