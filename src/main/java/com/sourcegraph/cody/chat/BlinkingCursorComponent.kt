@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.chat
 
+import com.intellij.util.ui.UIUtil
 import java.awt.Dimension
 import java.awt.Font
 import java.awt.Graphics
@@ -19,6 +20,8 @@ class BlinkingCursorComponent private constructor() : JPanel() {
     if (showCursor) {
       g.font = Font("Monospaced", Font.PLAIN, 12)
       g.drawString("█", 10, 20)
+      g.color = UIUtil.getActiveTextColor()
+      background = UIUtil.getPanelBackground()
     }
   }
 
