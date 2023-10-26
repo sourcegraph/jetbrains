@@ -45,9 +45,7 @@ import java.util.*
 import java.util.stream.Collectors
 import javax.swing.*
 import javax.swing.KeyStroke.*
-import javax.swing.border.Border
 import javax.swing.border.EmptyBorder
-import javax.swing.event.ChangeEvent
 import javax.swing.event.DocumentEvent
 import javax.swing.plaf.ButtonUI
 import javax.swing.text.DefaultEditorKit
@@ -75,20 +73,20 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     val contentPanel = JPanel()
     tabbedPane.insertTab("Chat", null, contentPanel, null, CHAT_TAB_INDEX)
     recipesPanel = JBPanelWithEmptyText(GridLayout(0, 1))
-    recipesPanel.setLayout(BoxLayout(recipesPanel, BoxLayout.Y_AXIS))
+    recipesPanel.layout = BoxLayout(recipesPanel, BoxLayout.Y_AXIS)
     tabbedPane.insertTab("Commands", null, recipesPanel, null, RECIPES_TAB_INDEX)
 
     // Initiate filling recipes panel in the background
     refreshRecipes()
 
     // Chat panel
-    messagesPanel.setLayout(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true))
+    messagesPanel.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true)
     val chatPanel = ChatScrollPane(messagesPanel)
 
     // Controls panel
     val controlsPanel = JPanel()
-    controlsPanel.setLayout(BorderLayout())
-    controlsPanel.setBorder(EmptyBorder(JBUI.insets(0, 14, 14, 14)))
+    controlsPanel.layout = BorderLayout()
+    controlsPanel.border = EmptyBorder(JBUI.insets(0, 14, 14, 14))
     val promptPanel = JPanel(BorderLayout())
     sendButton = createSendButton(project)
     val autoGrowingTextArea = AutoGrowingTextArea(3, 9, promptPanel)
@@ -97,9 +95,9 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     val JUST_ENTER = KeyboardShortcut(getKeyStroke(KeyEvent.VK_ENTER, 0), null)
     val UP = KeyboardShortcut(getKeyStroke(KeyEvent.VK_UP, 0), null)
     val DOWN = KeyboardShortcut(getKeyStroke(KeyEvent.VK_DOWN, 0), null)
-    val DEFAULT_SUBMIT_ACTION_SHORTCUT: ShortcutSet = CustomShortcutSet(JUST_ENTER)
-    val POP_UPPER_MESSAGE_ACTION_SHORTCUT: ShortcutSet = CustomShortcutSet(UP)
-    val POP_LOWER_MESSAGE_ACTION_SHORTCUT: ShortcutSet = CustomShortcutSet(DOWN)
+    val DEFAULT_SUBMIT_ACTION_SHORTCUT = CustomShortcutSet(JUST_ENTER)
+    val POP_UPPER_MESSAGE_ACTION_SHORTCUT = CustomShortcutSet(UP)
+    val POP_LOWER_MESSAGE_ACTION_SHORTCUT = CustomShortcutSet(DOWN)
     val upperMessageAction: AnAction =
         object : DumbAwareAction() {
           override fun actionPerformed(e: AnActionEvent) {
@@ -146,41 +144,41 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     promptInput.document.addDocumentListener(
         object : DocumentAdapter() {
           override fun textChanged(e: DocumentEvent) {
-            sendButton.setEnabled(promptInput.getText().isNotEmpty())
+            sendButton.isEnabled = promptInput.getText().isNotEmpty()
           }
         })
     promptPanel.add(autoGrowingTextArea.scrollPane, BorderLayout.CENTER)
-    promptPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0))
+    promptPanel.border = BorderFactory.createEmptyBorder(0, 0, 10, 0)
     val stopGeneratingButtonPanel = JPanel(FlowLayout(FlowLayout.CENTER, 0, 5))
     stopGeneratingButtonPanel.preferredSize =
         Dimension(Short.MAX_VALUE.toInt(), stopGeneratingButton.getPreferredSize().height + 10)
-    stopGeneratingButton.addActionListener { e: ActionEvent? ->
+    stopGeneratingButton.addActionListener {
       inProgressChat.abort()
       stopGeneratingButton.isVisible = false
-      sendButton.setEnabled(true)
+      sendButton.isEnabled = true
     }
     stopGeneratingButton.isVisible = false
     stopGeneratingButtonPanel.add(stopGeneratingButton)
-    stopGeneratingButtonPanel.setOpaque(false)
+    stopGeneratingButtonPanel.isOpaque = false
     controlsPanel.add(promptPanel, BorderLayout.NORTH)
     controlsPanel.add(sendButton, BorderLayout.EAST)
     val lowerPanel = JPanel(BorderLayout())
     val borderColor = ColorUtil.brighter(UIUtil.getPanelBackground(), 3)
-    val topBorder: Border = BorderFactory.createMatteBorder(1, 0, 0, 0, borderColor)
-    lowerPanel.setBorder(topBorder)
-    lowerPanel.setLayout(BoxLayout(lowerPanel, BoxLayout.Y_AXIS))
+    val topBorder = BorderFactory.createMatteBorder(1, 0, 0, 0, borderColor)
+    lowerPanel.border = topBorder
+    lowerPanel.layout = BoxLayout(lowerPanel, BoxLayout.Y_AXIS)
     lowerPanel.add(stopGeneratingButtonPanel)
     lowerPanel.add(controlsPanel)
     embeddingStatusView = EmbeddingStatusView(project)
-    embeddingStatusView.setBorder(topBorder)
+    embeddingStatusView.border = topBorder
     lowerPanel.add(embeddingStatusView)
 
     // Main content panel
-    contentPanel.setLayout(BorderLayout(0, 0))
-    contentPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0))
+    contentPanel.layout = BorderLayout(0, 0)
+    contentPanel.border = BorderFactory.createEmptyBorder(0, 0, 10, 0)
     contentPanel.add(chatPanel, BorderLayout.CENTER)
     contentPanel.add(lowerPanel, BorderLayout.SOUTH)
-    tabbedPane.addChangeListener { e: ChangeEvent? -> focusPromptInput() }
+    tabbedPane.addChangeListener { focusPromptInput() }
     val singInWithSourcegraphPanel = SignInWithSourcegraphPanel(project)
     allContentPanel.add(tabbedPane, "tabbedPane", CHAT_PANEL_INDEX)
     allContentPanel.add(
@@ -194,7 +192,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   @RequiresEdt
   fun refreshRecipes() {
     recipesPanel.removeAll()
-    recipesPanel.emptyText.setText("Loading recipes...")
+    recipesPanel.emptyText.text = "Loading recipes..."
     recipesPanel.revalidate()
     recipesPanel.repaint()
     val server = getServer(project)
@@ -218,8 +216,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   @RequiresEdt
   private fun setRecipesPanelError() {
     val emptyText = recipesPanel.emptyText
-    emptyText.setText(
-        "Error fetching recipes. Check your connection. If the problem persists, please contact support.")
+    emptyText.text
+    "Error fetching recipes. Check your connection. If the problem persists, please contact support."
     emptyText.appendLine(
         "Retry",
         SimpleTextAttributes(
@@ -252,7 +250,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
         continue
       }
       val recipeButton = createRecipeButton(recipe.title!!)
-      recipeButton.addActionListener { e: ActionEvent? ->
+      recipeButton.addActionListener {
         GraphQlLogger.logCodyEvent(project, "recipe:" + recipe.id, "clicked")
         sendMessage(project, recipe.title!!, recipe.id!!)
       }
@@ -296,8 +294,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
     val activeAccount = codyAuthenticationManager.getActiveAccount(project)
     if (!CodyApplicationSettings.instance.isOnboardingGuidanceDismissed) {
-      val displayName =
-          Optional.ofNullable(activeAccount).map(CodyAccount::displayName).orElse(null)
+      val displayName = activeAccount?.let(CodyAccount::displayName)
       val newCodyOnboardingGuidancePanel = CodyOnboardingGuidancePanel(displayName)
       newCodyOnboardingGuidancePanel.addMainButtonActionListener {
         CodyApplicationSettings.instance.isOnboardingGuidanceDismissed = true
@@ -305,8 +302,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
         refreshRecipes()
       }
       if (displayName != null) {
-        if (codyOnboardingGuidancePanel != null &&
-            displayName != codyOnboardingGuidancePanel!!.originalDisplayName)
+        if (codyOnboardingGuidancePanel?.originalDisplayName?.let { it != displayName } == true)
             try {
               allContentPanel.remove(ONBOARDING_PANEL_INDEX)
             } catch (ex: Throwable) {
@@ -325,7 +321,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
   private fun createRecipeButton(text: String): JButton {
     val button = JButton(text)
-    button.setAlignmentX(Component.CENTER_ALIGNMENT)
+    button.alignmentX = Component.CENTER_ALIGNMENT
     button.maximumSize = Dimension(Int.MAX_VALUE, button.getPreferredSize().height)
     val buttonUI = DarculaButtonUI.createUI(button) as ButtonUI
     button.setUI(buttonUI)
@@ -367,9 +363,9 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
   }
 
-  fun addComponentToChat(messageContent: JPanel) {
+  private fun addComponentToChat(messageContent: JPanel) {
     val wrapperPanel = JPanel()
-    wrapperPanel.setLayout(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, false))
+    wrapperPanel.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, false)
     // Chat message
     wrapperPanel.add(messageContent, VerticalFlowLayout.TOP)
     messagesPanel.add(wrapperPanel)
@@ -378,7 +374,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   }
 
   override fun activateChatTab() {
-    tabbedPane.setSelectedIndex(CHAT_TAB_INDEX)
+    tabbedPane.selectedIndex = CHAT_TAB_INDEX
   }
 
   @Synchronized
@@ -400,14 +396,14 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     inProgressChat = CancellationToken()
     ApplicationManager.getApplication().invokeLater {
       stopGeneratingButton.isVisible = true
-      sendButton.setEnabled(false)
+      sendButton.isEnabled = false
     }
   }
 
   override fun finishMessageProcessing() {
     ApplicationManager.getApplication().invokeLater {
       stopGeneratingButton.isVisible = false
-      sendButton.setEnabled(true)
+      sendButton.isEnabled = true
       ensureBlinkingCursorIsNotDisplayed()
     }
   }
@@ -415,7 +411,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   override fun resetConversation() {
     ApplicationManager.getApplication().invokeLater {
       stopGeneratingButton.isVisible = false
-      sendButton.setEnabled(true)
+      sendButton.isEnabled = true
       messagesPanel.removeAll()
       addWelcomeMessage()
       messagesPanel.revalidate()
@@ -504,11 +500,11 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   val contentPanel: JComponent
     get() = allContentPanel
 
-  fun focusPromptInput() {
+  private fun focusPromptInput() {
     if (tabbedPane.selectedIndex == CHAT_TAB_INDEX) {
       promptInput.requestFocusInWindow()
       val textLength = promptInput.document.length
-      promptInput.setCaretPosition(textLength)
+      promptInput.caretPosition = textLength
     }
   }
 
