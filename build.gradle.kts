@@ -28,6 +28,7 @@ val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") 
 
 plugins {
   id("java")
+  id("idea")
   // Dependencies are locked at this version to work with JDK 11 on CI.
   id("org.jetbrains.kotlin.jvm") version "1.9.10"
   id("org.jetbrains.intellij") version "1.15.0"
@@ -52,11 +53,27 @@ intellij {
   updateSinceUntilBuild.set(false)
 }
 
+sourceSets {
+  create("testIntegration") {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+  }
+}
+
+val testIntegrationImplementation: Configuration by
+    configurations.getting {
+      extendsFrom(configurations.implementation.get())
+      extendsFrom(configurations.testImplementation.get())
+    }
+
+idea { module { testSources.from(sourceSets["testIntegration"].kotlin.srcDirs) } }
+
 dependencies {
   implementation("org.commonmark:commonmark:0.21.0")
   implementation("org.commonmark:commonmark-ext-gfm-tables:0.21.0")
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.21.0")
   implementation("com.googlecode.java-diff-utils:diffutils:1.3.0")
+  testIntegrationImplementation(sourceSets.main.get().output)
 }
 
 spotless {
@@ -357,6 +374,18 @@ tasks {
     certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
     privateKey.set(System.getenv("PRIVATE_KEY"))
     password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
+  }
+
+  task<Test>("testIntegration") {
+    doFirst {
+      systemProperty("cody-agent.directory", buildCodyDir.parent)
+      require(System.getenv("SRC_ACCESS_TOKEN") != null) {
+        "Missing SRC_ACCESS_TOKEN environment variable"
+      }
+    }
+    group = "verification"
+    testClassesDirs = sourceSets["testIntegration"].output.classesDirs
+    classpath = sourceSets["testIntegration"].runtimeClasspath
   }
 
   publishPlugin {

@@ -1,25 +1,25 @@
 package com.sourcegraph.cody.config
 
 import com.intellij.openapi.project.Project
-import com.sourcegraph.config.ConfigUtil
+import com.sourcegraph.config.ConfigUtil.DOTCOM_URL
 
 data class ServerAuth(
     val instanceUrl: String,
-    val accessToken: String,
-    val customRequestHeaders: String
+    val accessToken: String = "",
+    val customRequestHeaders: String = ""
 )
 
 object ServerAuthLoader {
 
   @JvmStatic
   fun loadServerAuth(project: Project): ServerAuth {
-    val codyAuthenticationManager = CodyAuthenticationManager.instance
-    val defaultAccount = codyAuthenticationManager.getActiveAccount(project)
+    val authManager = CodyAuthenticationManager.instance
+    val defaultAccount = authManager.getActiveAccount(project)
     if (defaultAccount != null) {
-      val accessToken = codyAuthenticationManager.getTokenForAccount(defaultAccount) ?: ""
+      val token = authManager.getTokenForAccount(defaultAccount) ?: ""
       return ServerAuth(
-          defaultAccount.server.url, accessToken, defaultAccount.server.customRequestHeaders)
+          defaultAccount.server.url, token, defaultAccount.server.customRequestHeaders)
     }
-    return ServerAuth(ConfigUtil.DOTCOM_URL, "", "")
+    return ServerAuth(DOTCOM_URL)
   }
 }

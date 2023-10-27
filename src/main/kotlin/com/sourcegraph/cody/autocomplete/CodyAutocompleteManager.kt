@@ -57,6 +57,7 @@ import java.util.stream.Collectors
 class CodyAutocompleteManager {
   private val logger = Logger.getInstance(CodyAutocompleteManager::class.java)
   private val currentJob = AtomicReference(CancellationToken())
+  private var isAsync = true
   var currentAutocompleteTelemetry: AutocompleteTelemetry? = null
 
   /**
@@ -168,6 +169,7 @@ class CodyAutocompleteManager {
     val autocompleteRequest =
         triggerAutocompleteAsync(
             project, editor, offset, textDocument, triggerKind, cancellationToken)
+    if (!isAsync) autocompleteRequest.join()
     cancellationToken.onCancellationRequested { autocompleteRequest.cancel(true) }
   }
 
@@ -330,6 +332,10 @@ class CodyAutocompleteManager {
   private fun cancelCurrentJob(project: Project?) {
     currentJob.get().abort()
     resetApplication(project!!)
+  }
+
+  fun disableAsyncAutocomplete() {
+    isAsync = false
   }
 
   companion object {
