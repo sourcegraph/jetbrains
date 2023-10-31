@@ -43,7 +43,9 @@ class CodyAutocompleteStatusService : CodyAutocompleteStatusListener, Disposable
           val service =
               ApplicationManager.getApplication().getService(CodyAccountManager::class.java)
           val token =
-              CodyAuthenticationManager.instance.getActiveAccount(project)?.let(service::findCredentials)
+              CodyAuthenticationManager.instance
+                  .getActiveAccount(project)
+                  ?.let(service::findCredentials)
           status =
               if (!ConfigUtil.isCodyEnabled()) {
                 CodyAutocompleteStatus.CodyDisabled
