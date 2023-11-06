@@ -82,6 +82,40 @@ This workflow is not automated yet. Our goal is to publish stable releases by pr
 manually tested. What we're missing is a script to download the zip file of a nightly release, correct the version
 to be non-nightly and then upload it to the JetBrains Marketplace.
 
+## Testing
+
+### Unit tests
+
+```shell
+./gradlew test
+```
+    
+### Integration tests
+
+```shell
+./gradlew testIntegration
+```
+
+Integration tests require an environmental variable with valid `SRC_ACCESS_TOKEN`. Otherwise, they will not start.
+
+### UI tests
+
+UI tests are based on [intellij-ui-test-robot](https://github.com/JetBrains/intellij-ui-test-robot).
+
+First, launch the IDE:
+
+```shell
+./gradlew runIdeForUiTests
+```
+
+Next, wait until the IDE is launched. When everything is ready to use: 
+
+```shell
+./gradlew testUI
+```
+
+During the tests, mouse move and keyboard clicking will be simulated, so it is important not to interfere.
+
 ## Enabling web view debugging
 
 Parts of this extension rely on the [JCEF](https://plugins.jetbrains.com/docs/intellij/jcef.html) web view features
