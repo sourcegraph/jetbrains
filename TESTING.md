@@ -10,7 +10,12 @@
   - [ ] Infilling autocomplete
   - [ ] Cycle through autocomplete
 - Commands
-  - [ ] TODO
+  - [ ] Explain Selected Code (Detailed)
+  - [ ] Explain Selected Code (High Level)
+  - [ ] Generate Docstring
+  - [ ] Generate Unit Test
+  - [ ] Improve Variable Names
+  - [ ] Smell Code
 - Chat
   - [ ] TODO
 
@@ -125,7 +130,8 @@ TODO
 #### Expected behaviour
 
 * User is automatically switched to `Chat` tab.
-* Chat responds with generated documentation similar to this:
+* Language has been identified as Java, so the documentation syntax is also in that language (see: `@param` and `@return` tags).
+* Chat responds with generated docstring, similar to this:
     ```java
     /*
      * Returns a greeting string with the provided name.
@@ -137,7 +143,25 @@ TODO
 
 ### Generate Unit Test
 
-TODO
+1. Paste following Java function:
+    ```java
+    public static String greet(String name) {
+        return "Hello, " + name + "!";
+    }
+    ```
+2. Select function and use `Cody | Commands | Generate Unit Test`.
+
+#### Expected behaviour
+
+* User is automatically switched to `Chat` tab.
+* Chat responds with generated documentation similar to this:
+    ```java
+    @Test
+    public void testGreet() {
+      String result = greet("Alice");
+      assertEquals("Hello, Alice!", result);
+    }
+    ```
 
 ### Improve Variable Names
 
@@ -154,10 +178,22 @@ TODO
     ```java
     String[] fruits = new String[]{"apple", "banana", "peach"};
     ```
+* Note that variable `var0` has been changed to `fruits`.
 
 ### Smell Code
 
-TODO
+1. Paste following Java code:
+    ```java
+    public static String greet(String name) {
+        return "Hello, " + name + "!";
+    }
+    ```
+2. Select line and use `Cody | Commands | Smell Code`
+
+#### Expected behaviour
+
+* User is automatically switched to `Chat` tab.
+* Chat responds with **potential issues** and **suggestions** like missing nullability checks or input sanitization (response may vary).
 
 ## Chat
 
