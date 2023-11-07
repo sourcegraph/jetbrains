@@ -32,6 +32,6 @@ object SourcegraphApiRequests {
                     return response.handleBody { SourcegraphApiContentHelper.loadImage(it) }
                   }
                 }
-                .withOperationName("get profile avatar"))
+                .apply { operationName = "get profile avatar" })
   }
 }

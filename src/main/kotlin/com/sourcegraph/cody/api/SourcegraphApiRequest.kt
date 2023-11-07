@@ -8,14 +8,9 @@ import java.io.IOException
 sealed class SourcegraphApiRequest<out T>(val url: String) {
   var operationName: String? = null
 
-  private val headers = mutableMapOf<String, String>()
-  val additionalHeaders: Map<String, String>
-    get() = headers
+  val additionalHeaders = mutableMapOf<String, String>()
 
   @Throws(IOException::class) abstract fun extractResult(response: SourcegraphApiResponse): T
-
-  fun withOperationName(name: String): SourcegraphApiRequest<T> =
-      this.apply { operationName = name }
 
   abstract class Get<T>(url: String) : SourcegraphApiRequest<T>(url)
 
