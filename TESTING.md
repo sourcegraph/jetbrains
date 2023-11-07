@@ -48,7 +48,7 @@ Expected behaviour:
 
 1. Paste following Java code:
     ```
-    public void bubblesort(int[] array) {
+    public void bubbleSort(int[] array) {
     ```
 2. Place the cursor at the end of the line.
 3. Trigger autocompletion with <kbd>Alt</kbd> + <kbd>/</kbd>.
@@ -73,9 +73,16 @@ Expected behaviour:
 
 ### Cycle through autocomplete
 
-TODO <kbd>Alt</kbd> + <kbd>[</kbd>
+1. Paste following Java code:
+    ```
+    public void bubbleSort(int[] array) {
+    ```
+2. Place the cursor at the end of the line.
+3. Cycle forward with <kbd>Alt</kbd> + <kbd>]</kbd> or backward with <kbd>Alt</kbd> + <kbd>[</kbd>.
 
-TODO <kbd>Alt</kbd> + <kbd>]</kbd>
+4. Expected behaviour:
+
+![cycle_through_autocomplete.gif](docs/cycle_through_autocomplete.gif)
 
 ## Commands
 
