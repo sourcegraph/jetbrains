@@ -47,7 +47,8 @@ class CheckUpdatesTask(project: Project) :
         when (e) {
           is IllegalAccessException,
           is NoSuchMethodException,
-          is InvocationTargetException -> {
+          is InvocationTargetException,
+          is ClassCastException -> {
             logger.warn(e)
           }
           else -> throw e

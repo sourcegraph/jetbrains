@@ -70,7 +70,8 @@ class AccountConfigurable(val project: Project) :
               .bindItem({ channel }, { channel = it!! })
         }
         row {
-          checkBox("Check for plugin updates").bindSelected(settingsModel::shouldCheckForUpdates)
+          checkBox("Automatically check for plugin updates")
+              .bindSelected(settingsModel::shouldCheckForUpdates)
         }
       }
     }
