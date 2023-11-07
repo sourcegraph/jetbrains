@@ -1,37 +1,45 @@
 ## Checklist
 
 - Onboarding
-  - [ ] Sign in with GitHub
-  - [ ] Sign in with GitLab
-  - [ ] Sign in with Google
+  - [ ] [Sign in with GitHub](#sign-in-with-github)
+  - [ ] Sign in with GitLab (TODO)
+  - [ ] Sign in with Google (TODO)
+  - [ ] Sign in with an Enterprise Instance (TODO)
 - Autocomplete
-  - [ ] Single-line autocomplete
-  - [ ] Multi-line autocomplete
-  - [ ] Infilling autocomplete
-  - [ ] Cycle through autocomplete
+  - [ ] [Single-line autocomplete](#single-line-autocomplete)
+  - [ ] [Multi-line autocomplete](#multi-line-autocomplete)
+  - [ ] [Infilling autocomplete](#infilling-autocomplete)
+  - [ ] [Cycle through autocomplete](#cycle-through-autocomplete)
 - Commands
-  - [ ] Explain Selected Code (Detailed)
-  - [ ] Explain Selected Code (High Level)
-  - [ ] Generate Docstring
-  - [ ] Generate Unit Test
-  - [ ] Improve Variable Names
-  - [ ] Smell Code
+  - [ ] [General commands availability](#general-commands-availability)
+  - [ ] [Explain Selected Code (Detailed)](#explain-selected-code-detailed)
+  - [ ] [Explain Selected Code (High Level)](#explain-selected-code-high-level)
+  - [ ] [Generate Docstring](#generate-docstring)
+  - [ ] [Generate Unit Test](#generate-unit-test)
+  - [ ] [Improve Variable Names](#improve-variable-names)
+  - [ ] [Smell Code](#smell-code)
 - Chat
-  - [ ] TODO
+  - [ ] [Autoscroll to latest message](#autoscroll-to-latest-message)
+  - [ ] [Read chat history without interruptions](#read-chat-history-without-interruptions)
+- Other
+  - [ ] Search Selection on Sourcegraph Web (TODO)
+  - [ ] [Automatic repository recognition](#automatic-repository-recognition)
+  - [ ] [Persistent custom repository](#persistent-custom-repository)
 
 ## Onboarding
 
 ### Sign in with GitHub
 
-TODO
+Prerequisite: You have to **sign out** from all existing accounts.
 
-### Sign in with GitLab
+1. Navigate to `Cody` toolbar and use `Sign in with GitHub`.
+2. Browser is launched automatically and IDE freezes with spinning `Login to Sourcegraph` dialog.
+3. Authorize with valid account.
 
-TODO
+#### Expected behaviour
 
-### Sign in with Google
-
-TODO
+* IDE should receive valid token automatically.
+* `Commands` and `Chat` tabs are ready to use.
 
 ## Autocomplete
 
@@ -90,6 +98,14 @@ TODO
 ![cycle_through_autocomplete.gif](docs/cycle_through_autocomplete.gif)
 
 ## Commands
+
+### General commands availability
+
+1. Navigate to `Cody` toolbar and open `Commands`.
+
+#### Expected behaviour
+
+* List of commands is immediately available after the toolbar is displayed. **No refresh is required.**
 
 ### Explain Selected Code (Detailed)
 
@@ -174,11 +190,10 @@ TODO
 #### Expected behaviour
 
 * User is automatically switched to `Chat` tab.
-* Chat responds with generated documentation similar to this:
+* Chat responds with code similar to this:
     ```java
     String[] fruits = new String[]{"apple", "banana", "peach"};
     ```
-* Note that variable `var0` has been changed to `fruits`.
 
 ### Smell Code
 
@@ -197,4 +212,47 @@ TODO
 
 ## Chat
 
-TODO
+### Autoscroll to latest message
+
+1. Fill the `Chat` with messages until the scrollbar appears.
+2. Scroll all the way down.
+3. Add new message.
+
+#### Expected behaviour
+
+* Scrollbar is **automatically** scrolled to the bottom. New message tokens are visible.
+
+### Read chat history without interruptions
+
+1. Fill the `Chat` with messages until the scrollbar appears.
+2. Scroll up. Latest message should be not visible or partially visible.
+3. Add new message.
+
+#### Expected behaviour
+
+* Scrollbar is **not moving automatically** while new message tokens are generated. You can easily read older messages without interruptions and scrolling is smooth.
+
+## Other
+
+### Automatic repository recognition
+
+1. Open project with enabled Git VCS. This repository must be publicly available on GitHub.
+2. Open to `Cody` toolbar.
+3. Click on repository button to open `Context Selection` dialog. Button is placed inside `Cody` toolbar on left, bottom corner.
+
+#### Expected behaviour
+
+* Repository `Git URL` has been successfully inferred from VCS history. Value is similar to `github.com/sourcegraph/jetbrains`.
+
+### Persistent custom repository
+
+1. Open project with enabled Git VCS. This repository must be publicly available on GitHub.
+2. Open to `Cody` toolbar.
+3. Click on repository button to open `Context Selection` dialog.
+4. Change `Git URL` to a different, valid Git URL repository.
+5. Click `OK` button and restart IDE.
+6. Navigate again to `Context Selection`.
+
+#### Expected behaviour
+
+* Repository `Git URL` is same as before restart.
