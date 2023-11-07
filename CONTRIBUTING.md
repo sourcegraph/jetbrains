@@ -67,6 +67,8 @@ Take the steps below _before_ [running JetBrains plugin with agent](#developing-
 
 ## Publishing a New Release
 
+We plan to make releases every other Monday. Nightly version can be released as often as there is a need.
+
 ### 1. Push a Git Tag
 
 First, choose whether to publish a new version of nightly or stable. 
