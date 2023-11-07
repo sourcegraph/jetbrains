@@ -22,7 +22,7 @@ class PromptPanel(
     project: Project,
     chatMessageHistory: CodyChatMessageHistory,
     onSendMessageAction: (Project) -> Unit,
-    onTextChanged: (Boolean) -> Unit
+    onTextChangedSetButtonEnabled: (Boolean) -> Unit
 ) : JPanel(BorderLayout()) {
 
   private val autoGrowingTextArea = AutoGrowingTextArea(3, 9, this)
@@ -77,7 +77,7 @@ class PromptPanel(
         object : DocumentAdapter() {
           override fun textChanged(e: DocumentEvent) {
             // extract method instead of passing sendActionPanel
-            onTextChanged(promptInput.getText().isNotEmpty())
+            onTextChangedSetButtonEnabled(promptInput.getText().isNotEmpty())
           }
         })
     add(autoGrowingTextArea.scrollPane, BorderLayout.CENTER)

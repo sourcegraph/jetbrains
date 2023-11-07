@@ -78,7 +78,11 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     // Controls panel
     sendButton = createSendButton(project)
     val promptPanel =
-        PromptPanel(project, chatMessageHistory, ::sendChatMessage) { sendButton.isEnabled = it }
+        PromptPanel(
+            project,
+            chatMessageHistory,
+            ::sendChatMessage,
+            onTextChangedSetButtonEnabled = { v -> sendButton.isEnabled = v })
     promptInput = promptPanel.promptInput
     val stopGeneratingButtonPanel = JPanel(FlowLayout(FlowLayout.CENTER, 0, 5))
     val controlsPanel = ControlsPanel(promptPanel, sendButton)
