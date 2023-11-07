@@ -2,9 +2,8 @@
 
 - Onboarding
   - [ ] [Sign in with GitHub](#sign-in-with-github)
-  - [ ] Sign in with GitLab (TODO)
-  - [ ] Sign in with Google (TODO)
-  - [ ] Sign in with an Enterprise Instance (TODO)
+  - [ ] [Sign in with GitLab](#sign-in-with-gitlab)
+  - [ ] [Sign in with Google](#sign-in-with-google)
 - Autocomplete
   - [ ] [Single-line autocomplete](#single-line-autocomplete)
   - [ ] [Multi-line autocomplete](#multi-line-autocomplete)
@@ -22,7 +21,7 @@
   - [ ] [Autoscroll to latest message](#autoscroll-to-latest-message)
   - [ ] [Read chat history without interruptions](#read-chat-history-without-interruptions)
 - Other
-  - [ ] Search Selection on Sourcegraph Web (TODO)
+  - [ ] [Search Selection on Sourcegraph Web](#search-selection-on-sourcegraph-web)
   - [ ] [Automatic repository recognition](#automatic-repository-recognition)
   - [ ] [Persistent custom repository](#persistent-custom-repository)
 
@@ -40,6 +39,14 @@ Prerequisite: You have to **sign out** from all existing accounts.
 
 * IDE should receive valid token automatically.
 * `Commands` and `Chat` tabs are ready to use.
+
+### Sign in with GitLab
+
+Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-github), and the authorization is also done through the browser. Expected behaviour is identical.
+
+### Sign in with Google
+
+Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-github), and the authorization is also done through the browser. Expected behaviour is identical.
 
 ## Autocomplete
 
@@ -233,6 +240,19 @@ Prerequisite: You have to **sign out** from all existing accounts.
 * Scrollbar is **not moving automatically** while new message tokens are generated. You can easily read older messages without interruptions and scrolling is smooth.
 
 ## Other
+
+### Search Selection on Sourcegraph Web
+
+1. Paste following Java code:
+    ```java
+    System.out.println("Hello, Cody!");
+    ```
+2. Select `System.out.println` phrase.
+3. Right-click on selection to open context menu and navigate to `Sourcegraph | Search Selection on Sourcegraph Web`.
+
+#### Expected behaviour
+
+* Browser automatically opened at `sourcegraph.com` with the `Code Search` feature. Results are found with `System.out.println` occurrences.
 
 ### Automatic repository recognition
 
