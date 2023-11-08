@@ -6,7 +6,7 @@ data class Event(
     val event: String,
     val anonymousUserId: String,
     val url: String,
-    val publicArguments: JsonObject? = null
+    val publicArgument: JsonObject? = null
 ) {
   val source = "IDEEXTENSION"
   val client = "JETBRAINS_CODY_EXTENSION"
