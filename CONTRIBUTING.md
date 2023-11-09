@@ -90,6 +90,8 @@ CI. When you have a local cache of IDEA installations then this script can run d
 
 After successfully pushing the new tag (for example: `v5.2.4819` or `v5.2.4249-nightly`), we are now able to publish.
 
+Wait for the `Release to Marketplace` GitHub workflow to complete.
+
 ### 2. Publish a New Release on GitHub
 
 For every stable release, create a GitHub release summarizing the changes.
