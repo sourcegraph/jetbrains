@@ -33,11 +33,11 @@ Prerequisite: You have to **sign out** from all existing accounts.
 
 1. Navigate to `Cody` toolbar and use `Sign in with GitHub`.
 2. Browser is launched automatically and IDE freezes with spinning `Login to Sourcegraph` dialog.
-3. Authorize with valid account.
+3. Authorize with a valid account.
 
 #### Expected behaviour
 
-* IDE should receive valid token automatically.
+* IDE should receive a valid token automatically.
 * `Commands` and `Chat` tabs are ready to use.
 
 ### Sign in with GitLab
@@ -52,12 +52,12 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 
 ### Single-line autocomplete
 
-1. Paste following Java code:
+1. Paste the following Java code:
     ```java
     // print Hello World!
     System.out.
     ```
-2. Place cursor at the end of the `System.out.` line.
+2. Place a cursor at the end of the `System.out.` line.
 3. Trigger autocompletion with <kbd>Alt</kbd> + <kbd>/</kbd>.
 
 #### Expected behaviour
@@ -66,7 +66,7 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 
 ### Multi-line autocomplete
 
-1. Paste following Java code:
+1. Paste the following Java code:
     ```java
     public void bubbleSort(int[] array) {
     ```
@@ -79,7 +79,7 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 
 ### Infilling autocomplete
 
-1. Paste following Java code:
+1. Paste the following Java code:
     ```java
     // print 
     System.out.println("Hello World!");
@@ -93,7 +93,7 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 
 ### Cycle through autocomplete
 
-1. Paste following Java code:
+1. Paste the following Java code:
     ```java
     public void bubbleSort(int[] array) {
     ```
@@ -116,7 +116,7 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 
 ### Explain Selected Code (Detailed)
 
-1. Paste following Java code:
+1. Paste the following Java code:
     ```java
     System.out.println("Hello, Cody!");
     ```
@@ -129,7 +129,7 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 
 ### Explain Selected Code (High Level)
 
-1. Paste following Java code:
+1. Paste the following Java code:
     ```java
     System.out.println("Hello, Cody!");
     ```
@@ -138,7 +138,7 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 #### Expected behaviour
 
 * User is automatically switched to `Chat` tab.
-* Chat responds with a **high-level** and short description of the code without going into technical details.
+* Chat responds with a **high-level** and a short description of the code without going into technical details.
 
 ### Generate Docstring
 
@@ -188,7 +188,7 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 
 ### Improve Variable Names
 
-1. Paste following Java code:
+1. Paste the following Java code:
     ```java
     String[] var0 = new String[]{"apple", "banana", "peach"};
     ```
@@ -204,7 +204,7 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 
 ### Smell Code
 
-1. Paste following Java code:
+1. Paste the following Java code:
     ```java
     public static String greet(String name) {
         return "Hello, " + name + "!";
@@ -243,7 +243,7 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 
 ### Search Selection on Sourcegraph Web
 
-1. Paste following Java code:
+1. Paste the following Java code:
     ```java
     System.out.println("Hello, Cody!");
     ```
