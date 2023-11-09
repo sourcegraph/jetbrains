@@ -106,6 +106,40 @@ It's also optional create GitHub releases for nightly builds where it makes sens
 
 It is mandatory to post about both stable and nightly releases on our internal `wg-cody-jetbrains` Slack channel. You can refer to past posts in the channel's history for examples.
 
+## Testing
+
+### Unit tests
+
+```shell
+./gradlew test
+```
+    
+### Integration tests
+
+```shell
+./gradlew testIntegration
+```
+
+Integration tests require an environmental variable with valid `SRC_ACCESS_TOKEN`. Otherwise, they will not start.
+
+### UI tests
+
+UI tests are based on [intellij-ui-test-robot](https://github.com/JetBrains/intellij-ui-test-robot).
+
+First, launch the IDE:
+
+```shell
+./gradlew runIdeForUiTests
+```
+
+Next, wait until the IDE is launched. When everything is ready to use: 
+
+```shell
+./gradlew testUI
+```
+
+During the tests, mouse move and keyboard clicking will be simulated, so it is important not to interfere.
+
 ## Enabling web view debugging
 
 Parts of this extension rely on the [JCEF](https://plugins.jetbrains.com/docs/intellij/jcef.html) web view features

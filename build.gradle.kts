@@ -28,6 +28,7 @@ val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") 
 
 plugins {
   id("java")
+  id("idea")
   // Dependencies are locked at this version to work with JDK 11 on CI.
   id("org.jetbrains.kotlin.jvm") version "1.9.10"
   id("org.jetbrains.intellij") version "1.15.0"
@@ -39,7 +40,10 @@ group = properties("pluginGroup")
 
 version = properties("pluginVersion")
 
-repositories { mavenCentral() }
+repositories {
+  mavenCentral()
+  maven(url = "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
+}
 
 intellij {
   pluginName.set(properties("pluginName"))
@@ -52,11 +56,46 @@ intellij {
   updateSinceUntilBuild.set(false)
 }
 
+sourceSets {
+  create("testIntegration") {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+  }
+  create("testUI") {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+  }
+}
+
+val testIntegrationImplementation: Configuration by
+    configurations.getting {
+      extendsFrom(configurations.implementation.get())
+      extendsFrom(configurations.testImplementation.get())
+    }
+
+val testUIImplementation: Configuration by
+  configurations.getting {
+    extendsFrom(configurations.implementation.get())
+    extendsFrom(configurations.testImplementation.get())
+  }
+
+idea {
+  module {
+    testSources.from(sourceSets["testIntegration"].kotlin.srcDirs)
+    testSources.from(sourceSets["testUI"].kotlin.srcDirs)
+  }
+}
+
 dependencies {
   implementation("org.commonmark:commonmark:0.21.0")
   implementation("org.commonmark:commonmark-ext-gfm-tables:0.21.0")
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.21.0")
   implementation("com.googlecode.java-diff-utils:diffutils:1.3.0")
+  testImplementation("com.intellij.remoterobot:remote-robot:0.11.20")
+  testImplementation("com.intellij.remoterobot:remote-fixtures:0.11.20")
+  testImplementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+  testIntegrationImplementation(sourceSets.main.get().output)
+  testUIImplementation(sourceSets.main.get().output)
 }
 
 spotless {
@@ -350,8 +389,10 @@ tasks {
   // Configure UI tests plugin
   // Read more: https://github.com/JetBrains/intellij-ui-test-robot
   runIdeForUiTests {
+    systemProperty("cody-agent.directory", buildCodyDir.parent)
     systemProperty("robot-server.port", "8082")
     systemProperty("ide.mac.message.dialogs.as.sheets", "false")
+    systemProperty("ide.show.tips.on.startup.default.value", "false")
     systemProperty("jb.privacy.policy.text", "<!--999.999-->")
     systemProperty("jb.consents.confirmation.enabled", "false")
   }
@@ -360,6 +401,24 @@ tasks {
     certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
     privateKey.set(System.getenv("PRIVATE_KEY"))
     password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
+  }
+
+  task<Test>("testIntegration") {
+    doFirst {
+      systemProperty("cody-agent.directory", buildCodyDir.parent)
+      require(System.getenv("SRC_ACCESS_TOKEN") != null) {
+        "Missing SRC_ACCESS_TOKEN environment variable"
+      }
+    }
+    group = "verification"
+    testClassesDirs = sourceSets["testIntegration"].output.classesDirs
+    classpath = sourceSets["testIntegration"].runtimeClasspath
+  }
+
+  task<Test>("testUI") {
+    group = "verification"
+    testClassesDirs = sourceSets["testUI"].output.classesDirs
+    classpath = sourceSets["testUI"].runtimeClasspath
   }
 
   publishPlugin {
