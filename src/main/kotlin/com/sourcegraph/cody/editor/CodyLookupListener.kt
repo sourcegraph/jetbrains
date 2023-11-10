@@ -27,7 +27,7 @@ class CodyLookupListener : LookupManagerListener {
                     lookupString = lookupString.substring(1)
                   }
                   val offset = newEditor.caretModel.offset
-                  logger.debug("Triggering autocompletion fro lookup element: $lookupString")
+                  logger.debug("Triggering autocompletion for lookup element: $lookupString")
                   instance.triggerAutocomplete(
                       newEditor, offset, InlineCompletionTriggerKind.AUTOMATIC, lookupString)
                 }

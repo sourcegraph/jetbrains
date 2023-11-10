@@ -12,7 +12,6 @@ class CodyChatMessageHistoryTest {
   @Test
   fun `messageSent adds message to latest position in history`() {
     val textArea = JBTextArea()
-    textArea.text = "test"history.messageSent(textArea)
     history.popUpperMessage(textArea)
     assertThat(textArea.text).isEqualTo("test")
   }

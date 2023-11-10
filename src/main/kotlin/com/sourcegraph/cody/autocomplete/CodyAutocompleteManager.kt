@@ -123,7 +123,7 @@ class CodyAutocompleteManager {
       editor: Editor,
       offset: Int,
       triggerKind: InlineCompletionTriggerKind,
-      lookupString: String?
+      lookupString: String? = null
   ) {
     val isTriggeredExplicitly = triggerKind == InlineCompletionTriggerKind.INVOKE
     val isTriggeredImplicitly = !isTriggeredExplicitly
@@ -144,7 +144,8 @@ class CodyAutocompleteManager {
     }
     val currentCommand = CommandProcessor.getInstance().currentCommandName
     if (isTriggeredImplicitly &&
-        (lookupString.isNullOrEmpty() && isCommandExcluded(currentCommand))) {
+        lookupString.isNullOrEmpty() &&
+        isCommandExcluded(currentCommand)) {
       return
     }
     val project = editor.project
@@ -301,16 +302,14 @@ class CodyAutocompleteManager {
       // For each autocomplete item, remove common part with already inserted part of the lookup
       // element.
       items.stream().forEach { item ->
-        run {
-          if (lastCommonSuffixCharacterPosition != caretPositionInLine) {
-            item.insertText =
-                item.insertText.removeRange(lastCommonSuffixCharacterPosition, caretPositionInLine)
-            val endPosition = item.range.end
-            item.range =
-                Range(
-                    item.range.start,
-                    com.sourcegraph.cody.vscode.Position(endPosition.line, item.insertText.length))
-          }
+        if (lastCommonSuffixCharacterPosition != caretPositionInLine) {
+          item.insertText =
+              item.insertText.removeRange(lastCommonSuffixCharacterPosition, caretPositionInLine)
+          val endPosition = item.range.end
+          item.range =
+              Range(
+                  item.range.start,
+                  com.sourcegraph.cody.vscode.Position(endPosition.line, item.insertText.length))
         }
       }
     }
