@@ -65,7 +65,7 @@ class CodyEditorFactoryListener : EditorFactoryListener {
         suggestions.clearAutocompleteSuggestions(e.editor)
         if (isImplicitAutocompleteEnabledForEditor(editor))
             suggestions.triggerAutocomplete(
-                e.editor, e.editor.caretModel.offset, InlineCompletionTriggerKind.AUTOMATIC)
+                e.editor, e.editor.caretModel.offset, InlineCompletionTriggerKind.AUTOMATIC, null)
       }
     }
   }
@@ -96,7 +96,7 @@ class CodyEditorFactoryListener : EditorFactoryListener {
         val changeOffset = event.offset + event.newLength
         if (editor.caretModel.offset == changeOffset) {
           completions.triggerAutocomplete(
-              editor, changeOffset, InlineCompletionTriggerKind.AUTOMATIC)
+              editor, changeOffset, InlineCompletionTriggerKind.AUTOMATIC, null)
         }
       }
     }

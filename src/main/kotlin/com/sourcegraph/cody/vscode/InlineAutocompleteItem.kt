@@ -1,8 +1,12 @@
 package com.sourcegraph.cody.vscode
 
 class InlineAutocompleteItem(
-    val insertText: String,
+    var insertText: String,
     val filterText: String,
-    val range: Range,
+    var range: Range,
     val command: Command
-)
+) {
+  override fun toString(): String {
+    return "InlineAutocompleteItem(insertText='$insertText', filterText='$filterText', range=$range, command=$command)"
+  }
+}
