@@ -4,7 +4,7 @@ import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vcs.impl.ProjectLevelVcsManagerImpl;
+import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.vcsUtil.VcsUtil;
 import com.sourcegraph.cody.agent.CodyAgent;
@@ -226,7 +226,7 @@ public class RepoUtil {
   private static Optional<VirtualFile> getRootFileFromFirstGitRepository(@NotNull Project project) {
     // https://intellij-support.jetbrains.com/hc/en-us/community/posts/206105769/comments/206091565
     Object lock = new Object();
-    ProjectLevelVcsManagerImpl.getInstanceImpl(project)
+    ProjectLevelVcsManager.getInstance(project)
         .runAfterInitialization(
             () -> {
               synchronized (lock) {
