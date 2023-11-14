@@ -22,13 +22,18 @@ class BrowserAndLoadingPanel(private val project: Project): JLayeredPane() {
     .withEmptyText(
       "Unfortunately, the browser is not available on your system. Try running the IDE with the default OpenJDK."
     )
+
   private var isBrowserVisible = false
-  private var connectionAndAuthState = ConnectionAndAuthState.LOADING
+
+  var connectionAndAuthState = ConnectionAndAuthState.LOADING
+    set(value) {
+      field = value
+      refreshUI()
+    }
+
   private var errorMessage: String? = null
 
   init {
-    setConnectionAndAuthState(ConnectionAndAuthState.LOADING)
-
     // We need to use the add(Component, Object) overload of the add method to ensure that the
     // constraints are
     // properly set.
@@ -38,11 +43,6 @@ class BrowserAndLoadingPanel(private val project: Project): JLayeredPane() {
 
   fun setBrowserSearchErrorMessage(errorMessage: String?) {
     this.errorMessage = errorMessage
-    refreshUI()
-  }
-
-  fun setConnectionAndAuthState(state: ConnectionAndAuthState) {
-    connectionAndAuthState = state
     refreshUI()
   }
 
@@ -92,8 +92,6 @@ class BrowserAndLoadingPanel(private val project: Project): JLayeredPane() {
     revalidate()
     repaint()
   }
-
-  fun getConnectionAndAuthState(): ConnectionAndAuthState = connectionAndAuthState
 
   fun hasSearchError(): Boolean = errorMessage != null
 

@@ -77,7 +77,7 @@ class FindService(private val project: Project) : Disposable {
     }
     if (keyCode == KeyEvent.VK_ENTER &&
         modifiers and InputEvent.ALT_DOWN_MASK == InputEvent.ALT_DOWN_MASK) {
-      val mainPanelPreviewContent = mainPanel.getPreviewPanel().previewContent ?: return false
+      val mainPanelPreviewContent = mainPanel.previewPanel.previewContent ?: return false
       // This must run on EDT (Event Dispatch Thread) because it may interact with the editor.
       ApplicationManager.getApplication().invokeLater {
         try {

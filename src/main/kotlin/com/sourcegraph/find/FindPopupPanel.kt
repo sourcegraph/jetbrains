@@ -34,28 +34,24 @@ import org.jdesktop.swingx.util.OS
  */
 class FindPopupPanel(project: Project, findService: FindService) : BorderLayoutPanel(), Disposable {
   private val browser: SourcegraphJBCefBrowser?
-  private val previewPanel: PreviewPanel
-  private val browserAndLoadingPanel: BrowserAndLoadingPanel
-  private val selectionMetadataPanel: SelectionMetadataPanel
-  private val footerPanel: FooterPanel
+  val previewPanel: PreviewPanel = PreviewPanel(project)
+  private val browserAndLoadingPanel = BrowserAndLoadingPanel(project)
+  private val selectionMetadataPanel = SelectionMetadataPanel()
+  private val footerPanel: FooterPanel = FooterPanel()
   private var lastPreviewUpdate: Date
 
   init {
     preferredSize = JBUI.size(1000, 700)
     setBorder(PopupBorder.Factory.create(true, true))
     setFocusCycleRoot(true)
-    val splitter: Splitter = OnePixelSplitter(true, 0.5f, 0.1f, 0.9f)
+    val splitter = OnePixelSplitter(true, 0.5f, 0.1f, 0.9f)
     this.add(splitter, BorderLayout.CENTER)
-    selectionMetadataPanel = SelectionMetadataPanel()
-    previewPanel = PreviewPanel(project)
-    footerPanel = FooterPanel()
     val bottomPanel =
         BorderLayoutPanel().apply {
           add(selectionMetadataPanel, BorderLayout.NORTH)
           add(previewPanel, BorderLayout.CENTER)
           add(footerPanel, BorderLayout.SOUTH)
         }
-    browserAndLoadingPanel = BrowserAndLoadingPanel(project)
     val requestHandler = JSToJavaBridgeRequestHandler(project, this, findService)
     browser = if (JBCefApp.isSupported()) SourcegraphJBCefBrowser(requestHandler) else null
     if (browser == null) {
@@ -117,8 +113,6 @@ class FindPopupPanel(project: Project, findService: FindService) : BorderLayoutP
     notification.notify(project)
   }
 
-  fun getPreviewPanel(): PreviewPanel = previewPanel
-
   val javaToJSBridge: JavaToJSBridge?
     get() = browser?.javaToJSBridge
 
@@ -128,11 +122,12 @@ class FindPopupPanel(project: Project, findService: FindService) : BorderLayoutP
   fun browserHasSearchError(): Boolean = browserAndLoadingPanel.hasSearchError()
 
   fun indicateAuthenticationStatus(wasServerAccessSuccessful: Boolean, authenticated: Boolean) {
-    browserAndLoadingPanel.setConnectionAndAuthState(
-        if (wasServerAccessSuccessful)
-            (if (authenticated) ConnectionAndAuthState.AUTHENTICATED
-            else ConnectionAndAuthState.COULD_CONNECT_BUT_NOT_AUTHENTICATED)
-        else ConnectionAndAuthState.COULD_NOT_CONNECT)
+    browserAndLoadingPanel.connectionAndAuthState = when {
+      wasServerAccessSuccessful && authenticated -> ConnectionAndAuthState.AUTHENTICATED
+      wasServerAccessSuccessful && !authenticated -> ConnectionAndAuthState.COULD_CONNECT_BUT_NOT_AUTHENTICATED
+      else -> ConnectionAndAuthState.COULD_NOT_CONNECT
+    }
+
     if (wasServerAccessSuccessful) {
       previewPanel.setState(PreviewPanel.State.PREVIEW_AVAILABLE)
       footerPanel.setPreviewContent(previewPanel.previewContent)
