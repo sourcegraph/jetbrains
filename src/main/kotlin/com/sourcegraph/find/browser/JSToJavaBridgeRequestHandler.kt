@@ -115,7 +115,8 @@ class JSToJavaBridgeRequestHandler(
           try {
             previewContent = fromJson(project, arguments)
           } catch (e: Exception) {
-            return createErrorResponse("Parsing error while opening link: ${e.javaClass.name}: ${e.message}",
+            return createErrorResponse(
+                "Parsing error while opening link: ${e.javaClass.name}: ${e.message}",
                 convertStackTraceToString(e))
           }
 
@@ -148,7 +149,8 @@ class JSToJavaBridgeRequestHandler(
         else -> return createErrorResponse("Unknown action: '$action'.", "No stack trace")
       }
     } catch (e: Exception) {
-      return createErrorResponse("$action: ${e.javaClass.name}: ${e.message}", convertStackTraceToString(e))
+      return createErrorResponse(
+          "$action: ${e.javaClass.name}: ${e.message}", convertStackTraceToString(e))
     }
   }
 

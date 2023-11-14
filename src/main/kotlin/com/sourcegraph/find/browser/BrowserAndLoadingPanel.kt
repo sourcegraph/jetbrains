@@ -6,22 +6,22 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.config.ui.AccountConfigurable
-import org.apache.commons.lang.SystemUtils
-import org.apache.commons.lang.WordUtils
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.event.ActionEvent
 import javax.swing.JLayeredPane
+import org.apache.commons.lang.SystemUtils
+import org.apache.commons.lang.WordUtils
 
 /**
- * Inspired by [FindPopupPanel.java](https://sourcegraph.com/github.com/JetBrains/intellij-community/-/blob/platform/lang-impl/src/com/intellij/find/impl/FindPopupPanel.java)
+ * Inspired by
+ * [FindPopupPanel.java](https://sourcegraph.com/github.com/JetBrains/intellij-community/-/blob/platform/lang-impl/src/com/intellij/find/impl/FindPopupPanel.java)
  */
-class BrowserAndLoadingPanel(private val project: Project): JLayeredPane() {
+class BrowserAndLoadingPanel(private val project: Project) : JLayeredPane() {
   private val overlayPanel: JBPanelWithEmptyText = JBPanelWithEmptyText()
-  private val jcefPanel: JBPanelWithEmptyText = JBPanelWithEmptyText(BorderLayout())
-    .withEmptyText(
-      "Unfortunately, the browser is not available on your system. Try running the IDE with the default OpenJDK."
-    )
+  private val jcefPanel: JBPanelWithEmptyText =
+      JBPanelWithEmptyText(BorderLayout())
+          .withEmptyText(
+              "Unfortunately, the browser is not available on your system. Try running the IDE with the default OpenJDK.")
 
   private var isBrowserVisible = false
 
@@ -48,26 +48,29 @@ class BrowserAndLoadingPanel(private val project: Project): JLayeredPane() {
 
   private fun refreshUI() {
     val emptyText = overlayPanel.emptyText
-    isBrowserVisible = (errorMessage == null
-            && (connectionAndAuthState == ConnectionAndAuthState.AUTHENTICATED
-            || connectionAndAuthState
-            == ConnectionAndAuthState.COULD_CONNECT_BUT_NOT_AUTHENTICATED))
+    isBrowserVisible =
+        (errorMessage == null &&
+            (connectionAndAuthState == ConnectionAndAuthState.AUTHENTICATED ||
+                connectionAndAuthState ==
+                    ConnectionAndAuthState.COULD_CONNECT_BUT_NOT_AUTHENTICATED))
     if (connectionAndAuthState == ConnectionAndAuthState.COULD_NOT_CONNECT) {
       emptyText.text = "Could not connect to Sourcegraph."
       emptyText.appendLine(
-        "Make sure your Sourcegraph URL and access token are correct to use search."
-      )
+          "Make sure your Sourcegraph URL and access token are correct to use search.")
       emptyText.appendLine(
-        "Click here to configure your Sourcegraph Cody + Code Search settings.",
-        SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, JBUI.CurrentTheme.Link.Foreground.ENABLED)
-      ) { _ ->
-        ShowSettingsUtil.getInstance()
-          .showSettingsDialog(project, AccountConfigurable::class.java)
-      }
+          "Click here to configure your Sourcegraph Cody + Code Search settings.",
+          SimpleTextAttributes(
+              SimpleTextAttributes.STYLE_PLAIN, JBUI.CurrentTheme.Link.Foreground.ENABLED)) { _ ->
+            ShowSettingsUtil.getInstance()
+                .showSettingsDialog(project, AccountConfigurable::class.java)
+          }
     } else if (errorMessage != null) {
       val wrappedText = WordUtils.wrap("Error: $errorMessage", 100)
-      val lines = wrappedText.split(SystemUtils.LINE_SEPARATOR.toRegex()).dropLastWhile { it.isEmpty() }
-        .toTypedArray()
+      val lines =
+          wrappedText
+              .split(SystemUtils.LINE_SEPARATOR.toRegex())
+              .dropLastWhile { it.isEmpty() }
+              .toTypedArray()
       emptyText.text = lines[0]
       for (i in 1 until lines.size) {
         if (lines[i].trim { it <= ' ' }.isNotEmpty()) {
@@ -76,11 +79,9 @@ class BrowserAndLoadingPanel(private val project: Project): JLayeredPane() {
       }
       emptyText.appendLine("")
       emptyText.appendLine(
-        "If you believe this is a bug, please raise this at support@sourcegraph.com,"
-      )
+          "If you believe this is a bug, please raise this at support@sourcegraph.com,")
       emptyText.appendLine(
-        "mentioning the above error message and your Cody plugin and Cody App or Sourcegraph server version."
-      )
+          "mentioning the above error message and your Cody plugin and Cody App or Sourcegraph server version.")
       emptyText.appendLine("Sorry for the inconvenience.")
     } else if (connectionAndAuthState == ConnectionAndAuthState.LOADING) {
       emptyText.text = "Loading..."

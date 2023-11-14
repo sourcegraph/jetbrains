@@ -1,17 +1,17 @@
 package com.sourcegraph.find.browser
 
 import com.google.common.collect.ImmutableMap
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import kotlin.math.min
 import org.cef.callback.CefCallback
 import org.cef.handler.CefResourceHandlerAdapter
 import org.cef.misc.IntRef
 import org.cef.misc.StringRef
 import org.cef.network.CefRequest
 import org.cef.network.CefResponse
-import java.io.ByteArrayOutputStream
-import java.io.IOException
-import kotlin.math.min
 
-class HttpSchemeHandler: CefResourceHandlerAdapter() {
+class HttpSchemeHandler : CefResourceHandlerAdapter() {
   private var data: ByteArray? = null
   private var mimeType: String? = null
   private var responseHeader = 400
@@ -34,7 +34,9 @@ class HttpSchemeHandler: CefResourceHandlerAdapter() {
   }
 
   override fun getResponseHeaders(
-    response: CefResponse, responseLength: IntRef, redirectUrl: StringRef
+      response: CefResponse,
+      responseLength: IntRef,
+      redirectUrl: StringRef
   ) {
     response.mimeType = mimeType
     response.status = responseHeader
@@ -42,7 +44,10 @@ class HttpSchemeHandler: CefResourceHandlerAdapter() {
   }
 
   override fun readResponse(
-    dataOut: ByteArray, bytesToRead: Int, bytesRead: IntRef, callback: CefCallback
+      dataOut: ByteArray,
+      bytesToRead: Int,
+      bytesRead: IntRef,
+      callback: CefCallback
   ): Boolean {
     var hasData = false
     if (offset < data!!.size) {
@@ -68,35 +73,34 @@ class HttpSchemeHandler: CefResourceHandlerAdapter() {
           return outFile.toByteArray()
         }
       }
-    } catch (_: IOException) {
-    }
+    } catch (_: IOException) {}
     return null
   }
 
-  fun getExtension(filename: String?): String? = filename?.takeIf { it.contains(".") }?.substringAfterLast(".")
+  fun getExtension(filename: String?): String? =
+      filename?.takeIf { it.contains(".") }?.substringAfterLast(".")
 
   fun getDefaultContent(extension: String?, path: String): String? {
-    val extensionToDefaultContent: Map<String, String> = ImmutableMap.of(
-      "html",
-      "<html><head><title>Error 404</title></head>"
-              + "<body>"
-              + "<h1>Error 404</h1>"
-              + "File "
-              + path
-              + "  does not exist."
-              + "</body></html>",
-      "js", "",
-      "css", ""
-    )
+    val extensionToDefaultContent: Map<String, String> =
+        ImmutableMap.of(
+            "html",
+            "<html><head><title>Error 404</title></head>" +
+                "<body>" +
+                "<h1>Error 404</h1>" +
+                "File " +
+                path +
+                "  does not exist." +
+                "</body></html>",
+            "js",
+            "",
+            "css",
+            "")
     return extensionToDefaultContent[extension]
   }
 
   fun getMimeType(extension: String?): String? {
-    val extensionToMimeType: Map<String?, String> = ImmutableMap.of(
-      "html", "text/html",
-      "js", "text/javascript",
-      "css", "text/css"
-    )
+    val extensionToMimeType: Map<String?, String> =
+        ImmutableMap.of("html", "text/html", "js", "text/javascript", "css", "text/css")
     return extensionToMimeType[extension]
   }
 }

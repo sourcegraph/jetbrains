@@ -8,7 +8,6 @@ import com.sourcegraph.cody.config.notification.CodySettingChangeListener
 import com.sourcegraph.config.ThemeUtil
 import javax.swing.UIManager
 import org.cef.CefApp
-import org.intellij.lang.annotations.Language
 
 class SourcegraphJBCefBrowser(requestHandler: JSToJavaBridgeRequestHandler) :
     JBCefBrowser("http://sourcegraph/html/index.html") {

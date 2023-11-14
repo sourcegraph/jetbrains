@@ -27,20 +27,22 @@ class JSToJavaBridge(
       }
     }
 
-    val cefLoadHandler = object : CefLoadHandler {
-      override fun onLoadStart(
-          cefBrowser: CefBrowser,
-          frame: CefFrame,
-          transitionType: TransitionType
-      ) {}
+    val cefLoadHandler =
+        object : CefLoadHandler {
+          override fun onLoadStart(
+              cefBrowser: CefBrowser,
+              frame: CefFrame,
+              transitionType: TransitionType
+          ) {}
 
-      override fun onLoadEnd(cefBrowser: CefBrowser, frame: CefFrame, httpStatusCode: Int) {
-        // In case of a failure, Java returns two arguments, so must use an intermediate
-        // function.
-        // (source:
-        // https://dploeger.github.io/intellij-api-doc/com/intellij/ui/jcef/JBCefJSQuery.html#:~:text=onFailureCallback%20%2D%20JS%20callback%20in%20format%3A%20function(error_code%2C%20error_message)%20%7B%7D)
-        @Language("javascript")
-        val script = """
+          override fun onLoadEnd(cefBrowser: CefBrowser, frame: CefFrame, httpStatusCode: Int) {
+            // In case of a failure, Java returns two arguments, so must use an intermediate
+            // function.
+            // (source:
+            // https://dploeger.github.io/intellij-api-doc/com/intellij/ui/jcef/JBCefJSQuery.html#:~:text=onFailureCallback%20%2D%20JS%20callback%20in%20format%3A%20function(error_code%2C%20error_message)%20%7B%7D)
+            @Language("javascript")
+            val script =
+                """
           window.callJava = function(request) {
               return new Promise((resolve, reject) => {
                   const requestAsString = JSON.stringify(request);
@@ -50,30 +52,31 @@ class JSToJavaBridge(
                   const onFailureCallback = (errorCode, errorMessage) => {
                       reject(new Error(`\${'$'}{errorCode} - \${'$'}{errorMessage}`));
                   };
-                  
+
                   ${query.inject("requestAsString", "onSuccessCallback", "onFailureCallback")}
               });
           };
-        """.trimIndent()
-        cefBrowser.executeJavaScript(script, cefBrowser.url, 0)
-        cefBrowser.executeJavaScript(jsCodeToRunAfterBridgeInit, "", 0)
-      }
+        """
+                    .trimIndent()
+            cefBrowser.executeJavaScript(script, cefBrowser.url, 0)
+            cefBrowser.executeJavaScript(jsCodeToRunAfterBridgeInit, "", 0)
+          }
 
-      override fun onLoadingStateChange(
-          cefBrowser: CefBrowser,
-          isLoading: Boolean,
-          canGoBack: Boolean,
-          canGoForward: Boolean
-      ) {}
+          override fun onLoadingStateChange(
+              cefBrowser: CefBrowser,
+              isLoading: Boolean,
+              canGoBack: Boolean,
+              canGoForward: Boolean
+          ) {}
 
-      override fun onLoadError(
-          cefBrowser: CefBrowser,
-          frame: CefFrame,
-          errorCode: CefLoadHandler.ErrorCode,
-          errorText: String,
-          failedUrl: String
-      ) {}
-    }
+          override fun onLoadError(
+              cefBrowser: CefBrowser,
+              frame: CefFrame,
+              errorCode: CefLoadHandler.ErrorCode,
+              errorText: String,
+              failedUrl: String
+          ) {}
+        }
     browser.jbCefClient.addLoadHandler(cefLoadHandler, browser.cefBrowser)
   }
 

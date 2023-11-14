@@ -8,7 +8,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.Splitter
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupBorder
 import com.intellij.ui.jcef.JBCefApp
@@ -122,11 +121,13 @@ class FindPopupPanel(project: Project, findService: FindService) : BorderLayoutP
   fun browserHasSearchError(): Boolean = browserAndLoadingPanel.hasSearchError()
 
   fun indicateAuthenticationStatus(wasServerAccessSuccessful: Boolean, authenticated: Boolean) {
-    browserAndLoadingPanel.connectionAndAuthState = when {
-      wasServerAccessSuccessful && authenticated -> ConnectionAndAuthState.AUTHENTICATED
-      wasServerAccessSuccessful && !authenticated -> ConnectionAndAuthState.COULD_CONNECT_BUT_NOT_AUTHENTICATED
-      else -> ConnectionAndAuthState.COULD_NOT_CONNECT
-    }
+    browserAndLoadingPanel.connectionAndAuthState =
+        when {
+          wasServerAccessSuccessful && authenticated -> ConnectionAndAuthState.AUTHENTICATED
+          wasServerAccessSuccessful && !authenticated ->
+              ConnectionAndAuthState.COULD_CONNECT_BUT_NOT_AUTHENTICATED
+          else -> ConnectionAndAuthState.COULD_NOT_CONNECT
+        }
 
     if (wasServerAccessSuccessful) {
       previewPanel.setState(PreviewPanel.State.PREVIEW_AVAILABLE)
