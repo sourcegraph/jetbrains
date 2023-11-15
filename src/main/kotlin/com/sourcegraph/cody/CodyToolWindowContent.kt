@@ -80,7 +80,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
         PromptPanel(
             chatMessageHistory,
             ::sendChatMessage,
-            onTextChangedSetButtonEnabled = { v -> sendButton.isEnabled = v })
+            sendButton,
+            isGenerating = stopGeneratingButton::isVisible)
 
     val stopGeneratingButtonPanel = JPanel(FlowLayout(FlowLayout.CENTER, 0, 5))
     val controlsPanel = ControlsPanel(promptPanel, sendButton)
@@ -325,6 +326,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     ApplicationManager.getApplication().invokeLater {
       stopGeneratingButton.isVisible = false
       ensureBlinkingCursorIsNotDisplayed()
+      sendButton.isEnabled = promptPanel.textArea.text.isNotBlank()
     }
   }
 
@@ -359,14 +361,10 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     chatMessageHistory.messageSent(promptPanel.textArea)
     sendMessage(project, text, "chat-question")
     promptPanel.reset()
-    sendButton.isEnabled = false
   }
 
   @RequiresEdt
   private fun sendMessage(project: Project, message: String, recipeId: String) {
-    if (!sendButton.isEnabled) {
-      return
-    }
     startMessageProcessing()
     val displayText = XmlStringUtil.escapeString(message)
     val humanMessage = ChatMessage(Speaker.HUMAN, message, displayText)
