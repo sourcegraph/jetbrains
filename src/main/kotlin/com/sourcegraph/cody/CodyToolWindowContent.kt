@@ -354,8 +354,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
   @RequiresEdt
   private fun sendChatMessage() {
-    val text = promptPanel.textArea.getText()
-    chatMessageHistory.messageSent(promptPanel.textArea)
+    val text = promptPanel.textArea.text
+    chatMessageHistory.messageSent(text)
     sendMessage(project, text, "chat-question")
     promptPanel.reset()
   }
