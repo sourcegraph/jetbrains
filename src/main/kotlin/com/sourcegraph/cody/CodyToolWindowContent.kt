@@ -108,8 +108,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     allContentPanel.add(
         singInWithSourcegraphPanel, SING_IN_WITH_SOURCEGRAPH_PANEL, SIGN_IN_PANEL_INDEX)
     allContentLayout.show(allContentPanel, SING_IN_WITH_SOURCEGRAPH_PANEL)
-    updateVisibilityOfContentPanels()
-    // Add welcome message
+    refreshPanelsVisibility()
+
     addWelcomeMessage()
   }
 
@@ -127,8 +127,10 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     ApplicationManager.getApplication().executeOnPooledThread { // Non-blocking data fetch
       try {
         server.recipesList().thenAccept { recipes: List<RecipeInfo> ->
-          ApplicationManager.getApplication().invokeLater { updateUIWithRecipeList(recipes) }
-        } // Update on EDT
+          ApplicationManager.getApplication().invokeLater {
+            updateUIWithRecipeList(recipes)
+          } // Update on EDT
+        }
       } catch (e: Exception) {
         logger.warn("Error fetching recipes from agent", e)
         // Update on EDT
@@ -206,7 +208,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   }
 
   @RequiresEdt
-  private fun updateVisibilityOfContentPanels() {
+  override fun refreshPanelsVisibility() {
     val codyAuthenticationManager = CodyAuthenticationManager.instance
     if (codyAuthenticationManager.getAccounts().isEmpty()) {
       allContentLayout.show(allContentPanel, SING_IN_WITH_SOURCEGRAPH_PANEL)
@@ -219,7 +221,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       val newCodyOnboardingGuidancePanel = CodyOnboardingGuidancePanel(displayName)
       newCodyOnboardingGuidancePanel.addMainButtonActionListener {
         CodyApplicationSettings.instance.isOnboardingGuidanceDismissed = true
-        updateVisibilityOfContentPanels()
+        refreshPanelsVisibility()
         refreshRecipes()
       }
       if (displayName != null) {
@@ -348,11 +350,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
         .filter { x: Component -> x === BlinkingCursorComponent.instance }
         .forEach { messagesPanel.remove(BlinkingCursorComponent.instance) }
     BlinkingCursorComponent.instance.timer.stop()
-  }
-
-  @RequiresEdt
-  override fun refreshPanelsVisibility() {
-    updateVisibilityOfContentPanels()
   }
 
   @RequiresEdt
