@@ -10,6 +10,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.protocol.RateLimitError
+import com.sourcegraph.common.BrowserOpener.openInBrowser
 import java.time.Duration
 import java.time.OffsetDateTime
 import org.apache.commons.lang3.time.DurationFormatUtils
@@ -29,7 +30,9 @@ class UpgradeToCodyProNotification private constructor(content: String) :
     val learnMoreAction: AnAction =
         object : DumbAwareAction("Learn more") {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
-            // NOT IMPLEMENTED
+            openInBrowser(
+                anActionEvent.project,
+                "https://docs.sourcegraph.com/cody/core-concepts/cody-gateway#rate-limits-and-quotas")
             expire()
           }
         }
