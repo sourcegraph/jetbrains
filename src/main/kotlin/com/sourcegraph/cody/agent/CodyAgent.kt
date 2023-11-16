@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.function.Function
 import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
@@ -39,8 +38,7 @@ import org.eclipse.lsp4j.jsonrpc.Launcher
 class CodyAgent(private val project: Project) : Disposable {
   var disposable = Disposer.newDisposable("CodyAgent")
   private val client = CodyAgentClient()
-  private var agentNotRunningExplanation = ""
-  private var initialized = CompletableFuture<CodyAgentServer?>()
+  private var initialized = CompletableFuture<CodyAgentServer>()
   private val firstConnection = AtomicBoolean(true)
   private var listeningToJsonRpc: Future<Void?> = CompletableFuture.completedFuture(null)
   private var agentProcess: Process? = null
@@ -57,7 +55,6 @@ class CodyAgent(private val project: Project) : Disposable {
         // the Cody agent server.
         initialized = CompletableFuture()
       }
-      agentNotRunningExplanation = ""
       startListeningToAgent()
       executorService.submit {
         try {
@@ -76,13 +73,11 @@ class CodyAgent(private val project: Project) : Disposable {
           subscribeToFocusEvents()
           initialized.complete(server)
         } catch (e: Exception) {
-          agentNotRunningExplanation = "failed to send 'initialize' JSON-RPC request Cody agent"
-          logger.warn(agentNotRunningExplanation, e)
+          logger.warn("failed to send 'initialize' JSON-RPC request Cody agent", e)
         }
       }
     } catch (e: Exception) {
-      agentNotRunningExplanation = "unable to start Cody agent"
-      logger.warn(agentNotRunningExplanation, e)
+      logger.warn("unable to start Cody agent", e)
       CodyAutocompleteStatusService.resetApplication(project)
     }
   }
@@ -107,7 +102,6 @@ class CodyAgent(private val project: Project) : Disposable {
     executorService.submit<CompletableFuture<Void>> {
       server.shutdown().thenAccept {
         server.exit()
-        agentNotRunningExplanation = "Cody Agent shut down"
         listeningToJsonRpc.cancel(true)
       }
     }
@@ -116,12 +110,16 @@ class CodyAgent(private val project: Project) : Disposable {
   @Throws(IOException::class, CodyAgentException::class)
   private fun startListeningToAgent() {
     val binary = agentBinary()
+
     logger.info("starting Cody agent " + binary.absolutePath)
+
     val processBuilder = ProcessBuilder(binary.absolutePath)
     if (java.lang.Boolean.getBoolean("cody.accept-non-trusted-certificates-automatically") ||
         ConfigUtil.getShouldAcceptNonTrustedCertificatesAutomatically()) {
       processBuilder.environment()["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
     }
+    processBuilder.environment()["CODY_AGENT_TRACE_PATH"] =
+        "/home/noah/Sourcegraph/jetbrains/cody-agent-trace.log"
 
     val process =
         processBuilder
@@ -158,7 +156,6 @@ class CodyAgent(private val project: Project) : Disposable {
             .create()
     val server = launcher.remoteProxy
     client.server = server
-    client.documents = CodyAgentDocuments(server)
     client.codebase = CodyAgentCodebase(server, project)
     listeningToJsonRpc = launcher.startListening()
   }
@@ -179,7 +176,7 @@ class CodyAgent(private val project: Project) : Disposable {
     }
 
     @JvmStatic
-    fun getInitializedServer(project: Project): CompletableFuture<CodyAgentServer?> {
+    fun getInitializedServer(project: Project): CompletableFuture<CodyAgentServer> {
       return project.service<CodyAgent>().initialized
     }
 
@@ -198,21 +195,18 @@ class CodyAgent(private val project: Project) : Disposable {
     @JvmStatic
     fun <T> withServer(
         project: Project,
-        callback: Function<CodyAgentServer?, CompletableFuture<T>?>?
+        callback: (CodyAgentServer) -> CompletableFuture<T>?
     ): CompletableFuture<T> {
       return getInitializedServer(project).thenCompose(callback)
     }
 
     @JvmStatic
-    fun getServer(project: Project): CodyAgentServer? {
-      return if (!isConnected(project)) {
-        null
-      } else getClient(project).server
-    }
+    fun getServer(project: Project): CodyAgentServer? =
+        if (!isConnected(project)) {
+          null
+        } else getClient(project).server
 
-    private fun binarySuffix(): String {
-      return if (SystemInfoRt.isWindows) ".exe" else ""
-    }
+    private fun binarySuffix(): String = if (SystemInfoRt.isWindows) ".exe" else ""
 
     private fun agentBinaryName(): String {
       val os = if (SystemInfoRt.isMac) "macos" else if (SystemInfoRt.isWindows) "win" else "linux"

@@ -38,6 +38,7 @@ object ConfigUtil {
         ExtensionConfiguration(
             serverEndpoint = serverAuth.instanceUrl,
             accessToken = serverAuth.accessToken,
+            anonymousUserID = CodyApplicationSettings.instance.anonymousUserId,
             customHeaders = getCustomRequestHeadersAsMap(serverAuth.customRequestHeaders),
             proxy = UserLevelConfig.getProxy(),
             autocompleteAdvancedServerEndpoint = UserLevelConfig.getAutocompleteServerEndpoint(),

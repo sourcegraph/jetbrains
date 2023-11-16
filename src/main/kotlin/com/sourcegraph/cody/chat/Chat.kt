@@ -20,7 +20,7 @@ class Chat {
   @Throws(ExecutionException::class, InterruptedException::class)
   fun sendMessageViaAgent(
       client: CodyAgentClient,
-      codyAgentServer: CompletableFuture<CodyAgentServer?>,
+      codyAgentServer: CompletableFuture<CodyAgentServer>,
       humanMessage: ChatMessage,
       recipeId: String,
       chat: UpdatableChat,
@@ -49,10 +49,10 @@ class Chat {
     }
     codyAgentServer
         .thenAcceptAsync(
-            { server: CodyAgentServer? ->
+            { server ->
               try {
                 val recipesExecuteFuture =
-                    server!!.recipesExecute(
+                    server.recipesExecute(
                         ExecuteRecipeParams(recipeId, humanMessage.actualMessage()))
                 token.onCancellationRequested { recipesExecuteFuture.cancel(true) }
               } catch (ignored: Exception) {

@@ -10,6 +10,8 @@ import com.sourcegraph.cody.vscode.InlineAutocompleteItem
 import com.sourcegraph.config.ConfigUtil.getCustomAutocompleteColor
 import com.sourcegraph.config.ConfigUtil.isCustomAutocompleteColorEnabled
 import java.awt.Font
+import java.awt.Graphics
+import java.awt.Rectangle
 import java.util.function.Supplier
 
 abstract class CodyAutocompleteElementRenderer(
@@ -31,6 +33,10 @@ abstract class CodyAutocompleteElementRenderer(
             }
                 ?: textAttributesFallback.get()
         else textAttributesFallback.get()
+  }
+
+  override fun paint(inlay: Inlay<*>, g: Graphics, targetRegion: Rectangle, textAttributes: TextAttributes) {
+    super.paint(inlay, g, targetRegion, textAttributes)
   }
 
   override fun calcWidthInPixels(inlay: Inlay<*>): Int {

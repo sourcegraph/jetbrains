@@ -216,7 +216,7 @@ class CodyAutocompleteManager {
     // correctly propagate the cancellation to the agent.
     cancellationToken.onCancellationRequested { completions.cancel(true) }
     return completions
-        .thenAccept { result: InlineAutocompleteList ->
+        .thenAccept { result: InlineAutocompleteResult ->
           processAutocompleteResult(
               editor, offset, triggerKind, result, cancellationToken, lookupString)
         }
@@ -230,12 +230,12 @@ class CodyAutocompleteManager {
   }
 
   private fun processAutocompleteResult(
-      editor: Editor,
-      offset: Int,
-      triggerKind: InlineCompletionTriggerKind,
-      result: InlineAutocompleteList,
-      cancellationToken: CancellationToken,
-      lookupString: String?,
+    editor: Editor,
+    offset: Int,
+    triggerKind: InlineCompletionTriggerKind,
+    result: InlineAutocompleteResult,
+    cancellationToken: CancellationToken,
+    lookupString: String?,
   ) {
     currentAutocompleteTelemetry?.markCompletionEvent(result.completionEvent)
     val items = result.items
@@ -301,7 +301,7 @@ class CodyAutocompleteManager {
 
       // For each autocomplete item, remove common part with already inserted part of the lookup
       // element.
-      items.stream().forEach { item ->
+      items.forEach { item ->
         if (lastCommonSuffixCharacterPosition != caretPositionInLine) {
           item.insertText =
               item.insertText.removeRange(lastCommonSuffixCharacterPosition, caretPositionInLine)
@@ -319,9 +319,7 @@ class CodyAutocompleteManager {
     // The diff algorithm returns a list of "deltas" that give us the minimal number of additions we
     // need to make to the document.
     val patch = diff(originalText, insertTextFirstLine)
-    if (!patch.getDeltas().stream().allMatch { delta: Delta<String> ->
-      delta.type == Delta.TYPE.INSERT
-    }) {
+    if (!patch.getDeltas().stream().allMatch { delta -> delta.type == Delta.TYPE.INSERT}) {
       if (triggerKind == InlineCompletionTriggerKind.INVOKE ||
           UserLevelConfig.isVerboseLoggingEnabled()) {
         logger.warn("Skipping autocomplete with non-insert deltas: $patch")

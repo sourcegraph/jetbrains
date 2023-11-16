@@ -4,6 +4,7 @@ data class ExtensionConfiguration(
     var serverEndpoint: String,
     var proxy: String? = null,
     var accessToken: String,
+    val anonymousUserID: String?,
     var customHeaders: Map<String, String> = emptyMap(),
     var autocompleteAdvancedProvider: String? = null,
     var autocompleteAdvancedServerEndpoint: String? = null,

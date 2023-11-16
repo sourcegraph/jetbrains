@@ -8,6 +8,8 @@ import com.sourcegraph.cody.agent.CodyAgent.Companion.withServer
 import com.sourcegraph.cody.agent.CodyAgentServer
 import com.sourcegraph.cody.agent.protocol.CompletionEvent
 import com.sourcegraph.cody.agent.protocol.Event
+import com.sourcegraph.cody.agent.protocol.TelemetryEvent
+import com.sourcegraph.cody.agent.protocol.TelemetryEventParameters
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.config.ConfigUtil.getPluginVersion
@@ -16,6 +18,16 @@ import java.util.concurrent.CompletableFuture
 
 object GraphQlLogger {
   private val gson = GsonBuilder().serializeNulls().create()
+
+  // @JvmStatic
+  // fun logInstallEventV2(project: Project): CompletableFuture<Boolean> {
+  //   val anonymousUserId = CodyApplicationSettings.instance.anonymousUserId
+  //   if (anonymousUserId != null && !project.isDisposed) {
+  //     val event = createEventV2(getServerPath(project), "codyJetBrainsPlugin", "installed")
+  //     return logEventV2(project, event)
+  //   }
+  //   return CompletableFuture.completedFuture(false)
+  // }
 
   @JvmStatic
   fun logInstallEvent(project: Project): CompletableFuture<Boolean> {
@@ -27,6 +39,15 @@ object GraphQlLogger {
     return CompletableFuture.completedFuture(false)
   }
 
+  // @JvmStatic
+  // fun logUninstallEventV2(project: Project) {
+  //   val anonymousUserId = CodyApplicationSettings.instance.anonymousUserId
+  //   if (anonymousUserId != null) {
+  //     val event = createEventV2(getServerPath(project), "codyJetBrainsPlugin", "uninstalled")
+  //     logEventV2(project, event)
+  //   }
+  // }
+
   @JvmStatic
   fun logUninstallEvent(project: Project) {
     val anonymousUserId = CodyApplicationSettings.instance.anonymousUserId
@@ -35,6 +56,27 @@ object GraphQlLogger {
       logEvent(project, event)
     }
   }
+
+  // @JvmStatic
+  // fun logAutocompleteSuggestedEventV2(
+  //     project: Project,
+  //     latencyMs: Long,
+  //     displayDurationMs: Long,
+  //     params: CompletionEvent.Params?
+  // ) {
+  //   val eventParameters = mapOf(
+  //     "latency" to latencyMs,
+  //     "displayDuration" to displayDurationMs,
+  //   )
+  //       // JsonObject().apply {
+  //       //   addProperty("latency", latencyMs)
+  //       //   addProperty("displayDuration", displayDurationMs)
+  //       //   addProperty("isAnyKnownPluginEnabled", PluginUtil.isAnyKnownPluginEnabled())
+  //       // }
+  //   val updatedEventParameters = addCompletionEventParamsV2(eventParameters, params)
+  //   logEventV2(project, createEventV2(getServerPath(project), "codyJetBrainsPlugin.completion",
+  // "suggested", updatedEventParameters))
+  // }
 
   @JvmStatic
   fun logAutocompleteSuggestedEvent(
@@ -55,10 +97,36 @@ object GraphQlLogger {
   }
 
   @JvmStatic
+  fun logAutocompleteAcceptedEventV2(project: Project, params: CompletionEvent.Params?) {
+    val eventParameters = addCompletionEventParams(JsonObject(), params)
+    logEventV2(project, createEventV2(getServerPath(project), "cody.completion","accepted", eventParameters))
+  }
+
+  @JvmStatic
   fun logAutocompleteAcceptedEvent(project: Project, params: CompletionEvent.Params?) {
     val eventName = "CodyJetBrainsPlugin:completion:accepted"
     val eventParameters = addCompletionEventParams(JsonObject(), params)
     logEvent(project, createEvent(getServerPath(project), eventName, eventParameters))
+  }
+
+  private fun addCompletionEventParamsV2(
+      eventParameters: Map<String, Long>,
+      params: CompletionEvent.Params?
+  ): Map<String, Long> {
+    return HashMap(eventParameters).apply{
+      if (params != null) {
+        if (params.contextSummary != null) {
+          // set("contextSummary", gson.toJsonTree(params.contextSummary))
+        }
+        put("id", params.id)
+        put("languageId", params.languageId)
+        put("source", params.source)
+        put("charCount", params.charCount)
+        put("lineCount", params.lineCount)
+        put("multilineMode", params.multiline)
+        put("providerIdentifier", params.providerIdentifier)
+      }
+    }
   }
 
   private fun addCompletionEventParams(
@@ -82,9 +150,31 @@ object GraphQlLogger {
   }
 
   @JvmStatic
+  fun logCodyEventV2(project: Project, componentName: String, action: String) {
+    val feature = "codyJetBrainsPlugin.$componentName"
+    logEventV2(project, createEventV2(getServerPath(project), feature, action))
+  }
+
+  @JvmStatic
   fun logCodyEvent(project: Project, componentName: String, action: String) {
     val eventName = "CodyJetBrainsPlugin:$componentName:$action"
     logEvent(project, createEvent(getServerPath(project), eventName, JsonObject()))
+  }
+
+  private fun createEventV2(
+    sourcegraphServerPath: SourcegraphServerPath,
+    feature: String,
+    action: String,
+    eventParameters: Map<String, Int>? = null
+  ): TelemetryEvent {
+    val updatedEventParameters = addGlobalEventParameters(eventParameters, sourcegraphServerPath)
+    return TelemetryEvent(feature, action,
+      TelemetryEventParameters(
+        version = 1,
+        metadata = eventParameters,
+        privateMetadata = null,
+      )
+    )
   }
 
   private fun createEvent(
@@ -116,8 +206,15 @@ object GraphQlLogger {
   }
 
   // This could be exposed later (as public), but currently, we don't use it externally.
+  private fun logEventV2(project: Project, event: TelemetryEvent): CompletableFuture<Boolean> {
+    return withServer(project) { server -> server.recordEvent(event) }
+        .thenApply { true }
+        .exceptionally { false }
+  }
+
+  // This could be exposed later (as public), but currently, we don't use it externally.
   private fun logEvent(project: Project, event: Event): CompletableFuture<Boolean> {
-    return withServer(project) { server: CodyAgentServer? -> server!!.logEvent(event) }
+    return withServer(project) { server -> server.logEvent(event) }
         .thenApply { true }
         .exceptionally { false }
   }

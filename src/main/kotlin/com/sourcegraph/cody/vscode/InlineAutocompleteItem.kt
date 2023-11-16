@@ -1,8 +1,12 @@
 package com.sourcegraph.cody.vscode
 
+@JvmInline
+value class CompletionItemID(val value: String)
+
 class InlineAutocompleteItem(
     var insertText: String,
-    var filterText: String,
+    val filterText: String,
     var range: Range,
-    var command: Command
+    val command: Command?,
+    val logId: CompletionItemID
 )
