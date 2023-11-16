@@ -11,4 +11,6 @@ data class ExtensionConfiguration(
     var debug: Boolean? = false,
     var verboseDebug: Boolean? = false,
     var codebase: String? = null
-)
+) {
+    val connectedClient = "JetBrains"
+}
