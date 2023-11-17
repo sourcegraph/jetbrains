@@ -257,10 +257,14 @@ class CodyAutocompleteManager {
         .exceptionally { error ->
           if (triggerKind == InlineCompletionTriggerKind.INVOKE) {
             handleError(project, error)
+          } else if (!UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown) {
+            handleError(project, error)
+            UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown = true
           }
           null
         }
         .thenAccept { result: InlineAutocompleteList ->
+          UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown = false
           processAutocompleteResult(
               editor, offset, triggerKind, result, cancellationToken, lookupString)
         }
@@ -278,7 +282,7 @@ class CodyAutocompleteManager {
       val errorCode = error.toErrorCode()
       if (errorCode == ErrorCode.RateLimitError) {
         val rateLimitError = error.toRateLimitError()
-        UpgradeToCodyProNotification.create(rateLimitError).show(project)
+        UpgradeToCodyProNotification.create(rateLimitError).notify(project)
       }
     }
   }

@@ -2,12 +2,10 @@ package com.sourcegraph.common
 
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
 import com.intellij.notification.impl.NotificationFullContent
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.openapi.project.Project
 import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.protocol.RateLimitError
 import com.sourcegraph.common.BrowserOpener.openInBrowser
@@ -20,13 +18,6 @@ class UpgradeToCodyProNotification private constructor(content: String) :
     NotificationFullContent {
   init {
     setIcon(Icons.CodyLogo)
-    val upgradeAction: AnAction =
-        object : DumbAwareAction("Upgrade") {
-          override fun actionPerformed(anActionEvent: AnActionEvent) {
-            // NOT IMPLEMENTED
-            expire()
-          }
-        }
     val learnMoreAction: AnAction =
         object : DumbAwareAction("Learn more") {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
@@ -42,14 +33,8 @@ class UpgradeToCodyProNotification private constructor(content: String) :
             expire()
           }
         }
-    addAction(upgradeAction)
     addAction(learnMoreAction)
     addAction(dismissAction)
-  }
-
-  fun show(project: Project?) {
-    Notifications.Bus.notify(this)
-    notify(project)
   }
 
   companion object {
@@ -65,5 +50,7 @@ class UpgradeToCodyProNotification private constructor(content: String) :
       return UpgradeToCodyProNotification(
           "You've used all${quotaString} autcompletions.${resetString}")
     }
+
+    var isFirstRleOnAutomaticAutcompletionsShown: Boolean = false
   }
 }
