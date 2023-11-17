@@ -92,8 +92,6 @@ class Chat {
     }
 
     // todo: error handling for other error codes and throwables
-    val chatMessage = ChatMessage(Speaker.ASSISTANT, "Error", null)
-    chat.addMessageToChat(chatMessage)
     chat.finishMessageProcessing()
   }
 }
