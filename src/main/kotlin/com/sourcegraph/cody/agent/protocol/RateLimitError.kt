@@ -28,11 +28,9 @@ data class RateLimitError(val limit: Int?, val retryAfter: OffsetDateTime?) {
           context: JsonDeserializationContext?
       ): RateLimitError {
         val jsonObject = json.asJsonObject
-        val errorObject = jsonObject.getAsJsonObject("error")
-
-        val limit = errorObject.getAsJsonPrimitive("limit")?.asInt
-        val retryAfter =
-            errorObject.getAsJsonPrimitive("retryAfter")?.asString?.let { parseOffsetDateTime(it) }
+        val errorObject = jsonObject["error"].asJsonObject
+        val limit = errorObject["limit"]?.asInt
+        val retryAfter = errorObject["retryAfter"]?.asString?.let(::parseOffsetDateTime)
 
         return RateLimitError(limit, retryAfter)
       }
