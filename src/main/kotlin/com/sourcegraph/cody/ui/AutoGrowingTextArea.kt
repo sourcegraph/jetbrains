@@ -23,7 +23,7 @@ import javax.swing.text.PlainDocument
 import kotlin.math.max
 import kotlin.math.min
 
-class AutoGrowingTextArea(private val minRows: Int, maxRows: Int, outerPanel: JPanel) {
+open class AutoGrowingTextArea(private val minRows: Int, maxRows: Int, outerPanel: JPanel) {
   val textArea: JBTextArea
   val scrollPane: JBScrollPane
   private val initialPreferredSize: Dimension

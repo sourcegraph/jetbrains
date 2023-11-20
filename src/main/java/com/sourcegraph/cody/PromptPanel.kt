@@ -6,9 +6,9 @@ import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.ui.DocumentAdapter
+import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.chat.CodyChatMessageHistory
 import com.sourcegraph.cody.ui.AutoGrowingTextArea
-import java.awt.BorderLayout
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import javax.swing.BorderFactory
@@ -22,11 +22,10 @@ class PromptPanel(
     chatMessageHistory: CodyChatMessageHistory,
     onSendMessageAction: () -> Unit,
     sendButton: JButton,
-    isGenerating: () -> Boolean
-) : JPanel(BorderLayout()) {
+    isGenerating: () -> Boolean,
+    outerPanel: JPanel
+) : AutoGrowingTextArea(3, 9, outerPanel) {
 
-  private val autoGrowingTextArea = AutoGrowingTextArea(3, 9, this)
-  val textArea = autoGrowingTextArea.textArea
   private var isInHistoryMode = true
 
   init {
@@ -82,8 +81,8 @@ class PromptPanel(
             sendButton.isEnabled = !empty && !isGenerating()
           }
         })
-    add(autoGrowingTextArea.scrollPane, BorderLayout.CENTER)
-    border = BorderFactory.createEmptyBorder(0, 0, 10, 0)
+    scrollPane.border = BorderFactory.createEmptyBorder(0, 0, 10, 0)
+    scrollPane.background = UIUtil.getPanelBackground()
   }
 
   fun reset() {

@@ -81,8 +81,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
             chatMessageHistory,
             ::sendChatMessage,
             sendButton,
-            isGenerating = stopGeneratingButton::isVisible)
-
+            isGenerating = stopGeneratingButton::isVisible,
+            outerPanel = contentPanel)
     val stopGeneratingButtonPanel = JPanel(FlowLayout(FlowLayout.CENTER, 0, 5))
     val controlsPanel = ControlsPanel(promptPanel, sendButton)
     stopGeneratingButtonPanel.preferredSize =

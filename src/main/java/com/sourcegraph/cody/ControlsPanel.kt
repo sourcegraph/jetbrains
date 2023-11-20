@@ -15,7 +15,7 @@ class ControlsPanel(
     layout = BorderLayout()
     border = EmptyBorder(JBUI.insets(0, 14, 14, 14))
 
-    add(promptPanel, BorderLayout.NORTH)
+    add(promptPanel.scrollPane, BorderLayout.NORTH)
     add(sendButton, BorderLayout.EAST)
   }
 }
