@@ -104,13 +104,13 @@ class PromptPanel(
     addComponentListener(
         object : ComponentAdapter() {
           override fun componentResized(e: ComponentEvent?) {
+            revalidate()
             val jButtonPreferredSize = sendButton.preferredSize
             sendButton.setBounds(
                 scrollPane.width - jButtonPreferredSize.width - 10 - margin,
                 scrollPane.height - jButtonPreferredSize.height - 10 - margin,
                 jButtonPreferredSize.width,
                 jButtonPreferredSize.height)
-            revalidate()
           }
         })
   }
