@@ -1,6 +1,6 @@
 package com.sourcegraph.cody.agent.protocol
 
-data class CompletionEvent(
+data class CompletionBookkeepingEvent(
     var params: Params? = null,
     var startedAt: Double = 0.0,
     var networkRequestStartedAt: Double = 0.0,

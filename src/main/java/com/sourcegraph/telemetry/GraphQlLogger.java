@@ -6,7 +6,7 @@ import com.google.gson.JsonObject;
 import com.intellij.openapi.project.Project;
 import com.sourcegraph.cody.PluginUtil;
 import com.sourcegraph.cody.agent.CodyAgent;
-import com.sourcegraph.cody.agent.protocol.CompletionEvent;
+import com.sourcegraph.cody.agent.protocol.CompletionBookkeepingEvent;
 import com.sourcegraph.cody.agent.protocol.Event;
 import com.sourcegraph.cody.config.CodyApplicationSettings;
 import com.sourcegraph.cody.config.SourcegraphServerPath;
@@ -40,7 +40,7 @@ public class GraphQlLogger {
       @NotNull Project project,
       long latencyMs,
       long displayDurationMs,
-      CompletionEvent.@Nullable Params params) {
+      CompletionBookkeepingEvent.@Nullable Params params) {
     String eventName = "CodyJetBrainsPlugin:completion:suggested";
     JsonObject eventParameters = new JsonObject();
     eventParameters.addProperty("latency", latencyMs);
@@ -52,14 +52,14 @@ public class GraphQlLogger {
   }
 
   public static void logAutocompleteAcceptedEvent(
-      @NotNull Project project, @Nullable CompletionEvent.Params params) {
+      @NotNull Project project, @Nullable CompletionBookkeepingEvent.Params params) {
     String eventName = "CodyJetBrainsPlugin:completion:accepted";
     JsonObject eventParameters = addCompletionEventParams(new JsonObject(), params);
     logEvent(project, createEvent(ConfigUtil.getServerPath(project), eventName, eventParameters));
   }
 
   private static JsonObject addCompletionEventParams(
-      JsonObject eventParameters, CompletionEvent.@Nullable Params params) {
+      JsonObject eventParameters, CompletionBookkeepingEvent.@Nullable Params params) {
     var updatedEventParameters = eventParameters.deepCopy();
     if (params != null) {
       if (params.getContextSummary() != null) {

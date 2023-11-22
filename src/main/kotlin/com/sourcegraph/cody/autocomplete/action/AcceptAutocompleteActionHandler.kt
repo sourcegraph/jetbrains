@@ -8,10 +8,10 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.util.TextRange
 import com.sourcegraph.cody.agent.CodyAgent
+import com.sourcegraph.cody.agent.protocol.AutocompleteItem
 import com.sourcegraph.cody.autocomplete.AutocompleteText
 import com.sourcegraph.cody.autocomplete.AutocompleteTextAtCaret
 import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager
-import com.sourcegraph.cody.vscode.InlineAutocompleteItem
 import com.sourcegraph.telemetry.GraphQlLogger
 import com.sourcegraph.utils.CodyEditorUtil
 
@@ -57,8 +57,14 @@ class AcceptAutocompleteActionHandler : AutocompleteActionHandler() {
     val project = editor.project ?: return
     val server = CodyAgent.getServer(project)
     if (server != null) {
-      val telemetry = CodyAutocompleteManager.instance.currentAutocompleteTelemetry
-      GraphQlLogger.logAutocompleteAcceptedEvent(project, telemetry?.params())
+      val telemetry = CodyAutocompleteManager.instance.currentAutocompleteTelemetry ?: return
+
+      val id = telemetry.logID
+      if (id != null) {
+        server.completionsAccepted(id)
+      }
+
+      // GraphQlLogger.logAutocompleteAcceptedEvent(project, telemetry?.params())
       server.autocompleteClearLastCandidate()
       acceptAgentAutocomplete(editor, maybeCaret)
     } else {
@@ -79,11 +85,7 @@ class AcceptAutocompleteActionHandler : AutocompleteActionHandler() {
 
   companion object {
 
-    private fun applyInsertText(
-        editor: Editor,
-        caret: Caret,
-        completionItem: InlineAutocompleteItem
-    ) {
+    private fun applyInsertText(editor: Editor, caret: Caret, completionItem: AutocompleteItem) {
       val document = editor.document
       val range = CodyEditorUtil.getTextRange(document, completionItem.range)
       document.replaceString(range.startOffset, range.endOffset, completionItem.insertText)
