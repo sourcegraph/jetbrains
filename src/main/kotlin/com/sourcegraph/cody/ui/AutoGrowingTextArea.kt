@@ -49,6 +49,7 @@ open class AutoGrowingTextArea(private val minRows: Int, maxRows: Int, outerPane
           }
         }
     textArea.document = document
+    updateTextAreaSize()
   }
 
   private fun createTextArea(): JBTextArea {

@@ -11,6 +11,8 @@ import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.chat.CodyChatMessageHistory
 import com.sourcegraph.cody.ui.AutoGrowingTextArea
 import java.awt.Dimension
+import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentEvent
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import javax.swing.*
@@ -21,13 +23,14 @@ import javax.swing.text.DefaultEditorKit
 class PromptPanel(
     chatMessageHistory: CodyChatMessageHistory,
     onSendMessageAction: () -> Unit,
-    sendButton: JButton,
+    val sendButton: JButton,
     isGenerating: () -> Boolean,
 ) : JLayeredPane() {
 
   private var isInHistoryMode = true
   private val autoGrowingTextArea = AutoGrowingTextArea(3, 9, this)
   private val scrollPane = autoGrowingTextArea.scrollPane
+  private val margin = 14
   val textArea = autoGrowingTextArea.textArea
 
   init {
@@ -83,34 +86,40 @@ class PromptPanel(
             sendButton.isEnabled = !empty && !isGenerating()
           }
         })
-    val margin = 14
     scrollPane.border = EmptyBorder(JBUI.insets(0, margin, margin, margin))
     scrollPane.background = UIUtil.getPanelBackground()
 
-    // Set initial bounds for the scrollPane (200x200) to ensure proper initialization;
+    // Set initial bounds for the scrollPane (100x100) to ensure proper initialization;
     // later adjusted dynamically based on component resizing in the component listener.
-    scrollPane.setBounds(0, 0, 200, 200)
-
-    preferredSize = Dimension(scrollPane.width, scrollPane.height)
+    scrollPane.setBounds(0, 0, 100, 100)
 
     add(scrollPane, DEFAULT_LAYER)
 
-    val jButtonPreferredSize = sendButton.preferredSize
     add(sendButton, PALETTE_LAYER, 0)
 
-    scrollPane.setBounds(0, 0, width, height)
+    scrollPane.setBounds(0, 0, width, scrollPane.preferredSize.height + margin)
+
+    preferredSize = Dimension(scrollPane.width, scrollPane.height)
 
     addComponentListener(
-        object : java.awt.event.ComponentAdapter() {
-          override fun componentResized(e: java.awt.event.ComponentEvent?) {
-            scrollPane.setBounds(0, 0, width, height)
+        object : ComponentAdapter() {
+          override fun componentResized(e: ComponentEvent?) {
+            val jButtonPreferredSize = sendButton.preferredSize
             sendButton.setBounds(
                 scrollPane.width - jButtonPreferredSize.width - 10 - margin,
                 scrollPane.height - jButtonPreferredSize.height - 10 - margin,
                 jButtonPreferredSize.width,
                 jButtonPreferredSize.height)
+            revalidate()
           }
         })
+  }
+
+  override fun revalidate() {
+    super.revalidate()
+
+    scrollPane.setBounds(0, 0, width, scrollPane.preferredSize.height + margin)
+    preferredSize = Dimension(scrollPane.width, scrollPane.height)
   }
 
   fun reset() {
