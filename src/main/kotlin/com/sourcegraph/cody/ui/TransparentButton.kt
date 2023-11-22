@@ -1,16 +1,19 @@
 package com.sourcegraph.cody.ui
 
 import com.intellij.ide.ui.UISettings
+import com.intellij.ui.ColorUtil
 import com.intellij.util.ui.UIUtil
 import java.awt.*
 import javax.swing.JButton
 
 class TransparentButton(text: String) : JButton(text) {
-  private val opacity = 0.7f
+  private val enabledOpacity = 0.7f
+  private val disabledOpacity = 0.4f
   private val cornerRadius = 5
   private val horizontalPadding = 10
   private val verticalPadding = 5
-  private val textColor = UIUtil.getLabelForeground()
+  private val enabledTextColor = UIUtil.getLabelForeground()
+  private val disabledTextColor = ColorUtil.darker(UIUtil.getLabelForeground(), 3)
 
   init {
     isContentAreaFilled = false
@@ -28,14 +31,22 @@ class TransparentButton(text: String) : JButton(text) {
   override fun paintComponent(g: Graphics) {
     UISettings.setupAntialiasing(g)
     val g2 = g.create() as Graphics2D
-    g2.composite = AlphaComposite.SrcOver.derive(opacity)
+
+    if (isEnabled) {
+      g2.composite = AlphaComposite.SrcOver.derive(enabledOpacity)
+      g.color = enabledTextColor
+    } else {
+      g2.composite = AlphaComposite.SrcOver.derive(disabledOpacity)
+      g.color = disabledTextColor
+    }
+
     g2.color = background
     g2.fillRoundRect(0, 0, width, height, cornerRadius, cornerRadius)
     g2.color = foreground
     g2.stroke = BasicStroke(1f)
     g2.drawRoundRect(0, 0, width - 1, height - 1, cornerRadius, cornerRadius)
     g2.dispose()
-    g.color = textColor
+
     val fm = g.fontMetrics
     val rect = fm.getStringBounds(text, g)
     val textHeight = rect.height.toInt()
