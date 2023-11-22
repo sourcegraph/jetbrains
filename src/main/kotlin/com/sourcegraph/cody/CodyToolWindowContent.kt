@@ -264,7 +264,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
     myButton.isEnabled = false
     myButton.isVisible = true
-    myButton.setToolTipText("Send message")
+    myButton.toolTipText = "Send message"
     return myButton
   }
 
