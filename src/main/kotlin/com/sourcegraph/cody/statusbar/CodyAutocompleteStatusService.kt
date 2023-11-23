@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.config.CodyAccountManager
+import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.config.ConfigUtil
 import javax.annotation.concurrent.GuardedBy
@@ -55,6 +56,9 @@ class CodyAutocompleteStatusService : CodyAutocompleteStatusListener, Disposable
                 CodyAutocompleteStatus.CodyAgentNotRunning
               } else if (token == null) {
                 CodyAutocompleteStatus.CodyNotSignedIn
+              } else if (CodyApplicationSettings.instance.autocompleteRateLimitError ||
+                  CodyApplicationSettings.instance.chatRateLimitError) {
+                CodyAutocompleteStatus.RateLimitError
               } else {
                 CodyAutocompleteStatus.Ready
               }

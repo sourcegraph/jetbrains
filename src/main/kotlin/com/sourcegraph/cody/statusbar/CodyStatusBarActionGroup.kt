@@ -3,6 +3,7 @@ package com.sourcegraph.cody.statusbar
 import com.intellij.ide.actions.AboutAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.config.ConfigUtil
 
 class CodyStatusBarActionGroup : DefaultActionGroup() {
@@ -21,12 +22,20 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
               },
               ReportCodyBugAction()))
     } else {
-      addAll(
-          listOfNotNull(
-              ChatAndAutocompleteLimitWarningAction(),
-              ChatLimitWarningAction(),
-              AutocompletionLimitWarningAction(),
-          ))
+
+      val warningActions =
+          if (CodyApplicationSettings.instance.autocompleteRateLimitError &&
+              CodyApplicationSettings.instance.chatRateLimitError) {
+            ChatAndAutocompleteLimitWarningAction()
+          } else if (CodyApplicationSettings.instance.autocompleteRateLimitError) {
+            AutocompletionLimitWarningAction()
+          } else if (CodyApplicationSettings.instance.chatRateLimitError) {
+            ChatLimitWarningAction()
+          } else {
+            null
+          }
+
+      addAll(listOfNotNull(warningActions))
       addSeparator()
       addAll(
           listOfNotNull(
