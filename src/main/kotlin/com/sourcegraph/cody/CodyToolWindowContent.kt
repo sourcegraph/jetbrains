@@ -33,7 +33,6 @@ import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.EmbeddingStatusView
 import com.sourcegraph.cody.ui.ChatScrollPane
-import com.sourcegraph.cody.ui.TransparentButton
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.telemetry.GraphQlLogger
 import java.awt.*
@@ -257,14 +256,20 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   }
 
   private fun createSendButton(): JButton {
-    val myButton = TransparentButton("►")
+    val myButton =
+        JButton(Icons.Actions.Send).apply {
+          isContentAreaFilled = false
+          isEnabled = false
+          preferredSize = Dimension(32, 32)
+          toolTipText = "Send message"
+          disabledIcon = Icons.Actions.DisabledSend
+        }
+
     myButton.addActionListener { _: ActionEvent? ->
       GraphQlLogger.logCodyEvent(this.project, "recipe:chat-question", "clicked")
       sendChatMessage()
     }
-    myButton.isEnabled = false
-    myButton.isVisible = true
-    myButton.toolTipText = "Send message"
+
     return myButton
   }
 
