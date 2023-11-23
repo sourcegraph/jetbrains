@@ -64,7 +64,6 @@ class AcceptAutocompleteActionHandler : AutocompleteActionHandler() {
         server.completionsAccepted(id)
       }
 
-      // GraphQlLogger.logAutocompleteAcceptedEvent(project, telemetry?.params())
       server.autocompleteClearLastCandidate()
       acceptAgentAutocomplete(editor, maybeCaret)
     } else {

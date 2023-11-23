@@ -51,13 +51,6 @@ public class GraphQlLogger {
         project, createEvent(ConfigUtil.getServerPath(project), eventName, updatedEventParameters));
   }
 
-  public static void logAutocompleteAcceptedEvent(
-      @NotNull Project project, @Nullable CompletionBookkeepingEvent.Params params) {
-    String eventName = "CodyJetBrainsPlugin:completion:accepted";
-    JsonObject eventParameters = addCompletionEventParams(new JsonObject(), params);
-    logEvent(project, createEvent(ConfigUtil.getServerPath(project), eventName, eventParameters));
-  }
-
   private static JsonObject addCompletionEventParams(
       JsonObject eventParameters, CompletionBookkeepingEvent.@Nullable Params params) {
     var updatedEventParameters = eventParameters.deepCopy();
