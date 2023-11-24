@@ -9,9 +9,9 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.util.TextRange
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.protocol.AutocompleteItem
+import com.sourcegraph.cody.agent.protocol.CompletionItemNotification
 import com.sourcegraph.cody.autocomplete.AutocompleteText
 import com.sourcegraph.cody.autocomplete.AutocompleteTextAtCaret
-import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager
 import com.sourcegraph.telemetry.GraphQlLogger
 import com.sourcegraph.utils.CodyEditorUtil
 
@@ -57,15 +57,13 @@ class AcceptAutocompleteActionHandler : AutocompleteActionHandler() {
     val project = editor.project ?: return
     val server = CodyAgent.getServer(project)
     if (server != null) {
-      val telemetry = CodyAutocompleteManager.instance.currentAutocompleteTelemetry ?: return
+      val caret = maybeCaret ?: getSingleCaret(editor) ?: return
+      val completionItem = getCurrentAutocompleteItem(caret) ?: return
 
-      val id = telemetry.logID
-      if (id != null) {
-        server.completionsAccepted(id)
-      }
+      server.completionsAccepted(CompletionItemNotification(completionItem.id))
 
       server.autocompleteClearLastCandidate()
-      acceptAgentAutocomplete(editor, maybeCaret)
+      WriteAction.run<RuntimeException> { applyInsertText(editor, caret, completionItem) }
     } else {
       val caret = maybeCaret ?: getSingleCaret(editor) ?: return
       AutocompleteText.atCaret(caret)?.let {
@@ -74,12 +72,6 @@ class AcceptAutocompleteActionHandler : AutocompleteActionHandler() {
         WriteAction.run<RuntimeException> { applyAutocomplete(editor.document, it) }
       }
     }
-  }
-
-  private fun acceptAgentAutocomplete(editor: Editor, maybeCaret: Caret?) {
-    val caret = maybeCaret ?: getSingleCaret(editor) ?: return
-    val completionItem = getCurrentAutocompleteItem(caret) ?: return
-    WriteAction.run<RuntimeException> { applyInsertText(editor, caret, completionItem) }
   }
 
   companion object {

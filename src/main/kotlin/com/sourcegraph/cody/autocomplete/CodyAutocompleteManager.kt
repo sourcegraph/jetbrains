@@ -34,7 +34,6 @@ import com.sourcegraph.cody.vscode.TextDocument
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.config.UserLevelConfig
-import com.sourcegraph.telemetry.GraphQlLogger
 import com.sourcegraph.utils.CodyEditorUtil.getAllOpenEditors
 import com.sourcegraph.utils.CodyEditorUtil.getLanguage
 import com.sourcegraph.utils.CodyEditorUtil.getTextRange
@@ -57,7 +56,6 @@ import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 class CodyAutocompleteManager {
   private val logger = Logger.getInstance(CodyAutocompleteManager::class.java)
   private val currentJob = AtomicReference(CancellationToken())
-  var currentAutocompleteTelemetry: AutocompleteTelemetry? = null
 
   /**
    * Clears any already rendered autocomplete suggestions for the given editor and cancels any
@@ -67,21 +65,6 @@ class CodyAutocompleteManager {
    */
   @RequiresEdt
   fun clearAutocompleteSuggestions(editor: Editor) {
-    // Log "suggested" event and clear current autocompletion
-    editor.project?.let { project ->
-      currentAutocompleteTelemetry?.let { autocompleteTelemetry ->
-        if (autocompleteTelemetry.status != AutocompletionStatus.TRIGGERED_NOT_DISPLAYED) {
-          autocompleteTelemetry.markCompletionHidden()
-          GraphQlLogger.logAutocompleteSuggestedEvent(
-              project,
-              autocompleteTelemetry.latencyMs,
-              autocompleteTelemetry.displayDurationMs,
-              autocompleteTelemetry.params())
-          currentAutocompleteTelemetry = null
-        }
-      }
-    }
-
     // Cancel any running job
     cancelCurrentJob(editor.project)
 
@@ -158,7 +141,6 @@ class CodyAutocompleteManager {
       logger.warn("triggered autocomplete with null project")
       return
     }
-    currentAutocompleteTelemetry = AutocompleteTelemetry()
     val textDocument: TextDocument = IntelliJTextDocument(editor, project)
     // val autoCompleteDocumentContext = textDocument.getAutocompleteContext(offset)
 
@@ -263,8 +245,7 @@ class CodyAutocompleteManager {
         }
         .thenAccept { result ->
           UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown = false
-          processAutocompleteResult(
-              editor, offset, triggerKind, result, cancellationToken, lookupString)
+          processAutocompleteResult(editor, offset, triggerKind, result, cancellationToken)
         }
         .exceptionally { error: Throwable? ->
           if (!(error is CancellationException || error is CompletionException)) {
@@ -291,18 +272,13 @@ class CodyAutocompleteManager {
       triggerKind: InlineCompletionTriggerKind,
       result: AutocompleteResult,
       cancellationToken: CancellationToken,
-      lookupString: String?,
   ) {
-    currentAutocompleteTelemetry?.markCompletionEvent(
-        result.items.firstOrNull()?.id, result.completionEvent)
-
-    val items = result.items
     if (Thread.interrupted() || cancellationToken.isCancelled) {
       if (triggerKind == InlineCompletionTriggerKind.INVOKE) logger.warn("autocomplete canceled")
       return
     }
     val inlayModel = editor.inlayModel
-    if (items.isEmpty()) {
+    if (result.items.isEmpty()) {
       // NOTE(olafur): it would be nice to give the user a visual hint when this happens.
       // We don't do anything now because it's unclear what would be the most idiomatic
       // IntelliJ API to use.
@@ -316,12 +292,12 @@ class CodyAutocompleteManager {
       }
       cancellationToken.dispose()
       clearAutocompleteSuggestions(editor)
-      currentAutocompleteTelemetry?.markCompletionDisplayed()
       CodyAgent.getServer(editor.project!!)?.let { server ->
-        currentAutocompleteTelemetry?.logID?.let { logID -> server.completionsSuggested(logID) }
+        val logID = result.items.firstOrNull()?.id ?: return@let
+        server.completionsSuggested(CompletionItemNotification(logID))
       }
 
-      displayAgentAutocomplete(editor, offset, items, inlayModel, triggerKind)
+      displayAgentAutocomplete(editor, offset, result.items, inlayModel, triggerKind)
     }
   }
 
