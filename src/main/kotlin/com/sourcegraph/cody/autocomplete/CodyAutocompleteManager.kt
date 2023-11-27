@@ -294,7 +294,7 @@ class CodyAutocompleteManager {
       clearAutocompleteSuggestions(editor)
       CodyAgent.getServer(editor.project!!)?.let { server ->
         val logID = result.items.firstOrNull()?.id ?: return@let
-        server.completionsSuggested(CompletionItemNotification(logID))
+        server.completionSuggested(CompletionItemParams(logID))
       }
 
       displayAgentAutocomplete(editor, offset, result.items, inlayModel, triggerKind)

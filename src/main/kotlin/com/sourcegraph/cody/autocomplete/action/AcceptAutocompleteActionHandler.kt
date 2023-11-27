@@ -9,7 +9,7 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.util.TextRange
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.protocol.AutocompleteItem
-import com.sourcegraph.cody.agent.protocol.CompletionItemNotification
+import com.sourcegraph.cody.agent.protocol.CompletionItemParams
 import com.sourcegraph.cody.autocomplete.AutocompleteText
 import com.sourcegraph.cody.autocomplete.AutocompleteTextAtCaret
 import com.sourcegraph.telemetry.GraphQlLogger
@@ -60,7 +60,7 @@ class AcceptAutocompleteActionHandler : AutocompleteActionHandler() {
       val caret = maybeCaret ?: getSingleCaret(editor) ?: return
       val completionItem = getCurrentAutocompleteItem(caret) ?: return
 
-      server.completionsAccepted(CompletionItemNotification(completionItem.id))
+      server.completionAccepted(CompletionItemParams(completionItem.id))
 
       server.autocompleteClearLastCandidate()
       WriteAction.run<RuntimeException> { applyInsertText(editor, caret, completionItem) }

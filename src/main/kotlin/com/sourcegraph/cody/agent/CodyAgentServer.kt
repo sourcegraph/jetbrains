@@ -61,10 +61,10 @@ interface CodyAgentServer {
   @JsonNotification("autocomplete/clearLastCandidate") fun autocompleteClearLastCandidate()
 
   @JsonNotification("autocomplete/completionSuggested")
-  fun completionsSuggested(items: CompletionItemNotification)
+  fun completionSuggested(logID: CompletionItemParams)
 
   @JsonNotification("autocomplete/completionAccepted")
-  fun completionsAccepted(logID: CompletionItemNotification)
+  fun completionAccepted(logID: CompletionItemParams)
 
   @JsonNotification("$/cancelRequest") fun cancelRequest(cancelParams: CancelParams)
 }
