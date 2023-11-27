@@ -29,7 +29,6 @@ public class GraphQlLogger {
     }
   }
 
-
   public static void logCodyEvent(
       @NotNull Project project, @NotNull String componentName, @NotNull String action) {
     var eventName = "CodyJetBrainsPlugin:" + componentName + ":" + action;

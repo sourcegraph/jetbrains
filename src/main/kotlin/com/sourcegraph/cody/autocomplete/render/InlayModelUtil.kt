@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.autocomplete.render
 
-import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.InlayModel
