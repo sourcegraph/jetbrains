@@ -25,9 +25,4 @@ object InlayModelUtil {
   fun getAllInlaysForEditor(editor: Editor): List<Inlay<*>> {
     return getAllInlays(editor.inlayModel, 0, editor.document.textLength)
   }
-
-  @JvmStatic
-  fun getAllInlaysForCaret(caret: Caret): List<Inlay<*>> {
-    return getAllInlays(caret.editor.inlayModel, caret.offset, caret.offset)
-  }
 }
