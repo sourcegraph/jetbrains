@@ -142,7 +142,6 @@ class CodyAutocompleteManager {
       return
     }
     val textDocument: TextDocument = IntelliJTextDocument(editor, project)
-    // val autoCompleteDocumentContext = textDocument.getAutocompleteContext(offset)
 
     if (isTriggeredExplicitly &&
         CodyAuthenticationManager.instance.getActiveAccount(project) == null) {
@@ -292,10 +291,6 @@ class CodyAutocompleteManager {
       }
       cancellationToken.dispose()
       clearAutocompleteSuggestions(editor)
-      CodyAgent.getServer(editor.project!!)?.let { server ->
-        val logID = result.items.firstOrNull()?.id ?: return@let
-        server.completionSuggested(CompletionItemParams(logID))
-      }
 
       displayAgentAutocomplete(editor, offset, result.items, inlayModel, triggerKind)
     }
@@ -341,9 +336,7 @@ class CodyAutocompleteManager {
     // The diff algorithm returns a list of "deltas" that give us the minimal number of additions we
     // need to make to the document.
     val patch = diff(originalText, insertTextFirstLine)
-    if (!patch.getDeltas().stream().allMatch { delta: Delta<String> ->
-      delta.type == Delta.TYPE.INSERT
-    }) {
+    if (!patch.deltas.all { delta -> delta.type == Delta.TYPE.INSERT }) {
       if (triggerKind == InlineCompletionTriggerKind.INVOKE ||
           UserLevelConfig.isVerboseLoggingEnabled()) {
         logger.warn("Skipping autocomplete with non-insert deltas: $patch")
@@ -351,6 +344,10 @@ class CodyAutocompleteManager {
       // Skip completions that need to delete or change characters in the existing document. We only
       // want completions to add changes to the document.
       return
+    }
+
+    editor.project?.let {
+      CodyAgent.getServer(it)?.completionSuggested(CompletionItemParams(defaultItem.id))
     }
 
     // Insert one inlay hint per delta in the first line.
