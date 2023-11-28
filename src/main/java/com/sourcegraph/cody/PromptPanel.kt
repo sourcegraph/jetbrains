@@ -35,6 +35,7 @@ class PromptPanel(
 
   init {
     textArea.emptyText.text = "Ask a question about this code..."
+    textArea.border = EmptyBorder(JBUI.insets(4, 4, 4, 24))
 
     val upperMessageAction: AnAction =
         object : DumbAwareAction() {
@@ -107,8 +108,8 @@ class PromptPanel(
             revalidate()
             val jButtonPreferredSize = sendButton.preferredSize
             sendButton.setBounds(
-                scrollPane.width - jButtonPreferredSize.width - 10 - margin,
-                scrollPane.height - jButtonPreferredSize.height - 10 - margin,
+                scrollPane.width - jButtonPreferredSize.width - margin,
+                scrollPane.height - jButtonPreferredSize.height - margin,
                 jButtonPreferredSize.width,
                 jButtonPreferredSize.height)
           }
