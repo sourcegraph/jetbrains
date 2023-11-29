@@ -236,11 +236,9 @@ class CodyAutocompleteManager {
     return completions
         .handle { result, error ->
           if (error != null) {
-            if (triggerKind == InlineCompletionTriggerKind.INVOKE) {
+            if (triggerKind == InlineCompletionTriggerKind.INVOKE ||
+                !UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown) {
               handleError(project, error)
-            } else if (!UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown) {
-              handleError(project, error)
-              UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown = true
             }
           } else if (result != null) {
             UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown = false
@@ -264,6 +262,7 @@ class CodyAutocompleteManager {
       if (errorCode == ErrorCode.RateLimitError) {
         val rateLimitError = error.toRateLimitError()
         CodyApplicationSettings.instance.autocompleteRateLimitError = true
+        UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown = true
         UpgradeToCodyProNotification.create(rateLimitError).notify(project)
       }
     }

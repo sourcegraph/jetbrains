@@ -18,5 +18,4 @@ object RateLimitStateManager {
       CodyAutocompleteStatusService.resetApplication(project)
     }
   }
-
 }
