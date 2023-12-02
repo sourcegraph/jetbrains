@@ -58,8 +58,8 @@ public abstract class FileActionBase extends DumbAwareAction {
       ApplicationManager.getApplication()
           .executeOnPooledThread(
               () -> {
-                RepoInfo repoInfo = RepoUtil.getRepoInfo(project, currentFile);
-                if (repoInfo.remoteUrl.equals("")) {
+                RepoInfo repoInfo = RepoUtil.INSTANCE.getRepoInfo(project, currentFile);
+                if (repoInfo.getRemoteUrl().isEmpty()) {
                   ErrorNotification.INSTANCE.show(
                       project,
                       "The file is not under version control that your IDE + this plugin supports. The plugin currently only supports Git and Perforce. For the IDE part, make sure you have the Git or Perforce plugin (whichever you need) installed. If you are seeing this error for a supported VCS with the plugin installed, please reach out to support@sourcegraph.com.");
@@ -67,7 +67,7 @@ public abstract class FileActionBase extends DumbAwareAction {
                 }
 
                 String url;
-                if (repoInfo.vcsType == VCSType.PERFORCE) {
+                if (repoInfo.getVcsType() == VCSType.PERFORCE) {
                   // Our "editor" backend doesn't support Perforce, but we have all the info we
                   // need, so we'll go to the final URL directly.
                   url =
@@ -75,16 +75,16 @@ public abstract class FileActionBase extends DumbAwareAction {
                           project,
                           repoInfo.getCodeHostUrl() + "/" + repoInfo.getRepoName(),
                           null,
-                          repoInfo.relativePath,
+                          repoInfo.getRelativePath(),
                           selectionStartPosition,
                           selectionEndPosition);
                 } else {
                   url =
                       URLBuilder.buildEditorFileUrl(
                           project,
-                          repoInfo.remoteUrl,
-                          repoInfo.remoteBranchName,
-                          repoInfo.relativePath,
+                          repoInfo.getRemoteUrl(),
+                          repoInfo.getRemoteBranchName(),
+                          repoInfo.getRelativePath(),
                           selectionStartPosition,
                           selectionEndPosition);
                 }

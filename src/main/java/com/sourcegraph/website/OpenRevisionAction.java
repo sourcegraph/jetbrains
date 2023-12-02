@@ -45,7 +45,7 @@ public class OpenRevisionAction extends DumbAwareAction {
         ApplicationManager.getApplication()
             .executeOnPooledThread(
                 () -> {
-                  if (RepoUtil.getVcsType(project, file) == VCSType.PERFORCE) {
+                  if (RepoUtil.INSTANCE.getVcsType(project, file) == VCSType.PERFORCE) {
                     // Perforce doesn't have a history view, so we'll just open the file in
                     // Sourcegraph.
                     ErrorNotification.INSTANCE.show(
@@ -76,7 +76,7 @@ public class OpenRevisionAction extends DumbAwareAction {
             () -> {
               String remoteUrl;
               try {
-                remoteUrl = RepoUtil.getRemoteRepoUrl(project, context.getRepoRoot());
+                remoteUrl = RepoUtil.INSTANCE.getRemoteRepoUrl(project, context.getRepoRoot());
               } catch (Exception e) {
                 throw new RuntimeException(e);
               }

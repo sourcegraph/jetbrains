@@ -49,11 +49,11 @@ public abstract class SearchActionBase extends DumbAwareAction {
           .executeOnPooledThread(
               () -> {
                 String url;
-                RepoInfo repoInfo = RepoUtil.getRepoInfo(project, currentFile);
-                String remoteUrl = (scope == Scope.REPOSITORY) ? repoInfo.remoteUrl : null;
+                RepoInfo repoInfo = RepoUtil.INSTANCE.getRepoInfo(project, currentFile);
+                String remoteUrl = (scope == Scope.REPOSITORY) ? repoInfo.getRemoteUrl() : null;
                 String remoteBranchName =
-                    (scope == Scope.REPOSITORY) ? repoInfo.remoteBranchName : null;
-                if (repoInfo.vcsType == VCSType.PERFORCE) {
+                    (scope == Scope.REPOSITORY) ? repoInfo.getRemoteBranchName() : null;
+                if (repoInfo.getVcsType() == VCSType.PERFORCE) {
                   // Our "editor" backend doesn't support Perforce, but we have all the info we
                   // need, so we'll go to the final URL directly.
                   String codeHostUrl =
