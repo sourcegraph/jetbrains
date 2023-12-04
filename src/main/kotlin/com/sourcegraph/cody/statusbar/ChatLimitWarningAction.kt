@@ -9,14 +9,13 @@ class ChatLimitWarningAction :
     DumbAwareAction("<html><b>Warning:</b> Chat Limit Reached...</html>") {
   override fun actionPerformed(e: AnActionEvent) {
 
-    val result: Int =
-        Messages.showDialog(
-            e.project,
-            "You've used all messages. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
-            "Chat Limit Reached",
-            arrayOf("Ok"),
-            /* defaultOptionIndex= */ 0,
-            Messages.getWarningIcon())
+    Messages.showDialog(
+        e.project,
+        "You've used all messages. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
+        "Chat Limit Reached",
+        arrayOf("Ok"),
+        /* defaultOptionIndex= */ 0,
+        Messages.getWarningIcon())
   }
 
   override fun update(e: AnActionEvent) {
