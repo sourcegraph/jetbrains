@@ -22,8 +22,6 @@ data class CodyApplicationSettings(
     var isOnboardingGuidanceDismissed: Boolean = false,
     var shouldAcceptNonTrustedCertificatesAutomatically: Boolean = false,
     var shouldCheckForUpdates: Boolean = true,
-    var autocompleteRateLimitError: Boolean = false,
-    var chatRateLimitError: Boolean = false,
 ) : PersistentStateComponent<CodyApplicationSettings> {
   override fun getState(): CodyApplicationSettings = this
 
@@ -43,8 +41,6 @@ data class CodyApplicationSettings(
     this.isOnboardingGuidanceDismissed = state.isOnboardingGuidanceDismissed
     this.shouldAcceptNonTrustedCertificatesAutomatically =
         state.shouldAcceptNonTrustedCertificatesAutomatically
-    this.autocompleteRateLimitError = state.autocompleteRateLimitError
-    this.chatRateLimitError = state.chatRateLimitError
   }
 
   companion object {

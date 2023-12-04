@@ -24,7 +24,6 @@ import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteBlockElementRend
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteSingleLineRenderer
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil.getAllInlaysForEditor
-import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.statusbar.CodyAutocompleteStatus
 import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService.Companion.notifyApplication
@@ -242,7 +241,7 @@ class CodyAutocompleteManager {
             }
           } else if (result != null) {
             UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown = false
-            CodyApplicationSettings.instance.autocompleteRateLimitError = false
+            UpgradeToCodyProNotification.autocompleteRateLimitError = false
             processAutocompleteResult(editor, offset, triggerKind, result, cancellationToken)
           }
           null
@@ -261,7 +260,7 @@ class CodyAutocompleteManager {
       val errorCode = error.toErrorCode()
       if (errorCode == ErrorCode.RateLimitError) {
         val rateLimitError = error.toRateLimitError()
-        CodyApplicationSettings.instance.autocompleteRateLimitError = true
+        UpgradeToCodyProNotification.autocompleteRateLimitError = true
         UpgradeToCodyProNotification.isFirstRleOnAutomaticAutcompletionsShown = true
         UpgradeToCodyProNotification.create(rateLimitError).notify(project)
       }

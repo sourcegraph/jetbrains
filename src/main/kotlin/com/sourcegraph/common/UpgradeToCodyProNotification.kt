@@ -52,5 +52,7 @@ class UpgradeToCodyProNotification private constructor(content: String) :
     }
 
     var isFirstRleOnAutomaticAutcompletionsShown: Boolean = false
+    var autocompleteRateLimitError: Boolean = false
+    var chatRateLimitError: Boolean = false
   }
 }
