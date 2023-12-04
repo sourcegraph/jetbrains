@@ -5,13 +5,17 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.Messages
 import com.sourcegraph.config.ConfigUtil
 
-class ChatAndAutocompleteLimitWarningAction :
-    DumbAwareAction("<html><b>Warning:</b> Chat and Autocomplete Limit Reached...</html>") {
+class RateLimitErrorWarningAction(
+    actionText: String,
+    private val dialogMessage: String,
+    private val dialogTitle: String
+) : DumbAwareAction(actionText) {
   override fun actionPerformed(e: AnActionEvent) {
+
     Messages.showDialog(
         e.project,
-        "You've used all messages and autocompletions. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
-        "Chat and Autocomplete Limit Reached",
+        dialogMessage,
+        dialogTitle,
         arrayOf("Ok"),
         /* defaultOptionIndex= */ 0,
         Messages.getWarningIcon())

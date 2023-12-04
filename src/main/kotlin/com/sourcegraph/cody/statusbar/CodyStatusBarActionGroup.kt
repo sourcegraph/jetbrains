@@ -23,17 +23,7 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
               ReportCodyBugAction()))
     } else {
 
-      val warningActions =
-          if (CodyApplicationSettings.instance.autocompleteRateLimitError &&
-              CodyApplicationSettings.instance.chatRateLimitError) {
-            ChatAndAutocompleteLimitWarningAction()
-          } else if (CodyApplicationSettings.instance.autocompleteRateLimitError) {
-            AutocompletionLimitWarningAction()
-          } else if (CodyApplicationSettings.instance.chatRateLimitError) {
-            ChatLimitWarningAction()
-          } else {
-            null
-          }
+      val warningActions = createWarningActions()
 
       addAll(listOfNotNull(warningActions))
       addSeparator()
@@ -47,4 +37,28 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
           ))
     }
   }
+
+  private fun createWarningActions() =
+      if (CodyApplicationSettings.instance.autocompleteRateLimitError &&
+          CodyApplicationSettings.instance.chatRateLimitError) {
+        RateLimitErrorWarningAction(
+            "<html><b>Warning:</b> Chat and Autocomplete Limit Reached...</html>",
+            "You've used all messages and autocompletions. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
+            "Chat and Autocomplete Limit Reached",
+        )
+      } else if (CodyApplicationSettings.instance.autocompleteRateLimitError) {
+        RateLimitErrorWarningAction(
+            "<html><b>Warning:</b> Autocomplete Limit Reached...</html>",
+            "You've used all autocompletions. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
+            "Autocomplete Limit Reached",
+        )
+      } else if (CodyApplicationSettings.instance.chatRateLimitError) {
+        RateLimitErrorWarningAction(
+            "<html><b>Warning:</b> Chat Limit Reached...</html>",
+            "You've used all messages. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
+            "Chat Limit Reached",
+        )
+      } else {
+        null
+      }
 }
