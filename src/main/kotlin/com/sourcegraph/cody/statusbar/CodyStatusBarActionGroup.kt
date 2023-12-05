@@ -39,19 +39,19 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
           UpgradeToCodyProNotification.chatRateLimitError) {
         RateLimitErrorWarningAction(
             "<html><b>Warning:</b> Chat and Autocomplete Limit Reached...</html>",
-            "You've used all messages and autocompletions. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
+            "You've used all chat messages and commands, and autocompletion suggestions. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
             "Chat and Autocomplete Limit Reached",
         )
       } else if (UpgradeToCodyProNotification.autocompleteRateLimitError) {
         RateLimitErrorWarningAction(
             "<html><b>Warning:</b> Autocomplete Limit Reached...</html>",
-            "You've used all autocompletions. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
+            "You've used all autocompletion suggestions. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
             "Autocomplete Limit Reached",
         )
       } else if (UpgradeToCodyProNotification.chatRateLimitError) {
         RateLimitErrorWarningAction(
             "<html><b>Warning:</b> Chat Limit Reached...</html>",
-            "You've used all messages. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
+            "You've used all chat messages and commands. The allowed number of request per day is limited at the moment to ensure the service stays functional.",
             "Chat Limit Reached",
         )
       } else {
