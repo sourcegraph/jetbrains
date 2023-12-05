@@ -17,6 +17,7 @@ import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
 import com.intellij.xml.util.XmlStringUtil
+import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgent.Companion.getInitializedServer
 import com.sourcegraph.cody.agent.CodyAgent.Companion.getServer
 import com.sourcegraph.cody.agent.CodyAgent.Companion.isConnected
@@ -373,6 +374,14 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       tryRestartingAgentIfNotRunning(project)
       if (isConnected(project)) {
         try {
+//          chat.sendMessageViaAgent(
+//                  project,
+//                  CodyAgent.getClient(project),
+//                  getInitializedServer(project),
+//                  humanMessage,
+//                  recipeId,
+//                  this,
+//                  inProgressChat)
           chat.sendMessageViaAgent(project, humanMessage, recipeId, this, inProgressChat)
         } catch (e: Exception) {
           logger.warn("Error sending message '$humanMessage' to chat", e)
