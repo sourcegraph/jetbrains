@@ -88,7 +88,7 @@ class Chat {
                 ?.let { " Retry after $it." }
                 ?: ""
         val text =
-            "<b>Request failed:</b> You've used all${quotaString} messages. The allowed number of request per day is limited at the moment to ensure the service stays functional.${resetString}"
+            "<b>Request failed:</b> You've used all${quotaString} chat messages and commands. The allowed number of request per day is limited at the moment to ensure the service stays functional.${resetString}"
         val chatMessage = ChatMessage(Speaker.ASSISTANT, text, null)
         chat.addMessageToChat(chatMessage)
         chat.finishMessageProcessing()
