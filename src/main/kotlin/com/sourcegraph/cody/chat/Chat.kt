@@ -76,10 +76,23 @@ class Chat {
       if (errorCode == ErrorCode.RateLimitError) {
         RateLimitStateManager.reportForChat(project)
         val rateLimitError = throwable.toRateLimitError()
+        // TODO(mikolaj):
+        // RFC 872 mentions `feature flag cody-pro: true`
+        // the flag should be a factor in whether to show the upgrade option
+        val upgradeLink =
+            when {
+              rateLimitError.upgradeIsAvailable ->
+                  " <a href=\"https://sourcegraph.com/cody/subscription\">Upgrade</a>&nbsp;&nbsp;&nbsp;&nbsp;"
+              else -> ""
+            }
+
         val text =
             "<b>Request failed:</b> You've used all${rateLimitError.quotaString()} chat messages and commands." +
                 " The allowed number of request per day is limited at the moment to ensure the service stays functional.${rateLimitError.resetString()}" +
-                "<br><a href=\"https://docs.sourcegraph.com/cody/core-concepts/cody-gateway#rate-limits-and-quotas\">Learn more.</a>"
+                "<br>" +
+                upgradeLink +
+                "<a href=\"https://sourcegraph.com/cody/manage\">Check usage</a>&nbsp;&nbsp;&nbsp;&nbsp;" +
+                "<a href=\"https://docs.sourcegraph.com/cody/core-concepts/cody-gateway#rate-limits-and-quotas\">Learn more</a>"
         val chatMessage = ChatMessage(Speaker.ASSISTANT, text, null)
         chat.addMessageToChat(chatMessage)
         chat.finishMessageProcessing()

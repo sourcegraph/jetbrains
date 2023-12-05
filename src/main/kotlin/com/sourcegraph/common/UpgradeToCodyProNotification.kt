@@ -10,8 +10,12 @@ import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.protocol.RateLimitError
 import com.sourcegraph.common.BrowserOpener.openInBrowser
 
-class UpgradeToCodyProNotification private constructor(content: String) :
-    Notification("Sourcegraph errors", "Sourcegraph", content, NotificationType.WARNING),
+class UpgradeToCodyProNotification private constructor(rateLimitError: RateLimitError) :
+    Notification(
+        "Sourcegraph errors",
+        "Sourcegraph",
+        "You've used all${rateLimitError.quotaString()} autocompletion suggestions.${rateLimitError.resetString()}",
+        NotificationType.WARNING),
     NotificationFullContent {
   init {
     setIcon(Icons.CodyLogo)
@@ -30,14 +34,39 @@ class UpgradeToCodyProNotification private constructor(content: String) :
             expire()
           }
         }
+
+    val isGa = java.lang.Boolean.getBoolean("cody.isGa")
+    // TODO(mikolaj):
+    // RFC 872 mentions `feature flag cody-pro: true`
+    // the flag should be a factor in whether to show the upgrade option
+    if (isGa) {
+      if (rateLimitError.upgradeIsAvailable) {
+        val upgradeAction: AnAction =
+            object : DumbAwareAction("Upgrade") {
+              override fun actionPerformed(anActionEvent: AnActionEvent) {
+                openInBrowser(anActionEvent.project, "https://sourcegraph.com/cody/subscription")
+                expire()
+              }
+            }
+        addAction(upgradeAction)
+      }
+      val checkUsageAction: AnAction =
+          object : DumbAwareAction("Check Usage") {
+            override fun actionPerformed(anActionEvent: AnActionEvent) {
+              openInBrowser(anActionEvent.project, "https://sourcegraph.com/cody/manage")
+              expire()
+            }
+          }
+      addAction(checkUsageAction)
+    }
+
     addAction(learnMoreAction)
     addAction(dismissAction)
   }
 
   companion object {
     fun create(rateLimitError: RateLimitError): UpgradeToCodyProNotification {
-      return UpgradeToCodyProNotification(
-          "You've used all${rateLimitError.quotaString()} autocompletion suggestions.${rateLimitError.resetString()}")
+      return UpgradeToCodyProNotification(rateLimitError)
     }
 
     var isFirstRLEOnAutomaticAutocompletionsShown: Boolean = false
