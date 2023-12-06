@@ -10,11 +10,12 @@ import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.protocol.RateLimitError
 import com.sourcegraph.common.BrowserOpener.openInBrowser
 
-class UpgradeToCodyProNotification private constructor(rateLimitError: RateLimitError) :
+class UpgradeToCodyProNotification
+private constructor(content: String, shouldShowUpgradeOption: Boolean) :
     Notification(
         "Sourcegraph errors",
-        "Sourcegraph",
-        "You've used all${rateLimitError.quotaString()} autocompletion suggestions.${rateLimitError.resetString()}",
+        "You've used up your autocompletes for the month",
+        content,
         NotificationType.WARNING),
     NotificationFullContent {
   init {
@@ -22,9 +23,13 @@ class UpgradeToCodyProNotification private constructor(rateLimitError: RateLimit
     val learnMoreAction: AnAction =
         object : DumbAwareAction("Learn more") {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
-            openInBrowser(
-                anActionEvent.project,
-                "https://docs.sourcegraph.com/cody/core-concepts/cody-gateway#rate-limits-and-quotas")
+            val learnMoreLink =
+                when {
+                  shouldShowUpgradeOption -> "https://sourcegraph.com/cody/subscription"
+                  else ->
+                      "https://docs.sourcegraph.com/cody/core-concepts/cody-gateway#rate-limits-and-quotas"
+                }
+            openInBrowser(anActionEvent.project, learnMoreLink)
             expire()
           }
         }
@@ -35,29 +40,15 @@ class UpgradeToCodyProNotification private constructor(rateLimitError: RateLimit
           }
         }
 
-    val isGa = java.lang.Boolean.getBoolean("cody.isGa")
-    // TODO(mikolaj):
-    // RFC 872 mentions `feature flag cody-pro: true`
-    // the flag should be a factor in whether to show the upgrade option
-    if (isGa) {
-      if (rateLimitError.upgradeIsAvailable) {
-        val upgradeAction: AnAction =
-            object : DumbAwareAction("Upgrade") {
-              override fun actionPerformed(anActionEvent: AnActionEvent) {
-                openInBrowser(anActionEvent.project, "https://sourcegraph.com/cody/subscription")
-                expire()
-              }
-            }
-        addAction(upgradeAction)
-      }
-      val checkUsageAction: AnAction =
-          object : DumbAwareAction("Check Usage") {
+    if (shouldShowUpgradeOption) {
+      val upgradeAction: AnAction =
+          object : DumbAwareAction("Upgrade") {
             override fun actionPerformed(anActionEvent: AnActionEvent) {
-              openInBrowser(anActionEvent.project, "https://sourcegraph.com/cody/manage")
+              openInBrowser(anActionEvent.project, "https://sourcegraph.com/cody/subscription")
               expire()
             }
           }
-      addAction(checkUsageAction)
+      addAction(upgradeAction)
     }
 
     addAction(learnMoreAction)
@@ -66,7 +57,23 @@ class UpgradeToCodyProNotification private constructor(rateLimitError: RateLimit
 
   companion object {
     fun create(rateLimitError: RateLimitError): UpgradeToCodyProNotification {
-      return UpgradeToCodyProNotification(rateLimitError)
+
+      val isGa = java.lang.Boolean.getBoolean("cody.isGa")
+      // TODO(mikolaj):
+      // RFC 872 mentions `feature flag cody-pro: true`
+      // the flag should be a factor in whether to show the upgrade option
+      val shouldShowUpgradeOption = isGa && rateLimitError.upgradeIsAvailable
+      val content =
+          when {
+            shouldShowUpgradeOption -> {
+              "You've used all${rateLimitError.limit?.let { " $it" }} autocomplete suggestions for the month. " +
+                  "Upgrade to Cody Pro for unlimited autocompletes, chats, and commands."
+            }
+            else -> {
+              "You've used all${rateLimitError.quotaString()} autocompletion suggestions.${rateLimitError.resetString()}"
+            }
+          }
+      return UpgradeToCodyProNotification(content, shouldShowUpgradeOption)
     }
 
     var isFirstRLEOnAutomaticAutocompletionsShown: Boolean = false

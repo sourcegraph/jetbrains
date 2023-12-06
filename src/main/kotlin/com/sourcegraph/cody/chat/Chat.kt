@@ -76,23 +76,27 @@ class Chat {
       if (errorCode == ErrorCode.RateLimitError) {
         RateLimitStateManager.reportForChat(project)
         val rateLimitError = throwable.toRateLimitError()
+
         // TODO(mikolaj):
         // RFC 872 mentions `feature flag cody-pro: true`
         // the flag should be a factor in whether to show the upgrade option
-        val upgradeLink =
+        val isGa = java.lang.Boolean.getBoolean("cody.isGa")
+        val text =
             when {
-              rateLimitError.upgradeIsAvailable ->
-                  " <a href=\"https://sourcegraph.com/cody/subscription\">Upgrade</a>&nbsp;&nbsp;&nbsp;&nbsp;"
-              else -> ""
+              rateLimitError.upgradeIsAvailable && isGa -> {
+                "<b>You've used up your chat and commands for the month:</b> " +
+                    "You've used all${rateLimitError.limit?.let { " $it" }} chat messages and commands for the month. " +
+                    "Upgrade to Cody Pro for unlimited autocompletes, chats, and commands. " +
+                    "<a href=\"https://sourcegraph.com/cody/subscription\">Upgrade</a> " +
+                    "or <a href=\"https://sourcegraph.com/cody/subscription\">learn more</a>."
+              }
+              else -> {
+                "<b>Request failed:</b> You've used all${rateLimitError.quotaString()} chat messages and commands." +
+                    " The allowed number of request per day is limited at the moment to ensure the service stays functional.${rateLimitError.resetString()} " +
+                    "<a href=\"https://docs.sourcegraph.com/cody/core-concepts/cody-gateway#rate-limits-and-quotas\">Learn more.</a>"
+              }
             }
 
-        val text =
-            "<b>Request failed:</b> You've used all${rateLimitError.quotaString()} chat messages and commands." +
-                " The allowed number of request per day is limited at the moment to ensure the service stays functional.${rateLimitError.resetString()}" +
-                "<br>" +
-                upgradeLink +
-                "<a href=\"https://sourcegraph.com/cody/manage\">Check usage</a>&nbsp;&nbsp;&nbsp;&nbsp;" +
-                "<a href=\"https://docs.sourcegraph.com/cody/core-concepts/cody-gateway#rate-limits-and-quotas\">Learn more</a>"
         val chatMessage = ChatMessage(Speaker.ASSISTANT, text, null)
         chat.addMessageToChat(chatMessage)
         chat.finishMessageProcessing()
