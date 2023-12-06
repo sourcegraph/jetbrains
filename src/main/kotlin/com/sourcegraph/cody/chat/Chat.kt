@@ -74,8 +74,8 @@ class Chat {
     if (throwable is ResponseErrorException) {
       val errorCode = throwable.toErrorCode()
       if (errorCode == ErrorCode.RateLimitError) {
-        RateLimitStateManager.reportForChat(project)
         val rateLimitError = throwable.toRateLimitError()
+        RateLimitStateManager.reportForChat(project, rateLimitError)
 
         // TODO(mikolaj):
         // RFC 872 mentions `feature flag cody-pro: true`

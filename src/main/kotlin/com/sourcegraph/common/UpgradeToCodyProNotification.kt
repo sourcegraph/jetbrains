@@ -9,6 +9,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.protocol.RateLimitError
 import com.sourcegraph.common.BrowserOpener.openInBrowser
+import java.util.concurrent.atomic.AtomicReference
 
 class UpgradeToCodyProNotification
 private constructor(content: String, shouldShowUpgradeOption: Boolean) :
@@ -77,7 +78,7 @@ private constructor(content: String, shouldShowUpgradeOption: Boolean) :
     }
 
     var isFirstRLEOnAutomaticAutocompletionsShown: Boolean = false
-    var autocompleteRateLimitError: Boolean = false
-    var chatRateLimitError: Boolean = false
+    var autocompleteRateLimitError: AtomicReference<RateLimitError?> = AtomicReference(null)
+    var chatRateLimitError: AtomicReference<RateLimitError?> = AtomicReference(null)
   }
 }
