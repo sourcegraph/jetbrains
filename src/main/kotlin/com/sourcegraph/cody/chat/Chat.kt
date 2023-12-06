@@ -3,8 +3,6 @@ package com.sourcegraph.cody.chat
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.UpdatableChat
 import com.sourcegraph.cody.agent.CodyAgent
-import com.sourcegraph.cody.agent.CodyAgentClient
-import com.sourcegraph.cody.agent.CodyAgentServer
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
@@ -12,7 +10,6 @@ import com.sourcegraph.cody.config.RateLimitStateManager
 import com.sourcegraph.cody.vscode.CancellationToken
 import java.time.Duration
 import java.time.OffsetDateTime
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
@@ -24,8 +21,6 @@ class Chat {
   @Throws(ExecutionException::class, InterruptedException::class)
   fun sendMessageViaAgent(
       project: Project,
-//      client: CodyAgentClient,
-//      codyAgentServer: CompletableFuture<CodyAgentServer>,
       humanMessage: ChatMessage,
       recipeId: String,
       chat: UpdatableChat,
@@ -94,7 +89,7 @@ class Chat {
                 ?: ""
         val text =
             "<b>Request failed:</b> You've used all${quotaString} chat messages and commands. The allowed number of request per day is limited at the moment to ensure the service stays functional.${resetString}." +
-                " Go to <a href=\"https://docs.sourcegraph.com/cody/core-concepts/cody-gateway#rate-limits-and-quotas\">"
+                " <a href=\"https://docs.sourcegraph.com/cody/core-concepts/cody-gateway#rate-limits-and-quotas\">Learn more</a>"
         val chatMessage = ChatMessage(Speaker.ASSISTANT, text, null)
         chat.addMessageToChat(chatMessage)
         chat.finishMessageProcessing()
