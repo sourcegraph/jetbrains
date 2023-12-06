@@ -55,7 +55,7 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
       autocompleteRLE != null && chatRLE != null -> {
         RateLimitErrorWarningAction(
             "<html><b>Warning:</b> Autocomplete and Chat and Commands Limit Reached...</html>",
-                "You've used all${autocompleteRLE.limit?.let { " $it" }} autocomplete suggestions, " +
+            "You've used all${autocompleteRLE.limit?.let { " $it" }} autocomplete suggestions, " +
                 "and all${chatRLE.limit?.let { " $it" }} chat messages and commands for the month. " +
                 suggestionOrExplanation,
             "You've used up your autocompletes, chat and commands for the month",
@@ -64,7 +64,7 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
       autocompleteRLE != null -> {
         RateLimitErrorWarningAction(
             "<html><b>Warning:</b> Autocomplete Limit Reached...</html>",
-                "You've used all${autocompleteRLE.limit?.let { " $it" }} autocomplete suggestions for the month. " +
+            "You've used all${autocompleteRLE.limit?.let { " $it" }} autocomplete suggestions for the month. " +
                 suggestionOrExplanation,
             "You've used up your autocompletes for the month",
             shouldShowUpgradeOption)
@@ -72,7 +72,7 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
       chatRLE != null -> {
         RateLimitErrorWarningAction(
             "<html><b>Warning:</b> Chat and Commands Limit Reached...</html>",
-                "You've used all${chatRLE.limit?.let { " $it" }} chat messages and commands for the month. " +
+            "You've used all${chatRLE.limit?.let { " $it" }} chat messages and commands for the month. " +
                 suggestionOrExplanation,
             "You've used up your chat and commands for the month",
             shouldShowUpgradeOption)

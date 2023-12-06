@@ -29,7 +29,7 @@ class RateLimitErrorWarningAction(
             dialogTitle,
             actions,
             /* defaultOptionIndex= */ 0,
-                Icons.CodyLogo)
+            Icons.CodyLogo)
 
     if (shouldShowUpgradeOption && result == 0) {
       BrowserOpener.openInBrowser(e.project, "https://sourcegraph.com/cody/subscription")
