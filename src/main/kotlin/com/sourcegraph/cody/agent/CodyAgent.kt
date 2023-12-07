@@ -12,12 +12,14 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.util.system.CpuArch
+import com.jetbrains.rd.util.AtomicReference
 import com.sourcegraph.cody.CodyAgentFocusListener
 import com.sourcegraph.cody.agent.protocol.ClientInfo
 import com.sourcegraph.cody.agent.protocol.CompletionItemID
 import com.sourcegraph.cody.agent.protocol.CompletionItemIDSerializer
 import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService
 import com.sourcegraph.config.ConfigUtil
+import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.File
 import java.io.IOException
 import java.io.PrintWriter
@@ -29,7 +31,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Function
-import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -47,6 +48,7 @@ class CodyAgent(private val project: Project) : Disposable {
   private var agentProcess: Process? = null
 
   fun initialize() {
+    System.err.println("[głupie_logi] fun initialize() {")
     if ("true" != System.getProperty("cody-agent.enabled", "true")) {
       logger.info("Cody agent is disabled due to system property '-Dcody-agent.enabled=false'")
       return
@@ -57,7 +59,9 @@ class CodyAgent(private val project: Project) : Disposable {
         // Restart `initialized` future so that new callers can subscribe to the next instance of
         // the Cody agent server.
         initialized = CompletableFuture()
+        System.err.println("[głupie_logi] NOT isFirstConnection")
       }
+      System.err.println("[głupie_logi] isFirstConnection")
       agentNotRunningExplanation = ""
       startListeningToAgent()
       executorService.submit {
@@ -75,6 +79,7 @@ class CodyAgent(private val project: Project) : Disposable {
           server.initialized()
           subscribeToFocusEvents()
           initialized.complete(server)
+          System.err.println("[głupie_logi] initialized.complete(server)")
         } catch (e: Exception) {
           agentNotRunningExplanation = "failed to send 'initialize' JSON-RPC request Cody agent"
           logger.warn(agentNotRunningExplanation, e)
@@ -184,6 +189,7 @@ class CodyAgent(private val project: Project) : Disposable {
 
     @JvmStatic
     fun getInitializedServer(project: Project): CompletableFuture<CodyAgentServer> {
+      System.err.println("[głupie_logi] project.service<CodyAgent>().initialized")
       return project.service<CodyAgent>().initialized
     }
 
@@ -277,4 +283,5 @@ class CodyAgent(private val project: Project) : Disposable {
       return null
     }
   }
+
 }

@@ -24,14 +24,18 @@ public class CodyFileEditorListener implements FileEditorManagerListener {
       return;
     }
 
+    System.err.println("[głupie_logi] public void fileOpened(@NotNull FileEditorManager source, @NotNull VirtualFile file)");
     CodyAgent.getInitializedServer(source.getProject())
         .completeOnTimeout(null, 3, TimeUnit.SECONDS)
         .thenAccept(
             server -> {
+                System.err.println("[głupie_logi] fileOpened");
               if (server == null) {
+                  System.err.println("[głupie_logi] server == null");
                 return;
               }
               if (!CodyAgent.isConnected(source.getProject())) {
+                  System.err.println("[głupie_logi] !CodyAgent.isConnected(source.getProject()");
                 return;
               }
 
@@ -39,9 +43,15 @@ public class CodyFileEditorListener implements FileEditorManagerListener {
 
               CodyAgentClient client = CodyAgent.getClient(source.getProject());
               if (client.codebase == null) {
+                  System.err.println("[głupie_logi] client.codebase == null");
                 return;
               }
               client.codebase.onFileOpened(source.getProject(), file);
+                System.err.println("[głupie_logi] client.codebase.onFileOpened(source.getProject(), file);");
+            })
+            .exceptionally(err -> {
+                System.err.println("[głupie_logi] err: " + err);
+                   return null;
             });
   }
 
