@@ -66,5 +66,8 @@ interface CodyAgentServer {
   @JsonNotification("autocomplete/completionAccepted")
   fun completionAccepted(logID: CompletionItemParams)
 
+  @JsonNotification("featureFlags/getFeatureFlag")
+  fun evaluateFeatureFlag(flagName: String): Boolean
+
   @JsonNotification("$/cancelRequest") fun cancelRequest(cancelParams: CancelParams)
 }
