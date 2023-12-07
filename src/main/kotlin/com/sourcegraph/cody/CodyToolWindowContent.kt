@@ -11,7 +11,6 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.ui.SimpleTextAttributes
-import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.IconUtil
@@ -53,7 +52,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private val sendButton: JButton
   private var inProgressChat = CancellationToken()
   private val stopGeneratingButton =
-    JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend))
+      JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend))
   private val recipesPanel: JBPanelWithEmptyText
   private val subscriptionPanel: JPanel
   val embeddingStatusView: EmbeddingStatusView
@@ -69,16 +68,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     recipesPanel.layout = BoxLayout(recipesPanel, BoxLayout.Y_AXIS)
     tabbedPane.insertTab("Commands", null, recipesPanel, null, RECIPES_TAB_INDEX)
 
-    subscriptionPanel = JPanel()
+    subscriptionPanel = createSubscriptionTab(project)
 
-    val tierLabel = JBLabel("<html>Current tier: <b>Cody Pro</b><html/>")
-
-    val upgradeButton = UIComponents.createMainButton("Upgrade")
-    upgradeButton.putClientProperty(DarculaButtonUI.DEFAULT_STYLE_KEY, true)
-
-    val checkUsageButton = JButton("Check Usage")
-
-    subscriptionPanel.add(UsagePanel(tierLabel, upgradeButton, checkUsageButton, project), BorderLayout.LINE_START)
     tabbedPane.insertTab("Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
 
     // Initiate filling recipes panel in the background
@@ -112,7 +103,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     // Main content panel
     contentPanel.layout = BorderLayout(0, 0)
     contentPanel.border = BorderFactory.createEmptyBorder(0, 0, 10, 0)
-    contentPanel.add(chatPanel,  BorderLayout.CENTER)
+    contentPanel.add(chatPanel, BorderLayout.CENTER)
     contentPanel.add(lowerPanel, BorderLayout.SOUTH)
     tabbedPane.addChangeListener { focusPromptInput() }
     val singInWithSourcegraphPanel = SignInWithSourcegraphPanel(project)
