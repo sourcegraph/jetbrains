@@ -11,6 +11,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.IconUtil
@@ -52,8 +53,9 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private val sendButton: JButton
   private var inProgressChat = CancellationToken()
   private val stopGeneratingButton =
-      JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend))
+    JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend))
   private val recipesPanel: JBPanelWithEmptyText
+  private val subscriptionPanel: JPanel
   val embeddingStatusView: EmbeddingStatusView
   override var isChatVisible = false
   private var codyOnboardingGuidancePanel: CodyOnboardingGuidancePanel? = null
@@ -66,6 +68,18 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     recipesPanel = JBPanelWithEmptyText(GridLayout(0, 1))
     recipesPanel.layout = BoxLayout(recipesPanel, BoxLayout.Y_AXIS)
     tabbedPane.insertTab("Commands", null, recipesPanel, null, RECIPES_TAB_INDEX)
+
+    subscriptionPanel = JPanel()
+
+    val tierLabel = JBLabel("<html>Current tier: <b>Cody Pro</b><html/>")
+
+    val upgradeButton = UIComponents.createMainButton("Upgrade")
+    upgradeButton.putClientProperty(DarculaButtonUI.DEFAULT_STYLE_KEY, true)
+
+    val checkUsageButton = JButton("Check Usage")
+
+    subscriptionPanel.add(UsagePanel(tierLabel, upgradeButton, checkUsageButton, project), BorderLayout.LINE_START)
+    tabbedPane.insertTab("Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
 
     // Initiate filling recipes panel in the background
     refreshRecipes()
@@ -98,7 +112,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     // Main content panel
     contentPanel.layout = BorderLayout(0, 0)
     contentPanel.border = BorderFactory.createEmptyBorder(0, 0, 10, 0)
-    contentPanel.add(chatPanel, BorderLayout.CENTER)
+    contentPanel.add(chatPanel,  BorderLayout.CENTER)
     contentPanel.add(lowerPanel, BorderLayout.SOUTH)
     tabbedPane.addChangeListener { focusPromptInput() }
     val singInWithSourcegraphPanel = SignInWithSourcegraphPanel(project)
@@ -426,6 +440,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     const val SING_IN_WITH_SOURCEGRAPH_PANEL = "singInWithSourcegraphPanel"
     private const val CHAT_TAB_INDEX = 0
     private const val RECIPES_TAB_INDEX = 1
+    private const val SUBSCRIPTION_TAB_INDEX = 2
     private const val CHAT_MESSAGE_HISTORY_CAPACITY = 100
 
     fun getInstance(project: Project): CodyToolWindowContent {
