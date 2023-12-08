@@ -25,7 +25,7 @@ public class CodyFileEditorListener implements FileEditorManagerListener {
     }
 
     CodyAgent.getInitializedServer(source.getProject())
-        .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+        .completeOnTimeout(null, 12, TimeUnit.SECONDS)
         .thenAccept(
             server -> {
               if (server == null) {
