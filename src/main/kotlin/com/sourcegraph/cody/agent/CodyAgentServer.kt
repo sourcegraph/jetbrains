@@ -38,6 +38,11 @@ interface CodyAgentServer {
   @JsonRequest("git/codebaseName")
   fun convertGitCloneURLToCodebaseName(cloneURL: CloneURL): CompletableFuture<String?>
 
+  @JsonRequest("featureFlags/getFeatureFlag")
+  fun evaluateFeatureFlag(flagName: GetFeatureFlag): CompletableFuture<Boolean?>
+
+  @JsonRequest("graphql/currentUserIsPro") fun isCurrentUserPro(): CompletableFuture<Boolean?>
+
   // Notifications
   @JsonNotification("initialized") fun initialized()
 
@@ -65,9 +70,6 @@ interface CodyAgentServer {
 
   @JsonNotification("autocomplete/completionAccepted")
   fun completionAccepted(logID: CompletionItemParams)
-
-  @JsonNotification("featureFlags/getFeatureFlag")
-  fun evaluateFeatureFlag(flagName: String): Boolean
 
   @JsonNotification("$/cancelRequest") fun cancelRequest(cancelParams: CancelParams)
 }
