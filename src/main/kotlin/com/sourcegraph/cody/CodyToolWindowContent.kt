@@ -122,7 +122,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
         if (isCurrentUserPro != null) {
           val subscriptionPanel = createSubscriptionTab(isCurrentUserPro)
           tabbedPane.insertTab(
-                  "Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
+              "Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
         }
       }
     }
