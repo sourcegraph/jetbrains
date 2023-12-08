@@ -17,7 +17,7 @@ class RateLimitErrorWarningAction(
 
     val actions =
         if (shouldShowUpgradeOption) {
-          arrayOf("Upgrade", "Ok")
+          arrayOf("Close", "Upgrade")
         } else {
           arrayOf("Ok")
         }
@@ -28,10 +28,10 @@ class RateLimitErrorWarningAction(
             dialogMessage,
             dialogTitle,
             actions,
-            /* defaultOptionIndex= */ 0,
+            /* defaultOptionIndex= */ 1,
             Icons.CodyLogo)
 
-    if (shouldShowUpgradeOption && result == 0) {
+    if (result == 1) {
       BrowserOpener.openInBrowser(e.project, "https://sourcegraph.com/cody/subscription")
     }
   }
