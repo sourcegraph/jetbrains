@@ -23,7 +23,6 @@ import com.sourcegraph.cody.agent.CodyAgent.Companion.isConnected
 import com.sourcegraph.cody.agent.CodyAgentManager.tryRestartingAgentIfNotRunning
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ContextMessage
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.agent.protocol.RecipeInfo
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.autocomplete.CodyEditorFactoryListener
@@ -118,13 +117,12 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     tryRestartingAgentIfNotRunning(project)
     val server = getServer(project)
     if (server != null) {
-      val codyProFeatureFlag = server.evaluateFeatureFlag(GetFeatureFlag("CodyPro"))
-      if (codyProFeatureFlag.get() != null && codyProFeatureFlag.get()!!) {
+      if (java.lang.Boolean.getBoolean("cody.isGa")) {
         val isCurrentUserPro = server.isCurrentUserPro().exceptionally { null }.get()
         if (isCurrentUserPro != null) {
           val subscriptionPanel = createSubscriptionTab(isCurrentUserPro)
           tabbedPane.insertTab(
-              "Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
+                  "Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
         }
       }
     }
