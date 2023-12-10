@@ -12,8 +12,6 @@ interface UpdatableChat {
 
   fun finishMessageProcessing()
 
-  fun resetConversation()
-
   fun refreshPanelsVisibility()
 
   val isChatVisible: Boolean

@@ -20,9 +20,10 @@
 - Chat
   - [ ] [Autoscroll to latest message](#autoscroll-to-latest-message)
   - [ ] [Read chat history without interruptions](#read-chat-history-without-interruptions)
+  - [ ] [Manage multiple chats](#manage-multiple-chats)
 - Product-led growth
   - [ ] [Cody Free/Pro subscription tab](#cody-freepro-subscription-tab)
-  - [ ] [Cody Free/Pro rate limit errors](#cody-freepro-rate-limit-errors)
+  - [ ] [Cody Free/Pro rate limit errors](#cody-freepro-rate-limit-errors) 
 - Other
   - [ ] [Search Selection on Sourcegraph Web](#search-selection-on-sourcegraph-web)
   - [ ] [Automatic repository recognition](#automatic-repository-recognition)
@@ -237,6 +238,10 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 1. Fill the `Chat` with messages until the scrollbar appears.
 2. Scroll up. Latest message should be not visible or partially visible.
 3. Add new message.
+
+### Manage multiple chats
+
+// todo
 
 #### Expected behaviour
 
