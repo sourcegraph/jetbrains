@@ -120,8 +120,10 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       tryRestartingAgentIfNotRunning(project)
       val server = getServer(project)
       if (server != null) {
-        val codyProFeatureFlag = server.evaluateFeatureFlag(GetFeatureFlag("CodyPro"))
-        if (codyProFeatureFlag.get() != null && codyProFeatureFlag.get()!!) {
+        val codyProFeatureFlag = server.evaluateFeatureFlag(GetFeatureFlag("CodyProJetBrains"))
+        if (codyProFeatureFlag.get() != null &&
+            codyProFeatureFlag.get()!! &&
+            java.lang.Boolean.getBoolean("cody.isGa")) {
           val isCurrentUserPro =
               server
                   .isCurrentUserPro()
