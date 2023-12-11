@@ -47,7 +47,7 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
 
     val suggestionOrExplanation =
         if (shouldShowUpgradeOption)
-            "Upgrade to Cody Pro for unlimited autocompletes, chats, and commands."
+            "Upgrade to Cody Pro for unlimited autocompletes, chats, and commands.\n\n(Already upgraded to Pro? Restart your IDE for changes to take effect)"
         else
             " The allowed number of request per day is limited at the moment to ensure the service stays functional."
 
