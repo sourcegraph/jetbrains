@@ -115,23 +115,26 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
   @RequiresEdt
   private fun addSubscriptionTab() {
-    tryRestartingAgentIfNotRunning(project)
-    val server = getServer(project)
-    if (server != null) {
-      val codyProFeatureFlag = server.evaluateFeatureFlag(GetFeatureFlag("CodyPro"))
-      if (codyProFeatureFlag.get() != null && codyProFeatureFlag.get()!!) {
-        val isCurrentUserPro =
-            server
-                .isCurrentUserPro()
-                .exceptionally { e ->
-                  logger.warn("Error getting user pro status", e)
-                  null
-                }
-                .get()
-        if (isCurrentUserPro != null) {
-          val subscriptionPanel = createSubscriptionTab(isCurrentUserPro)
-          tabbedPane.insertTab(
-              "Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
+    val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
+    if (activeAccountType != null && activeAccountType.isDotcomAccount()) {
+      tryRestartingAgentIfNotRunning(project)
+      val server = getServer(project)
+      if (server != null) {
+        val codyProFeatureFlag = server.evaluateFeatureFlag(GetFeatureFlag("CodyPro"))
+        if (codyProFeatureFlag.get() != null && codyProFeatureFlag.get()!!) {
+          val isCurrentUserPro =
+              server
+                  .isCurrentUserPro()
+                  .exceptionally { e ->
+                    logger.warn("Error getting user pro status", e)
+                    null
+                  }
+                  .get()
+          if (isCurrentUserPro != null) {
+            val subscriptionPanel = createSubscriptionTab(isCurrentUserPro)
+            tabbedPane.insertTab(
+                "Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
+          }
         }
       }
     }
