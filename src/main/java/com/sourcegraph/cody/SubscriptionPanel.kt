@@ -16,4 +16,7 @@ fun createSubscriptionTab(isCurrentUserPro: Boolean) = panel {
     }
     button("Check Usage") { BrowserUtil.browse(ConfigUtil.DOTCOM_URL + "cody/manage") }
   }
+  if (!isCurrentUserPro) {
+    row { label("Please refresh IDE after upgrading to Cody Pro") }
+  }
 }
