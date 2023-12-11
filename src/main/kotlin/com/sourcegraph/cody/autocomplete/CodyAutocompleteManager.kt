@@ -226,10 +226,6 @@ class CodyAutocompleteManager {
                             com.sourcegraph.cody.vscode.Position(lineNumber, startPosition),
                             position)))
     notifyApplication(CodyAutocompleteStatus.AutocompleteInProgress)
-    //    runBlocking {
-    //      val await = server!!.pro.await()
-    //      println("PROOOOO"+ await)
-    //    }
     val completions = server!!.autocompleteExecute(params)
 
     // Important: we have to `.cancel()` the original `CompletableFuture<T>` from lsp4j. As soon as

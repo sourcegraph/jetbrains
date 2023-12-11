@@ -120,7 +120,14 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     if (server != null) {
       val codyProFeatureFlag = server.evaluateFeatureFlag(GetFeatureFlag("CodyPro"))
       if (codyProFeatureFlag.get() != null && codyProFeatureFlag.get()!!) {
-        val isCurrentUserPro = server.isCurrentUserPro().exceptionally { null }.get()
+        val isCurrentUserPro =
+            server
+                .isCurrentUserPro()
+                .exceptionally { e ->
+                  logger.warn("Error getting user pro status", e)
+                  null
+                }
+                .get()
         if (isCurrentUserPro != null) {
           val subscriptionPanel = createSubscriptionTab(isCurrentUserPro)
           tabbedPane.insertTab(
