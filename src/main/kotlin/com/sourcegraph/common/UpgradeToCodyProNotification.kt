@@ -31,13 +31,13 @@ private constructor(content: String, shouldShowUpgradeOption: Boolean) :
                       "https://docs.sourcegraph.com/cody/core-concepts/cody-gateway#rate-limits-and-quotas"
                 }
             openInBrowser(anActionEvent.project, learnMoreLink)
-            expire()
+            hideBalloon()
           }
         }
     val dismissAction: AnAction =
         object : DumbAwareAction("Dismiss") {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
-            expire()
+            hideBalloon()
           }
         }
 
@@ -46,7 +46,7 @@ private constructor(content: String, shouldShowUpgradeOption: Boolean) :
           object : DumbAwareAction("Upgrade") {
             override fun actionPerformed(anActionEvent: AnActionEvent) {
               openInBrowser(anActionEvent.project, "https://sourcegraph.com/cody/subscription")
-              expire()
+              hideBalloon()
             }
           }
       addAction(upgradeAction)
