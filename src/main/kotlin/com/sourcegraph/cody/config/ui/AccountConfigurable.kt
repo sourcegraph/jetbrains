@@ -2,6 +2,7 @@ package com.sourcegraph.cody.config.ui
 
 import com.intellij.collaboration.util.ProgressIndicatorsProvider
 import com.intellij.ide.DataManager
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
@@ -15,6 +16,7 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import com.intellij.util.ui.EmptyIcon
+import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.auth.ui.customAccountsPanel
 import com.sourcegraph.cody.config.*
 import com.sourcegraph.cody.config.notification.AccountSettingChangeActionNotifier
@@ -120,9 +122,14 @@ class AccountConfigurable(val project: Project) :
 
     applyChannelConfiguration()
 
+    // todo: create som pub & sub mechanism for these
     UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
     UpgradeToCodyProNotification.chatRateLimitError.set(null)
     CodyAutocompleteStatusService.resetApplication(project)
+
+    ApplicationManager.getApplication().executeOnPooledThread {
+      CodyToolWindowContent.getInstance(project).refreshSubscriptionTab()
+    }
   }
 
   private fun applyChannelConfiguration() {

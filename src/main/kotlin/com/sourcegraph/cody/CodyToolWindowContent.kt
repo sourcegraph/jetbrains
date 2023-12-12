@@ -140,7 +140,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
   }
 
-  @RequiresEdt
   fun refreshSubscriptionTab() {
     if (tabbedPane.tabCount >= SUBSCRIPTION_TAB_INDEX + 1) {
       tabbedPane.removeTabAt(SUBSCRIPTION_TAB_INDEX)
