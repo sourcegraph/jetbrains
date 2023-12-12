@@ -14,6 +14,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.TextRange
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.Position
@@ -264,6 +265,7 @@ class CodyAutocompleteManager {
         UpgradeToCodyProNotification.autocompleteRateLimitError.set(rateLimitError)
         UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = true
         UpgradeToCodyProNotification.notify(rateLimitError, project)
+        CodyToolWindowContent.getInstance(project).refreshSubscriptionTab()
       }
     }
   }
