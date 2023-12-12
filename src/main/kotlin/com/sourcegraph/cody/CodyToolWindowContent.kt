@@ -39,6 +39,7 @@ import com.sourcegraph.telemetry.GraphQlLogger
 import java.awt.*
 import java.awt.event.ActionEvent
 import java.util.*
+import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 import javax.swing.*
 import javax.swing.plaf.ButtonUI
@@ -120,7 +121,10 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       tryRestartingAgentIfNotRunning(project)
       val server = getServer(project)
       if (server != null) {
-        val codyProFeatureFlag = server.evaluateFeatureFlag(GetFeatureFlag("CodyProJetBrains"))
+        val codyProFeatureFlag =
+            server
+                .evaluateFeatureFlag(GetFeatureFlag("CodyProJetBrains"))
+                .completeOnTimeout(null, 10, TimeUnit.SECONDS)
         if (codyProFeatureFlag.get() != null && codyProFeatureFlag.get()!!) {
           val isCurrentUserPro =
               server
