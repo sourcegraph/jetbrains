@@ -20,6 +20,8 @@
 - Chat
   - [ ] [Autoscroll to latest message](#autoscroll-to-latest-message)
   - [ ] [Read chat history without interruptions](#read-chat-history-without-interruptions)
+  - [ ] [PLG](#PLG)
+  - [ ] [PLG rate limits](#PLG-rate-limits)
 - Other
   - [ ] [Search Selection on Sourcegraph Web](#search-selection-on-sourcegraph-web)
   - [ ] [Automatic repository recognition](#automatic-repository-recognition)
@@ -238,6 +240,30 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 #### Expected behaviour
 
 * Scrollbar is **not moving automatically** while new message tokens are generated. You can easily read older messages without interruptions and scrolling is smooth.
+
+### PLG
+1. Log in to Sourcegraph.com with a free account.
+2. Ensure PLG features are enabled for your account (refer to the `cody-pro-jetbrains` feature flag for your Sourcegraph account).
+3. Open the `Cody` toolbar.
+4. Open the `Subscription` tab. (it should be visible)
+5. The tier should point to `Cody Free`.
+6. The `Upgrade to Cody Pro` button should be visible and should point to https://sourcegraph.com/cody/subscription.
+7. The `Current usage` button should be visible and should point to https://sourcegraph.com/cody/manage
+8. Go to accounts settings and switch to a Cody Pro account.
+9. Open the `Subscription` tab again (it should still be visible)
+10. The tier should now point to `Cody Pro`. Current usage should be visible.
+11. The `Upgrade to Cody Pro` button should **not** be visible.
+12. Go to accounts settings and switch to an Enterprise account (non-dotcom).
+13. The subscription tab and all PLG-related messages should not be shown.
+14. Switch back to the Sourcegraph.com free account (set it as active).
+15. The `Subscription` tab should be visible again.
+
+### PLG rate limits
+1. Log in to a Sourcegraph.com free account with rate limits exceeded.
+2. Open the `Cody` toolbar.
+3. Type a message in the chat. A notification about the exceeded rate limit should be shown. It should suggest upgrading to Cody Pro.
+4. Trigger autocomplete in the editor. A similar notification should be shown to the user.
+5. Upgrading to Cody Pro should remove the rate limit notifications.
 
 ## Other
 
