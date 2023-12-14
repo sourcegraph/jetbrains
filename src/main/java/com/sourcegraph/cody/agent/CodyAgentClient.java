@@ -3,12 +3,23 @@ package com.sourcegraph.cody.agent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.util.Disposer;
+import com.intellij.ui.jcef.JBCefApp;
 import com.sourcegraph.cody.agent.protocol.ChatMessage;
 import com.sourcegraph.cody.agent.protocol.DebugMessage;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import com.sourcegraph.find.FindPopupDialog;
+import com.sourcegraph.find.browser.JSToJavaBridgeRequestHandler;
+import com.sourcegraph.find.browser.SourcegraphJBCefBrowser;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,5 +73,35 @@ public class CodyAgentClient {
   @JsonNotification("debug/message")
   public void debugMessage(DebugMessage msg) {
     logger.warn(String.format("%s: %s", msg.getChannel(), msg.getMessage()));
+  }
+
+  // Webviews
+  @JsonRequest("webview/create")
+  public CompletableFuture<Void> webviewCreate(WebviewCreateParams params) {
+    logger.error("webview/create This request should not happen if you are using chat/new.");
+    return CompletableFuture.completedFuture(null);
+  }
+
+  @JsonNotification("webview/postMessage")
+  public void webviewPostMessage(WebviewPostMessageParams params) {
+    if (onChatUpdateMessageInProgress != null
+        && params.getMessage().getType().equals("transcript")) {
+      if (Boolean.FALSE.equals(params.getMessage().isMessageInProgress())) {
+        onFinishedProcessing.run();
+      } else if (params.getMessage().getMessages() != null
+          && !params.getMessage().getMessages().isEmpty()) {
+        ApplicationManager.getApplication()
+            .invokeLater(
+                () ->
+                    onChatUpdateMessageInProgress.accept(
+                        Objects.requireNonNull(params.getMessage().getMessages())
+                            .get(params.getMessage().getMessages().size() - 1)));
+
+      } else {
+        logger.warn("webview/postMessage: no messages in transcript");
+      }
+    } else {
+      logger.warn(String.format("webview/postMessage %s: %s", params.getId(), params.getMessage()));
+    }
   }
 }
