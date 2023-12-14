@@ -92,9 +92,9 @@ class Chat {
                       "(Already upgraded to Pro? Restart your IDE for changes to take effect)"
                 }
                 else -> {
-                  "<b>Request failed:</b> You've used all${rateLimitError.quotaString()} chat messages and commands." +
-                      " The allowed number of request per day is limited at the moment to ensure the service stays functional.${rateLimitError.resetString()} " +
-                      "<a href=\"https://sourcegraph.com/docs/cody/core-concepts/cody-gateway#rate-limits-and-quotas\">Learn more.</a>"
+                  "<b>Thank you for using Cody so heavily today!</b>" +
+                      " To ensure that Cody can stay operational for all Cody users, please come back tomorrow for more chats, commands, and autocompletes." +
+                      " <a href=\"https://sourcegraph.com/docs/cody/core-concepts/cody-gateway#rate-limits-and-quotas\">Learn more.</a>"
                 }
               }
 

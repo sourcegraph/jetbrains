@@ -18,12 +18,8 @@ import com.sourcegraph.common.BrowserOpener.openInBrowser
 import java.util.concurrent.atomic.AtomicReference
 
 class UpgradeToCodyProNotification
-private constructor(content: String, shouldShowUpgradeOption: Boolean) :
-    Notification(
-        "Sourcegraph errors",
-        "You've used up your autocompletes for the month",
-        content,
-        NotificationType.WARNING),
+private constructor(title: String, content: String, shouldShowUpgradeOption: Boolean) :
+    Notification("Sourcegraph errors", title, content, NotificationType.WARNING),
     NotificationFullContent {
   init {
     icon = Icons.CodyLogo
@@ -75,10 +71,19 @@ private constructor(content: String, shouldShowUpgradeOption: Boolean) :
                     "(Already upgraded to Pro? Restart your IDE for changes to take effect)"
               }
               else -> {
-                "You've used all${rateLimitError.quotaString()} autocompletion suggestions.${rateLimitError.resetString()}"
+                "To ensure that Cody can stay operational for all Cody users, please come back tomorrow for more chats, commands, and autocompletes."
               }
             }
-        UpgradeToCodyProNotification(content, shouldShowUpgradeOption).notify(project)
+        val title =
+            when {
+              shouldShowUpgradeOption -> {
+                "You've used up your autocompletes for the month"
+              }
+              else -> {
+                "Thank you for using Cody so heavily today!"
+              }
+            }
+        UpgradeToCodyProNotification(title, content, shouldShowUpgradeOption).notify(project)
       }
     }
 
