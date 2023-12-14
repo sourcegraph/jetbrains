@@ -4,6 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.UpdatableChat
 import com.sourcegraph.cody.agent.CodyAgent
+import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
@@ -17,8 +18,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import java.util.stream.Collectors
 import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
+import org.slf4j.LoggerFactory
 
 class Chat {
+  val logger = LoggerFactory.getLogger(Chat::class.java)
+
   @Throws(ExecutionException::class, InterruptedException::class)
   fun sendMessageViaAgent(
       project: Project,
@@ -42,60 +46,112 @@ class Chat {
                 ?.map { contextFile: ContextFile ->
                   ContextMessage(Speaker.ASSISTANT, agentChatMessageText, contextFile)
                 }
-                ?.collect(Collectors.toList())
-                ?: emptyList()
+                ?.collect(Collectors.toList()) ?: emptyList()
         chat.displayUsedContext(contextMessages)
         chat.addMessageToChat(chatMessage)
       } else {
         chat.updateLastMessage(chatMessage)
       }
     }
-    codyAgentServer
-        .thenAcceptAsync(
-            { server ->
-              try {
-                val recipesExecuteFuture =
-                    server.recipesExecute(
-                        ExecuteRecipeParams(recipeId, humanMessage.actualMessage()))
-                token.onCancellationRequested { recipesExecuteFuture.cancel(true) }
-                recipesExecuteFuture.handle { _, error ->
-                  if (error != null) {
-                    handleError(project, error, chat)
-                    null
-                  } else {
-                    RateLimitStateManager.invalidateForChat(project)
+    if (recipeId == "chat-question") {
+      codyAgentServer
+          .thenAcceptAsync(
+              { server ->
+                try {
+                  // TODO: only create one chat ID per project instead of per message
+                  val id = server.chatNew().get()
+                  val reply =
+                      server.chatSubmitMessage(
+                          ChatSubmitMessageParams(
+                              id,
+                              WebviewMessage(
+                                  command = "submit",
+                                  text = humanMessage.actualMessage(),
+                                  submitType = "user",
+                                  addEnhancedContext = true,
+                                  // TODO: allow to manually add files to the context via `@`
+                                  contextFiles = listOf())))
+                  token.onCancellationRequested { reply.cancel(true) }
+                  reply.handle { lastReply, error ->
+                    val rateLimitError =
+                        if (lastReply.type == "transcript" &&
+                            lastReply.messages?.lastOrNull()?.error != null) {
+                          lastReply.messages.lastOrNull()?.error?.toRateLimitError()
+                        } else {
+                          null
+                        }
+                    logger.warn("rateLimitError: $rateLimitError")
+                    if (rateLimitError != null) {
+                      handleRateLimitError(project, chat, rateLimitError)
+                    } else if (error != null) {
+                      handleError(project, error, chat)
+                      null
+                    } else {
+                      RateLimitStateManager.invalidateForChat(project)
+                    }
                   }
+                } catch (ignored: Exception) {
+                  // Ignore bugs in the agent when executing recipes
                 }
-              } catch (ignored: Exception) {
-                // Ignore bugs in the agent when executing recipes
-              }
-            },
-            CodyAgent.executorService)
-        .get()
+              },
+              CodyAgent.executorService)
+          .get()
+    } else {
+      // TODO: migrate recipes to new webview-based API and then delete this else condition.
+      codyAgentServer
+          .thenAcceptAsync(
+              { server ->
+                try {
+                  val recipesExecuteFuture =
+                      server.recipesExecute(
+                          ExecuteRecipeParams(recipeId, humanMessage.actualMessage()))
+                  token.onCancellationRequested { recipesExecuteFuture.cancel(true) }
+                  recipesExecuteFuture.handle { _, error ->
+                    if (error != null) {
+                      handleError(project, error, chat)
+                      null
+                    } else {
+                      RateLimitStateManager.invalidateForChat(project)
+                    }
+                  }
+                } catch (ignored: Exception) {
+                  // Ignore bugs in the agent when executing recipes
+                }
+              },
+              CodyAgent.executorService)
+          .get()
+    }
+  }
+
+  private fun handleRateLimitError(
+      project: Project,
+      chat: UpdatableChat,
+      rateLimitError: RateLimitError
+  ) {
+    RateLimitStateManager.reportForChat(project, rateLimitError)
+
+    ApplicationManager.getApplication().executeOnPooledThread {
+      val codyProJetbrains = isCodyProJetbrains(project)
+      val text =
+          when {
+            rateLimitError.upgradeIsAvailable && codyProJetbrains ->
+                CodyBundle.getString("chat.rate-limit-error.upgrade")
+                    .fmt(rateLimitError.limit?.let { " $it" } ?: "")
+            else -> CodyBundle.getString("chat.rate-limit-error.explain")
+          }
+
+      val chatMessage = ChatMessage(Speaker.ASSISTANT, text, null)
+      chat.addMessageToChat(chatMessage)
+      chat.finishMessageProcessing()
+    }
+    return
   }
 
   private fun handleError(project: Project, throwable: Throwable, chat: UpdatableChat) {
     if (throwable is ResponseErrorException) {
       val errorCode = throwable.toErrorCode()
       if (errorCode == ErrorCode.RateLimitError) {
-        val rateLimitError = throwable.toRateLimitError()
-        RateLimitStateManager.reportForChat(project, rateLimitError)
-
-        ApplicationManager.getApplication().executeOnPooledThread {
-          val codyProJetbrains = isCodyProJetbrains(project)
-          val text =
-              when {
-                rateLimitError.upgradeIsAvailable && codyProJetbrains ->
-                    CodyBundle.getString("chat.rate-limit-error.upgrade")
-                        .fmt(rateLimitError.limit?.let { " $it" } ?: "")
-                else -> CodyBundle.getString("chat.rate-limit-error.explain")
-              }
-
-          val chatMessage = ChatMessage(Speaker.ASSISTANT, text, null)
-          chat.addMessageToChat(chatMessage)
-          chat.finishMessageProcessing()
-        }
-        return
+        handleRateLimitError(project, chat, throwable.toRateLimitError())
       }
     }
     RateLimitStateManager.invalidateForChat(project)
