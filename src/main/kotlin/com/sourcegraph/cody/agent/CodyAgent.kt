@@ -117,7 +117,17 @@ class CodyAgent(private val project: Project) : Disposable {
   private fun startListeningToAgent() {
     val binary = agentBinary()
     logger.info("starting Cody agent " + binary.absolutePath)
-    val processBuilder = ProcessBuilder(binary.absolutePath)
+    val command: List<String> =
+        if (System.getenv("CODY_DIR") != null) {
+          val script = File(System.getenv("CODY_DIR"), "agent/dist/index.js")
+          listOf("node", "--enable-source-maps", script.absolutePath)
+        } else {
+          listOf(binary.absolutePath)
+        }
+    val processBuilder = ProcessBuilder(command)
+    //    if (System.getenv("CODY_DIR") != null) {
+    //      processBuilder.directory(File(System.getenv("CODY_DIR")))
+    //    }
     if (java.lang.Boolean.getBoolean("cody.accept-non-trusted-certificates-automatically") ||
         ConfigUtil.getShouldAcceptNonTrustedCertificatesAutomatically()) {
       processBuilder.environment()["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
