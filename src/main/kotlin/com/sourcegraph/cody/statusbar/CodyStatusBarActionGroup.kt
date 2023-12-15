@@ -51,7 +51,7 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
             CodyBundle.getString("status-widget.warning.upgrade-suggestion")
         else CodyBundle.getString("status-widget.warning.explanation")
 
-    var (action, title, content) =
+    var (action, content, title) =
         when {
           autocompleteRLE != null && chatRLE != null -> {
             Triple(
@@ -82,8 +82,8 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
         }
 
     if (!shouldShowUpgradeOption) {
-      title = CodyBundle.getString("status-widget.warning.pro.content")
-      content = CodyBundle.getString("status-widget.warning.pro.dialog-title")
+      title = CodyBundle.getString("status-widget.warning.pro.dialog-title")
+      content = CodyBundle.getString("status-widget.warning.pro.content")
     }
 
     return RateLimitErrorWarningAction(action, content, title, shouldShowUpgradeOption)
