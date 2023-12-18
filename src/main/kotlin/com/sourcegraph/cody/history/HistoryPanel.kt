@@ -2,38 +2,32 @@ package com.sourcegraph.cody.history
 
 import com.intellij.ui.CollectionListModel
 
-class HistoryPanel(
-    private val onChange: (id: String) -> Unit = {}
-) {
+class HistoryPanel(private val onChange: (id: String) -> Unit = {}) {
 
-    private val listComponent = HistoryList {
-        selectedItem ->
-            HistoryService.getInstance().state.activeChatId = selectedItem.id
-            onChange(selectedItem.id)
-    }
+  private val listComponent = HistoryList { selectedItem ->
+    HistoryService.getInstance().state.activeChatId = selectedItem.id
+    onChange(selectedItem.id)
+  }
 
-    init {
-        HistoryService.getInstance().addMessageListener { refreshItems() }
-        refreshItems()
-    }
+  init {
+    HistoryService.getInstance().addMessageListener { refreshItems() }
+    refreshItems()
+  }
 
-    fun getComponent() = listComponent
+  fun getComponent() = listComponent
 
-    private fun refreshItems() {
-        val entries = HistoryService.getInstance()
-                .state
-                .chats
-                .map {
-                    HistoryListItem(
-                        id = it.id!!,
-                        title = it.getLastHumanMessage() ?: "New chat",
-                        lastUpdated = it.lastUpdatedAsDate()
-                    )
-                }
-                .sortedByDescending {
-                    it.lastUpdated
-                }
-        listComponent.model = CollectionListModel(entries)
-    }
-
+  private fun refreshItems() {
+    val entries =
+        HistoryService.getInstance()
+            .state
+            .chats
+            .map {
+              HistoryListItem(
+                  id = it.id!!,
+                  title = it.getLastHumanMessage() ?: "New chat",
+                  lastUpdated = it.lastUpdatedAsDate())
+            }
+            .sortedByDescending { it.lastUpdated }
+    listComponent.model = CollectionListModel(entries)
+  }
 }

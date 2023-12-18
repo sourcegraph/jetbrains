@@ -113,7 +113,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     val singInWithSourcegraphPanel = SignInWithSourcegraphPanel(project)
     allContentPanel.add(tabbedPane, "tabbedPane", CHAT_PANEL_INDEX)
     allContentPanel.add(
-            singInWithSourcegraphPanel, SING_IN_WITH_SOURCEGRAPH_PANEL, SIGN_IN_PANEL_INDEX)
+        singInWithSourcegraphPanel, SING_IN_WITH_SOURCEGRAPH_PANEL, SIGN_IN_PANEL_INDEX)
     allContentLayout.show(allContentPanel, SING_IN_WITH_SOURCEGRAPH_PANEL)
     refreshPanelsVisibility()
 
@@ -341,7 +341,9 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   }
 
   private fun addChatMessageAsComponent(message: ChatMessage) {
-    addComponentToChat(MessagePanel(message, project, messagesPanel, ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH))
+    addComponentToChat(
+        MessagePanel(
+            message, project, messagesPanel, ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH))
   }
 
   private fun addComponentToChat(messageContent: JPanel) {
@@ -470,8 +472,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     addComponentToChat(messageContentPanel)
   }
 
-//  val contentPanel: JComponent
-//    get() = allContentPanel
+  //  val contentPanel: JComponent
+  //    get() = allContentPanel
 
   private fun focusPromptInput() {
     if (tabbedPane.selectedIndex == CHAT_TAB_INDEX) {

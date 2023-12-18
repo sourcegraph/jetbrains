@@ -9,58 +9,55 @@ import com.sourcegraph.cody.history.state.HistoryChatMessageState.MessageType.CH
 import com.sourcegraph.cody.history.state.HistoryChatMessageState.MessageType.CONTEXT_MESSAGE
 
 class HistoryChatMessageState(
-        type: MessageType?,
-        text: String?,
-        speaker: Speaker?,
-        contextFiles: List<String>?
+    type: MessageType?,
+    text: String?,
+    speaker: Speaker?,
+    contextFiles: List<String>?
 ) : BaseState() {
 
-    var type by enum<MessageType>()
-    var text by string()
-    var speaker by enum<Speaker>()
-    var contextFiles by list<String>()
+  var type by enum<MessageType>()
+  var text by string()
+  var speaker by enum<Speaker>()
+  var contextFiles by list<String>()
 
-    constructor() : this(null, null, null, null) // todo can we remove that? (empty constructor is required for deserialization)
+  constructor() :
+      this(
+          null,
+          null,
+          null,
+          null) // todo can we remove that? (empty constructor is required for deserialization)
 
-    init {
-        this.type = type
-        this.text = text
-        this.speaker = speaker
-        this.contextFiles = contextFiles?.toMutableList() ?: mutableListOf() // todo simpler?
-    }
+  init {
+    this.type = type
+    this.text = text
+    this.speaker = speaker
+    this.contextFiles = contextFiles?.toMutableList() ?: mutableListOf() // todo simpler?
+  }
 
-    fun asChatMessage() = ChatMessage(speaker!!, text!!)
+  fun asChatMessage() = ChatMessage(speaker!!, text!!)
 
-    fun asListOfContextMessages() =
-            contextFiles.map { ContextMessage(Speaker.ASSISTANT, text ?: "", ContextFile(it, null, null)) }
+  fun asListOfContextMessages() =
+      contextFiles.map {
+        ContextMessage(Speaker.ASSISTANT, text ?: "", ContextFile(it, null, null))
+      }
 
-    companion object {
+  companion object {
 
-        fun fromChatMessage(msg: ChatMessage) =
-            HistoryChatMessageState(
-                type = CHAT_MESSAGE,
-                text = msg.text!!,
-                speaker = msg.speaker,
-                contextFiles = null
-            )
+    fun fromChatMessage(msg: ChatMessage) =
+        HistoryChatMessageState(
+            type = CHAT_MESSAGE, text = msg.text!!, speaker = msg.speaker, contextFiles = null)
 
-        fun fromContextMessages(contextMessages: List<ContextMessage?>) =
-            HistoryChatMessageState(
-                type = CONTEXT_MESSAGE,
-                text = null,
-                speaker = null,
-                contextFiles = contextMessages.map { it!!.file!!.fileName }
-            )
+    fun fromContextMessages(contextMessages: List<ContextMessage?>) =
+        HistoryChatMessageState(
+            type = CONTEXT_MESSAGE,
+            text = null,
+            speaker = null,
+            contextFiles = contextMessages.map { it!!.file!!.fileName })
+  }
 
+  enum class MessageType {
 
-
-    }
-
-    enum class MessageType {
-
-        CHAT_MESSAGE,
-        CONTEXT_MESSAGE
-
-    }
-
+    CHAT_MESSAGE,
+    CONTEXT_MESSAGE
+  }
 }

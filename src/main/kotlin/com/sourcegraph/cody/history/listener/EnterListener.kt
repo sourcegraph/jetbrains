@@ -5,9 +5,7 @@ import java.awt.event.KeyEvent
 
 class EnterListener(private val action: () -> Unit) : KeyAdapter() {
 
-    override fun keyReleased(e: KeyEvent?) {
-        if (e?.keyCode == KeyEvent.VK_ENTER)
-            action()
-    }
-
+  override fun keyReleased(e: KeyEvent?) {
+    if (e?.keyCode == KeyEvent.VK_ENTER) action()
+  }
 }

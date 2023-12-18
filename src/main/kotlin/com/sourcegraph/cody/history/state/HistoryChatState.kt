@@ -8,31 +8,28 @@ import java.util.*
 
 class HistoryChatState : BaseState() {
 
-    var id by string()
-    var messages by list<HistoryChatMessageState>()
-    var lastUpdated by string()
+  var id by string()
+  var messages by list<HistoryChatMessageState>()
+  var lastUpdated by string()
 
-    fun getLastHumanMessage(): String? =
-        messages.firstOrNull { it.speaker == Speaker.HUMAN }?.text
+  fun getLastHumanMessage(): String? = messages.firstOrNull { it.speaker == Speaker.HUMAN }?.text
 
-    fun updateLastUpdated() {
-        lastUpdated = getFormattedNow()
-    }
+  fun updateLastUpdated() {
+    lastUpdated = getFormattedNow()
+  }
 
-    fun lastUpdatedAsDate(): LocalDateTime =
-        LocalDateTime.parse(lastUpdated!!, DATE_FORMAT)
+  fun lastUpdatedAsDate(): LocalDateTime = LocalDateTime.parse(lastUpdated!!, DATE_FORMAT)
 
-    companion object {
+  companion object {
 
-        private val DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+    private val DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
-        fun newEmpty() = HistoryChatState().apply {
-            id = UUID.randomUUID().toString()
-            lastUpdated = getFormattedNow()
+    fun newEmpty() =
+        HistoryChatState().apply {
+          id = UUID.randomUUID().toString()
+          lastUpdated = getFormattedNow()
         }
 
-        private fun getFormattedNow() = LocalDateTime.now().format(DATE_FORMAT)
-
-    }
-
+    private fun getFormattedNow() = LocalDateTime.now().format(DATE_FORMAT)
+  }
 }
