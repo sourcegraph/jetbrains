@@ -241,7 +241,20 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 
 ### Manage multiple chats
 
-// todo
+1. Start a new chat with *plus icon* in the `Cody` toolbar.
+   * Verify: The toolbar automatically switches to the `Chat` tab.
+2. Ask a question.
+3. Start a new chat with *plus icon*.
+4. Ask a different question.
+5. Navigate to `Chat History` tab.
+   * Verify: Both chats are visible on the list and are **easy to distinguish**. 
+   * Verify: Toolbar text i similar to `Last updated: 16s ago` and it's shown after hovering list item with a mouse.
+6. Double-click on earlier conversation.
+   * Verify: After clicking, it takes you back to the `Chat`.
+   * Verify: <kbd>Enter</kbd> key on selected chat item also works.
+   * Verify: Restored chat contains all the messages and context files in valid order.
+7. Ask another question **related to previous question** (e.g. `show examples` then `show more examples`).
+   * Verify: Cody knows the content of the entire conversation.
 
 #### Expected behaviour
 
