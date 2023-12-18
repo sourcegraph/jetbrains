@@ -4,10 +4,10 @@ import com.intellij.openapi.components.*
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ContextMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
-import com.sourcegraph.cody.history.state.HistoryChatId
-import com.sourcegraph.cody.history.state.HistoryChatMessageState
-import com.sourcegraph.cody.history.state.HistoryChatMessageState.MessageType.CHAT_MESSAGE
-import com.sourcegraph.cody.history.state.HistoryChatState
+import com.sourcegraph.cody.history.state.ChatId
+import com.sourcegraph.cody.history.state.ChatState
+import com.sourcegraph.cody.history.state.MessageState
+import com.sourcegraph.cody.history.state.MessageState.MessageType.CHAT_MESSAGE
 import com.sourcegraph.cody.history.state.HistoryState
 import org.intellij.lang.annotations.Language
 
@@ -25,10 +25,9 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
     }
   }
 
-  fun startChat(): HistoryChatId {
-    val newChat = HistoryChatState.newEmpty()
-    newChat.messages.add(
-        HistoryChatMessageState(CHAT_MESSAGE, WELCOME_TEXT, Speaker.ASSISTANT, null))
+  fun startChat(): ChatId {
+    val newChat = ChatState.newEmpty()
+    newChat.messages.add(MessageState(CHAT_MESSAGE, WELCOME_TEXT, Speaker.ASSISTANT, null))
     state.chats += newChat
     state.activeChatId = newChat.id
     notifyListeners()
@@ -40,13 +39,13 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
   }
 
   fun addChatMessage(message: ChatMessage) {
-    currentChat().messages.add(HistoryChatMessageState.fromChatMessage(message))
+    currentChat().messages.add(MessageState.fromChatMessage(message))
     currentChat().updateLastUpdated()
     notifyListeners()
   }
 
   fun addContextMessage(contextMessages: List<ContextMessage?>) {
-    currentChat().messages.add(HistoryChatMessageState.fromContextMessages(contextMessages))
+    currentChat().messages.add(MessageState.fromContextMessages(contextMessages))
     currentChat().updateLastUpdated()
     notifyListeners()
   }
@@ -58,7 +57,7 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
 
   fun getMessages() = currentChat().messages
 
-  private fun currentChat(): HistoryChatState = state.chats.find { it.id == state.activeChatId }!!
+  private fun currentChat(): ChatState = state.chats.find { it.id == state.activeChatId }!!
 
   private fun notifyListeners() {
     onMessageListeners.forEach { it() }

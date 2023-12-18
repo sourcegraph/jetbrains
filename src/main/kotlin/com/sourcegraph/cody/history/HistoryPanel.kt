@@ -4,10 +4,12 @@ import com.intellij.ui.CollectionListModel
 
 class HistoryPanel(private val onChange: (id: String) -> Unit = {}) {
 
-  private val listComponent = HistoryList { selectedItem ->
-    HistoryService.getInstance().state.activeChatId = selectedItem.id
-    onChange(selectedItem.id)
-  }
+  private val listComponent =
+      HistoryList(
+          onSelected = { item ->
+            HistoryService.getInstance().state.activeChatId = item.id
+            onChange(item.id)
+          })
 
   init {
     HistoryService.getInstance().addMessageListener { refreshItems() }

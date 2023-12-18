@@ -6,10 +6,10 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-class HistoryChatState : BaseState() {
+class ChatState : BaseState() {
 
-  var id by string()
-  var messages by list<HistoryChatMessageState>()
+  var id: ChatId? by string()
+  var messages by list<MessageState>()
   var lastUpdated by string()
 
   fun getLastHumanMessage(): String? = messages.firstOrNull { it.speaker == Speaker.HUMAN }?.text
@@ -25,7 +25,7 @@ class HistoryChatState : BaseState() {
     private val DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
     fun newEmpty() =
-        HistoryChatState().apply {
+        ChatState().apply {
           id = UUID.randomUUID().toString()
           lastUpdated = getFormattedNow()
         }

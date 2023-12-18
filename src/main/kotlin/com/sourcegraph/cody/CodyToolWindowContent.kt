@@ -22,7 +22,6 @@ import com.sourcegraph.cody.agent.CodyAgent.Companion.getInitializedServer
 import com.sourcegraph.cody.agent.CodyAgent.Companion.getServer
 import com.sourcegraph.cody.agent.CodyAgent.Companion.isConnected
 import com.sourcegraph.cody.agent.CodyAgentManager.tryRestartingAgentIfNotRunning
-import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ContextMessage
 import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
@@ -36,8 +35,8 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.EmbeddingStatusView
 import com.sourcegraph.cody.history.HistoryPanel
 import com.sourcegraph.cody.history.HistoryService
-import com.sourcegraph.cody.history.state.HistoryChatMessageState.MessageType.CHAT_MESSAGE
-import com.sourcegraph.cody.history.state.HistoryChatMessageState.MessageType.CONTEXT_MESSAGE
+import com.sourcegraph.cody.history.state.MessageState.MessageType.CHAT_MESSAGE
+import com.sourcegraph.cody.history.state.MessageState.MessageType.CONTEXT_MESSAGE
 import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.ui.SendButton
 import com.sourcegraph.cody.vscode.CancellationToken

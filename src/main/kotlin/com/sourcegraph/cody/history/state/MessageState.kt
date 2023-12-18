@@ -5,10 +5,10 @@ import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ContextFile
 import com.sourcegraph.cody.agent.protocol.ContextMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
-import com.sourcegraph.cody.history.state.HistoryChatMessageState.MessageType.CHAT_MESSAGE
-import com.sourcegraph.cody.history.state.HistoryChatMessageState.MessageType.CONTEXT_MESSAGE
+import com.sourcegraph.cody.history.state.MessageState.MessageType.CHAT_MESSAGE
+import com.sourcegraph.cody.history.state.MessageState.MessageType.CONTEXT_MESSAGE
 
-class HistoryChatMessageState(
+class MessageState(
     type: MessageType?,
     text: String?,
     speaker: Speaker?,
@@ -44,11 +44,11 @@ class HistoryChatMessageState(
   companion object {
 
     fun fromChatMessage(msg: ChatMessage) =
-        HistoryChatMessageState(
+        MessageState(
             type = CHAT_MESSAGE, text = msg.text!!, speaker = msg.speaker, contextFiles = null)
 
     fun fromContextMessages(contextMessages: List<ContextMessage?>) =
-        HistoryChatMessageState(
+        MessageState(
             type = CONTEXT_MESSAGE,
             text = null,
             speaker = null,
