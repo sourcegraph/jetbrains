@@ -16,8 +16,8 @@ class HistoryPanelTest : BaseHistoryTest() {
     history.addChatMessage(ChatMessage(ASSISTANT, "Second response."))
 
     val panel = HistoryPanel()
-    assertEquals(panel.itemSize(), 1)
-    assertEquals(panel.itemTextAt(0), "This should be a title!")
+    assertEquals(panel.numberOfChats(), 1)
+    assertEquals(panel.chatTitleAt(0), "This should be a title!")
   }
 
   fun `test default title when human messages are missing`() {
@@ -27,28 +27,29 @@ class HistoryPanelTest : BaseHistoryTest() {
     history.addChatMessage(ChatMessage(ASSISTANT, ""))
 
     val panel = HistoryPanel()
-    assertEquals(panel.itemSize(), 1)
-    assertEquals(panel.itemTextAt(0), "New chat")
+    assertEquals(panel.numberOfChats(), 1)
+    assertEquals(panel.chatTitleAt(0), "New chat")
   }
 
   fun `test multiple chats items are visible`() {
     val history = HistoryService.getInstance()
-    history.startChat()
-    history.startChat()
+    repeat(2) { history.startChat() }
 
     val panel = HistoryPanel()
-    assertEquals(panel.itemSize(), 2)
+    assertEquals(panel.numberOfChats(), 2)
   }
 
   fun `test panel is auto-refreshing after change in state`() {
     val panel = HistoryPanel()
-    assertEquals(panel.itemSize(), 0)
-    HistoryService.getInstance().startChat()
-    HistoryService.getInstance().startChat()
-    assertEquals(panel.itemSize(), 2)
+    assertEquals(panel.numberOfChats(), 0)
+    repeat(2) { HistoryService.getInstance().startChat() }
+
+    assertEquals(panel.numberOfChats(), 2)
   }
 
-  private fun HistoryPanel.itemSize() = getComponent().model.size
+  private fun HistoryPanel.numberOfChats() =
+      (getScrollableList().components[0] as HistoryList).model.size
 
-  private fun HistoryPanel.itemTextAt(idx: Int) = getComponent().model.getElementAt(idx).toString()
+  private fun HistoryPanel.chatTitleAt(index: Int) =
+      ((getScrollableList().components[0] as HistoryList)).model.getElementAt(index).toString()
 }

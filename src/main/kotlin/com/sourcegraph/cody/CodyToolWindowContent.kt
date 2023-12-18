@@ -73,7 +73,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     recipesPanel = JBPanelWithEmptyText(GridLayout(0, 1))
     recipesPanel.layout = BoxLayout(recipesPanel, BoxLayout.Y_AXIS)
     tabbedPane.insertTab("Commands", null, recipesPanel, null, RECIPES_TAB_INDEX)
-    tabbedPane.insertTab("Chat History", null, historyPanel.getComponent(), null, HISTORY_TAB_INDEX)
+    tabbedPane.insertTab(
+        "Chat History", null, historyPanel.getScrollableList(), null, HISTORY_TAB_INDEX)
 
     // Initiate filling recipes panel in the background
     refreshRecipes()

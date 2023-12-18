@@ -1,10 +1,9 @@
 package com.sourcegraph.cody.history
 
 import com.intellij.ui.CollectionListModel
+import com.intellij.ui.components.JBScrollPane
 
 class HistoryPanel(private val onChange: (id: String) -> Unit = {}) {
-
-    // todo: add scrollbar!
 
   private val listComponent =
       HistoryList(
@@ -18,7 +17,11 @@ class HistoryPanel(private val onChange: (id: String) -> Unit = {}) {
     refreshItems()
   }
 
-  fun getComponent() = listComponent
+  fun getScrollableList() =
+      JBScrollPane(
+          listComponent,
+          JBScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+          JBScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
 
   private fun refreshItems() {
     val entries =
