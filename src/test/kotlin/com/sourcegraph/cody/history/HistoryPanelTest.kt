@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.history
 
+import com.intellij.ui.components.JBViewport
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.Speaker.ASSISTANT
 import com.sourcegraph.cody.agent.protocol.Speaker.HUMAN
@@ -33,23 +34,27 @@ class HistoryPanelTest : BaseHistoryTest() {
 
   fun `test multiple chats items are visible`() {
     val history = HistoryService.getInstance()
-    repeat(2) { history.startChat() }
+    history.startChat()
+    history.startChat()
 
     val panel = HistoryPanel()
     assertEquals(panel.numberOfChats(), 2)
   }
 
-  fun `test panel is auto-refreshing after change in state`() {
+  fun `test panel visuals are refreshed after change in state`() {
     val panel = HistoryPanel()
     assertEquals(panel.numberOfChats(), 0)
-    repeat(2) { HistoryService.getInstance().startChat() }
+    HistoryService.getInstance().startChat()
+    HistoryService.getInstance().startChat()
 
     assertEquals(panel.numberOfChats(), 2)
   }
 
-  private fun HistoryPanel.numberOfChats() =
-      (getScrollableList().components[0] as HistoryList).model.size
+  private fun HistoryPanel.numberOfChats() = selectChatList().model.size
 
   private fun HistoryPanel.chatTitleAt(index: Int) =
-      ((getScrollableList().components[0] as HistoryList)).model.getElementAt(index).toString()
+      selectChatList().model.getElementAt(index).toString()
+
+  private fun HistoryPanel.selectChatList() =
+      (getScrollableList().components[0] as JBViewport).components[0] as HistoryList
 }
