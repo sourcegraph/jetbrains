@@ -55,6 +55,14 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
     currentChat().updateLastUpdated()
   }
 
+  fun deleteChat(id: ChatId) {
+    if (id != state.activeChatId) {
+      val toDelete = state.chats.find { it.id == id }!!
+      state.chats.remove(toDelete)
+      notifyNewMessage()
+    }
+  }
+
   fun getMessages() = currentChat().messages
 
   private fun currentChat(): ChatState = state.chats.find { it.id == state.activeChatId }!!

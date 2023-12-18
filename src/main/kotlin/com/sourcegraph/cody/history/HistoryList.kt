@@ -1,21 +1,30 @@
 package com.sourcegraph.cody.history
 
 import com.intellij.ui.components.JBList
-import com.sourcegraph.cody.history.listener.DoubleClickListener
+import com.sourcegraph.cody.history.listener.DoubleLeftClickListener
 import com.sourcegraph.cody.history.listener.EnterListener
+import com.sourcegraph.cody.history.listener.RightClickListener
 import com.sourcegraph.cody.history.util.ToolbarDurationTextFactory
 import java.awt.event.MouseEvent
 import java.time.LocalDateTime
 
 class HistoryList(
-    private val onClick: (selected: HistoryListItem) -> Unit,
+        private val onSelect: (selected: HistoryListItem) -> Unit,
 ) : JBList<HistoryListItem>() {
 
   private var lastTooltipIndex = -1
 
   init {
-    addMouseListener(DoubleClickListener { onClick(selectedValue) })
-    addKeyListener(EnterListener { onClick(selectedValue) })
+    val popup = HistoryPopupMenu(
+            onSelect = { onSelect(selectedValue) },
+            onDelete = { HistoryService.getInstance().deleteChat(selectedValue.chatId) }
+    )
+    addMouseListener(DoubleLeftClickListener { onSelect(selectedValue) })
+    addMouseListener(RightClickListener { event ->
+      selectedIndex = locationToIndex(event.point)
+      popup.show(this, event.x, event.y)
+    })
+    addKeyListener(EnterListener { onSelect(selectedValue) })
   }
 
   override fun getToolTipText(event: MouseEvent?): String {
@@ -33,4 +42,5 @@ class HistoryList(
     }
     return ""
   }
+
 }

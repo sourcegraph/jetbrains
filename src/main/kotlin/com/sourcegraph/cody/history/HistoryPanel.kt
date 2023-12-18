@@ -7,9 +7,9 @@ class HistoryPanel(private val onChanged: (id: String) -> Unit = {}) {
 
   private val listComponent =
       HistoryList(
-          onClick = { item ->
-            HistoryService.getInstance().state.activeChatId = item.id
-            onChanged(item.id)
+          onSelect = { item ->
+            HistoryService.getInstance().state.activeChatId = item.chatId
+            onChanged(item.chatId)
           })
 
   init {
@@ -31,7 +31,7 @@ class HistoryPanel(private val onChanged: (id: String) -> Unit = {}) {
             .chats
             .map {
               HistoryListItem(
-                  id = it.id!!,
+                  chatId = it.id!!,
                   title = it.getLastHumanMessage() ?: "New chat",
                   lastUpdated = it.lastUpdatedAsDate())
             }
