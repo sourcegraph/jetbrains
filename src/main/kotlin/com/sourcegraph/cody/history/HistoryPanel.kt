@@ -19,9 +19,10 @@ class HistoryPanel(private val onChanged: (id: String) -> Unit = {}) {
 
   fun asScrollablePanel() =
       JBScrollPane(
-          listComponent,
-          JBScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-          JBScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
+              listComponent,
+              JBScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+              JBScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
+          .also { it.border = null }
 
   private fun refreshItems() {
     val entries =

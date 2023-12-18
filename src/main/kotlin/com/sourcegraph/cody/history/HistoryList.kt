@@ -8,7 +8,7 @@ import java.awt.event.MouseEvent
 import java.time.LocalDateTime
 
 class HistoryList(
-        private val onClick: (selected: HistoryListItem) -> Unit,
+    private val onClick: (selected: HistoryListItem) -> Unit,
 ) : JBList<HistoryListItem>() {
 
   private var lastTooltipIndex = -1
