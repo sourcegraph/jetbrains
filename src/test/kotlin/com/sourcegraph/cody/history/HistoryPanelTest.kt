@@ -56,5 +56,5 @@ class HistoryPanelTest : BaseHistoryTest() {
       selectChatList().model.getElementAt(index).toString()
 
   private fun HistoryPanel.selectChatList() =
-      (getScrollableList().components[0] as JBViewport).components[0] as HistoryList
+      (asScrollablePanel().components[0] as JBViewport).components[0] as HistoryList
 }

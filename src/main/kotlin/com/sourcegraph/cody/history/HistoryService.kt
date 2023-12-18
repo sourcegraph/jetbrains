@@ -16,7 +16,7 @@ import org.intellij.lang.annotations.Language
 @Service(Service.Level.PROJECT)
 class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState()) {
 
-  private val onMessageListeners = mutableListOf<() -> Unit>()
+  private val onNewMessageListeners = mutableListOf<() -> Unit>()
 
   init {
     val noChats = state.chats.size == 0
@@ -30,24 +30,24 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
     newChat.messages.add(MessageState(CHAT_MESSAGE, WELCOME_TEXT, Speaker.ASSISTANT, null))
     state.chats += newChat
     state.activeChatId = newChat.id
-    notifyListeners()
+    notifyNewMessage()
     return newChat.id!!
   }
 
-  fun addMessageListener(onMessage: () -> Unit) {
-    onMessageListeners += onMessage
+  fun addNewMessageListener(onMessage: () -> Unit) {
+    onNewMessageListeners += onMessage
   }
 
   fun addChatMessage(message: ChatMessage) {
     currentChat().messages.add(MessageState.fromChatMessage(message))
     currentChat().updateLastUpdated()
-    notifyListeners()
+    notifyNewMessage()
   }
 
   fun addContextMessage(contextMessages: List<ContextMessage?>) {
     currentChat().messages.add(MessageState.fromContextMessages(contextMessages))
     currentChat().updateLastUpdated()
-    notifyListeners()
+    notifyNewMessage()
   }
 
   fun updateLastMessage(message: ChatMessage) {
@@ -59,8 +59,8 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
 
   private fun currentChat(): ChatState = state.chats.find { it.id == state.activeChatId }!!
 
-  private fun notifyListeners() {
-    onMessageListeners.forEach { it() }
+  private fun notifyNewMessage() {
+    onNewMessageListeners.forEach { it() }
   }
 
   companion object {

@@ -64,7 +64,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   override var isChatVisible = false
   private var codyOnboardingGuidancePanel: CodyOnboardingGuidancePanel? = null
   private val chatMessageHistory = CodyChatMessageHistory(CHAT_MESSAGE_HISTORY_CAPACITY)
-  private val historyPanel = HistoryPanel { changeChatTo(it) }
+  private val historyPanel = HistoryPanel { selected -> changeChatTo(selected) }
 
   init {
     // Tabs
@@ -74,7 +74,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     recipesPanel.layout = BoxLayout(recipesPanel, BoxLayout.Y_AXIS)
     tabbedPane.insertTab("Commands", null, recipesPanel, null, RECIPES_TAB_INDEX)
     tabbedPane.insertTab(
-        "Chat History", null, historyPanel.getScrollableList(), null, HISTORY_TAB_INDEX)
+        "Chat History", null, historyPanel.asScrollablePanel(), null, HISTORY_TAB_INDEX)
 
     // Initiate filling recipes panel in the background
     refreshRecipes()

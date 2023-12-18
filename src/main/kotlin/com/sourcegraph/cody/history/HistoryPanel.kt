@@ -13,11 +13,11 @@ class HistoryPanel(private val onChange: (id: String) -> Unit = {}) {
           })
 
   init {
-    HistoryService.getInstance().addMessageListener { refreshItems() }
+    HistoryService.getInstance().addNewMessageListener { refreshItems() }
     refreshItems()
   }
 
-  fun getScrollableList() =
+  fun asScrollablePanel() =
       JBScrollPane(
           listComponent,
           JBScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
