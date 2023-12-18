@@ -8,14 +8,14 @@ import java.awt.event.MouseEvent
 import java.time.LocalDateTime
 
 class HistoryList(
-    private val onSelected: (selected: HistoryListItem) -> Unit,
+        private val onClick: (selected: HistoryListItem) -> Unit,
 ) : JBList<HistoryListItem>() {
 
   private var lastTooltipIndex = -1
 
   init {
-    addMouseListener(DoubleClickListener { onSelected(selectedValue) })
-    addKeyListener(EnterListener { onSelected(selectedValue) })
+    addMouseListener(DoubleClickListener { onClick(selectedValue) })
+    addKeyListener(EnterListener { onClick(selectedValue) })
   }
 
   override fun getToolTipText(event: MouseEvent?): String {

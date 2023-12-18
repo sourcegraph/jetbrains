@@ -3,13 +3,13 @@ package com.sourcegraph.cody.history
 import com.intellij.ui.CollectionListModel
 import com.intellij.ui.components.JBScrollPane
 
-class HistoryPanel(private val onChange: (id: String) -> Unit = {}) {
+class HistoryPanel(private val onChanged: (id: String) -> Unit = {}) {
 
   private val listComponent =
       HistoryList(
-          onSelected = { item ->
+          onClick = { item ->
             HistoryService.getInstance().state.activeChatId = item.id
-            onChange(item.id)
+            onChanged(item.id)
           })
 
   init {
