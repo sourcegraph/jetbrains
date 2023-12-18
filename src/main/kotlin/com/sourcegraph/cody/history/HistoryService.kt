@@ -6,9 +6,9 @@ import com.sourcegraph.cody.agent.protocol.ContextMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.history.state.ChatId
 import com.sourcegraph.cody.history.state.ChatState
+import com.sourcegraph.cody.history.state.HistoryState
 import com.sourcegraph.cody.history.state.MessageState
 import com.sourcegraph.cody.history.state.MessageState.MessageType.CHAT_MESSAGE
-import com.sourcegraph.cody.history.state.HistoryState
 import org.intellij.lang.annotations.Language
 
 @State(
