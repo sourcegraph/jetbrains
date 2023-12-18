@@ -4,6 +4,8 @@ import com.intellij.ui.CollectionListModel
 
 class HistoryPanel(private val onChange: (id: String) -> Unit = {}) {
 
+    // todo: add scrollbar!
+
   private val listComponent =
       HistoryList(
           onSelected = { item ->
