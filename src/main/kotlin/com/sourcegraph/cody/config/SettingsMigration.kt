@@ -36,6 +36,27 @@ class SettingsMigration : Activity {
     RunOnceUtil.runOnceForApp("ToggleCodyToolWindowAfterMigration") {
       ApplicationManager.getApplication().invokeLater { toggleCodyToolbarWindow(project) }
     }
+    RunOnceUtil.runOnceForApp("CodyAccountsIdsRefresh") {
+      val customRequestHeaders = extractCustomRequestHeaders(project)
+      refreshAccountsIds(customRequestHeaders)
+    }
+  }
+
+  private fun refreshAccountsIds(customRequestHeaders: String) {
+    codyAuthenticationManager.getAccounts().forEach { codyAccount ->
+      val server = SourcegraphServerPath.from(codyAccount.server.url, customRequestHeaders)
+      val token = codyAuthenticationManager.getTokenForAccount(codyAccount)
+      if (token != null) {
+        loadUserDetails(
+            SourcegraphApiRequestExecutor.Factory.instance,
+            token,
+            EmptyProgressIndicator(ModalityState.NON_MODAL),
+            server) {
+              codyAccount.id = it.id
+              codyAuthenticationManager.updateAccountToken(codyAccount, token)
+            }
+      }
+    }
   }
 
   private fun toggleCodyToolbarWindow(project: Project) {
