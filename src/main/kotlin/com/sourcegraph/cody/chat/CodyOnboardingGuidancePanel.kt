@@ -21,7 +21,6 @@ import javax.swing.JComponent
 import javax.swing.JEditorPane
 import javax.swing.JPanel
 import javax.swing.text.html.HTMLEditorKit
-import org.apache.commons.lang3.StringUtils
 
 class CodyOnboardingGuidancePanel(val originalDisplayName: String?) : JPanel() {
 
@@ -143,12 +142,8 @@ class CodyOnboardingGuidancePanel(val originalDisplayName: String?) : JPanel() {
     return sectionInfo
   }
 
-  private fun truncateDisplayName(displayName: String): String {
-    if (displayName.length > 32) {
-      return StringUtils.truncate(displayName, 32) + "..."
-    }
-    return displayName
-  }
+  private fun truncateDisplayName(displayName: String): String =
+      if (displayName.length > 32) displayName.take(32) + "..." else displayName
 
   fun addMainButtonActionListener(actionListener: ActionListener) {
     mainButton.addActionListener(actionListener)

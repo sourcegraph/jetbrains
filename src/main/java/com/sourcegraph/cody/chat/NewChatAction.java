@@ -4,10 +4,11 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.sourcegraph.cody.CodyToolWindowContent;
+import com.sourcegraph.cody.history.HistoryService;
 import com.sourcegraph.common.ErrorNotification;
 import org.jetbrains.annotations.NotNull;
 
-public class ResetCurrentConversationAction extends DumbAwareAction {
+public class NewChatAction extends DumbAwareAction {
 
   @Override
   public void actionPerformed(@NotNull AnActionEvent e) {
@@ -16,9 +17,9 @@ public class ResetCurrentConversationAction extends DumbAwareAction {
       displayUnableToResetConversationError();
       return;
     }
-    CodyToolWindowContent codyToolWindowContent =
-        CodyToolWindowContent.Companion.getInstance(project);
-    codyToolWindowContent.resetConversation();
+    var codyToolWindowContent = CodyToolWindowContent.Companion.getInstance(project);
+    var chatId = HistoryService.getInstance().startChat();
+    codyToolWindowContent.changeChatTo(chatId);
   }
 
   @Override
@@ -34,6 +35,6 @@ public class ResetCurrentConversationAction extends DumbAwareAction {
   private static void displayUnableToResetConversationError() {
     ErrorNotification.INSTANCE.show(
         null,
-        "Unable to reset the current conversation with Cody. Please try again or reach out to us at support@sourcegraph.com.");
+        "Unable to start a new chat with Cody. Please try again or reach out to us at support@sourcegraph.com.");
   }
 }

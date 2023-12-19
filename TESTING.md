@@ -20,9 +20,10 @@
 - Chat
   - [ ] [Autoscroll to latest message](#autoscroll-to-latest-message)
   - [ ] [Read chat history without interruptions](#read-chat-history-without-interruptions)
+  - [ ] [Manage multiple chats](#manage-multiple-chats)
 - Product-led growth
   - [ ] [Cody Free/Pro subscription tab](#cody-freepro-subscription-tab)
-  - [ ] [Cody Free/Pro rate limit errors](#cody-freepro-rate-limit-errors)
+  - [ ] [Cody Free/Pro rate limit errors](#cody-freepro-rate-limit-errors) 
 - Other
   - [ ] [Search Selection on Sourcegraph Web](#search-selection-on-sourcegraph-web)
   - [ ] [Automatic repository recognition](#automatic-repository-recognition)
@@ -237,6 +238,23 @@ Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-gith
 1. Fill the `Chat` with messages until the scrollbar appears.
 2. Scroll up. Latest message should be not visible or partially visible.
 3. Add new message.
+
+### Manage multiple chats
+
+1. Start a new chat with *plus icon* in the `Cody` toolbar.
+   * Verify: The toolbar automatically switches to the `Chat` tab.
+2. Ask a question.
+3. Start a new chat with *plus icon*.
+4. Ask a different question.
+5. Navigate to `Chat History` tab.
+   * Verify: Both chats are visible on the list and are **easy to distinguish**. 
+   * Verify: Toolbar text i similar to `Last updated: 16s ago` and it's shown after hovering list item with a mouse.
+6. Double-click on earlier conversation.
+   * Verify: After clicking, it takes you back to the `Chat`.
+   * Verify: <kbd>Enter</kbd> key on selected chat item also works.
+   * Verify: Restored chat contains all the messages and context files in valid order.
+7. Ask another question **related to previous question** (e.g. `show examples` then `show more examples`).
+   * Verify: Cody knows the content of the entire conversation.
 
 #### Expected behaviour
 
