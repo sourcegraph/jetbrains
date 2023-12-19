@@ -72,4 +72,8 @@ interface CodyAgentServer {
   fun completionAccepted(logID: CompletionItemParams)
 
   @JsonNotification("$/cancelRequest") fun cancelRequest(cancelParams: CancelParams)
+
+  @JsonNotification("chat/resetConversation")
+  fun resetConversation()
+
 }

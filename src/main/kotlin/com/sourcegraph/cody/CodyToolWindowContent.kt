@@ -133,6 +133,10 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     println("change chat to $chatId")
     activateChatTab()
     resetConversation()
+    getInitializedServer(project).thenAccept {
+      println("reset chat")
+      it.resetConversation()
+    }
   }
 
   private fun addSubscriptionTab() {
