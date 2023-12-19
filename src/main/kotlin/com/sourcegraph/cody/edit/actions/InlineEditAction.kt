@@ -13,7 +13,7 @@ import com.sourcegraph.common.CodyBundle
 abstract class InlineEditAction : AnAction(), DumbAware {
   private val logger = Logger.getInstance(InlineEditAction::class.java)
 
-  fun getActionUpdateThread(): ActionUpdateThread {
+  override fun getActionUpdateThread(): ActionUpdateThread {
     return ActionUpdateThread.EDT
   }
 
