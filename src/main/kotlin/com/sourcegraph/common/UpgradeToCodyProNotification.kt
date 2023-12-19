@@ -15,6 +15,7 @@ import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.agent.protocol.RateLimitError
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.BrowserOpener.openInBrowser
+import com.sourcegraph.common.CodyBundle.fmt
 import java.util.concurrent.atomic.AtomicReference
 
 class UpgradeToCodyProNotification
@@ -65,23 +66,16 @@ private constructor(title: String, content: String, shouldShowUpgradeOption: Boo
         val shouldShowUpgradeOption = codyProJetbrains && rateLimitError.upgradeIsAvailable
         val content =
             when {
-              shouldShowUpgradeOption -> {
-                "You've used all${rateLimitError.limit?.let { " $it" }} autocomplete suggestions for the month. " +
-                    "Upgrade to Cody Pro for unlimited autocompletes, chats, and commands.<br><br>" +
-                    "(Already upgraded to Pro? Restart your IDE for changes to take effect)"
-              }
-              else -> {
-                "To ensure that Cody can stay operational for all Cody users, please come back tomorrow for more chats, commands, and autocompletes."
-              }
+              shouldShowUpgradeOption ->
+                  CodyBundle.getString("UpgradeToCodyProNotification.content.upgrade")
+                      .fmt(rateLimitError.limit?.let { " $it" } ?: "")
+              else -> CodyBundle.getString("UpgradeToCodyProNotification.content.explain")
             }
         val title =
             when {
-              shouldShowUpgradeOption -> {
-                "You've used up your autocompletes for the month"
-              }
-              else -> {
-                "Thank you for using Cody so heavily today!"
-              }
+              shouldShowUpgradeOption ->
+                  CodyBundle.getString("UpgradeToCodyProNotification.title.upgrade")
+              else -> CodyBundle.getString("UpgradeToCodyProNotification.title.explain")
             }
         UpgradeToCodyProNotification(title, content, shouldShowUpgradeOption).notify(project)
       }

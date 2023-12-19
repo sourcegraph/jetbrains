@@ -47,9 +47,8 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
             autocompleteRLE?.upgradeIsAvailable ?: chatRLE?.upgradeIsAvailable ?: false
 
     val suggestionOrExplanation =
-        if (shouldShowUpgradeOption)
-            CodyBundle.getString("status-widget.warning.upgrade-suggestion")
-        else CodyBundle.getString("status-widget.warning.explanation")
+        if (shouldShowUpgradeOption) CodyBundle.getString("status-widget.warning.upgrade")
+        else CodyBundle.getString("status-widget.warning.explain")
 
     var (action, content, title) =
         when {

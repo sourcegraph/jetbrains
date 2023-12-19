@@ -9,6 +9,8 @@ import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
 import com.sourcegraph.cody.config.RateLimitStateManager
 import com.sourcegraph.cody.vscode.CancellationToken
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
@@ -83,19 +85,10 @@ class Chat {
           val codyProJetbrains = isCodyProJetbrains(project)
           val text =
               when {
-                rateLimitError.upgradeIsAvailable && codyProJetbrains -> {
-                  "<b>You've used up your chat and commands for the month:</b> " +
-                      "You've used all${rateLimitError.limit?.let { " $it" }} chat messages and commands for the month. " +
-                      "Upgrade to Cody Pro for unlimited autocompletes, chats, and commands. " +
-                      "<a href=\"https://sourcegraph.com/cody/subscription\">Upgrade</a> " +
-                      "or <a href=\"https://sourcegraph.com/cody/subscription\">learn more</a>.<br><br>" +
-                      "(Already upgraded to Pro? Restart your IDE for changes to take effect)"
-                }
-                else -> {
-                  "<b>Thank you for using Cody so heavily today!</b>" +
-                      " To ensure that Cody can stay operational for all Cody users, please come back tomorrow for more chats, commands, and autocompletes." +
-                      " <a href=\"https://sourcegraph.com/docs/cody/core-concepts/cody-gateway#rate-limits-and-quotas\">Learn more.</a>"
-                }
+                rateLimitError.upgradeIsAvailable && codyProJetbrains ->
+                    CodyBundle.getString("chat.rate-limit-error.upgrade")
+                        .fmt(rateLimitError.limit?.let { " $it" } ?: "")
+                else -> CodyBundle.getString("chat.rate-limit-error.explain")
               }
 
           val chatMessage = ChatMessage(Speaker.ASSISTANT, text, null)
