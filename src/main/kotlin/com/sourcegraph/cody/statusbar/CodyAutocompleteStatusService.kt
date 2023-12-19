@@ -10,12 +10,11 @@ import com.sourcegraph.cody.config.CodyAccountManager
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil
-import javax.annotation.concurrent.GuardedBy
 
 @Service
 class CodyAutocompleteStatusService : CodyAutocompleteStatusListener, Disposable {
 
-  @GuardedBy("this") private var status: CodyAutocompleteStatus = CodyAutocompleteStatus.CodyUninit
+  private var status: CodyAutocompleteStatus = CodyAutocompleteStatus.CodyUninit
 
   init {
     ApplicationManager.getApplication()
