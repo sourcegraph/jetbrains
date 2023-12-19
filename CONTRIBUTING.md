@@ -15,11 +15,19 @@ using the `jetbrains-ide` & `team/integrations` labels.
 - Install Java 11 via SDKMAN! https://sdkman.io. Once you have SDKMAN! installed, run `sdk use java 11.0.15-tem`.
   Confirm that you have Java 11 installed with `java -version`.
 - Clone `https://github.com/sourcegraph/sourcegraph`
-- Clone `https://github.com/sourcegraph/cody` in a sibling directory. The toplevel directories for
-  sourcegraph/sourcegraph and sourcegraph/cody must be next to each other.
+- Clone `https://github.com/sourcegraph/cody` in a sibling directory.
+  The toplevel directories for sourcegraph/sourcegraph and sourcegraph/cody must be next to each other.
 - Install the following two IntelliJ plugins to format Java and Kotlin on file save
     - https://plugins.jetbrains.com/plugin/8527-google-java-format
     - https://plugins.jetbrains.com/plugin/14912-ktfmt
+
+Few tips and tricks regarding versioning of the tooling:
+- If you are using macOS make sure to install `pnpm` using `corepack` and not `brew`.
+  Currently `brew` does not allow you to pick custom `pnpm` version which is causing [various issues](https://github.com/pnpm/pnpm/issues/6903).
+- Use `node` version `20` (newer versions causes hard to diagnose errors with `ERR_INVALID_THIS`).
+- If you changed `pnpm` or `node` version after running gradle you need to kill gradle daemon with `./gradlew --stop`.
+  Otherwise you won't see effects of your changes.
+
 
 | What                                                             | Command                                                                  |
 |------------------------------------------------------------------|--------------------------------------------------------------------------|
