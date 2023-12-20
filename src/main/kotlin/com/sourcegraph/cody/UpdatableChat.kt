@@ -18,5 +18,7 @@ interface UpdatableChat {
 
   val isChatVisible: Boolean
 
+  val id: String?
+
   fun activateChatTab()
 }

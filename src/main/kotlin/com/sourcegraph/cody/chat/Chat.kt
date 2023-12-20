@@ -46,7 +46,8 @@ class Chat {
                 ?.map { contextFile: ContextFile ->
                   ContextMessage(Speaker.ASSISTANT, agentChatMessageText, contextFile)
                 }
-                ?.collect(Collectors.toList()) ?: emptyList()
+                ?.collect(Collectors.toList())
+                ?: emptyList()
         chat.displayUsedContext(contextMessages)
         chat.addMessageToChat(chatMessage)
       } else {
@@ -58,12 +59,10 @@ class Chat {
           .thenAcceptAsync(
               { server ->
                 try {
-                  // TODO: only create one chat ID per project instead of per message
-                  val id = server.chatNew().get()
                   val reply =
                       server.chatSubmitMessage(
                           ChatSubmitMessageParams(
-                              id,
+                              chat.id!!,
                               WebviewMessage(
                                   command = "submit",
                                   text = humanMessage.actualMessage(),
