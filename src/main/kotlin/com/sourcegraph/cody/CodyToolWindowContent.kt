@@ -59,6 +59,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private val recipesPanel: JBPanelWithEmptyText
   val embeddingStatusView: EmbeddingStatusView
   override var isChatVisible = false
+  override var id: String? = null
   private var codyOnboardingGuidancePanel: CodyOnboardingGuidancePanel? = null
   private val chatMessageHistory = CodyChatMessageHistory(CHAT_MESSAGE_HISTORY_CAPACITY)
 
@@ -113,6 +114,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
     addWelcomeMessage()
     refreshSubscriptionTab()
+    contentPanel.isVisible = false
+    loadChat()
   }
 
   fun refreshSubscriptionTab() {
@@ -125,6 +128,15 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
           tabbedPane.remove(SUBSCRIPTION_TAB_INDEX)
           addNewSubscriptionTab(server)
         }
+      }
+    }
+  }
+
+  private fun loadChat() {
+    ApplicationManager.getApplication().executeOnPooledThread {
+      getInitializedServer(project).thenAccept { server ->
+        id = server.chatNew().get()
+        contentPanel.isVisible = true
       }
     }
   }

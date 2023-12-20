@@ -232,10 +232,6 @@ tasks {
     }
     val codyDir = unzipCody()
     println("Using cody from codyDir=$codyDir")
-    if (System.getenv("CODY_DIR") != null) {
-      // Use `pnpm agent` instead
-      return buildCodyDir
-    }
     exec {
       workingDir(codyDir)
       commandLine("pnpm", "install", "--frozen-lockfile")

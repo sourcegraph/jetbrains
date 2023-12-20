@@ -3,21 +3,12 @@ package com.sourcegraph.cody.agent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.util.Disposer;
-import com.intellij.ui.jcef.JBCefApp;
 import com.sourcegraph.cody.agent.protocol.ChatMessage;
 import com.sourcegraph.cody.agent.protocol.DebugMessage;
-
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-import com.sourcegraph.find.FindPopupDialog;
-import com.sourcegraph.find.browser.JSToJavaBridgeRequestHandler;
-import com.sourcegraph.find.browser.SourcegraphJBCefBrowser;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.jetbrains.annotations.NotNull;
