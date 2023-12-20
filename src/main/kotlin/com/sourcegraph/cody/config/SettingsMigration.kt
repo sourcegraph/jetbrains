@@ -22,21 +22,29 @@ import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.config.UserLevelConfig
 import java.util.concurrent.CompletableFuture
 
+private const val RUN_ONCE_CODY_ACCOUNTS_IDS_REFRESH = "CodyAccountsIdsRefresh"
+private const val RUN_ONCE_TOGGLE_CODY_TOOL_WINDOW_AFTER_MIGRATION =
+    "ToggleCodyToolWindowAfterMigration"
+private const val RUN_ONCE_CODY_APPLICATION_SETTINGS_MIGRATION = "CodyApplicationSettingsMigration"
+private const val RUN_ONCE_CODY_PROJECT_SETTINGS_MIGRATION = "CodyProjectSettingsMigration"
+
 class SettingsMigration : Activity {
 
   private val codyAuthenticationManager = CodyAuthenticationManager.instance
 
   override fun runActivity(project: Project) {
-    RunOnceUtil.runOnceForProject(project, "CodyProjectSettingsMigration") {
+    RunOnceUtil.runOnceForProject(project, RUN_ONCE_CODY_PROJECT_SETTINGS_MIGRATION) {
       val customRequestHeaders = extractCustomRequestHeaders(project)
       migrateProjectSettings(project)
       migrateAccounts(project, customRequestHeaders)
     }
-    RunOnceUtil.runOnceForApp("CodyApplicationSettingsMigration") { migrateApplicationSettings() }
-    RunOnceUtil.runOnceForApp("ToggleCodyToolWindowAfterMigration") {
+    RunOnceUtil.runOnceForApp(RUN_ONCE_CODY_APPLICATION_SETTINGS_MIGRATION) {
+      migrateApplicationSettings()
+    }
+    RunOnceUtil.runOnceForApp(RUN_ONCE_TOGGLE_CODY_TOOL_WINDOW_AFTER_MIGRATION) {
       ApplicationManager.getApplication().invokeLater { toggleCodyToolbarWindow(project) }
     }
-    RunOnceUtil.runOnceForApp("CodyAccountsIdsRefresh") {
+    RunOnceUtil.runOnceForApp(RUN_ONCE_CODY_ACCOUNTS_IDS_REFRESH) {
       val customRequestHeaders = extractCustomRequestHeaders(project)
       refreshAccountsIds(customRequestHeaders)
     }

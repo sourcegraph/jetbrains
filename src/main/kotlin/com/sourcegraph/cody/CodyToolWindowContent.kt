@@ -136,6 +136,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       var agentUserId = getUserId(server)
       var retryCount = 3
       while (jetbrainsUserId != agentUserId && retryCount > 0) {
+        Thread.sleep(200)
         retryCount--
         logger.warn("Retrying call for userId from agent")
         agentUserId = getUserId(server)
@@ -166,12 +167,12 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
   }
 
-  private fun getUserId(server: CodyAgentServer): String {
+  private fun getUserId(server: CodyAgentServer): String? {
     return server
         .currentUserId()
         .exceptionally {
           logger.warn("Unable to fetch user id from agent")
-          ""
+          null
         }
         .get()
   }
