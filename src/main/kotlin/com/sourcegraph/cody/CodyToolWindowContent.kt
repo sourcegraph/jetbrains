@@ -132,11 +132,14 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
   }
 
-  private fun loadChat() {
+  override fun loadChat(callback: () -> Unit) {
+    id = null
+    contentPanel.isVisible = false
     ApplicationManager.getApplication().executeOnPooledThread {
       getInitializedServer(project).thenAccept { server ->
         id = server.chatNew().get()
         contentPanel.isVisible = true
+        callback.invoke()
       }
     }
   }

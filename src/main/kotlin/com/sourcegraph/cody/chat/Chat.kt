@@ -79,9 +79,20 @@ class Chat {
                         } else {
                           null
                         }
+                    val panelNotFoundError =
+                        if (lastReply.type == "errors" && lastReply.errors != null) {
+                          lastReply.toPanelNotFoundError()
+                        } else {
+                          null
+                        }
                     logger.warn("rateLimitError: $rateLimitError")
+                    logger.warn("panelNotFoundError: $panelNotFoundError")
                     if (rateLimitError != null) {
                       handleRateLimitError(project, chat, rateLimitError)
+                    } else if (panelNotFoundError != null) {
+                      chat.loadChat {
+                        this.sendMessageViaAgent(project, humanMessage, recipeId, chat, token)
+                      }
                     } else if (error != null) {
                       handleError(project, error, chat)
                       null
