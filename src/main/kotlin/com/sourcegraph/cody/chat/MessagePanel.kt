@@ -7,13 +7,13 @@ import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.ui.HtmlViewer.createHtmlViewer
-import java.awt.Color
-import javax.swing.JEditorPane
-import javax.swing.JPanel
 import org.commonmark.ext.gfm.tables.TablesExtension
 import org.commonmark.node.Node
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
+import java.awt.Color
+import javax.swing.JEditorPane
+import javax.swing.JPanel
 
 class MessagePanel(
     private val chatMessage: ChatMessage,
@@ -68,7 +68,7 @@ class MessagePanel(
 
   private fun addAsNewTextComponent(renderedHtml: String) {
     val textPane: JEditorPane = createHtmlViewer(getInlineCodeBackgroundColor(chatMessage.speaker))
-    SwingHelper.setHtml(textPane, renderedHtml, UIUtil.getLabelForeground())
+    SwingHelper.setHtml(textPane, renderedHtml, null)
     val textEditorComponent = TextPart(textPane)
     this.lastMessagePart = textEditorComponent
     add(textEditorComponent.component)
