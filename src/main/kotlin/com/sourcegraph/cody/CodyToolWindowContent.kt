@@ -114,7 +114,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
     addWelcomeMessage()
     refreshSubscriptionTab()
-    contentPanel.isVisible = false
     loadChat()
   }
 
@@ -134,11 +133,13 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
   override fun loadChat(callback: () -> Unit) {
     id = null
-    contentPanel.isVisible = false
+    promptPanel.textArea.isEnabled = false
+    promptPanel.textArea.emptyText.text = "Connecting to agent..."
     ApplicationManager.getApplication().executeOnPooledThread {
       getInitializedServer(project).thenAccept { server ->
         id = server.chatNew().get()
-        contentPanel.isVisible = true
+        promptPanel.textArea.isEnabled = true
+        promptPanel.textArea.emptyText.text = "Ask a question about this code..."
         callback.invoke()
       }
     }
