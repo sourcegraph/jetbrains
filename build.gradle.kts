@@ -340,11 +340,15 @@ tasks {
 
     val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
     if (platformRuntimeVersion != null) {
+      systemProperty("platformRuntimeVersion", platformRuntimeVersion)
       val ideaInstallDir =
           getIdeaInstallDir(platformRuntimeVersion.toString())
               ?: throw GradleException(
                   "Could not find IntelliJ install for $platformRuntimeVersion")
       ideDir.set(ideaInstallDir)
+
+
+      Ļ
     }
   }
 
