@@ -90,7 +90,7 @@ class Chat {
                     if (rateLimitError != null) {
                       handleRateLimitError(project, chat, rateLimitError)
                     } else if (panelNotFoundError != null) {
-                      chat.loadChat {
+                      chat.loadNewChatId {
                         this.sendMessageViaAgent(project, humanMessage, recipeId, chat, token)
                       }
                     } else if (error != null) {

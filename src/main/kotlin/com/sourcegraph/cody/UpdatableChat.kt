@@ -22,5 +22,5 @@ interface UpdatableChat {
 
   fun activateChatTab()
 
-  fun loadChat(callback: () -> Unit = {})
+  fun loadNewChatId(callback: () -> Unit = {})
 }
