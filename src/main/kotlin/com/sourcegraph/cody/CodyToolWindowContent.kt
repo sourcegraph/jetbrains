@@ -92,6 +92,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     stopGeneratingButton.addActionListener {
       inProgressChat.abort()
       stopGeneratingButton.isVisible = false
+      ensureBlinkingCursorIsNotDisplayed()
     }
     stopGeneratingButton.isVisible = false
     stopGeneratingButtonPanel.add(stopGeneratingButton)
@@ -114,7 +115,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
     addWelcomeMessage()
     refreshSubscriptionTab()
-    loadChat()
+    loadNewChatId()
   }
 
   fun refreshSubscriptionTab() {
@@ -131,7 +132,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
   }
 
-  override fun loadChat(callback: () -> Unit) {
+  override fun loadNewChatId(callback: () -> Unit) {
     id = null
     promptPanel.textArea.isEnabled = false
     promptPanel.textArea.emptyText.text = "Connecting to agent..."
