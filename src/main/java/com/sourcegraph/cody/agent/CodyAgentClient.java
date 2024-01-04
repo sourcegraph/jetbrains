@@ -75,7 +75,7 @@ public class CodyAgentClient {
   @JsonNotification("webview/postMessage")
   public void webviewPostMessage(WebviewPostMessageParams params) {
     if (onChatUpdateMessageInProgress != null
-        && params.getMessage().getType().equals("transcript")) {
+        && params.getMessage().getType().equals(ExtensionMessage.Type.TRANSCRIPT)) {
       if (Boolean.FALSE.equals(params.getMessage().isMessageInProgress())) {
         onFinishedProcessing.run();
       } else if (params.getMessage().getMessages() != null
@@ -91,6 +91,7 @@ public class CodyAgentClient {
         logger.warn("webview/postMessage: no messages in transcript");
       }
     } else {
+      logger.warn("onChatUpdateMessageInProgress is null or message type is not transcript");
       logger.warn(String.format("webview/postMessage %s: %s", params.getId(), params.getMessage()));
     }
   }

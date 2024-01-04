@@ -35,6 +35,11 @@ data class ExtensionMessage(
     val errors: String?
 ) {
 
+  object Type {
+    const val TRANSCRIPT = "transcript"
+    const val ERRORS = "errors"
+  }
+
   fun toPanelNotFoundError(): PanelNotFoundError? {
     // e.g.: "No panel with id 414f6f9c-ed62-4d7b-8ebd-023ded81e9da found"
     if (this.errors?.matches(Regex("^No panel with id .* found$")) == true) {
