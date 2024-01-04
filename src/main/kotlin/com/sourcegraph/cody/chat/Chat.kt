@@ -4,6 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.UpdatableChat
 import com.sourcegraph.cody.agent.CodyAgent
+import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
@@ -73,14 +74,15 @@ class Chat {
                   token.onCancellationRequested { reply.cancel(true) }
                   reply.handle { lastReply, error ->
                     val rateLimitError =
-                        if (lastReply.type == "transcript" &&
+                        if (lastReply.type == ExtensionMessage.Type.TRANSCRIPT &&
                             lastReply.messages?.lastOrNull()?.error != null) {
                           lastReply.messages.lastOrNull()?.error?.toRateLimitError()
                         } else {
                           null
                         }
                     val panelNotFoundError =
-                        if (lastReply.type == "errors" && lastReply.errors != null) {
+                        if (lastReply.type == ExtensionMessage.Type.ERRORS &&
+                            lastReply.errors != null) {
                           lastReply.toPanelNotFoundError()
                         } else {
                           null
