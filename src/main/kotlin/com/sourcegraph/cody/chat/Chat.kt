@@ -69,7 +69,7 @@ class Chat {
                                   text = humanMessage.actualMessage(),
                                   submitType = "user",
                                   addEnhancedContext = true,
-                                  // TODO: allow to manually add files to the context via `@`
+                                  // TODO(#242): allow to manually add files to the context via `@`
                                   contextFiles = listOf())))
                   token.onCancellationRequested { reply.cancel(true) }
                   reply.handle { lastReply, error ->
@@ -93,7 +93,7 @@ class Chat {
                       handleRateLimitError(project, chat, rateLimitError)
                     } else if (panelNotFoundError != null) {
                       chat.loadNewChatId {
-                        this.sendMessageViaAgent(project, humanMessage, recipeId, chat, token)
+                        sendMessageViaAgent(project, humanMessage, recipeId, chat, token)
                       }
                     } else if (error != null) {
                       handleError(project, error, chat)
@@ -104,6 +104,7 @@ class Chat {
                   }
                 } catch (ignored: Exception) {
                   // Ignore bugs in the agent when executing recipes
+                  logger.warn("Ignored error executing recipe: $ignored")
                 }
               },
               CodyAgent.executorService)
@@ -128,6 +129,7 @@ class Chat {
                   }
                 } catch (ignored: Exception) {
                   // Ignore bugs in the agent when executing recipes
+                  logger.warn("Ignored error executing recipe: $ignored")
                 }
               },
               CodyAgent.executorService)
