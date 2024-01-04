@@ -15,20 +15,12 @@ data class ChatError(
     val upgradeIsAvailable: Boolean? = null,
 ) {
   fun toRateLimitError(): RateLimitError? {
-    if (this.retryAfter == null ||
-        this.limit == null ||
-        this.userMessage == null ||
-        this.retryMessage == null ||
-        this.feature == null ||
-        this.upgradeIsAvailable == null) {
+    if (this.upgradeIsAvailable == null) {
       return null
     }
     return RateLimitError(
         upgradeIsAvailable = this.upgradeIsAvailable,
         limit = this.limit,
-        retryAfterDate = this.retryAfterDate,
-        userMessage = this.userMessage,
-        retryMessage = this.retryMessage,
     )
   }
 }
