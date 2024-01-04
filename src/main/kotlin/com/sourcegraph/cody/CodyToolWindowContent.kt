@@ -23,11 +23,7 @@ import com.sourcegraph.cody.agent.CodyAgent.Companion.getInitializedServer
 import com.sourcegraph.cody.agent.CodyAgent.Companion.isConnected
 import com.sourcegraph.cody.agent.CodyAgentManager.tryRestartingAgentIfNotRunning
 import com.sourcegraph.cody.agent.CodyAgentServer
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ContextMessage
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
-import com.sourcegraph.cody.agent.protocol.RecipeInfo
-import com.sourcegraph.cody.agent.protocol.Speaker
+import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.autocomplete.CodyEditorFactoryListener
 import com.sourcegraph.cody.chat.*
 import com.sourcegraph.cody.config.CodyAccount
@@ -134,13 +130,19 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
   override fun loadNewChatId(callback: () -> Unit) {
     id = null
-    promptPanel.textArea.isEnabled = false
-    promptPanel.textArea.emptyText.text = "Connecting to agent..."
+
+    ApplicationManager.getApplication().invokeLater {
+      promptPanel.textArea.isEnabled = false
+      promptPanel.textArea.emptyText.text = "Connecting to agent..."
+    }
+
     ApplicationManager.getApplication().executeOnPooledThread {
       getInitializedServer(project).thenAccept { server ->
         id = server.chatNew().get()
-        promptPanel.textArea.isEnabled = true
-        promptPanel.textArea.emptyText.text = "Ask a question about this code..."
+        ApplicationManager.getApplication().invokeLater {
+          promptPanel.textArea.isEnabled = true
+          promptPanel.textArea.emptyText.text = "Ask a question about this code..."
+        }
         callback.invoke()
       }
     }
