@@ -2,12 +2,9 @@ package com.sourcegraph.cody
 
 import com.intellij.ide.BrowserUtil
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
-import com.intellij.ui.SeparatorComponent
-import com.intellij.ui.dsl.builder.BottomGap
-import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
-import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil
 
 fun createSubscriptionTab(isCurrentUserPro: Boolean) = panel {
@@ -17,26 +14,22 @@ fun createSubscriptionTab(isCurrentUserPro: Boolean) = panel {
     if (chatLimitError != null && autocompleteLimitError != null) {
       row {
         label(
-            "<html>\u26A1 You used all you autocompletions and chats for this month. Upgrade to Cody Pro to get unlimited interactions.</html>")
+            "<html>\u26A1 You used all you autocompletions and chats for this month. Upgrade to Cody Pro to get unlimited interactions.<hr><html/>")
       }
-      separator().topGap(TopGap.SMALL).bottomGap(BottomGap.SMALL)
     } else if (chatLimitError != null) {
       row {
         label(
-            "<html>\u26A1 You used all ${chatLimitError.limit} chat messages for this month. Upgrade to Cody Pro to get unlimited chats.</html>")
+            "<html>\u26A1 You used all ${chatLimitError.limit} chat messages for this month. Upgrade to Cody Pro to get unlimited chats.<hr><html/>")
       }
-      separator().topGap(TopGap.SMALL).bottomGap(BottomGap.SMALL)
     } else if (autocompleteLimitError != null) {
       row {
         label(
-            "<html>\u26A1 You used all ${autocompleteLimitError.limit} autocompletions for this month. Upgrade to Cody Pro to get unlimited autocompletions.</html>")
-        cell(SeparatorComponent(1, 1))
+            "<html>\u26A1 You used all ${autocompleteLimitError.limit} autocompletions for this month. Upgrade to Cody Pro to get unlimited autocompletions.<hr><html/>")
       }
-      separator().topGap(TopGap.SMALL).bottomGap(BottomGap.SMALL)
     }
   }
   val tier = if (isCurrentUserPro) "Cody Pro" else "Cody Free"
-  row { label("<html>Current tier: <b>$tier</b><html/>") }
+  row { label("<html>Current tier: <b>$tier</b></html>") }
   row {
     if (!isCurrentUserPro) {
       val upgradeButton =
