@@ -88,6 +88,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     stopGeneratingButton.addActionListener {
       inProgressChat.abort()
       stopGeneratingButton.isVisible = false
+      sendButton.isEnabled = promptPanel.textArea.text.isNotBlank()
       ensureBlinkingCursorIsNotDisplayed()
     }
     stopGeneratingButton.isVisible = false
