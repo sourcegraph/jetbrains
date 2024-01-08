@@ -436,9 +436,9 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       messagesPanel.revalidate()
       messagesPanel.repaint()
       chatMessageHistory.clearHistory()
-      ApplicationManager.getApplication().executeOnPooledThread {
-        getInitializedServer(project).thenAccept { it?.transcriptReset() }
-      }
+      // todo (#260): call agent to reset the transcript instead of unsetting the chat id
+      inProgressChat.abort()
+      loadNewChatId()
       ensureBlinkingCursorIsNotDisplayed()
     }
   }
