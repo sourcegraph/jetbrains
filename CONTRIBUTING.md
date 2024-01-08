@@ -24,6 +24,7 @@ Few tips and tricks regarding versioning of the tooling:
 
 - If you are using macOS make sure to install `pnpm`  version `8.6.7`  using `corepack` and
   not `brew`: `corepack install --global pnpm@8.6.7`.
+  - Note: can also use `asdf` here.
   Currently `brew` does not allow you to pick custom `pnpm` version which is
   causing [various issues](https://github.com/pnpm/pnpm/issues/6903).
 - Use `node` version `18` (newer versions causes hard to diagnose errors with `ERR_INVALID_THIS`).
