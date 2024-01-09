@@ -87,8 +87,6 @@ class Chat {
                         } else {
                           null
                         }
-                    logger.warn("rateLimitError: $rateLimitError")
-                    logger.warn("panelNotFoundError: $panelNotFoundError")
                     if (rateLimitError != null) {
                       handleRateLimitError(project, chat, rateLimitError)
                     } else if (panelNotFoundError != null) {
