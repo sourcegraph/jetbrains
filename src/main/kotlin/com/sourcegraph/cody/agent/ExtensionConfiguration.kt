@@ -9,6 +9,8 @@ data class ExtensionConfiguration(
     val autocompleteAdvancedProvider: String? = null,
     val autocompleteAdvancedServerEndpoint: String? = null,
     val autocompleteAdvancedAccessToken: String? = null,
+    val customConfiguration: Map<String, Any> =
+        mapOf("cody.useContext" to "embeddings", "cody.experimental.symfContext" to false),
     val debug: Boolean? = false,
     val verboseDebug: Boolean? = false,
     val codebase: String? = null
