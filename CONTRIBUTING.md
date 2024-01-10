@@ -15,10 +15,10 @@ our [issue tracker](https://github.com/sourcegraph/cody/issues/new/choose).
 
 - Java 11: we recommend installing via SDKMAN! https://sdkman.io. Once you have SDKMAN! installed, run `sdk use java 11.0.15-tem`.
   Confirm that you have Java 11 installed with `java -version`.
-- Clone `https://github.com/sourcegraph/cody` in a sibling directory.
-- [Install `asdf`](https://asdf-vm.com/guide/getting-started.html)
-  - Run `asdf install` in the root directory of this repository
-  - If not using `asdf`, you can install the programs in `.tool-versions` through other means, but ensure the versions match.
+- Set up the Cody agent dev environment.
+  - Clone `https://github.com/sourcegraph/cody` in a sibling directory.
+  - Install its dependencies. The easiest way is [with `asdf`](https://github.com/sourcegraph/cody/blob/main/doc/dev/index.md). If not using `asdf`, you just need to install the dependency versions listed in the `.tool-versions` file in that repository.
+  - From the root directory of the repository, `cd ./agent && pnpm install && pnpm build`
 
 ### Running
 
