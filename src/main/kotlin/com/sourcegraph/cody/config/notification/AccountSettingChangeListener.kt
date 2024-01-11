@@ -18,6 +18,8 @@ class AccountSettingChangeListener(project: Project) : ChangeListener(project) {
     connection.subscribe(
         AccountSettingChangeActionNotifier.TOPIC,
         object : AccountSettingChangeActionNotifier {
+          override fun beforeAction(serverUrlChanged: Boolean) {}
+
           override fun afterAction(context: AccountSettingChangeContext) {
             val codyApplicationSettings = CodyApplicationSettings.instance
             // Notify JCEF about the config changes
