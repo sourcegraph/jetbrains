@@ -126,15 +126,21 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     id = null
 
     ApplicationManager.getApplication().invokeLater {
-      promptPanel.textArea.isEnabled = false
       promptPanel.textArea.emptyText.text = "Connecting to agent..."
+      promptPanel.textArea.isEnabled = false
+      sendButton.isEnabled = false
+      recipesPanel.disableRecipes()
     }
 
     getInitializedServer(project).thenAccept { server ->
       id = server.chatNew().get()
       ApplicationManager.getApplication().invokeLater {
-        promptPanel.textArea.isEnabled = true
         promptPanel.textArea.emptyText.text = "Ask a question about this code..."
+        promptPanel.textArea.isEnabled = true
+        if (!stopGeneratingButton.isEnabled) {
+          recipesPanel.enableRecipes()
+          sendButton.isEnabled = promptPanel.textArea.text.isNotBlank()
+        }
       }
       callback.invoke()
     }

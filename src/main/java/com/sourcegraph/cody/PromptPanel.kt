@@ -34,7 +34,8 @@ class PromptPanel(
   val textArea = autoGrowingTextArea.textArea
 
   init {
-    textArea.emptyText.text = "Ask a question about this code..."
+    textArea.isEnabled = false
+    textArea.emptyText.text = "Connecting to agent..."
     textArea.border = EmptyBorder(JBUI.insets(4, 4, 4, 24))
 
     val upperMessageAction: AnAction =

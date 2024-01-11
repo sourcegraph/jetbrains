@@ -81,8 +81,11 @@ class Chat {
                     if (rateLimitError != null) {
                       handleRateLimitError(project, chat, rateLimitError)
                     } else if (panelNotFoundError != null) {
-                      chat.loadNewChatId {
-                        sendMessageViaAgent(project, humanMessage, recipeId, chat, token)
+                      client.onFinishedProcessing = Runnable {}
+                      ApplicationManager.getApplication().executeOnPooledThread {
+                        chat.loadNewChatId {
+                          sendMessageViaAgent(project, humanMessage, recipeId, chat, token)
+                        }
                       }
                     } else if (error != null) {
                       handleError(project, error, chat)
