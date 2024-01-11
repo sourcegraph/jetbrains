@@ -53,7 +53,6 @@ class AccountSettingChangeListener(project: Project) : ChangeListener(project) {
               codyToolWindowContent.refreshSubscriptionTab()
             }
 
-            // Log install events
             if (context.serverUrlChanged) {
               GraphQlLogger.logCodyEvent(project, "settings.serverURL", "changed")
             } else if (context.accessTokenChanged) {
