@@ -4,6 +4,7 @@ import com.intellij.ide.BrowserUtil
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
 import com.intellij.ui.dsl.builder.panel
 import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.config.ThemeUtil
@@ -11,13 +12,7 @@ import com.sourcegraph.config.ThemeUtil
 fun createSubscriptionTab(isCurrentUserPro: Boolean) = panel {
   val chatLimitError = UpgradeToCodyProNotification.chatRateLimitError.get()
   val autocompleteLimitError = UpgradeToCodyProNotification.autocompleteRateLimitError.get()
-  val chatLimitLabelValue =
-      "You used all ${chatLimitError?.limit} chat messages for this month. Upgrade to Cody Pro to get unlimited chats."
-  val autocompleteLimitLabelValue =
-      "You used all ${autocompleteLimitError?.limit} autocompletions for this month. Upgrade to Cody Pro to get unlimited autocompletions."
-  val chatAndAutocompleteLimitLabelValue =
-      "You used all you autocompletions and chats for this month. Upgrade to Cody Pro to get unlimited interactions."
-  if (!isCurrentUserPro) {
+  if (!isCurrentUserPro && (chatLimitError != null || autocompleteLimitError != null)) {
     row {
       text(
           "<html>" +
@@ -25,13 +20,13 @@ fun createSubscriptionTab(isCurrentUserPro: Boolean) = panel {
               "<tr>" +
               "<td width=\"10%\"><span style=\"font-size:20px;\">⚡</span></td>" +
               "<td width=\"90%\"><p>${
-                if (chatLimitError != null && autocompleteLimitError != null) {
-                  chatAndAutocompleteLimitLabelValue
+                if (autocompleteLimitError != null) {
+                    CodyBundle.getString("subscription-tab.autocomplete-rate-limit-error").fmt(autocompleteLimitError.limit.toString())
                 } else {
                   if (chatLimitError != null) {
-                    chatLimitLabelValue
+                    CodyBundle.getString("subscription-tab.chat-rate-limit-error").fmt(chatLimitError.limit.toString())
                   } else {
-                    autocompleteLimitLabelValue
+                    CodyBundle.getString("subscription-tab.chat-and-autocomplete-rate-limit-error")
                   }
                 }
                 }</p></td>" +
