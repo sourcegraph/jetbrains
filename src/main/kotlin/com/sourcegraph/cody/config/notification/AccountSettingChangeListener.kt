@@ -53,9 +53,9 @@ class AccountSettingChangeListener(project: Project) : ChangeListener(project) {
 
             // Log install events
             if (context.serverUrlChanged) {
-              GraphQlLogger.logCodyEvent(project, "settings.serverURL", "changed)
+              GraphQlLogger.logCodyEvent(project, "settings.serverURL", "changed")
             } else if (context.accessTokenChanged) {
-              GraphQlLogger.logCodyEvent(project, "settings.accessToken", "changed)
+              GraphQlLogger.logCodyEvent(project, "settings.accessToken", "changed")
             }
           }
         })
