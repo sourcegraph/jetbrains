@@ -88,6 +88,10 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       stopGeneratingButton.isVisible = false
       sendButton.isEnabled = promptPanel.textArea.text.isNotBlank()
       ensureBlinkingCursorIsNotDisplayed()
+      recipesPanel.components.filterIsInstance<JButton>().forEach {
+        it.isEnabled = true
+        it.toolTipText = null
+      }
     }
     stopGeneratingButton.isVisible = false
     stopGeneratingButtonPanel.add(stopGeneratingButton)
