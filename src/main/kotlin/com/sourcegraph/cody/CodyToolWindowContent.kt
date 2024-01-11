@@ -113,11 +113,14 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     refreshPanelsVisibility()
 
     addWelcomeMessage()
-    ApplicationManager.getApplication().executeOnPooledThread { refreshSubscriptionTab() }
-    loadNewChatId()
 
     // Initiate filling recipes panel in the background
     refreshRecipes()
+
+    ApplicationManager.getApplication().executeOnPooledThread {
+      refreshSubscriptionTab()
+      loadNewChatId()
+    }
   }
 
   @RequiresBackgroundThread
