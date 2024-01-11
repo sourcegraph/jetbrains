@@ -4,7 +4,6 @@ import com.intellij.icons.AllIcons
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -21,9 +20,7 @@ import com.intellij.util.ui.JBUI
 import com.intellij.xml.util.XmlStringUtil
 import com.sourcegraph.cody.agent.CodyAgent.Companion.getInitializedServer
 import com.sourcegraph.cody.agent.CodyAgent.Companion.isConnected
-import com.sourcegraph.cody.agent.CodyAgentManager
 import com.sourcegraph.cody.agent.CodyAgentManager.tryRestartingAgentIfNotRunning
-import com.sourcegraph.cody.agent.CodyAgentServer
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.autocomplete.CodyEditorFactoryListener
 import com.sourcegraph.cody.chat.*
@@ -54,6 +51,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private val stopGeneratingButton =
       JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend))
   private val recipesPanel: JBPanelWithEmptyText
+  private val subscriptionPanel: SubscriptionTabPanel
   val embeddingStatusView: EmbeddingStatusView
   override var isChatVisible = false
   override var id: String? = null
@@ -67,6 +65,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     recipesPanel = JBPanelWithEmptyText(GridLayout(0, 1))
     recipesPanel.layout = BoxLayout(recipesPanel, BoxLayout.Y_AXIS)
     tabbedPane.insertTab("Commands", null, recipesPanel, null, RECIPES_TAB_INDEX)
+    subscriptionPanel = SubscriptionTabPanel()
 
     // Chat panel
     messagesPanel.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true)
@@ -125,16 +124,22 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
   @RequiresBackgroundThread
   fun refreshSubscriptionTab() {
-    tryRestartingAgentIfNotRunning(project)
-    getInitializedServer(project).thenAccept { server ->
-      if (tabbedPane.tabCount < SUBSCRIPTION_TAB_INDEX + 1) {
-        addNewSubscriptionTab(server)
-      } else {
-        ApplicationManager.getApplication().invokeLater {
-          tabbedPane.remove(SUBSCRIPTION_TAB_INDEX)
-        }
-        addNewSubscriptionTab(server)
+    fetchSubscriptionPanelData(project).thenAccept {
+      if (it != null) {
+        ApplicationManager.getApplication().invokeLater { refreshSubscriptionTab(it) }
       }
+    }
+  }
+
+  @RequiresEdt
+  private fun refreshSubscriptionTab(data: SubscriptionTabPanelData) {
+    if (data.isDotcomAccount && data.codyProFeatureFlag) {
+      if (tabbedPane.tabCount < SUBSCRIPTION_TAB_INDEX + 1) {
+        tabbedPane.insertTab("Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
+      }
+      subscriptionPanel.update(data.isCurrentUserPro)
+    } else {
+      tabbedPane.remove(SUBSCRIPTION_TAB_INDEX)
     }
   }
 
@@ -156,61 +161,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
         callback.invoke()
       }
     }
-  }
-
-  private fun addNewSubscriptionTab(server: CodyAgentServer) {
-    val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-    if (activeAccountType != null) {
-      val jetbrainsUserId = activeAccountType.id
-      var agentUserId = getUserId(server)
-      var retryCount = 3
-      while (jetbrainsUserId != agentUserId && retryCount > 0) {
-        Thread.sleep(200)
-        retryCount--
-        logger.warn("Retrying call for userId from agent")
-        agentUserId = getUserId(server)
-      }
-      if (jetbrainsUserId != agentUserId) {
-        if (agentUserId != null) {
-          logger.warn("User id in JetBrains is different from agent: restarting agent...")
-          CodyAgentManager.restartAgent(project)
-          refreshSubscriptionTab()
-          return
-        }
-        return
-      }
-
-      if (activeAccountType.isDotcomAccount()) {
-        val codyProFeatureFlag = server.evaluateFeatureFlag(GetFeatureFlag("CodyProJetBrains"))
-        if (codyProFeatureFlag.get() != null && codyProFeatureFlag.get()!!) {
-          val isCurrentUserPro =
-              server
-                  .isCurrentUserPro()
-                  .exceptionally { e ->
-                    logger.warn("Error getting user pro status", e)
-                    null
-                  }
-                  .get()
-          if (isCurrentUserPro != null) {
-            ApplicationManager.getApplication().invokeLater {
-              val subscriptionPanel = createSubscriptionTab(isCurrentUserPro)
-              tabbedPane.insertTab(
-                  "Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private fun getUserId(server: CodyAgentServer): String? {
-    return server
-        .currentUserId()
-        .exceptionally {
-          logger.warn("Unable to fetch user id from agent")
-          null
-        }
-        .get()
   }
 
   private fun refreshRecipes() {
@@ -526,7 +476,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     get() = allContentPanel
 
   private fun focusPromptInput() {
-    if (tabbedPane.selectedIndex == CHAT_TAB_INDEX) {
+    if (tabbedPane.selectedIndex == CHAT_TAB_INDEX && promptPanel.textArea.isEnabled) {
       promptPanel.textArea.requestFocusInWindow()
       val textLength = promptPanel.textArea.document.length
       promptPanel.textArea.caretPosition = textLength
