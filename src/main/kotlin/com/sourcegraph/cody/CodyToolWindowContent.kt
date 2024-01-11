@@ -1,13 +1,11 @@
 package com.sourcegraph.cody
 
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.ui.components.JBTabbedPane
-import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.xml.util.XmlStringUtil
@@ -38,8 +36,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private val promptPanel: PromptPanel
   private val sendButton: JButton
   private var inProgressChat = CancellationToken()
-  private val stopGeneratingButton =
-      JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend))
+  private val stopGeneratingButton = StopGeneratingButton()
   private val recipesPanel: RecipesPanel
   private val subscriptionPanel: SubscriptionTabPanel
   val embeddingStatusView = EmbeddingStatusView(project)
@@ -68,9 +65,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
             ::sendChatMessage,
             sendButton,
             isGenerating = stopGeneratingButton::isVisible)
-    val stopGeneratingButtonPanel = JPanel(FlowLayout(FlowLayout.CENTER, 0, 5))
-    stopGeneratingButtonPanel.preferredSize =
-        Dimension(Short.MAX_VALUE.toInt(), stopGeneratingButton.getPreferredSize().height + 10)
+
     stopGeneratingButton.addActionListener {
       inProgressChat.abort()
       stopGeneratingButton.isVisible = false
@@ -78,10 +73,9 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       ensureBlinkingCursorIsNotDisplayed()
       recipesPanel.enableRecipes()
     }
-    stopGeneratingButton.isVisible = false
-    stopGeneratingButtonPanel.add(stopGeneratingButton)
-    stopGeneratingButtonPanel.isOpaque = false
-    val lowerPanel = LowerPanel(stopGeneratingButtonPanel, promptPanel, embeddingStatusView)
+
+    val lowerPanel =
+        LowerPanel(stopGeneratingButton.wrappingPanel, promptPanel, embeddingStatusView)
 
     // Main content panel
     contentPanel.layout = BorderLayout(0, 0)
