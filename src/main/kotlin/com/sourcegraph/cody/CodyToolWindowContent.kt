@@ -1,28 +1,20 @@
 package com.sourcegraph.cody
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
-import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
-import com.intellij.ui.SimpleTextAttributes
-import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.intellij.util.ui.JBUI
 import com.intellij.xml.util.XmlStringUtil
 import com.sourcegraph.cody.agent.CodyAgent.Companion.getInitializedServer
 import com.sourcegraph.cody.agent.CodyAgent.Companion.isConnected
 import com.sourcegraph.cody.agent.CodyAgentManager.tryRestartingAgentIfNotRunning
 import com.sourcegraph.cody.agent.protocol.*
-import com.sourcegraph.cody.autocomplete.CodyEditorFactoryListener
 import com.sourcegraph.cody.chat.*
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
@@ -35,9 +27,7 @@ import com.sourcegraph.telemetry.GraphQlLogger
 import java.awt.*
 import java.awt.event.ActionEvent
 import java.util.*
-import java.util.stream.Collectors
 import javax.swing.*
-import javax.swing.plaf.ButtonUI
 
 @Service(Service.Level.PROJECT)
 class CodyToolWindowContent(private val project: Project) : UpdatableChat {
@@ -50,7 +40,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private var inProgressChat = CancellationToken()
   private val stopGeneratingButton =
       JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend))
-  private val recipesPanel: JBPanelWithEmptyText
+  private val recipesPanel: RecipesPanel
   private val subscriptionPanel: SubscriptionTabPanel
   val embeddingStatusView: EmbeddingStatusView
   override var isChatVisible = false
@@ -62,8 +52,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     // Tabs
     val contentPanel = JPanel()
     tabbedPane.insertTab("Chat", null, contentPanel, null, CHAT_TAB_INDEX)
-    recipesPanel = JBPanelWithEmptyText(GridLayout(0, 1))
-    recipesPanel.layout = BoxLayout(recipesPanel, BoxLayout.Y_AXIS)
+    recipesPanel = RecipesPanel(project, ::sendMessage)
     tabbedPane.insertTab("Commands", null, recipesPanel, null, RECIPES_TAB_INDEX)
     subscriptionPanel = SubscriptionTabPanel()
 
@@ -87,10 +76,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       stopGeneratingButton.isVisible = false
       sendButton.isEnabled = promptPanel.textArea.text.isNotBlank()
       ensureBlinkingCursorIsNotDisplayed()
-      recipesPanel.components.filterIsInstance<JButton>().forEach {
-        it.isEnabled = true
-        it.toolTipText = null
-      }
+      recipesPanel.enableRecipes()
     }
     stopGeneratingButton.isVisible = false
     stopGeneratingButtonPanel.add(stopGeneratingButton)
@@ -113,8 +99,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
     addWelcomeMessage()
 
-    // Initiate filling recipes panel in the background
-    refreshRecipes()
+    recipesPanel.refreshAndFetch()
 
     ApplicationManager.getApplication().executeOnPooledThread {
       refreshSubscriptionTab()
@@ -163,108 +148,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
   }
 
-  private fun refreshRecipes() {
-    recipesPanel.removeAll()
-    recipesPanel.emptyText.text = "Loading commands..."
-    recipesPanel.revalidate()
-    recipesPanel.repaint()
-    ApplicationManager.getApplication().executeOnPooledThread { loadCommands() }
-  }
-
-  private fun loadCommands() {
-    tryRestartingAgentIfNotRunning(project)
-    getInitializedServer(project).thenAccept { server ->
-      if (server == null) {
-        setRecipesPanelError()
-      }
-      try {
-        server.recipesList().thenAccept { recipes: List<RecipeInfo> ->
-          ApplicationManager.getApplication().invokeLater {
-            updateUIWithRecipeList(recipes)
-          } // Update on EDT
-        }
-      } catch (e: Exception) {
-        logger.warn("Error fetching commands from agent", e)
-        // Update on EDT
-        ApplicationManager.getApplication().invokeLater { setRecipesPanelError() }
-      }
-    }
-  }
-
-  @RequiresEdt
-  private fun setRecipesPanelError() {
-    val emptyText = recipesPanel.emptyText
-    emptyText.clear()
-    emptyText.appendLine("Error fetching commands. Check your connection.")
-    emptyText.appendLine("If the problem persists, please contact support.")
-    emptyText.appendLine(
-        "Retry",
-        SimpleTextAttributes(
-            SimpleTextAttributes.STYLE_PLAIN, JBUI.CurrentTheme.Link.Foreground.ENABLED)) {
-          refreshRecipes()
-        }
-  }
-
-  @RequiresEdt
-  private fun updateUIWithRecipeList(recipes: List<RecipeInfo>) {
-    // we don't want to display recipes with ID "chat-question" and "code-question"
-    val excludedRecipeIds: List<String?> =
-        listOf("chat-question", "code-question", "translate-to-language")
-    val recipesToDisplay =
-        recipes
-            .stream()
-            .filter { recipe: RecipeInfo -> !excludedRecipeIds.contains(recipe.id) }
-            .collect(Collectors.toList())
-    fillRecipesPanel(recipesToDisplay)
-    fillContextMenu(recipesToDisplay)
-  }
-
-  @RequiresEdt
-  private fun fillRecipesPanel(recipes: List<RecipeInfo>) {
-    recipesPanel.removeAll()
-
-    // Loop on recipes and add a button for each item
-    for (recipe in recipes) {
-      val recipeButton = createRecipeButton(recipe.title)
-      recipeButton.addActionListener {
-        ApplicationManager.getApplication().executeOnPooledThread {
-          GraphQlLogger.logCodyEvent(project, "recipe:" + recipe.id, "clicked")
-        }
-        val editorManager = FileEditorManager.getInstance(project)
-        CodyEditorFactoryListener.Util.informAgentAboutEditorChange(
-            editorManager.selectedTextEditor)
-        sendMessage(project, recipe.title, recipe.id)
-      }
-      recipesPanel.add(recipeButton)
-    }
-  }
-
-  private fun fillContextMenu(recipes: List<RecipeInfo>) {
-    val actionManager = ActionManager.getInstance()
-    val group = actionManager.getAction("CodyEditorActions") as DefaultActionGroup
-
-    // Loop on recipes and create an action for each new item
-    for (recipe in recipes) {
-      val actionId = "cody.recipe." + recipe.id
-      val existingAction = actionManager.getAction(actionId)
-      if (existingAction != null) {
-        continue
-      }
-      val action: DumbAwareAction =
-          object : DumbAwareAction(recipe.title) {
-            override fun actionPerformed(e: AnActionEvent) {
-              GraphQlLogger.logCodyEvent(project, "recipe:" + recipe.id, "clicked")
-              val editorManager = FileEditorManager.getInstance(project)
-              CodyEditorFactoryListener.Util.informAgentAboutEditorChange(
-                  editorManager.selectedTextEditor)
-              sendMessage(project, recipe.title, recipe.id)
-            }
-          }
-      actionManager.registerAction(actionId, action)
-      group.addAction(action)
-    }
-  }
-
   @RequiresEdt
   override fun refreshPanelsVisibility() {
     val codyAuthenticationManager = CodyAuthenticationManager.instance
@@ -280,7 +163,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       newCodyOnboardingGuidancePanel.addMainButtonActionListener {
         CodyApplicationSettings.instance.isOnboardingGuidanceDismissed = true
         refreshPanelsVisibility()
-        refreshRecipes()
+        recipesPanel.refreshAndFetch()
       }
       if (displayName != null) {
         if (codyOnboardingGuidancePanel?.originalDisplayName?.let { it != displayName } == true)
@@ -298,15 +181,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
     allContentLayout.show(allContentPanel, "tabbedPane")
     isChatVisible = true
-  }
-
-  private fun createRecipeButton(text: String): JButton {
-    val button = JButton(text)
-    button.alignmentX = Component.CENTER_ALIGNMENT
-    button.maximumSize = Dimension(Int.MAX_VALUE, button.getPreferredSize().height)
-    val buttonUI = DarculaButtonUI.createUI(button) as ButtonUI
-    button.setUI(buttonUI)
-    return button
   }
 
   private fun addWelcomeMessage() {
@@ -377,10 +251,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     ApplicationManager.getApplication().invokeLater {
       stopGeneratingButton.isVisible = true
       sendButton.isEnabled = false
-      recipesPanel.components.filterIsInstance<JButton>().forEach {
-        it.isEnabled = false
-        it.toolTipText = "Message generation in progress..."
-      }
+      recipesPanel.disableRecipes()
     }
   }
 
@@ -389,10 +260,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       ensureBlinkingCursorIsNotDisplayed()
       stopGeneratingButton.isVisible = false
       sendButton.isEnabled = promptPanel.textArea.text.isNotBlank()
-      recipesPanel.components.filterIsInstance<JButton>().forEach {
-        it.isEnabled = true
-        it.toolTipText = null
-      }
+      recipesPanel.enableRecipes()
     }
   }
 
@@ -422,12 +290,12 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private fun sendChatMessage() {
     val text = promptPanel.textArea.text
     chatMessageHistory.messageSent(text)
-    sendMessage(project, text, "chat-question")
+    sendMessage(text, "chat-question")
     promptPanel.reset()
   }
 
   @RequiresEdt
-  private fun sendMessage(project: Project, message: String, recipeId: String) {
+  private fun sendMessage(message: String, recipeId: String) {
     startMessageProcessing()
     val displayText = XmlStringUtil.escapeString(message)
     val humanMessage = ChatMessage(Speaker.HUMAN, message, displayText)
