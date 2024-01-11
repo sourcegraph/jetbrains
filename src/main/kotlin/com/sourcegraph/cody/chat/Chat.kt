@@ -2,6 +2,7 @@ package com.sourcegraph.cody.chat
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.UpdatableChat
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.ExtensionMessage
@@ -35,24 +36,14 @@ class Chat {
     val client = CodyAgent.getClient(project)
     val codyAgentServer = CodyAgent.getInitializedServer(project)
     val isFirstMessage = AtomicBoolean(false)
-    client.onFinishedProcessing = Runnable { chat.finishMessageProcessing() }
+    client.onFinishedProcessing = Runnable {
+      ApplicationManager.getApplication().invokeLater { chat.finishMessageProcessing() }
+    }
     client.onChatUpdateMessageInProgress = Consumer { agentChatMessage ->
       val agentChatMessageText = agentChatMessage.text ?: return@Consumer
-      val chatMessage =
-          ChatMessage(Speaker.ASSISTANT, agentChatMessageText, agentChatMessage.displayText)
-      if (isFirstMessage.compareAndSet(false, true)) {
-        val contextMessages =
-            agentChatMessage.contextFiles
-                ?.stream()
-                ?.map { contextFile: ContextFile ->
-                  ContextMessage(Speaker.ASSISTANT, agentChatMessageText, contextFile)
-                }
-                ?.collect(Collectors.toList())
-                ?: emptyList()
-        chat.displayUsedContext(contextMessages)
-        chat.addMessageToChat(chatMessage)
-      } else {
-        chat.updateLastMessage(chatMessage)
+
+      ApplicationManager.getApplication().invokeLater {
+        processAgentMessage(isFirstMessage, agentChatMessage, agentChatMessageText, chat)
       }
     }
     if (recipeId == "chat-question") {
@@ -135,6 +126,32 @@ class Chat {
     }
   }
 
+  @RequiresEdt
+  private fun processAgentMessage(
+      isFirstMessage: AtomicBoolean,
+      agentChatMessage: ChatMessage,
+      agentChatMessageText: String,
+      chat: UpdatableChat
+  ) {
+    val chatMessage =
+        ChatMessage(Speaker.ASSISTANT, agentChatMessageText, agentChatMessage.displayText)
+
+    if (isFirstMessage.compareAndSet(false, true)) {
+      val contextMessages =
+          agentChatMessage.contextFiles
+              ?.stream()
+              ?.map { contextFile: ContextFile ->
+                ContextMessage(Speaker.ASSISTANT, agentChatMessageText, contextFile)
+              }
+              ?.collect(Collectors.toList())
+              ?: emptyList()
+      chat.displayUsedContext(contextMessages)
+      chat.addMessageToChat(chatMessage)
+    } else {
+      chat.updateLastMessage(chatMessage)
+    }
+  }
+
   private fun handleRateLimitError(
       project: Project,
       chat: UpdatableChat,
@@ -153,8 +170,10 @@ class Chat {
           }
 
       val chatMessage = ChatMessage(Speaker.ASSISTANT, text, null)
-      chat.addMessageToChat(chatMessage)
-      chat.finishMessageProcessing()
+      ApplicationManager.getApplication().invokeLater {
+        chat.addMessageToChat(chatMessage)
+        chat.finishMessageProcessing()
+      }
     }
     return
   }
@@ -169,6 +188,6 @@ class Chat {
     RateLimitStateManager.invalidateForChat(project)
 
     // todo: error handling for other error codes and throwables
-    chat.finishMessageProcessing()
+    ApplicationManager.getApplication().invokeLater { chat.finishMessageProcessing() }
   }
 }

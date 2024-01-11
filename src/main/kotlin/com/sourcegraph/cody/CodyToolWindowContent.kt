@@ -42,7 +42,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend))
   private val recipesPanel: RecipesPanel
   private val subscriptionPanel: SubscriptionTabPanel
-  val embeddingStatusView: EmbeddingStatusView
+  val embeddingStatusView = EmbeddingStatusView(project)
   override var isChatVisible = false
   override var id: String? = null
   private var codyOnboardingGuidancePanel: CodyOnboardingGuidancePanel? = null
@@ -81,7 +81,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     stopGeneratingButton.isVisible = false
     stopGeneratingButtonPanel.add(stopGeneratingButton)
     stopGeneratingButtonPanel.isOpaque = false
-    embeddingStatusView = EmbeddingStatusView(project)
     val lowerPanel = LowerPanel(stopGeneratingButtonPanel, promptPanel, embeddingStatusView)
 
     // Main content panel
@@ -128,6 +127,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
   }
 
+  @RequiresBackgroundThread
   override fun loadNewChatId(callback: () -> Unit) {
     id = null
 
@@ -136,15 +136,13 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       promptPanel.textArea.emptyText.text = "Connecting to agent..."
     }
 
-    ApplicationManager.getApplication().executeOnPooledThread {
-      getInitializedServer(project).thenAccept { server ->
-        id = server.chatNew().get()
-        ApplicationManager.getApplication().invokeLater {
-          promptPanel.textArea.isEnabled = true
-          promptPanel.textArea.emptyText.text = "Ask a question about this code..."
-        }
-        callback.invoke()
+    getInitializedServer(project).thenAccept { server ->
+      id = server.chatNew().get()
+      ApplicationManager.getApplication().invokeLater {
+        promptPanel.textArea.isEnabled = true
+        promptPanel.textArea.emptyText.text = "Ask a question about this code..."
       }
+      callback.invoke()
     }
   }
 
@@ -183,12 +181,14 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     isChatVisible = true
   }
 
+  @RequiresEdt
   private fun addWelcomeMessage() {
     val welcomeText =
         "Hello! I'm Cody. I can write code and answer questions for you. See [Cody documentation](https://sourcegraph.com/docs/cody) for help and tips."
     addMessageToChat(ChatMessage(Speaker.ASSISTANT, welcomeText))
   }
 
+  @RequiresEdt
   private fun createSendButton(): JButton {
     val myButton = SendButton()
 
@@ -201,22 +201,21 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   }
 
   @Synchronized
+  @RequiresEdt
   override fun addMessageToChat(message: ChatMessage, shouldDisplayBlinkingCursor: Boolean) {
-    ApplicationManager.getApplication().invokeLater {
-
-      // Bubble panel
-      val messagePanel =
-          MessagePanel(
-              message, project, messagesPanel, ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH)
-      addComponentToChat(messagePanel)
-      ensureBlinkingCursorIsNotDisplayed()
-      if (shouldDisplayBlinkingCursor) {
-        messagesPanel.add(BlinkingCursorComponent.instance)
-        BlinkingCursorComponent.instance.timer.start()
-      }
+    // Bubble panel
+    val messagePanel =
+        MessagePanel(
+            message, project, messagesPanel, ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH)
+    addComponentToChat(messagePanel)
+    ensureBlinkingCursorIsNotDisplayed()
+    if (shouldDisplayBlinkingCursor) {
+      messagesPanel.add(BlinkingCursorComponent.instance)
+      BlinkingCursorComponent.instance.timer.start()
     }
   }
 
+  @RequiresEdt
   private fun addComponentToChat(messageContent: JPanel) {
     val wrapperPanel = JPanel()
     wrapperPanel.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, false)
@@ -227,58 +226,56 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     messagesPanel.repaint()
   }
 
+  @RequiresEdt
   override fun activateChatTab() {
     tabbedPane.selectedIndex = CHAT_TAB_INDEX
   }
 
   @Synchronized
+  @RequiresEdt
   override fun updateLastMessage(message: ChatMessage) {
-    ApplicationManager.getApplication().invokeLater {
-      Optional.of(messagesPanel)
-          .filter { mp: JPanel -> mp.componentCount > 0 }
-          .map { mp: JPanel -> mp.getComponent(mp.componentCount - 1) }
-          .filter { component: Component? -> component is JPanel }
-          .map { component: Component -> component as JPanel }
-          .map { lastWrapperPanel: JPanel -> lastWrapperPanel.getComponent(0) }
-          .filter { component: Component? -> component is MessagePanel }
-          .map { component: Component -> component as MessagePanel }
-          .ifPresent { lastMessage: MessagePanel -> lastMessage.updateContentWith(message) }
-    }
+    Optional.of(messagesPanel)
+        .filter { mp: JPanel -> mp.componentCount > 0 }
+        .map { mp: JPanel -> mp.getComponent(mp.componentCount - 1) }
+        .filter { component: Component? -> component is JPanel }
+        .map { component: Component -> component as JPanel }
+        .map { lastWrapperPanel: JPanel -> lastWrapperPanel.getComponent(0) }
+        .filter { component: Component? -> component is MessagePanel }
+        .map { component: Component -> component as MessagePanel }
+        .ifPresent { lastMessage: MessagePanel -> lastMessage.updateContentWith(message) }
   }
 
+  @RequiresEdt
   private fun startMessageProcessing() {
     inProgressChat = CancellationToken()
-    ApplicationManager.getApplication().invokeLater {
-      stopGeneratingButton.isVisible = true
-      sendButton.isEnabled = false
-      recipesPanel.disableRecipes()
-    }
+    stopGeneratingButton.isVisible = true
+    sendButton.isEnabled = false
+    recipesPanel.disableRecipes()
   }
 
+  @RequiresEdt
   override fun finishMessageProcessing() {
-    ApplicationManager.getApplication().invokeLater {
-      ensureBlinkingCursorIsNotDisplayed()
-      stopGeneratingButton.isVisible = false
-      sendButton.isEnabled = promptPanel.textArea.text.isNotBlank()
-      recipesPanel.enableRecipes()
-    }
+    ensureBlinkingCursorIsNotDisplayed()
+    stopGeneratingButton.isVisible = false
+    sendButton.isEnabled = promptPanel.textArea.text.isNotBlank()
+    recipesPanel.enableRecipes()
   }
 
+  @RequiresEdt
   override fun resetConversation() {
-    ApplicationManager.getApplication().invokeLater {
-      stopGeneratingButton.isVisible = false
-      messagesPanel.removeAll()
-      addWelcomeMessage()
-      messagesPanel.revalidate()
-      messagesPanel.repaint()
-      chatMessageHistory.clearHistory()
-      // todo (#260): call agent to reset the transcript instead of unsetting the chat id
-      inProgressChat.abort()
-      loadNewChatId()
-      ensureBlinkingCursorIsNotDisplayed()
-    }
+    stopGeneratingButton.isVisible = false
+    messagesPanel.removeAll()
+    addWelcomeMessage()
+    messagesPanel.revalidate()
+    messagesPanel.repaint()
+    chatMessageHistory.clearHistory()
+    // todo (#260): call agent to reset the transcript instead of unsetting the chat id
+    inProgressChat.abort()
+    ensureBlinkingCursorIsNotDisplayed()
+    ApplicationManager.getApplication().executeOnPooledThread { loadNewChatId() }
   }
 
+  @RequiresEdt
   private fun ensureBlinkingCursorIsNotDisplayed() {
     Arrays.stream(messagesPanel.components)
         .filter { x: Component -> x === BlinkingCursorComponent.instance }
@@ -316,18 +313,21 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
         }
       } else {
         logger.warn("Agent is disabled, can't use chat.")
-        addMessageToChat(
-            ChatMessage(
-                Speaker.ASSISTANT,
-                "Cody is not able to reply at the moment. " +
-                    "This is a bug, please report an issue to https://github.com/sourcegraph/cody/issues/new?template=bug_report.yml " +
-                    "and include as many details as possible to help troubleshoot the problem."))
-        finishMessageProcessing()
+        ApplicationManager.getApplication().invokeLater {
+          addMessageToChat(
+              ChatMessage(
+                  Speaker.ASSISTANT,
+                  "Cody is not able to reply at the moment. " +
+                      "This is a bug, please report an issue to https://github.com/sourcegraph/cody/issues/new?template=bug_report.yml " +
+                      "and include as many details as possible to help troubleshoot the problem."))
+          finishMessageProcessing()
+        }
       }
       GraphQlLogger.logCodyEvent(this.project, "recipe:chat-question", "executed")
     }
   }
 
+  @RequiresEdt
   override fun displayUsedContext(contextMessages: List<ContextMessage?>) {
     if (contextMessages.isEmpty()) {
       // Do nothing when there are no context files. It's normal that some answers have no context
@@ -343,6 +343,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   val contentPanel: JComponent
     get() = allContentPanel
 
+  @RequiresEdt
   private fun focusPromptInput() {
     if (tabbedPane.selectedIndex == CHAT_TAB_INDEX && promptPanel.textArea.isEnabled) {
       promptPanel.textArea.requestFocusInWindow()
@@ -354,6 +355,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   val preferredFocusableComponent: JComponent?
     get() = if (tabbedPane.selectedIndex == CHAT_TAB_INDEX) promptPanel.textArea else null
 
+  @RequiresEdt
   fun addToTabbedPaneChangeListener(myAction: () -> Unit) =
       tabbedPane.addChangeListener { myAction() }
 
