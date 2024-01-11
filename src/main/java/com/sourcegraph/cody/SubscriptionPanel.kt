@@ -5,7 +5,6 @@ import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.ui.dsl.builder.panel
 import com.sourcegraph.common.CodyBundle
-import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.config.ThemeUtil
@@ -20,13 +19,13 @@ fun createSubscriptionTab(isCurrentUserPro: Boolean) = panel {
               "<tr>" +
               "<td width=\"10%\"><span style=\"font-size:20px;\">⚡</span></td>" +
               "<td width=\"90%\"><p>${
-                if (autocompleteLimitError != null) {
-                    CodyBundle.getString("subscription-tab.autocomplete-rate-limit-error").fmt(autocompleteLimitError.limit.toString())
+                if (autocompleteLimitError != null && chatLimitError != null) {
+                    CodyBundle.getString("subscription-tab.chat-and-autocomplete-rate-limit-error")
                 } else {
                   if (chatLimitError != null) {
-                    CodyBundle.getString("subscription-tab.chat-rate-limit-error").fmt(chatLimitError.limit.toString())
+                    CodyBundle.getString("subscription-tab.chat-rate-limit-error")
                   } else {
-                    CodyBundle.getString("subscription-tab.chat-and-autocomplete-rate-limit-error")
+                    CodyBundle.getString("subscription-tab.autocomplete-rate-limit-error")
                   }
                 }
                 }</p></td>" +
