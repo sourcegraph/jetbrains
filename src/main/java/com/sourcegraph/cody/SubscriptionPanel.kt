@@ -2,6 +2,7 @@ package com.sourcegraph.cody
 
 import com.intellij.ide.BrowserUtil
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
+import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.ui.dsl.builder.panel
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
@@ -15,8 +16,7 @@ fun createSubscriptionTab(isCurrentUserPro: Boolean) = panel {
   if (!isCurrentUserPro && (chatLimitError != null || autocompleteLimitError != null)) {
     row {
       text(
-          "<html>" +
-              "<table width=\"100%\">" +
+          "<table width=\"100%\">" +
               "<tr>" +
               "<td width=\"10%\"><span style=\"font-size:20px;\">⚡</span></td>" +
               "<td width=\"90%\"><p>${
@@ -31,14 +31,17 @@ fun createSubscriptionTab(isCurrentUserPro: Boolean) = panel {
                 }
                 }</p></td>" +
               "</tr>" +
-              "</table>" +
-              "</html>")
+              "</table>")
     }
-    row {
-      if (ThemeUtil.isDarkTheme()) {
-        text("<html><div style=\"height: 1px; background-color: #404245;\"></div></html>")
-      } else {
-        text("<html><div style=\"height: 1px; background-color: #ECEDF1;\"></div></html>")
+    if (ApplicationInfo.getInstance().getBuild().baselineVersion <= 223) {
+      separator()
+    } else {
+      row {
+        if (ThemeUtil.isDarkTheme()) {
+          text("<div style=\"height: 1px; background-color: #404245;\"></div>")
+        } else {
+          text("<div style=\"height: 1px; background-color: #ECEDF1;\"></div>")
+        }
       }
     }
   }
