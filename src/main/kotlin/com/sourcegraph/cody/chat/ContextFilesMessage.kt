@@ -16,8 +16,6 @@ import com.sourcegraph.cody.ui.AccordionSection
 import java.awt.BorderLayout
 import java.awt.Insets
 import java.util.*
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.stream.Collectors
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
 
@@ -28,27 +26,20 @@ class ContextFilesMessage(project: Project, contextMessages: List<ContextMessage
 
     val margin = JBInsets.create(Insets(TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN))
     val contextFileNames =
-        contextMessages
-            .stream()
-            .map<ContextFile>(ContextMessage::file)
-            .filter { obj: ContextFile? -> Objects.nonNull(obj) }
-            .map(ContextFile::fileName)
-            .collect(Collectors.toSet())
+        contextMessages.mapNotNull(ContextMessage::file).map(ContextFile::fileName).toSet()
 
     val accordionSection = AccordionSection("Read ${contextFileNames.size} files")
     accordionSection.isOpaque = false
     accordionSection.border = EmptyBorder(margin)
-    val fileIndex = AtomicInteger(0)
-    contextFileNames.forEach { fileName: String ->
+    contextFileNames.forEachIndexed { index, fileName: String ->
       val filePanel = createFileWithLinkPanel(project, fileName)
-      accordionSection.contentPanel.add(filePanel, fileIndex.getAndIncrement())
+      accordionSection.contentPanel.add(filePanel, index)
     }
     add(accordionSection, BorderLayout.CENTER)
   }
 
   private fun createFileWithLinkPanel(project: Project, fileName: String): JPanel {
-    val fileWithoutRedundantPrefix =
-        fileName.removePrefix("../../../..").removePrefix(project.baseDir.path)
+    val fileWithoutRedundantPrefix = fileName.removePrefix(project.basePath ?: "")
     val anAction =
         object : DumbAwareAction() {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
