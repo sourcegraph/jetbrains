@@ -1,10 +1,12 @@
 package com.sourcegraph.cody.chat
 
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.ui.components.AnActionLink
 import com.intellij.util.ui.JBInsets
 import com.intellij.util.ui.JBUI
@@ -15,7 +17,7 @@ import com.sourcegraph.cody.chat.ChatUIConstants.*
 import com.sourcegraph.cody.ui.AccordionSection
 import java.awt.BorderLayout
 import java.awt.Insets
-import java.util.*
+import java.nio.file.Paths
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
 
@@ -43,10 +45,15 @@ class ContextFilesMessage(project: Project, contextMessages: List<ContextMessage
     val anAction =
         object : DumbAwareAction() {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
-            val file = project.baseDir.findFileByRelativePath(fileWithoutRedundantPrefix)
-            logger.info("Opening a file from the used context (fileName=$fileName file=$file)")
-            if (file != null) {
-              FileEditorManager.getInstance(project).openFile(file, /*focusEditor=*/ true)
+            ApplicationManager.getApplication().executeOnPooledThread {
+              val file = VirtualFileManager.getInstance().findFileByNioPath(Paths.get(fileName))
+              logger.info("Opening a file from the used context (fileName=$fileName file=$file)")
+              if (file != null) {
+                ApplicationManager.getApplication().invokeLater {
+                  // openFile must be called on EDT
+                  FileEditorManager.getInstance(project).openFile(file, /*focusEditor=*/ true)
+                }
+              }
             }
           }
         }
