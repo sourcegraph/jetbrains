@@ -6,11 +6,13 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.ui.components.AnActionLink
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBInsets
 import com.intellij.util.ui.JBUI
-import com.sourcegraph.cody.agent.protocol.ContextFile
 import com.sourcegraph.cody.agent.protocol.ContextMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ChatUIConstants.*
@@ -21,43 +23,59 @@ import java.nio.file.Paths
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
 
-class ContextFilesMessage(project: Project, contextMessages: List<ContextMessage>) :
+class ContextFilesMessage(val project: Project, contextMessages: List<ContextMessage>) :
     PanelWithGradientBorder(ASSISTANT_MESSAGE_GRADIENT_WIDTH, Speaker.ASSISTANT) {
   init {
     this.layout = BorderLayout()
 
-    val margin = JBInsets.create(Insets(TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN))
     val contextFileNames =
-        contextMessages.mapNotNull(ContextMessage::file).map(ContextFile::fileName).toSet()
+        contextMessages
+            .mapNotNull(ContextMessage::file)
+            .map {
+              if (it.repoName != null) {
+                "${project.basePath}/${it.fileName}"
+              } else {
+                it.fileName
+              }
+            }
+            .toSet()
 
-    val accordionSection = AccordionSection("Read ${contextFileNames.size} files")
-    accordionSection.isOpaque = false
-    accordionSection.border = EmptyBorder(margin)
-    contextFileNames.forEachIndexed { index, fileName: String ->
-      val filePanel = createFileWithLinkPanel(project, fileName)
-      accordionSection.contentPanel.add(filePanel, index)
-    }
-    add(accordionSection, BorderLayout.CENTER)
+    ApplicationManager.getApplication().executeOnPooledThread { updateFileList(contextFileNames) }
   }
 
-  private fun createFileWithLinkPanel(project: Project, fileName: String): JPanel {
-    val fileWithoutRedundantPrefix = fileName.removePrefix(project.basePath ?: "")
+  @RequiresBackgroundThread
+  private fun updateFileList(contextFileNames: Set<String>) {
+    val filesAvailableInEditor =
+        contextFileNames
+            .map(Paths::get)
+            .mapNotNull(VirtualFileManager.getInstance()::findFileByNioPath)
+            .toList()
+
+    ApplicationManager.getApplication().invokeLater {
+      val margin = JBInsets.create(Insets(TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN))
+      val accordionSection = AccordionSection("Read ${filesAvailableInEditor.size} files")
+      accordionSection.isOpaque = false
+      accordionSection.border = EmptyBorder(margin)
+      filesAvailableInEditor.forEachIndexed { index, file: VirtualFile ->
+        val filePanel = createFileWithLinkPanel(file)
+        accordionSection.contentPanel.add(filePanel, index)
+      }
+      add(accordionSection, BorderLayout.CENTER)
+    }
+  }
+
+  @RequiresEdt
+  private fun createFileWithLinkPanel(file: VirtualFile): JPanel {
+    val projectRelativeFilePath = file.path.removePrefix(project.basePath ?: "")
     val anAction =
         object : DumbAwareAction() {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
-            ApplicationManager.getApplication().executeOnPooledThread {
-              val file = VirtualFileManager.getInstance().findFileByNioPath(Paths.get(fileName))
-              logger.info("Opening a file from the used context (fileName=$fileName file=$file)")
-              if (file != null) {
-                ApplicationManager.getApplication().invokeLater {
-                  // openFile must be called on EDT
-                  FileEditorManager.getInstance(project).openFile(file, /*focusEditor=*/ true)
-                }
-              }
-            }
+            logger.info(
+                "Opening a file from the used context (projectRelativeFilePath=$projectRelativeFilePath, file=$file)")
+            FileEditorManager.getInstance(project).openFile(file, /*focusEditor=*/ true)
           }
         }
-    val goToFile = AnActionLink("@$fileWithoutRedundantPrefix", anAction)
+    val goToFile = AnActionLink("@$projectRelativeFilePath", anAction)
     val panel = JPanel(BorderLayout())
     panel.isOpaque = false
     panel.border = JBUI.Borders.emptyLeft(3)
