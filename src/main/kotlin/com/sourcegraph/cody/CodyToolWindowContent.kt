@@ -307,8 +307,10 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
             override fun actionPerformed(e: AnActionEvent) {
               GraphQlLogger.logCodyEvent(project, "recipe:" + recipe.id, "clicked")
               val editorManager = FileEditorManager.getInstance(project)
-              CodyEditorFactoryListener.Util.informAgentAboutEditorChange(
-                  editorManager.selectedTextEditor)
+              editorManager.selectedTextEditor?.let {
+                CodyEditorFactoryListener.Util.informAgentAboutEditorChange(it)
+              }
+
               sendMessage(project, recipe.title, recipe.id)
             }
           }
