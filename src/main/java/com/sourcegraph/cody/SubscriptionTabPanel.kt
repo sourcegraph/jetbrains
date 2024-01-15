@@ -9,33 +9,34 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.config.ThemeUtil
-import java.awt.GridLayout
+import java.awt.BorderLayout
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
 
 class SubscriptionTabPanel : JPanel() {
 
   private var isCurrentUserPro: Boolean? = null
+  private var chatLimitError = UpgradeToCodyProNotification.chatRateLimitError.get()
+  private var autocompleteLimitError = UpgradeToCodyProNotification.autocompleteRateLimitError.get()
 
   init {
-    layout = GridLayout(2, 1)
+    layout = BorderLayout()
     border = EmptyBorder(JBUI.insets(4))
-    add(createRateLimitPanel())
+    if (isCurrentUserPro != null &&
+        !isCurrentUserPro!! &&
+        (chatLimitError != null || autocompleteLimitError != null)) {
+      add(createRateLimitPanel(), BorderLayout.PAGE_START)
+    }
     add(createCenterPanel())
   }
 
   private fun createRateLimitPanel() = panel {
-    val chatLimitError = UpgradeToCodyProNotification.chatRateLimitError.get()
-    val autocompleteLimitError = UpgradeToCodyProNotification.autocompleteRateLimitError.get()
-    if (isCurrentUserPro != null &&
-        !isCurrentUserPro!! &&
-        (chatLimitError != null || autocompleteLimitError != null)) {
-      row {
-        text(
-            "<table width=\"100%\">" +
-                "<tr>" +
-                "<td width=\"10%\"><span style=\"font-size:20px;\">⚡</span></td>" +
-                "<td width=\"90%\"><p>${
+    row {
+      text(
+          "<table width=\"100%\">" +
+              "<tr>" +
+              "<td width=\"10%\"><span style=\"font-size:20px;\">⚡</span></td>" +
+              "<td width=\"90%\"><p>${
                   if (autocompleteLimitError != null && chatLimitError != null) {
                     CodyBundle.getString("subscription-tab.chat-and-autocomplete-rate-limit-error")
                   } else {
@@ -46,18 +47,17 @@ class SubscriptionTabPanel : JPanel() {
                     }
                   }
                 }</p></td>" +
-                "</tr>" +
-                "</table>")
-      }
-      if (ApplicationInfo.getInstance().getBuild().baselineVersion <= 223) {
-        separator()
-      } else {
-        row {
-          if (ThemeUtil.isDarkTheme()) {
-            text("<div style=\"height: 1px; background-color: #404245;\"></div>")
-          } else {
-            text("<div style=\"height: 1px; background-color: #ECEDF1;\"></div>")
-          }
+              "</tr>" +
+              "</table>")
+    }
+    if (ApplicationInfo.getInstance().getBuild().baselineVersion <= 223) {
+      separator()
+    } else {
+      row {
+        if (ThemeUtil.isDarkTheme()) {
+          text("<div style=\"height: 1px; background-color: #404245;\"></div>")
+        } else {
+          text("<div style=\"height: 1px; background-color: #ECEDF1;\"></div>")
         }
       }
     }
@@ -86,7 +86,13 @@ class SubscriptionTabPanel : JPanel() {
   fun update(isCurrentUserPro: Boolean?) {
     this.isCurrentUserPro = isCurrentUserPro
     this.removeAll()
-    this.add(createRateLimitPanel())
+    chatLimitError = UpgradeToCodyProNotification.chatRateLimitError.get()
+    autocompleteLimitError = UpgradeToCodyProNotification.autocompleteRateLimitError.get()
+    if (isCurrentUserPro != null &&
+        !isCurrentUserPro &&
+        (chatLimitError != null || autocompleteLimitError != null)) {
+      this.add(createRateLimitPanel(), BorderLayout.PAGE_START)
+    }
     this.add(createCenterPanel())
     revalidate()
     repaint()
