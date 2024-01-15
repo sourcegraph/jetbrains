@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.auth.ui
 
-import com.intellij.collaboration.auth.ui.AccountsPanelFactory.accountsPanel
 import com.intellij.collaboration.messages.CollaborationToolsBundle
 import com.intellij.collaboration.ui.util.JListHoveredRowMaterialiser
 import com.intellij.icons.AllIcons
