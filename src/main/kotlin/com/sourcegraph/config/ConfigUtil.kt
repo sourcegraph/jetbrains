@@ -9,18 +9,18 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.sourcegraph.cody.agent.CodyAgent
+import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.ExtensionConfiguration
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.ServerAuthLoader
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
+import org.jetbrains.annotations.Contract
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
 import java.util.stream.Collectors
-import org.jetbrains.annotations.Contract
 
 object ConfigUtil {
   const val DOTCOM_URL = "https://sourcegraph.com/"
@@ -32,7 +32,6 @@ object ConfigUtil {
   @JvmStatic
   fun getAgentConfiguration(project: Project): ExtensionConfiguration {
     val serverAuth = ServerAuthLoader.loadServerAuth(project)
-    val codyAgentCodebase = CodyAgent.getClient(project).codebase
 
     return ExtensionConfiguration(
         anonymousUserID = CodyApplicationSettings.instance.anonymousUserId,
@@ -46,7 +45,7 @@ object ConfigUtil {
             UserLevelConfig.getAutocompleteProviderType()?.vscodeSettingString(),
         debug = isCodyDebugEnabled(),
         verboseDebug = isCodyVerboseDebugEnabled(),
-        codebase = codyAgentCodebase?.getUrl(),
+        codebase = CodyAgentCodebase.getInstance(project).getUrl(),
     )
   }
 
