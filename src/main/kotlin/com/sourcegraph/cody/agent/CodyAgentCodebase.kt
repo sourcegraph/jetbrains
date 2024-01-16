@@ -15,7 +15,9 @@ import com.sourcegraph.vcs.RepoUtil
 class CodyAgentCodebase(val project: Project) {
 
   fun initializeRepoName() {
-    onRepositoryNameChange(RepoUtil.findRepositoryName(project, null))
+    ApplicationManager.getApplication().executeOnPooledThread {
+      onRepositoryNameChange(RepoUtil.findRepositoryName(project, null))
+    }
   }
 
   // TODO: Support list of repository names instead of just one.
