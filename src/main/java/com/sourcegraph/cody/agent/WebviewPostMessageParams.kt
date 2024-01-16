@@ -41,8 +41,8 @@ data class ExtensionMessage(
   }
 
   fun toPanelNotFoundError(): PanelNotFoundError? {
-    // e.g.: "No panel with id 414f6f9c-ed62-4d7b-8ebd-023ded81e9da found"
-    if (this.errors?.matches(Regex("^No panel with id .* found$")) == true) {
+    // e.g.: "No panel with ID414f6f9c-ed62-4d7b-8ebd-023ded81e9da"
+    if (this.errors?.matches(Regex("^No panel with .*$")) == true) {
       return PanelNotFoundError(this.errors)
     }
     return null
