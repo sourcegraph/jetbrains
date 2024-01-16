@@ -14,12 +14,11 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
-import java.util.stream.Collectors
-import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
-import org.slf4j.LoggerFactory
 
 class Chat {
   val logger = LoggerFactory.getLogger(Chat::class.java)
@@ -41,13 +40,9 @@ class Chat {
             ChatMessage(Speaker.ASSISTANT, agentChatMessageText, agentChatMessage.displayText)
         if (isFirstMessage.compareAndSet(false, true)) {
           val contextMessages =
-              agentChatMessage.contextFiles
-                  ?.stream()
-                  ?.map { contextFile: ContextFile ->
-                    ContextMessage(Speaker.ASSISTANT, agentChatMessageText, contextFile)
-                  }
-                  ?.collect(Collectors.toList())
-                  ?: emptyList()
+              agentChatMessage.contextFiles?.map { contextFile: ContextFile ->
+                ContextMessage(Speaker.ASSISTANT, agentChatMessageText, contextFile)
+              } ?: emptyList()
           chat.displayUsedContext(contextMessages)
           chat.addMessageToChat(chatMessage)
         } else {

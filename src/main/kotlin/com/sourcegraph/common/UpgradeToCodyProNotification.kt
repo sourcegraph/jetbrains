@@ -90,6 +90,7 @@ private constructor(title: String, content: String, shouldShowUpgradeOption: Boo
               agent.server.evaluateFeatureFlag(GetFeatureFlag("CodyProJetBrains"))
             }
             // TODO We should avoid using getNow if possible
+            // https://github.com/sourcegraph/jetbrains/issues/307
             .getNow(false) == true
       }
 

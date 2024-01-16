@@ -11,13 +11,13 @@ import com.sourcegraph.cody.agent.protocol.ClientInfo
 import com.sourcegraph.cody.agent.protocol.CompletionItemID
 import com.sourcegraph.cody.agent.protocol.CompletionItemIDSerializer
 import com.sourcegraph.config.ConfigUtil
+import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.File
 import java.io.IOException
 import java.io.PrintWriter
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
-import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -38,6 +38,7 @@ private constructor(
       server.exit()
       logger.warn("Cody Agent shut down")
       listeningToJsonRpc.cancel(true)
+      agentProcess.destroyForcibly()
     }
   }
 

@@ -61,6 +61,7 @@ class CodyAgentService : Disposable {
     return res
   }
 
+  @GuardedBy("this")
   fun restartAgent(project: Project): CompletableFuture<CodyAgent> {
     stopAgent(project)
     return startAgent(project)

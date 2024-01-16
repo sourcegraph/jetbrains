@@ -154,6 +154,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
         callback.invoke()
       } catch (e: ExecutionException) {
         // Agent cannot gracefully recover when connection is lost, we need to restart it
+        // TODO https://github.com/sourcegraph/jetbrains/issues/306
         logger.warn("Failed to load new chat, restarting agent", e)
         CodyAgentService.getInstance(project).restartAgent(project)
         Thread.sleep(5000)
@@ -218,11 +219,13 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   }
 
   private fun refreshRecipes() {
-    recipesPanel.removeAll()
-    recipesPanel.emptyText.text = "Loading commands..."
-    recipesPanel.revalidate()
-    recipesPanel.repaint()
-    ApplicationManager.getApplication().executeOnPooledThread { loadCommands() }
+    ApplicationManager.getApplication().invokeLater {
+      recipesPanel.removeAll()
+      recipesPanel.emptyText.text = "Loading commands..."
+      recipesPanel.revalidate()
+      recipesPanel.repaint()
+    }
+    loadCommands()
   }
 
   private fun loadCommands() {
