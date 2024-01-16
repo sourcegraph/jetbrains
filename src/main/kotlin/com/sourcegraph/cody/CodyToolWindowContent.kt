@@ -134,9 +134,11 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
 
   @RequiresBackgroundThread
   fun refreshSubscriptionTab() {
-    fetchSubscriptionPanelData(project).thenAccept {
-      if (it != null) {
-        ApplicationManager.getApplication().invokeLater { refreshSubscriptionTab(it) }
+    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+      fetchSubscriptionPanelData(project, agent.server).thenAccept {
+        if (it != null) {
+          ApplicationManager.getApplication().invokeLater { refreshSubscriptionTab(it) }
+        }
       }
     }
   }
