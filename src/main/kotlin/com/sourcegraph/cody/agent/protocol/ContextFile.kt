@@ -17,8 +17,12 @@ val contextFileDeserializer =
       val jsonObject = jsonElement.asJsonObject
 
       val uriObj = jsonObject["uri"].asJsonObject
-      val uri = URI.create(uriObj["scheme"].asString + "://" + uriObj["path"].asString)
-
+      val uri =
+          URI(
+              uriObj["scheme"]?.asString,
+              uriObj["host"]?.asString,
+              uriObj["path"]?.asString,
+              uriObj["fragment"]?.asString)
       val repoName = jsonObject["repoName"]?.asString
       val revision = jsonObject["revision"]?.asString
 
