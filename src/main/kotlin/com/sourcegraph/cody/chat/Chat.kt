@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.chat
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.UpdatableChat
 import com.sourcegraph.cody.agent.CodyAgentService
@@ -121,11 +120,10 @@ class Chat {
   ) {
     RateLimitStateManager.reportForChat(project, rateLimitError)
 
-    ApplicationManager.getApplication().executeOnPooledThread {
-      val codyProJetbrains = isCodyProJetbrains(project)
+    isCodyProJetbrains(project).thenApply { isCodyPro ->
       val text =
           when {
-            rateLimitError.upgradeIsAvailable && codyProJetbrains ->
+            rateLimitError.upgradeIsAvailable && isCodyPro ->
                 CodyBundle.getString("chat.rate-limit-error.upgrade")
                     .fmt(rateLimitError.limit?.let { " $it" } ?: "")
             else -> CodyBundle.getString("chat.rate-limit-error.explain")
