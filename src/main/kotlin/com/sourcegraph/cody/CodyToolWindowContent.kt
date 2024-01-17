@@ -1,7 +1,6 @@
 package com.sourcegraph.cody
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.ui.LafManagerListener
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -122,14 +121,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       refreshSubscriptionTab()
       loadNewChatId()
     }
-    ApplicationManager.getApplication()
-        .messageBus
-        .connect()
-        .subscribe(
-            LafManagerListener.TOPIC,
-            LafManagerListener {
-              ApplicationManager.getApplication().executeOnPooledThread { refreshSubscriptionTab() }
-            })
   }
 
   @RequiresBackgroundThread

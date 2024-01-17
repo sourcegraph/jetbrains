@@ -1,8 +1,10 @@
 package com.sourcegraph.cody
 
 import com.intellij.ide.BrowserUtil
+import com.intellij.ide.ui.LafManagerListener
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
 import com.intellij.openapi.application.ApplicationInfo
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.sourcegraph.common.CodyBundle
@@ -22,12 +24,18 @@ class SubscriptionTabPanel : JPanel() {
   init {
     layout = BorderLayout()
     border = EmptyBorder(JBUI.insets(4))
-    if (isCurrentUserPro != null &&
-        !isCurrentUserPro!! &&
-        (chatLimitError != null || autocompleteLimitError != null)) {
+    if (chatLimitError != null || autocompleteLimitError != null) {
       add(createRateLimitPanel(), BorderLayout.PAGE_START)
     }
     add(createCenterPanel())
+    ApplicationManager.getApplication()
+        .messageBus
+        .connect()
+        .subscribe(
+            LafManagerListener.TOPIC,
+            LafManagerListener {
+              ApplicationManager.getApplication().executeOnPooledThread { update(isCurrentUserPro) }
+            })
   }
 
   private fun createRateLimitPanel() = panel {
@@ -88,9 +96,7 @@ class SubscriptionTabPanel : JPanel() {
     this.removeAll()
     chatLimitError = UpgradeToCodyProNotification.chatRateLimitError.get()
     autocompleteLimitError = UpgradeToCodyProNotification.autocompleteRateLimitError.get()
-    if (isCurrentUserPro != null &&
-        !isCurrentUserPro &&
-        (chatLimitError != null || autocompleteLimitError != null)) {
+    if (chatLimitError != null || autocompleteLimitError != null) {
       this.add(createRateLimitPanel(), BorderLayout.PAGE_START)
     }
     this.add(createCenterPanel())
