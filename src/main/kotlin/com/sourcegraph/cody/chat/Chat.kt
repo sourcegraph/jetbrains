@@ -65,30 +65,26 @@ class Chat {
                           contextFiles = listOf())))
           token.onCancellationRequested { reply.cancel(true) }
           reply.handle { lastReply, error ->
-            val rateLimitError =
-                if (lastReply.type == ExtensionMessage.Type.TRANSCRIPT &&
-                    lastReply.messages?.lastOrNull()?.error != null) {
-                  lastReply.messages.lastOrNull()?.error?.toRateLimitError()
-                } else {
-                  null
+            if (error != null) {
+              logger.warn("Error while sending the message", error)
+
+              if (error.message?.startsWith("No panel with ID") == true) {
+                chat.loadNewChatId {
+                  sendMessageViaAgent(project, humanMessage, recipeId, chat, token)
                 }
-            val panelNotFoundError =
-                if (lastReply.type == ExtensionMessage.Type.ERRORS && lastReply.errors != null) {
-                  lastReply.toPanelNotFoundError()
-                } else {
-                  null
-                }
-            if (rateLimitError != null) {
-              handleRateLimitError(project, chat, rateLimitError)
-            } else if (panelNotFoundError != null) {
-              chat.loadNewChatId {
-                sendMessageViaAgent(project, humanMessage, recipeId, chat, token)
+              } else {
+                handleError(project, error, chat)
               }
-            } else if (error != null) {
-              handleError(project, error, chat)
-              null
             } else {
-              RateLimitStateManager.invalidateForChat(project)
+              val err = lastReply.messages?.lastOrNull()?.error
+              if (lastReply.type == ExtensionMessage.Type.TRANSCRIPT && err != null) {
+                val rateLimitError = err.toRateLimitError()
+                if (rateLimitError != null) {
+                  handleRateLimitError(project, chat, rateLimitError)
+                }
+              } else {
+                RateLimitStateManager.invalidateForChat(project)
+              }
             }
           }
         } catch (ignored: Exception) {
