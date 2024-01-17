@@ -31,11 +31,7 @@ class SubscriptionTabPanel : JPanel() {
     ApplicationManager.getApplication()
         .messageBus
         .connect()
-        .subscribe(
-            LafManagerListener.TOPIC,
-            LafManagerListener {
-              ApplicationManager.getApplication().executeOnPooledThread { update(isCurrentUserPro) }
-            })
+        .subscribe(LafManagerListener.TOPIC, LafManagerListener { update(isCurrentUserPro) })
   }
 
   private fun createRateLimitPanel() = panel {

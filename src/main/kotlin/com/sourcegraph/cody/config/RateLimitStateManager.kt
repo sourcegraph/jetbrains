@@ -13,6 +13,9 @@ object RateLimitStateManager {
     if (UpgradeToCodyProNotification.chatRateLimitError.get() != null) {
       UpgradeToCodyProNotification.chatRateLimitError.set(null)
       CodyAutocompleteStatusService.resetApplication(project)
+      ApplicationManager.getApplication().executeOnPooledThread {
+        CodyToolWindowContent.getInstance(project).refreshSubscriptionTab()
+      }
     }
   }
 

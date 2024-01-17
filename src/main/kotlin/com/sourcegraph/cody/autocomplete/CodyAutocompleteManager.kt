@@ -238,6 +238,9 @@ class CodyAutocompleteManager {
             } else if (result != null && result.items.isNotEmpty()) {
               UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = false
               UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
+              ApplicationManager.getApplication().executeOnPooledThread {
+                CodyToolWindowContent.getInstance(project).refreshSubscriptionTab()
+              }
               processAutocompleteResult(editor, offset, triggerKind, result, cancellationToken)
             }
             null
