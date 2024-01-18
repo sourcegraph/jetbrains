@@ -67,7 +67,6 @@ class SubscriptionTabPanel : JPanel() {
     }
   }
 
-  // todo: move strings to the bundle
   private fun createCenterPanel() = panel {
     val getIsCurrentUserPro = isCurrentUserPro
     val tier =

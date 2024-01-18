@@ -63,10 +63,20 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   init {
     // Tabs
     val contentPanel = JPanel()
-    tabbedPane.insertTab("Chat", null, contentPanel, null, CHAT_TAB_INDEX)
+    tabbedPane.insertTab(
+        /* title = */ "Chat",
+        /* icon = */ null,
+        /* component = */ contentPanel,
+        /* tip = */ null,
+        CHAT_TAB_INDEX)
     recipesPanel = JBPanelWithEmptyText(GridLayout(0, 1))
     recipesPanel.layout = BoxLayout(recipesPanel, BoxLayout.Y_AXIS)
-    tabbedPane.insertTab("Commands", null, recipesPanel, null, RECIPES_TAB_INDEX)
+    tabbedPane.insertTab(
+        /* title = */ "Commands",
+        /* icon = */ null,
+        /* component = */ recipesPanel,
+        /* tip = */ null,
+        RECIPES_TAB_INDEX)
     subscriptionPanel = SubscriptionTabPanel()
     // Chat panel
     messagesPanel.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true)
@@ -138,7 +148,12 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private fun refreshSubscriptionTab(data: SubscriptionTabPanelData) {
     if (data.isDotcomAccount && data.codyProFeatureFlag) {
       if (tabbedPane.tabCount < SUBSCRIPTION_TAB_INDEX + 1) {
-        tabbedPane.insertTab("Subscription", null, subscriptionPanel, null, SUBSCRIPTION_TAB_INDEX)
+        tabbedPane.insertTab(
+            /* title = */ "Subscription",
+            /* icon = */ null,
+            /* component = */ subscriptionPanel,
+            /* tip = */ null,
+            SUBSCRIPTION_TAB_INDEX)
       }
       subscriptionPanel.update(data.isCurrentUserPro)
     } else {
