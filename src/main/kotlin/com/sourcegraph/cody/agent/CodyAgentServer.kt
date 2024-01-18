@@ -1,9 +1,9 @@
 package com.sourcegraph.cody.agent
 
 import com.sourcegraph.cody.agent.protocol.*
-import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
+import java.util.concurrent.CompletableFuture
 
 /**
  * Interface for the server-part of the Cody agent protocol. The implementation of this interface is
@@ -81,6 +81,12 @@ interface CodyAgentServer {
 
   @JsonRequest("command/execute")
   fun commandExecute(params: CommandExecuteParams): CompletableFuture<Any?>
+
+  @JsonRequest("commands/explain") fun commandsExplain(): CompletableFuture<String>
+
+  @JsonRequest("commands/test") fun commandsTest(): CompletableFuture<String>
+
+  @JsonRequest("commands/smell") fun commandsSmell(): CompletableFuture<String>
 
   @JsonRequest("chat/new") fun chatNew(): CompletableFuture<String>
 
