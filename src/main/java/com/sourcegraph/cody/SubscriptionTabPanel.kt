@@ -70,8 +70,9 @@ class SubscriptionTabPanel : JPanel() {
   private fun createCenterPanel() = panel {
     val getIsCurrentUserPro = isCurrentUserPro
     val tier =
-        if (getIsCurrentUserPro == null) "Loading..."
-        else if (getIsCurrentUserPro) "Cody Pro" else "Cody Free"
+        if (getIsCurrentUserPro == null) CodyBundle.getString("subscription-tab.loading-label")
+        else if (getIsCurrentUserPro) CodyBundle.getString("subscription-tab.cody-pro-label")
+        else CodyBundle.getString("subscription-tab.cody-free-label")
     row { label("<html>Current tier: <b>$tier</b><html/>") }
     row {
       if (getIsCurrentUserPro != null && !getIsCurrentUserPro) {
