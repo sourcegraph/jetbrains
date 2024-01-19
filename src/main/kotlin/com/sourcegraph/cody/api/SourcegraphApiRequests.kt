@@ -4,6 +4,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.sourcegraph.cody.config.CodyAccountDetails
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import java.awt.Image
+import java.util.Date
 
 object SourcegraphApiRequests {
   class CurrentUser(
@@ -33,5 +34,9 @@ object SourcegraphApiRequests {
                   }
                 }
                 .apply { operationName = "get profile avatar" })
+  }
+
+  fun getFreeTrialEndDate(): Date {
+    return Date(1705622400000)
   }
 }

@@ -9,6 +9,7 @@ import com.sourcegraph.cody.auth.SelectOneOfTheAccountsAsActive
 import com.sourcegraph.cody.config.SettingsMigration
 import com.sourcegraph.cody.config.ui.CheckUpdatesTask
 import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService
+import com.sourcegraph.common.EndOfTrialNotification
 import com.sourcegraph.config.CodyAuthNotificationActivity
 import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.telemetry.TelemetryInitializerActivity
@@ -30,5 +31,6 @@ class PostStartupActivity : StartupActivity.DumbAware {
     CodyAutocompleteStatusService.resetApplication(project)
     CodyFocusChangeListener().runActivity(project)
     CodyAgentCodebase.getInstance(project).onFileOpened(project, null)
+    EndOfTrialNotification.notify(project)
   }
 }
