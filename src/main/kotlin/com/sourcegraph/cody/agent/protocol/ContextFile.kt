@@ -8,8 +8,8 @@ import java.net.URI
 
 data class ContextFile(
     val uri: URI,
-    val repoName: String?,
-    val revision: String?,
+    val repoName: String? = null,
+    val revision: String? = null,
 )
 
 val contextFileDeserializer =
