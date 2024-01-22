@@ -18,7 +18,13 @@ body:
       label: Installation Information
       description: Trigger the action "About", click on "Copy and close" and paste the output here
     validations:
-      required: true
+    required: true
+  - type: textarea
+    attributes:
+      label: Sourcegraph Cody + Code Search Plugin Version
+      description: Under Settings > Plugins, open the Sourcegraph Cody + Code Search plugin and copy the version number.
+    validations:
+    required: true
   - type: textarea
     attributes:
       label: Describe the bug
@@ -37,7 +43,7 @@ body:
       description: |
         Please add any links, or references that can give us more context on the bug.
 
-        For logs - Trigger the action "Show Log", open the file, search for exceptions related to Cody/Sourcegraph and copy relevant lines here
+        For logs - Trigger the action "Show Log" (Help > Show Log), open the file, search for exceptions related to Cody/Sourcegraph and copy relevant lines here
         Alternatively, feel free to upload idea.log as an attachment but please make sure it doesn't contain sensitive information (it normally doesn't)
 
         Tip: You can attach images or videos by dragging it into the text box.
