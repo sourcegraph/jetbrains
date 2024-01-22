@@ -11,34 +11,34 @@ import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.xml.util.XmlStringUtil
-import com.sourcegraph.cody.agent.CodyAgentServer
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ContextMessage
-import com.sourcegraph.cody.agent.protocol.Speaker
+import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.chat.*
 import com.sourcegraph.cody.commands.ui.CommandsTabPanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.ui.EnhancedContextPanel
+import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.history.HistoryTree
+import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.ui.SendButton
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.telemetry.GraphQlLogger
 import java.awt.*
 import java.awt.event.ActionEvent
+import java.net.URI
 import java.util.*
-import java.util.concurrent.ExecutionException
 import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 
 @Service(Service.Level.PROJECT)
-class CodyToolWindowContent(private val project: Project) : UpdatableChat {
+class CodyToolWindowContent(private val project: Project) {
   private val allContentLayout = CardLayout()
-  private val allContentPanel = JPanel(allContentLayout)
+  val allContentPanel = JPanel(allContentLayout)
   private val tabbedPane = JBTabbedPane()
   private val messagesPanel = JPanel()
   private val promptPanel: PromptPanel
@@ -50,32 +50,25 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private val commandsPanel: CommandsTabPanel =
       CommandsTabPanel(project) { cmdId: CommandId ->
         ApplicationManager.getApplication().invokeLater {
-          sendMessage(project, message = null, cmdId)
+          sendMessage(project, cmdId.displayName, cmdId)
         }
       }
   val contextView: EnhancedContextPanel
-  override var isChatVisible = false
-  override var id: String? = null
+  var isChatVisible = false
+  var chatId: String? = null
   private var codyOnboardingGuidancePanel: CodyOnboardingGuidancePanel? = null
   private val chatMessageHistory = CodyChatMessageHistory(CHAT_MESSAGE_HISTORY_CAPACITY)
+  private val historyTree = HistoryTree(::selectChat, ::deleteChat)
 
   init {
     // Tabs
     val contentPanel = JPanel()
-    tabbedPane.insertTab(
-        /* title = */ "Chat",
-        /* icon = */ null,
-        /* component = */ contentPanel,
-        /* tip = */ null,
-        CHAT_TAB_INDEX)
-
-    tabbedPane.insertTab(
-        /* title = */ "Commands",
-        /* icon = */ null,
-        /* component = */ commandsPanel,
-        /* tip = */ null,
-        RECIPES_TAB_INDEX)
+    tabbedPane.insertSimpleTab("Chat", contentPanel, CHAT_TAB_INDEX)
+    tabbedPane.insertSimpleTab("Commands", commandsPanel, RECIPES_TAB_INDEX)
     subscriptionPanel = SubscriptionTabPanel()
+    tabbedPane.insertSimpleTab("Commands", commandsPanel, RECIPES_TAB_INDEX)
+    tabbedPane.insertSimpleTab("Chat History", historyTree, HISTORY_TAB_INDEX)
+
     // Chat panel
     messagesPanel.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true)
     val chatPanel = ChatScrollPane(messagesPanel)
@@ -117,12 +110,9 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     allContentLayout.show(allContentPanel, SING_IN_WITH_SOURCEGRAPH_PANEL)
     refreshPanelsVisibility()
 
-    addWelcomeMessage()
-
-    ApplicationManager.getApplication().executeOnPooledThread {
-      refreshSubscriptionTab()
-      loadNewChatId()
-    }
+    ApplicationManager.getApplication().executeOnPooledThread { refreshSubscriptionTab() }
+    refreshChatToEmpty()
+    historyTree.refreshTree()
   }
 
   @RequiresBackgroundThread
@@ -156,45 +146,65 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
   }
 
-  override fun loadNewChatId(callback: () -> Unit) {
-    id = null
-
-    ApplicationManager.getApplication().invokeLater {
-      promptPanel.textArea.isEnabled = false
-      promptPanel.textArea.emptyText.text = "Connecting to agent..."
-    }
-
+  fun refreshChatToEmpty() {
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-      try {
-        id = agent.server.chatNew().get()
-        ApplicationManager.getApplication().invokeLater {
-          promptPanel.textArea.isEnabled = true
-          promptPanel.textArea.emptyText.text = "Ask a question about this code..."
-        }
-        callback.invoke()
-      } catch (e: ExecutionException) {
-        // Agent cannot gracefully recover when connection is lost, we need to restart it
-        // TODO https://github.com/sourcegraph/jetbrains/issues/306
-        logger.warn("Failed to load new chat, restarting agent", e)
-        CodyAgentService.getInstance(project).restartAgent(project)
-        Thread.sleep(5000)
-        loadNewChatId(callback)
+      ApplicationManager.getApplication().invokeLater {
+        messagesPanel.removeAll()
+        chatMessageHistory.clearHistory()
+        inProgressChat.abort()
+        addWelcomeMessage()
+        activateChatTab()
       }
+      chatId = agent.server.chatNew().get()
     }
   }
 
-  private fun getUserId(server: CodyAgentServer): String? {
-    return server
-        .currentUserId()
-        .exceptionally {
-          logger.warn("Unable to fetch user id from agent")
-          null
+  private fun selectChat(item: ChatState) {
+    ApplicationManager.getApplication().invokeLater {
+      messagesPanel.removeAll()
+      addWelcomeMessage()
+      val chat = HistoryService.getInstance().getChatByPanelId(item.panelId!!)
+      for (message in chat.messages) {
+        displayUsedContext(
+            message.contextFiles.map {
+              ContextMessage(Speaker.ASSISTANT, "", ContextFile(URI.create(it)))
+            })
+        addChatMessageAsComponent(ChatMessage(message.speaker!!, message.text, message.text))
+      }
+      CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+        val model = agent.server.chatModels(ChatModelsParams(chatId!!)).get().models.first().model
+        val chatMessages = chat.messages.map { ChatMessage(it.speaker!!, it.text, it.text) }
+        if (item.replyChatId != null) {
+          val restoredId =
+              agent.server
+                  .chatRestore(ChatRestoreParams(model, chatMessages, item.replyChatId!!))
+                  .get()
+          chat.panelId = restoredId
+          chatId = restoredId
         }
-        .get()
+      }
+      activateChatTab()
+    }
+    // todo add to test plan: when cody_history.xml can't be deserialized by any cause, this will
+    // freeze CodyToolWindowContent totally - IMO this is long term issue
+  }
+
+  private fun deleteChat(item: ChatState) {
+    HistoryService.getInstance().removeChat(item.panelId!!)
+    if (chatId == item.panelId) {
+      refreshChatToEmpty()
+    }
+    historyTree.refreshTree()
+  }
+
+  private fun addChatMessageAsComponent(message: ChatMessage) {
+    addComponentToChat(
+        MessagePanel(
+            message, project, messagesPanel, ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH))
   }
 
   @RequiresEdt
-  override fun refreshPanelsVisibility() {
+  fun refreshPanelsVisibility() {
     val codyAuthenticationManager = CodyAuthenticationManager.instance
     if (codyAuthenticationManager.getAccounts().isEmpty()) {
       allContentLayout.show(allContentPanel, SING_IN_WITH_SOURCEGRAPH_PANEL)
@@ -230,7 +240,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private fun addWelcomeMessage() {
     val welcomeText =
         "Hello! I'm Cody. I can write code and answer questions for you. See [Cody documentation](https://sourcegraph.com/docs/cody) for help and tips."
-    addMessageToChat(ChatMessage(Speaker.ASSISTANT, welcomeText))
+    addChatMessageAsComponent(ChatMessage(Speaker.ASSISTANT, welcomeText))
   }
 
   private fun createSendButton(): JButton {
@@ -245,14 +255,11 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   }
 
   @Synchronized
-  override fun addMessageToChat(message: ChatMessage, shouldDisplayBlinkingCursor: Boolean) {
+  fun addMessageToChat(message: ChatMessage, shouldDisplayBlinkingCursor: Boolean = false) {
     ApplicationManager.getApplication().invokeLater {
-
-      // Bubble panel
-      val messagePanel =
-          MessagePanel(
-              message, project, messagesPanel, ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH)
-      addComponentToChat(messagePanel)
+      addChatMessageAsComponent(message)
+      HistoryService.getInstance().addMessage(chatId!!, message)
+      historyTree.refreshTree()
       ensureBlinkingCursorIsNotDisplayed()
       if (shouldDisplayBlinkingCursor) {
         messagesPanel.add(BlinkingCursorComponent.instance)
@@ -271,22 +278,19 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     messagesPanel.repaint()
   }
 
-  override fun activateChatTab() {
+  private fun activateChatTab() {
     tabbedPane.selectedIndex = CHAT_TAB_INDEX
   }
 
   @Synchronized
-  override fun updateLastMessage(message: ChatMessage) {
+  fun updateLastMessage(message: ChatMessage) {
     ApplicationManager.getApplication().invokeLater {
-      Optional.of(messagesPanel)
-          .filter { mp: JPanel -> mp.componentCount > 0 }
-          .map { mp: JPanel -> mp.getComponent(mp.componentCount - 1) }
-          .filter { component: Component? -> component is JPanel }
-          .map { component: Component -> component as JPanel }
-          .map { lastWrapperPanel: JPanel -> lastWrapperPanel.getComponent(0) }
-          .filter { component: Component? -> component is MessagePanel }
-          .map { component: Component -> component as MessagePanel }
-          .ifPresent { lastMessage: MessagePanel -> lastMessage.updateContentWith(message) }
+      if (messagesPanel.componentCount > 0) {
+        val lastPanel = messagesPanel.components.last() as? JPanel
+        val lastMessage = lastPanel?.getComponent(0) as? MessagePanel
+        lastMessage?.updateContentWith(message)
+        HistoryService.getInstance().updateMessage(chatId!!, message)
+      }
     }
   }
 
@@ -299,27 +303,12 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
   }
 
-  override fun finishMessageProcessing() {
+  fun finishMessageProcessing() {
     ApplicationManager.getApplication().invokeLater {
       ensureBlinkingCursorIsNotDisplayed()
       stopGeneratingButton.isVisible = false
       sendButton.isEnabled = promptPanel.textArea.text.isNotBlank()
       commandsPanel.enableAllButtons()
-    }
-  }
-
-  override fun resetConversation() {
-    ApplicationManager.getApplication().invokeLater {
-      stopGeneratingButton.isVisible = false
-      messagesPanel.removeAll()
-      addWelcomeMessage()
-      messagesPanel.revalidate()
-      messagesPanel.repaint()
-      chatMessageHistory.clearHistory()
-      // todo (#260): call agent to reset the transcript instead of unsetting the chat id
-      inProgressChat.abort()
-      loadNewChatId()
-      ensureBlinkingCursorIsNotDisplayed()
     }
   }
 
@@ -373,7 +362,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     GraphQlLogger.logCodyEvent(this.project, "command:chat-question", "executed")
   }
 
-  override fun displayUsedContext(contextMessages: List<ContextMessage>) {
+  fun displayUsedContext(contextMessages: List<ContextMessage>) {
     if (contextMessages.isEmpty()) {
       // Do nothing when there are no context files. It's normal that some answers have no context
       // files.
@@ -384,9 +373,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     messageContentPanel.add(contextFilesMessage)
     addComponentToChat(messageContentPanel)
   }
-
-  val contentPanel: JComponent
-    get() = allContentPanel
 
   private fun focusPromptInput() {
     if (tabbedPane.selectedIndex == CHAT_TAB_INDEX) {
@@ -411,7 +397,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     const val SING_IN_WITH_SOURCEGRAPH_PANEL = "singInWithSourcegraphPanel"
     private const val CHAT_TAB_INDEX = 0
     private const val RECIPES_TAB_INDEX = 1
-    private const val SUBSCRIPTION_TAB_INDEX = 2
+    private const val HISTORY_TAB_INDEX = 2 // todo chat history should be after chat
+    private const val SUBSCRIPTION_TAB_INDEX = 3
     private const val CHAT_MESSAGE_HISTORY_CAPACITY = 100
 
     fun executeOnInstanceIfNotDisposed(
@@ -423,5 +410,8 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
         codyToolWindowContent.myAction()
       }
     }
+
+    private fun JBTabbedPane.insertSimpleTab(title: String, component: Component, index: Int) =
+        insertTab(title, /* icon = */ null, component, /* tip = */ null, index)
   }
 }

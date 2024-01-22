@@ -29,7 +29,7 @@ public class CodyToolWindowFactory implements ToolWindowFactory, DumbAware {
               // ContentFactory.SERVICE.getInstance() has been deprecated in recent versions
               ApplicationManager.getApplication()
                   .getService(ContentFactory.class)
-                  .createContent(toolWindowContent.getContentPanel(), "", false);
+                  .createContent(toolWindowContent.getAllContentPanel(), "", false);
           content.setPreferredFocusableComponent(
               toolWindowContent.getPreferredFocusableComponent());
           toolWindowContent.addToTabbedPaneChangeListener(

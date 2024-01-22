@@ -64,6 +64,10 @@ class CodyAgentService : Disposable {
   @GuardedBy("this")
   fun restartAgent(project: Project): CompletableFuture<CodyAgent> {
     stopAgent(project)
+    // todo chat history is broken after restart because agent cant find panel ID
+    // todo we should load chat new chat ID upfront after restart and remove panelNotFoundError
+    // handling from Chat.kt
+    // todo simply put: load new ID with chat.loadNewChatId here
     return startAgent(project)
   }
 

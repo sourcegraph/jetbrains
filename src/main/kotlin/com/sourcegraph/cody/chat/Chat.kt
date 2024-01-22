@@ -1,7 +1,7 @@
 package com.sourcegraph.cody.chat
 
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.UpdatableChat
+import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
@@ -9,6 +9,7 @@ import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
 import com.sourcegraph.cody.config.RateLimitStateManager
+import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
@@ -28,7 +29,7 @@ class Chat {
       project: Project,
       humanMessage: ChatMessage,
       commandId: CommandId?,
-      chat: UpdatableChat,
+      chat: CodyToolWindowContent,
       token: CancellationToken,
       isEnhancedContextEnabled: Boolean
   ) {
@@ -45,6 +46,7 @@ class Chat {
                 ContextMessage(Speaker.ASSISTANT, agentChatMessageText, contextFile)
               }
                   ?: emptyList()
+          HistoryService.getInstance().updateMessageContextFiles(chat.chatId!!, contextMessages)
           chat.displayUsedContext(contextMessages)
           chat.addMessageToChat(chatMessage)
         } else {
@@ -53,18 +55,17 @@ class Chat {
       }
 
       if (commandId != null) {
-        chat.id =
+        chat.chatId =
             when (commandId) {
               CommandId.Explain -> agent.server.commandsExplain().get()
               CommandId.Smell -> agent.server.commandsSmell().get()
               CommandId.Test -> agent.server.commandsTest().get()
-              else -> chat.id
             }
       } else {
         handleReply(project, chat, token) {
           agent.server.chatSubmitMessage(
               ChatSubmitMessageParams(
-                  chat.id!!,
+                  chat.chatId!!,
                   WebviewMessage(
                       command = "submit",
                       text = humanMessage.actualMessage(),
@@ -79,7 +80,7 @@ class Chat {
 
   fun handleReply(
       project: Project,
-      chat: UpdatableChat,
+      chat: CodyToolWindowContent,
       token: CancellationToken,
       requestFun: () -> CompletableFuture<ExtensionMessage>
   ) {
@@ -87,13 +88,14 @@ class Chat {
       val request = requestFun()
       token.onCancellationRequested { request.cancel(true) }
       request.handle { lastReply, error ->
+        HistoryService.getInstance().updateReply(chat.chatId!!, lastReply.chatID!!)
         if (error != null) {
-          if (error.message?.startsWith("No panel with ID") == true) {
-            chat.loadNewChatId { handleReply(project, chat, token, requestFun) }
-          } else {
-            logger.warn("Error while sending the message", error)
-            handleError(project, error, chat)
-          }
+//          if (error.message?.startsWith("No panel with ID") == true) {
+//            chat.loadNewChatId { handleReply(project, chat, token, requestFun) }
+//          } else {
+//            logger.warn("Error while sending the message", error)
+//            handleError(project, error, chat)
+//          }
         } else {
           val err = lastReply.messages?.lastOrNull()?.error
           if (lastReply.type == ExtensionMessage.Type.TRANSCRIPT && err != null) {
@@ -114,7 +116,7 @@ class Chat {
 
   private fun handleRateLimitError(
       project: Project,
-      chat: UpdatableChat,
+      chat: CodyToolWindowContent,
       rateLimitError: RateLimitError
   ) {
     RateLimitStateManager.reportForChat(project, rateLimitError)
@@ -134,7 +136,7 @@ class Chat {
     }
   }
 
-  private fun handleError(project: Project, throwable: Throwable, chat: UpdatableChat) {
+  private fun handleError(project: Project, throwable: Throwable, chat: CodyToolWindowContent) {
     if (throwable is ResponseErrorException) {
       val errorCode = throwable.toErrorCode()
       if (errorCode == ErrorCode.RateLimitError) {

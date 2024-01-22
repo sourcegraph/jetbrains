@@ -90,6 +90,11 @@ interface CodyAgentServer {
 
   @JsonRequest("chat/new") fun chatNew(): CompletableFuture<String>
 
+  @JsonRequest("chat/models")
+  fun chatModels(params: ChatModelsParams): CompletableFuture<ChatModelsResponse>
+
+  @JsonRequest("chat/restore") fun chatRestore(params: ChatRestoreParams): CompletableFuture<String>
+
   @JsonRequest("chat/submitMessage")
   fun chatSubmitMessage(params: ChatSubmitMessageParams): CompletableFuture<ExtensionMessage>
 }
