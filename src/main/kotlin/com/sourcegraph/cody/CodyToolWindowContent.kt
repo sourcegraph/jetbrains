@@ -48,7 +48,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   private val stopGeneratingButton =
       JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend))
   private val commandsPanel: CommandsTabPanel =
-      CommandsTabPanel(project) { cmd: String -> sendMessage(project, message = null, cmd) }
+      CommandsTabPanel(project) { cmdId: CommandId -> sendMessage(project, message = null, cmdId) }
   val embeddingStatusView: EmbeddingStatusView
   override var isChatVisible = false
   override var id: String? = null
@@ -335,7 +335,7 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
   }
 
   @RequiresEdt
-  private fun sendMessage(project: Project, message: String?, commandId: String?) {
+  private fun sendMessage(project: Project, message: String?, commandId: CommandId?) {
     startMessageProcessing()
     val displayText = XmlStringUtil.escapeString(message)
     val humanMessage = ChatMessage(Speaker.HUMAN, message, displayText)

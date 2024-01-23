@@ -27,7 +27,7 @@ class Chat {
   fun sendMessageViaAgent(
       project: Project,
       humanMessage: ChatMessage,
-      commandId: String?,
+      commandId: CommandId?,
       chat: UpdatableChat,
       token: CancellationToken
   ) {
@@ -54,9 +54,9 @@ class Chat {
       if (commandId != null) {
         chat.id =
             when (commandId) {
-              "commands/explain" -> agent.server.commandsExplain().get()
-              "commands/smell" -> agent.server.commandsSmell().get()
-              "commands/test" -> agent.server.commandsTest().get()
+              CommandId.Explain -> agent.server.commandsExplain().get()
+              CommandId.Smell -> agent.server.commandsSmell().get()
+              CommandId.Test -> agent.server.commandsTest().get()
               else -> chat.id
             }
       } else {
