@@ -203,7 +203,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
       newCodyOnboardingGuidancePanel.addMainButtonActionListener {
         CodyApplicationSettings.instance.isOnboardingGuidanceDismissed = true
         refreshPanelsVisibility()
-        // MYTODO refreshRecipes()
       }
       if (displayName != null) {
         if (codyOnboardingGuidancePanel?.originalDisplayName?.let { it != displayName } == true)
