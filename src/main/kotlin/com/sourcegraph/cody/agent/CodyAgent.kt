@@ -9,13 +9,13 @@ import com.sourcegraph.cody.agent.CodyAgentException
 import com.sourcegraph.cody.agent.CodyAgentServer
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.config.ConfigUtil
-import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.File
 import java.io.IOException
 import java.io.PrintWriter
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
+import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -102,7 +102,7 @@ private constructor(
 
       val process =
           processBuilder
-              .redirectErrorStream(true)
+              .redirectErrorStream(false)
               .redirectError(ProcessBuilder.Redirect.PIPE)
               .start()
 

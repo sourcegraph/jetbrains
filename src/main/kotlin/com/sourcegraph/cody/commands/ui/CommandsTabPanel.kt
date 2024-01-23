@@ -6,6 +6,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.sourcegraph.cody.autocomplete.CodyEditorFactoryListener
+import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.telemetry.GraphQlLogger
 import java.awt.Component
 import java.awt.Dimension
@@ -34,7 +35,8 @@ class CommandsTabPanel(private val project: Project, private val executeCommand:
   fun enableAllButtons() = switchAllButtons(isEnabled = true, tooltip = null)
 
   fun disableAllButtons() =
-      switchAllButtons(isEnabled = false, tooltip = "Message generation in progress...")
+      switchAllButtons(
+          isEnabled = false, tooltip = CodyBundle.getString("commands-tab.message-in-progress"))
 
   private fun switchAllButtons(isEnabled: Boolean, tooltip: String?) {
     components.filterIsInstance<JButton>().forEach {

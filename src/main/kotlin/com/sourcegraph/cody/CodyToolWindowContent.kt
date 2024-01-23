@@ -15,7 +15,6 @@ import com.sourcegraph.cody.agent.CodyAgentServer
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ContextMessage
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.*
 import com.sourcegraph.cody.commands.ui.CommandsTabPanel
