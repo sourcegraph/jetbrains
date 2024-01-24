@@ -22,7 +22,7 @@ val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") 
 plugins {
   id("java")
   // Dependencies are locked at this version to work with JDK 11 on CI.
-  id("org.jetbrains.kotlin.jvm") version "1.9.10"
+  id("org.jetbrains.kotlin.jvm") version "1.9.22"
   id("org.jetbrains.intellij") version "1.17.0"
   id("org.jetbrains.changelog") version "1.3.1"
   id("com.diffplug.spotless") version "6.25.0"
