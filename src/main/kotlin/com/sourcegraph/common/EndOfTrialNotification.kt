@@ -10,7 +10,8 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.api.SourcegraphApiRequests
+import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
+import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.BrowserOpener.openInBrowser
 import java.util.*
@@ -41,35 +42,72 @@ class EndOfTrialNotification private constructor(title: String, content: String)
   }
 
   companion object {
-    fun notify(project: Project) {
-      if (checkIfPastEndDate()) {
-        //        TODO: Check if user has trial account
-        CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-          val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-          if (activeAccountType != null && activeAccountType.isDotcomAccount()) {
-            agent.server.isCurrentUserPro().thenApply { isUserPro ->
-              if (isUserPro != null && isUserPro) {
-                val content = "Update your subscription to continue using Cody Pro"
-                val title = "Your Cody Pro trial is has ended"
-                ApplicationManager.getApplication().invokeLater {
-                  EndOfTrialNotification(title, content).notify(project)
-                }
+    private fun showEndOfTrialNotificationIfApplicable(
+        project: Project,
+        currentUserCodySubscription: CurrentUserCodySubscription,
+        codyProTrialEnded: Boolean,
+        useSscForCodySubscription: Boolean
+    ) {
+      val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
+      if (activeAccountType != null && activeAccountType.isDotcomAccount()) {
+
+        if (currentUserCodySubscription.plan == "PRO" &&
+            currentUserCodySubscription.status == "PENDING" &&
+            useSscForCodySubscription) {
+          val (title, content) =
+              if (codyProTrialEnded) {
+                Pair(
+                    CodyBundle.getString("EndOfTrialNotification.ended.title"),
+                    CodyBundle.getString("EndOfTrialNotification.ended.content"))
+              } else {
+                Pair(
+                    CodyBundle.getString("EndOfTrialNotification.ending-soon.title"),
+                    CodyBundle.getString("EndOfTrialNotification.ending-soon.content"))
               }
-            }
+
+          ApplicationManager.getApplication().invokeLater {
+            EndOfTrialNotification(title, content).notify(project)
           }
         }
-      } else {
-        scheduler(project)
       }
     }
 
-    fun scheduler(project: Project) {
+    fun startScheduler(project: Project) {
       val scheduler = Executors.newScheduledThreadPool(1)
       scheduler.scheduleAtFixedRate(
           {
-            if (checkIfPastEndDate()) {
-              notify(project)
-              scheduler.shutdown()
+            CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+              agent.server
+                  .getCurrentUserCodySubscription()
+                  .thenApply {
+                    if (it == null) {
+                      // todo: proper handling
+                      println("getCurrentUserCodySubscription returned null")
+                      return@thenApply
+                    }
+
+                    val shouldShowTheNotification = it.currentPeriodEndAt.before(Date())
+                    if (shouldShowTheNotification) {
+
+                      agent.server
+                          .evaluateFeatureFlag(GetFeatureFlag.CodyProTrialEnded)
+                          .completeOnTimeout(false, 4, TimeUnit.SECONDS)
+                          .thenCombine(
+                              agent.server
+                                  .evaluateFeatureFlag(GetFeatureFlag.UseSscForCodySubscription)
+                                  .completeOnTimeout(false, 4, TimeUnit.SECONDS)) {
+                                  codyProTrialEnded,
+                                  useSscForCodySubscription ->
+                                showEndOfTrialNotificationIfApplicable(
+                                    project,
+                                    it,
+                                    codyProTrialEnded ?: false,
+                                    useSscForCodySubscription ?: false)
+                                scheduler.shutdown()
+                              }
+                    }
+                  }
+                  .completeOnTimeout(null, 4, TimeUnit.SECONDS)
             }
           },
           0,
@@ -77,9 +115,14 @@ class EndOfTrialNotification private constructor(title: String, content: String)
           TimeUnit.HOURS)
     }
 
-    private fun checkIfPastEndDate(): Boolean {
-      val endDate = SourcegraphApiRequests.getFreeTrialEndDate()
-      return endDate.before(Date())
-    }
+    // todo: consider alternative solution using GraphQL directly
+    //    private fun checkIfPastEndDate(accessToken: String, progressIndicator: ProgressIndicator):
+    // Boolean {
+    //      val endDate = SourcegraphApiRequests.CurrentUser(
+    //              SourcegraphApiRequestExecutor.Factory.instance.create(accessToken),
+    // progressIndicator)
+    //              .getDetails(server).currentUserCodySubscription!!.currentPeriodEndAt
+    //      return endDate.before(Date())
+    //    }
   }
 }

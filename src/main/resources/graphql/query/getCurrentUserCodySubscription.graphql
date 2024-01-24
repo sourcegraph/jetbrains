@@ -1,0 +1,11 @@
+query {
+    currentUser {
+          codySubscription {
+                status
+                plan
+                currentPeriodStartAt
+                currentPeriodEndAt
+          }
+    }
+}
+

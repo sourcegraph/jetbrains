@@ -1,10 +1,10 @@
 package com.sourcegraph.cody.api
 
 import com.intellij.openapi.progress.ProgressIndicator
+import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
 import com.sourcegraph.cody.config.CodyAccountDetails
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import java.awt.Image
-import java.util.Date
 
 object SourcegraphApiRequests {
   class CurrentUser(
@@ -34,9 +34,18 @@ object SourcegraphApiRequests {
                   }
                 }
                 .apply { operationName = "get profile avatar" })
-  }
 
-  fun getFreeTrialEndDate(): Date {
-    return Date(1705622400000)
+    fun getCurrentUserCodySubscription(server: SourcegraphServerPath): CurrentUserCodySubscription {
+      return executor
+          .execute(
+              progressIndicator,
+              SourcegraphApiRequest.Post.GQLQuery(
+                  server.toGraphQLUrl(),
+                  SourcegraphGQLQueries.getCurrentUserCodySubscription,
+                  null,
+                  CurrentUserWrapper::class.java))
+          .currentUser
+          .currentUserCodySubscription!!
+    }
   }
 }
