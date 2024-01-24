@@ -62,6 +62,8 @@ class EnhancedContextPanel(private val project: Project) : JPanel() {
   init {
     layout = VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 14, 0, true, false)
 
+    // Fix for https://github.com/sourcegraph/jetbrains/issues/344
+    // Sometimes we are not instantiated on the EDT.
     ApplicationManager.getApplication().invokeLater {
       tree.expandRow(0)
       add(toolbarPanel)
