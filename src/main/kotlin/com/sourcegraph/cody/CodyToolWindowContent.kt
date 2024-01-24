@@ -183,16 +183,6 @@ class CodyToolWindowContent(private val project: Project) : UpdatableChat {
     }
   }
 
-  private fun getUserId(server: CodyAgentServer): String? {
-    return server
-        .currentUserId()
-        .exceptionally {
-          logger.warn("Unable to fetch user id from agent")
-          null
-        }
-        .get()
-  }
-
   @RequiresEdt
   override fun refreshPanelsVisibility() {
     val codyAuthenticationManager = CodyAuthenticationManager.instance
