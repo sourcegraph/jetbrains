@@ -25,7 +25,7 @@ plugins {
   id("org.jetbrains.kotlin.jvm") version "1.9.10"
   id("org.jetbrains.intellij") version "1.17.0"
   id("org.jetbrains.changelog") version "1.3.1"
-  id("com.diffplug.spotless") version "6.21.0"
+  id("com.diffplug.spotless") version "6.25.0"
 }
 
 group = properties("pluginGroup")
