@@ -10,14 +10,15 @@ class NewChatAction : DumbAwareAction() {
     if (event.project == null) return
 
     CodyToolWindowContent.executeOnInstanceIfNotDisposed(event.project!!) {
-      refreshChatToEmpty()
+      // MYTODO
+      // refreshChatToEmpty()
     }
   }
 
   override fun update(event: AnActionEvent) {
     if (event.project == null) return
     CodyToolWindowContent.executeOnInstanceIfNotDisposed(event.project!!) {
-      event.presentation.isVisible = isChatVisible
+      // event.presentation.isVisible = isChatVisible
     }
   }
 }

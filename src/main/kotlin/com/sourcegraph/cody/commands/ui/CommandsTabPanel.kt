@@ -6,7 +6,8 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.sourcegraph.cody.autocomplete.CodyEditorFactoryListener
-import com.sourcegraph.cody.chat.CommandId
+import com.sourcegraph.cody.commands.CommandId
+import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.telemetry.GraphQlLogger
 import java.awt.Component
@@ -18,7 +19,7 @@ import javax.swing.plaf.ButtonUI
 
 class CommandsTabPanel(
     private val project: Project,
-    private val executeCommand: (CommandId) -> Unit
+    private val executeCommand: (cancellationToken: CancellationToken, CommandId) -> Unit
 ) : JBPanelWithEmptyText(GridLayout(/* rows = */ 0, /* cols = */ 1)) {
 
   init {
@@ -47,7 +48,7 @@ class CommandsTabPanel(
 
     FileEditorManager.getInstance(project).selectedTextEditor?.let {
       CodyEditorFactoryListener.Util.informAgentAboutEditorChange(it, hasFileChanged = false) {
-        executeCommand(commandId)
+        // executeCommand(commandId)
       }
     }
   }

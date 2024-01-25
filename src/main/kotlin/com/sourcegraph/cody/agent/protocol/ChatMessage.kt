@@ -30,7 +30,11 @@ data class ChatMessage(
     override val text: String?,
     val displayText: String? = null,
     val contextFiles: List<ContextFile>? = null,
-    val error: ChatError? = null
+    val error: ChatError? = null,
+    // `id` is used to identify if updates are sent for the same message
+    // If none is provided we are just assigning new UUID to give the message unique identity
+    // (e.g. in case of messages created at once by human)
+    val id: String = java.util.UUID.randomUUID().toString()
 ) : Message {
   fun actualMessage(): String = displayText ?: text ?: ""
 }

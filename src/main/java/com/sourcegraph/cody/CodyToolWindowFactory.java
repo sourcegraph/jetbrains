@@ -30,14 +30,6 @@ public class CodyToolWindowFactory implements ToolWindowFactory, DumbAware {
               ApplicationManager.getApplication()
                   .getService(ContentFactory.class)
                   .createContent(toolWindowContent.getAllContentPanel(), "", false);
-          content.setPreferredFocusableComponent(
-              toolWindowContent.getPreferredFocusableComponent());
-          toolWindowContent.addToTabbedPaneChangeListener(
-              () -> {
-                content.setPreferredFocusableComponent(
-                    toolWindowContent.getPreferredFocusableComponent());
-                return null;
-              });
           toolWindow.getContentManager().addContent(content);
           DefaultActionGroup customCodySettings = new DefaultActionGroup();
           customCodySettings.add(new OpenPluginSettingsAction("Cody Settings..."));
