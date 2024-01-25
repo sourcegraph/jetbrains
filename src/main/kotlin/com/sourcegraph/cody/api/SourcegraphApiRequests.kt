@@ -1,7 +1,6 @@
 package com.sourcegraph.cody.api
 
 import com.intellij.openapi.progress.ProgressIndicator
-import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
 import com.sourcegraph.cody.config.CodyAccountDetails
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import java.awt.Image
@@ -34,18 +33,5 @@ object SourcegraphApiRequests {
                   }
                 }
                 .apply { operationName = "get profile avatar" })
-
-    fun getCurrentUserCodySubscription(server: SourcegraphServerPath): CurrentUserCodySubscription {
-      return executor
-          .execute(
-              progressIndicator,
-              SourcegraphApiRequest.Post.GQLQuery(
-                  server.toGraphQLUrl(),
-                  SourcegraphGQLQueries.getCurrentUserCodySubscription,
-                  null,
-                  CurrentUserWrapper::class.java))
-          .currentUser
-          .currentUserCodySubscription!!
-    }
   }
 }

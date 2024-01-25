@@ -29,7 +29,7 @@ class CodyAccountDetailsProvider(
     return ProgressManager.getInstance()
         .submitIOTask(indicator) { indicator ->
           if (account.isCodyApp()) {
-            val details = CodyAccountDetails(account.id, account.name, account.name, null, null)
+            val details = CodyAccountDetails(account.id, account.name, account.name, null)
             DetailsLoadingResult(details, IconUtil.toBufferedImage(defaultIcon), null, false)
           } else {
             val accountDetails =

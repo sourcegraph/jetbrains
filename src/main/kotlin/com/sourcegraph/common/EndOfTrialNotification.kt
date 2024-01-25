@@ -112,15 +112,5 @@ class EndOfTrialNotification private constructor(title: String, content: String)
           2,
           TimeUnit.HOURS)
     }
-
-    // todo: consider alternative solution using GraphQL directly
-    //    private fun checkIfPastEndDate(accessToken: String, progressIndicator: ProgressIndicator):
-    // Boolean {
-    //      val endDate = SourcegraphApiRequests.CurrentUser(
-    //              SourcegraphApiRequestExecutor.Factory.instance.create(accessToken),
-    // progressIndicator)
-    //              .getDetails(server).currentUserCodySubscription!!.currentPeriodEndAt
-    //      return endDate.before(Date())
-    //    }
   }
 }
