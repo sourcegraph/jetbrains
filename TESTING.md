@@ -298,6 +298,7 @@ Test ideas:
 7. Ask about codebase to force response with listed context files and verify if everything is correctly serialized/deserialized. Links to context files should be clickable.
 8. Remove all chats using history UI. File with transcripts should disappear.
 9. Use only the keyboard. For example, navigate transcripts with arrows, delete, enter.
+10. Start typing while being focused on Chat History to perform search-by-title.
 
 ## Code Search
 

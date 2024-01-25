@@ -9,9 +9,7 @@ class NewChatAction : DumbAwareAction() {
   override fun actionPerformed(event: AnActionEvent) {
     if (event.project == null) return
 
-    CodyToolWindowContent.executeOnInstanceIfNotDisposed(event.project!!) {
-      refreshChatToEmpty()
-    }
+    CodyToolWindowContent.executeOnInstanceIfNotDisposed(event.project!!) { refreshChatToEmpty() }
   }
 
   override fun update(event: AnActionEvent) {

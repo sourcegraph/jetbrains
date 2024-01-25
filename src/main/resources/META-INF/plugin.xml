@@ -169,7 +169,8 @@
             <override-text place="MainMenu" text="Autocomplete"/>
         </action>
 
-        <action id="cody.newChat" icon="AllIcons.Actions.AddList"
+        <action id="cody.newChat"
+                icon="/icons/chat/newChat.svg"
                 text="New Chat"
                 class="com.sourcegraph.cody.chat.NewChatAction">
         </action>

@@ -5,10 +5,10 @@ import java.time.LocalDateTime
 import kotlin.time.DurationUnit.*
 import kotlin.time.toKotlinDuration
 
-object ToolbarDurationTextFormatter {
+object DurationUnitFormatter {
 
-  fun formatDuration(lastUpdated: LocalDateTime, now: LocalDateTime): String {
-    val duration = Duration.between(lastUpdated, now).toKotlinDuration()
+  fun format(since: LocalDateTime, now: LocalDateTime = LocalDateTime.now()): String {
+    val duration = Duration.between(since, now).toKotlinDuration()
     return when {
       duration.inWholeSeconds < 60 -> duration.toString(SECONDS)
       duration.inWholeMinutes < 60 -> duration.toString(MINUTES)

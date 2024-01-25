@@ -1,84 +1,125 @@
 package com.sourcegraph.cody.history
 
-import com.intellij.ui.treeStructure.Tree
-import com.sourcegraph.cody.history.listener.DeleteListener
-import com.sourcegraph.cody.history.listener.DoubleLeftClickListener
-import com.sourcegraph.cody.history.listener.EnterListener
-import com.sourcegraph.cody.history.listener.RightClickListener
+import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.ui.PopupHandler
+import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.treeStructure.SimpleTree
+import com.intellij.util.EditSourceOnDoubleClickHandler
 import com.sourcegraph.cody.history.state.ChatState
-import com.sourcegraph.cody.history.util.ToolbarDurationTextFormatter
-import java.awt.event.MouseEvent
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
+import com.sourcegraph.cody.history.util.DurationGroupFormatter
+import java.awt.event.ActionEvent
+import java.awt.event.KeyEvent
+import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
+import javax.swing.tree.TreeSelectionModel
 
-class HistoryTree(onSelect: (ChatState) -> Unit, onDelete: (ChatState) -> Unit) : Tree() {
+class HistoryTree(
+    private val onSelect: (ChatState) -> Unit,
+    private val onDelete: (ChatState) -> Unit
+) : SimpleToolWindowPanel(true, true) {
 
-  private val popup = HistoryPopupMenu(onSelect, onDelete, getSelected = { getLeafOrNull()!!.chat })
+  // todo commit msg: Deleting chats no longer resets the tree view to its initial state
+  // todo commit msg: The background color is now the same as other toolbars in IDE.
+  // todo commit msg: You can now search by titles if you are focused on the panel (just start
+  // typing).
+  // todo commit msg: Added separator to popup menu because it was easy to miss-click delete instead
+  // of select.
+  // todo commit msg: The popup menu and select/delete keyboard actions now registered as IDE
+  // actions (instead of Swing events).
+
+  private val model = DefaultTreeModel(buildTree())
+  private val tree =
+      SimpleTree(model).apply {
+        isRootVisible = false
+        cellRenderer = HistoryTreeNodeRenderer()
+        selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), ENTER_MAP_KEY)
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), DELETE_MAP_KEY)
+        actionMap.put(ENTER_MAP_KEY, ActionWrapper(::selectSelected))
+        actionMap.put(DELETE_MAP_KEY, ActionWrapper(::deleteSelected))
+      }
 
   init {
-    isRootVisible = false
-    addMouseListener(DoubleLeftClickListener { invokeOnlyOnLeaf { onSelect(it) } })
-    addMouseListener(
-        RightClickListener { mouse -> invokeOnlyOnLeaf { popup.show(this, mouse.x, mouse.y) } })
-    addKeyListener(EnterListener { invokeOnlyOnLeaf { onSelect(it) } })
-    addKeyListener(DeleteListener { invokeOnlyOnLeaf { onDelete(it) } })
-  }
-
-  override fun getToolTipText(event: MouseEvent): String {
-    val leaf = getPathForLocation(event.x, event.y)?.lastPathComponent as? ChatLeafNode
-    if (leaf != null) {
-      val duration =
-          ToolbarDurationTextFormatter.formatDuration(
-              leaf.chat.latestMessage(), LocalDateTime.now())
-      return "Last updated: $duration ago"
-    }
-    return ""
+    val group = DefaultActionGroup()
+    group.add(LeafPopupAction(tree, "Select Chat", null, ::selectSelected))
+    group.addSeparator()
+    group.add(LeafPopupAction(tree, "Remove Chat", AllIcons.Actions.GC, ::deleteSelected))
+    PopupHandler.installPopupMenu(tree, group, "ChatActionsPopup")
+    EditSourceOnDoubleClickHandler.install(tree, ::selectSelected)
+    setContent(ScrollPaneFactory.createScrollPane(tree))
   }
 
   fun refreshTree() {
+    // todo: rename to "notifyAdded" and use in such context when model is changed
+    // todo: this method must be executed when a new chat is added
+    // todo: use model.insertNodeInto(child, parent)
+  }
+
+  private fun selectSelected() {
+    val leaf = tree.selectedLeafOrNull()
+    if (leaf != null) onSelect(leaf.chat)
+  }
+
+  private fun deleteSelected() {
+    val leaf = tree.selectedLeafOrNull()
+    if (leaf != null) {
+      onDelete(leaf.chat)
+      model.removeNodeFromParent(leaf)
+    }
+  }
+
+  private fun buildTree(): DefaultMutableTreeNode {
     val root = DefaultMutableTreeNode()
     for ((period, chats) in getChatsGroupedByPeriod()) {
       val periodNode = DefaultMutableTreeNode(period)
       for (chat in chats) {
-        periodNode.add(ChatLeafNode(chat))
+        periodNode.add(HistoryTreeLeafNode(chat))
       }
       root.add(periodNode)
     }
-    model = DefaultTreeModel(root, false)
+    return root
   }
-
-  private fun invokeOnlyOnLeaf(action: (ChatState) -> Unit) {
-    val leaf = getLeafOrNull()
-    if (leaf != null) action(leaf.chat)
-  }
-
-  private fun getLeafOrNull(): ChatLeafNode? = selectionPath?.lastPathComponent as? ChatLeafNode
 
   private fun getChatsGroupedByPeriod(): Map<String, List<ChatState>> =
       HistoryService.getInstance()
           .state
           .chats
           .sortedByDescending { chat -> chat.latestMessage() }
-          .groupBy { chat -> getPeriodText(chat.latestMessage()) }
+          .groupBy { chat -> DurationGroupFormatter.format(chat.latestMessage()) }
 
-  private fun getPeriodText(date: LocalDateTime): String {
-    val today = LocalDateTime.now()
-    val daysBetween = ChronoUnit.DAYS.between(date, today).toInt()
-    return when {
-      daysBetween == 0 -> "Today"
-      daysBetween == 1 -> "Yesterday"
-      daysBetween in 2..6 -> "$daysBetween days ago"
-      date.isAfter(today.minusWeeks(1)) -> "Last week"
-      date.isAfter(today.minusMonths(1)) -> "Last month"
-      date.isAfter(today.minusYears(1)) -> "Last year"
-      else -> "Older"
+  private class LeafPopupAction(
+      private val tree: SimpleTree,
+      text: String,
+      icon: Icon? = null,
+      private val action: () -> Unit
+  ) : AnAction(text, null, icon) {
+    override fun update(e: AnActionEvent) {
+      super.update(e)
+      e.presentation.isEnabled = tree.selectedLeafOrNull() != null
+    }
+
+    override fun actionPerformed(event: AnActionEvent) {
+      action()
     }
   }
 
-  private class ChatLeafNode(val chat: ChatState) : DefaultMutableTreeNode(chat, false) {
+  private class ActionWrapper(private val action: () -> Unit) : AbstractAction() {
+    override fun actionPerformed(p0: ActionEvent?) {
+      action()
+    }
+  }
 
-    override fun toString(): String = chat.title()
+  private companion object {
+
+    private const val ENTER_MAP_KEY = "enter"
+    private const val DELETE_MAP_KEY = "delete"
+
+    private fun SimpleTree.selectedLeafOrNull() =
+        selectionPath?.lastPathComponent as? HistoryTreeLeafNode
   }
 }
