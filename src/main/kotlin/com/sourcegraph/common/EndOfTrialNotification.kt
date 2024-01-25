@@ -13,6 +13,7 @@ import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
 import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.BrowserOpener.openInBrowser
+import com.sourcegraph.config.ConfigUtil
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -73,6 +74,10 @@ class EndOfTrialNotification private constructor(title: String, content: String)
       val scheduler = Executors.newScheduledThreadPool(1)
       scheduler.scheduleAtFixedRate(
           {
+            if (!ConfigUtil.isCodyEnabled()) {
+              return@scheduleAtFixedRate
+            }
+
             CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
               agent.server
                   .getCurrentUserCodySubscription()
@@ -83,26 +88,22 @@ class EndOfTrialNotification private constructor(title: String, content: String)
                       return@thenApply
                     }
 
-                    val shouldShowTheNotification = it.currentPeriodEndAt.before(Date())
-                    if (shouldShowTheNotification) {
-
-                      agent.server
-                          .evaluateFeatureFlag(GetFeatureFlag.CodyProTrialEnded)
-                          .completeOnTimeout(false, 4, TimeUnit.SECONDS)
-                          .thenCombine(
-                              agent.server
-                                  .evaluateFeatureFlag(GetFeatureFlag.UseSscForCodySubscription)
-                                  .completeOnTimeout(false, 4, TimeUnit.SECONDS)) {
-                                  codyProTrialEnded,
-                                  useSscForCodySubscription ->
-                                showEndOfTrialNotificationIfApplicable(
-                                    project,
-                                    it,
-                                    codyProTrialEnded ?: false,
-                                    useSscForCodySubscription ?: false)
-                                scheduler.shutdown()
-                              }
-                    }
+                    agent.server
+                        .evaluateFeatureFlag(GetFeatureFlag.CodyProTrialEnded)
+                        .completeOnTimeout(false, 4, TimeUnit.SECONDS)
+                        .thenCombine(
+                            agent.server
+                                .evaluateFeatureFlag(GetFeatureFlag.UseSscForCodySubscription)
+                                .completeOnTimeout(false, 4, TimeUnit.SECONDS)) {
+                                codyProTrialEnded,
+                                useSscForCodySubscription ->
+                              showEndOfTrialNotificationIfApplicable(
+                                  project,
+                                  it,
+                                  codyProTrialEnded ?: false,
+                                  useSscForCodySubscription ?: false)
+                              scheduler.shutdown()
+                            }
                   }
                   .completeOnTimeout(null, 4, TimeUnit.SECONDS)
             }
