@@ -9,70 +9,57 @@ import com.intellij.ui.DocumentAdapter
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.chat.CodyChatMessageHistory
+import com.sourcegraph.cody.chat.ui.SendButton
 import com.sourcegraph.cody.ui.AutoGrowingTextArea
 import java.awt.Dimension
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
-import javax.swing.JButton
 import javax.swing.JLayeredPane
 import javax.swing.KeyStroke
 import javax.swing.border.EmptyBorder
 import javax.swing.event.DocumentEvent
-import javax.swing.text.DefaultEditorKit
 
 class PromptPanel(
     chatMessageHistory: CodyChatMessageHistory,
     onSendMessageAction: () -> Unit,
-    val sendButton: JButton,
     isGenerating: () -> Boolean,
 ) : JLayeredPane() {
 
   private var isInHistoryMode = true
   private val autoGrowingTextArea = AutoGrowingTextArea(5, 9, this)
   private val scrollPane = autoGrowingTextArea.scrollPane
-  private val margin = 14
+  private val margin = 0
   val textArea = autoGrowingTextArea.textArea
 
   init {
     textArea.emptyText.text = "Ask a question about this code..."
-    textArea.border = EmptyBorder(JBUI.insets(4, 4, 4, 24))
 
     val upperMessageAction: AnAction =
         object : DumbAwareAction() {
           override fun actionPerformed(e: AnActionEvent) {
-            if (isInHistoryMode) {
-              chatMessageHistory.popUpperMessage(textArea)
-            } else {
-              val defaultAction = textArea.actionMap[DefaultEditorKit.upAction]
-              defaultAction.actionPerformed(null)
-            }
+            chatMessageHistory.popUpperMessage(textArea)
           }
         }
     val lowerMessageAction: AnAction =
         object : DumbAwareAction() {
           override fun actionPerformed(e: AnActionEvent) {
-            if (isInHistoryMode) {
-              chatMessageHistory.popLowerMessage(textArea)
-            } else {
-              val defaultAction = textArea.actionMap[DefaultEditorKit.downAction]
-              defaultAction.actionPerformed(null)
-            }
+            chatMessageHistory.popLowerMessage(textArea)
           }
         }
     val sendMessageAction: AnAction =
         object : DumbAwareAction() {
-          override fun actionPerformed(e: AnActionEvent) {
-            if (sendButton.isEnabled) {
-              onSendMessageAction()
-              isInHistoryMode = true
-            }
-          }
+          override fun actionPerformed(e: AnActionEvent) = onSendMessageAction()
         }
+
+    val sendButton = SendButton()
+    sendButton.addActionListener { _ -> onSendMessageAction() }
+
     sendMessageAction.registerCustomShortcutSet(DEFAULT_SUBMIT_ACTION_SHORTCUT, textArea)
     upperMessageAction.registerCustomShortcutSet(POP_UPPER_MESSAGE_ACTION_SHORTCUT, textArea)
     lowerMessageAction.registerCustomShortcutSet(POP_LOWER_MESSAGE_ACTION_SHORTCUT, textArea)
+
     textArea.addKeyListener(
         object : KeyAdapter() {
           override fun keyReleased(e: KeyEvent) {

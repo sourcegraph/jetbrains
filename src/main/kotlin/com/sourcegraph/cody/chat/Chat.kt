@@ -1,70 +1,75 @@
 package com.sourcegraph.cody.chat
 
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
+import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.RateLimitStateManager
-import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.function.Consumer
+import com.sourcegraph.telemetry.GraphQlLogger
 import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 import org.slf4j.LoggerFactory
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
+import java.util.function.Consumer
 
-class Chat {
-  val logger = LoggerFactory.getLogger(Chat::class.java)
+class Chat(private val panelID: String) {
+  private val logger = LoggerFactory.getLogger(Chat::class.java)
 
   @Throws(ExecutionException::class, InterruptedException::class)
   fun sendMessageViaAgent(
       project: Project,
+      cancellationToken: CancellationToken,
+      addOrUpdateMessage: (ChatMessage) -> Unit,
       humanMessage: ChatMessage,
       commandId: CommandId?,
-      chat: CodyToolWindowContent,
-      token: CancellationToken,
       isEnhancedContextEnabled: Boolean
   ) {
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-      val isFirstMessage = AtomicBoolean(false)
-      agent.client.onFinishedProcessing = Runnable { chat.finishMessageProcessing() }
-      agent.client.onChatUpdateMessageInProgress = Consumer { agentChatMessage ->
-        val agentChatMessageText = agentChatMessage.text ?: return@Consumer
-        val chatMessage =
-            ChatMessage(Speaker.ASSISTANT, agentChatMessageText, agentChatMessage.displayText)
-        if (isFirstMessage.compareAndSet(false, true)) {
-          val contextMessages =
-              agentChatMessage.contextFiles?.map { contextFile: ContextFile ->
-                ContextMessage(Speaker.ASSISTANT, agentChatMessageText, contextFile)
-              } ?: emptyList()
-          HistoryService.getInstance().updateMessageContextFiles(chat.chatId!!, contextMessages)
-          chat.displayUsedContext(contextMessages)
-          chat.addMessageToChat(chatMessage)
+      agent.client.onChatUpdate = Consumer { extensionMessage ->
+        if (extensionMessage.isMessageInProgress == false) {
+          cancellationToken.abort()
         } else {
-          chat.updateLastMessage(chatMessage)
+          val lastMsg = extensionMessage?.messages?.lastOrNull()
+          if (lastMsg?.text != null && extensionMessage.chatID != null) {
+            val chatMessage =
+                ChatMessage(
+                    Speaker.ASSISTANT,
+                    lastMsg.text,
+                    lastMsg.displayText,
+                    id = extensionMessage.chatID)
+            addOrUpdateMessage(chatMessage)
+          }
         }
+
+        // val agentChatMessageText = chatMessage?.text ?: return@Consumer
+        //        val chatMessage =
+        //            ChatMessage(Speaker.ASSISTANT, agentChatMessageText,
+        // agentChatMessage.displayText)
+        // HistoryService.getInstance().addOrUpdateMessage(chatId, lastReply.chatID!!)
+        // HistoryService.getInstance().addMessage(chatId!!, message)
+        // historyTree.refreshTree()
       }
 
       if (commandId != null) {
-        chat.chatId =
-            when (commandId) {
-              CommandId.Explain -> agent.server.commandsExplain().get()
-              CommandId.Smell -> agent.server.commandsSmell().get()
-              CommandId.Test -> agent.server.commandsTest().get()
-            }
+        // MYTODO NEW CHAT
+        when (commandId) {
+          CommandId.Explain -> agent.server.commandsExplain().get()
+          CommandId.Smell -> agent.server.commandsSmell().get()
+          CommandId.Test -> agent.server.commandsTest().get()
+        }
       } else {
-        handleReply(project, chat, token) {
+        processResponse(project, cancellationToken, addOrUpdateMessage) {
           agent.server.chatSubmitMessage(
               ChatSubmitMessageParams(
-                  chat.chatId!!,
+                  panelID,
                   WebviewMessage(
                       command = "submit",
                       text = humanMessage.actualMessage(),
@@ -77,45 +82,61 @@ class Chat {
     }
   }
 
-  fun handleReply(
+  private fun processResponse(
       project: Project,
-      chat: CodyToolWindowContent,
-      token: CancellationToken,
+      cancellationToken: CancellationToken,
+      addOrUpdateMessage: (ChatMessage) -> Unit,
       requestFun: () -> CompletableFuture<ExtensionMessage>
   ) {
     try {
+      GraphQlLogger.logCodyEvent(project, "chat-question", "submitted")
+
       val request = requestFun()
-      token.onCancellationRequested { request.cancel(true) }
+      cancellationToken.onCancellationRequested { request.cancel(true) }
+
       request.handle { lastReply, error ->
-        HistoryService.getInstance().updateReply(chat.chatId!!, lastReply.chatID!!)
-        if (error != null) {
-//          if (error.message?.startsWith("No panel with ID") == true) {
-//            chat.loadNewChatId { handleReply(project, chat, token, requestFun) }
-//          } else {
-//            logger.warn("Error while sending the message", error)
-//            handleError(project, error, chat)
-//          }
-        } else {
-          val err = lastReply.messages?.lastOrNull()?.error
-          if (lastReply.type == ExtensionMessage.Type.TRANSCRIPT && err != null) {
-            val rateLimitError = err.toRateLimitError()
-            if (rateLimitError != null) {
-              handleRateLimitError(project, chat, rateLimitError)
-            }
+        val chatError = lastReply.messages?.lastOrNull()?.error
+        if (error != null || chatError != null) {
+          cancellationToken.dispose()
+
+          val maybeRateLimitError =
+              if (error is ResponseErrorException &&
+                  error.toErrorCode() == ErrorCode.RateLimitError) {
+                error.toRateLimitError()
+              } else chatError?.toRateLimitError()
+
+          if (maybeRateLimitError != null) {
+            reportRateLimitError(project, addOrUpdateMessage, maybeRateLimitError)
           } else {
-            RateLimitStateManager.invalidateForChat(project)
+            reportGenericError(error ?: Exception(chatError?.message), addOrUpdateMessage)
           }
+        } else {
+          RateLimitStateManager.invalidateForChat(project)
+          GraphQlLogger.logCodyEvent(project, "chat-question", "executed")
         }
       }
-    } catch (ignored: Exception) {
-      // Ignore bugs in the agent when executing recipes
-      logger.warn("Ignored error executing recipe: $ignored")
+    } catch (error: Exception) {
+      cancellationToken.dispose()
+      reportGenericError(error, addOrUpdateMessage)
     }
   }
 
-  private fun handleRateLimitError(
+  private fun reportGenericError(
+      error: Throwable,
+      addOrUpdateMessage: (ChatMessage) -> Unit,
+  ) {
+    logger.warn("Error while sending the message", error)
+    addOrUpdateMessage(
+        ChatMessage(
+            Speaker.ASSISTANT,
+            "Cody is not able to reply at the moment. " +
+                "This is a bug, please report an issue to https://github.com/sourcegraph/jetbrains/issues/new/choose " +
+                "and include as many details as possible to help troubleshoot the problem."))
+  }
+
+  private fun reportRateLimitError(
       project: Project,
-      chat: CodyToolWindowContent,
+      addOrUpdateMessage: (ChatMessage) -> Unit,
       rateLimitError: RateLimitError
   ) {
     RateLimitStateManager.reportForChat(project, rateLimitError)
@@ -129,23 +150,7 @@ class Chat {
             else -> CodyBundle.getString("chat.rate-limit-error.explain")
           }
 
-      val chatMessage = ChatMessage(Speaker.ASSISTANT, text, null)
-      chat.addMessageToChat(chatMessage)
-      chat.finishMessageProcessing()
+      addOrUpdateMessage(ChatMessage(Speaker.ASSISTANT, text))
     }
-  }
-
-  private fun handleError(project: Project, throwable: Throwable, chat: CodyToolWindowContent) {
-    if (throwable is ResponseErrorException) {
-      val errorCode = throwable.toErrorCode()
-      if (errorCode == ErrorCode.RateLimitError) {
-        handleRateLimitError(project, chat, throwable.toRateLimitError())
-        return
-      }
-    }
-    RateLimitStateManager.invalidateForChat(project)
-
-    // todo: error handling for other error codes and throwables
-    chat.finishMessageProcessing()
   }
 }
