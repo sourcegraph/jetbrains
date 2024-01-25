@@ -5,7 +5,6 @@ import com.intellij.notification.NotificationType
 import com.intellij.notification.impl.NotificationFullContent
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.sourcegraph.Icons
@@ -65,9 +64,7 @@ class EndOfTrialNotification private constructor(title: String, content: String)
                     CodyBundle.getString("EndOfTrialNotification.ending-soon.content"))
               }
 
-          ApplicationManager.getApplication().invokeLater {
-            EndOfTrialNotification(title, content).notify(project)
-          }
+          EndOfTrialNotification(title, content).notify(project)
         }
       }
     }
