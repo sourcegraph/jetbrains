@@ -23,15 +23,6 @@ class HistoryTree(
     private val onDelete: (ChatState) -> Unit
 ) : SimpleToolWindowPanel(true, true) {
 
-  // todo commit msg: Deleting chats no longer resets the tree view to its initial state
-  // todo commit msg: The background color is now the same as other toolbars in IDE.
-  // todo commit msg: You can now search by titles if you are focused on the panel (just start
-  // typing).
-  // todo commit msg: Added separator to popup menu because it was easy to miss-click delete instead
-  // of select.
-  // todo commit msg: The popup menu and select/delete keyboard actions now registered as IDE
-  // actions (instead of Swing events).
-
   private val model = DefaultTreeModel(buildTree())
   private val tree =
       SimpleTree(model).apply {
