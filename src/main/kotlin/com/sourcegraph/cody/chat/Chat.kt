@@ -25,11 +25,11 @@ class Chat() {
     @Throws(ExecutionException::class, InterruptedException::class)
     fun sendMessageViaAgent(
         project: Project,
-        registerNewRequest: (CompletableFuture<*>) -> Unit,
         panelId: String,
         humanMessage: ChatMessage,
         isEnhancedContextEnabled: Boolean
-    ) {
+    ): CompletableFuture<ExtensionMessage> {
+      val response = CompletableFuture<CompletableFuture<ExtensionMessage>>()
       CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
         val message =
             WebviewMessage(
@@ -40,26 +40,23 @@ class Chat() {
                 // TODO(#242): allow to manually add files to the context via `@`
                 contextFiles = listOf())
 
-        val request = agent.server.chatSubmitMessage(ChatSubmitMessageParams(panelId, message))
-        registerNewRequest(request)
+        response.complete(agent.server.chatSubmitMessage(ChatSubmitMessageParams(panelId, message)))
       }
+      return response.get()
     }
 
     fun processResponse(
         project: Project,
-        chatPanels: Map<String, ChatPanel>,
-        panelId: String,
+        chatPanel: ChatPanel,
         extensionMessage: ExtensionMessage
     ) {
-      fun getChatPanel() = chatPanels[panelId]
-
       try {
         GraphQlLogger.logCodyEvent(project, "chat-question", "submitted")
 
         val lastMessage = extensionMessage.messages?.lastOrNull()
         if (lastMessage?.error != null) {
 
-          getChatPanel()?.getRequestToken()?.dispose()
+          chatPanel.getRequestToken()?.dispose()
           val rateLimitError = lastMessage.error.toRateLimitError()
           if (rateLimitError != null) {
             RateLimitStateManager.reportForChat(project, rateLimitError)
@@ -72,7 +69,7 @@ class Chat() {
                     else -> CodyBundle.getString("chat.rate-limit-error.explain")
                   }
 
-              getChatPanel()?.addOrUpdateMessage(ChatMessage(Speaker.ASSISTANT, text))
+              chatPanel.addOrUpdateMessage(ChatMessage(Speaker.ASSISTANT, text))
             }
           } else {
             // Currently we ignore other kind of errors like context window limit reached
@@ -82,7 +79,7 @@ class Chat() {
           GraphQlLogger.logCodyEvent(project, "chat-question", "executed")
 
           if (extensionMessage.isMessageInProgress == false) {
-            getChatPanel()?.getRequestToken()?.dispose()
+            chatPanel.getRequestToken()?.dispose()
           } else {
 
             if (lastMessage?.text != null && extensionMessage.chatID != null) {
@@ -93,20 +90,19 @@ class Chat() {
                   ChatMessage(
                       Speaker.ASSISTANT, lastMessage.text, lastMessage.displayText, id = uuid)
 
-              getChatPanel()?.addOrUpdateMessage(chatMessage)
+              chatPanel.addOrUpdateMessage(chatMessage)
             }
           }
         }
       } catch (error: Exception) {
-        getChatPanel()?.getRequestToken()?.dispose()
+        chatPanel.getRequestToken()?.dispose()
         logger.error("Error while processing the message", error)
-        getChatPanel()
-            ?.addOrUpdateMessage(
-                ChatMessage(
-                    Speaker.ASSISTANT,
-                    "Cody is not able to reply at the moment. " +
-                        "This is a bug, please report an issue to https://github.com/sourcegraph/jetbrains/issues/new/choose " +
-                        "and include as many details as possible to help troubleshoot the problem."))
+        chatPanel.addOrUpdateMessage(
+            ChatMessage(
+                Speaker.ASSISTANT,
+                "Cody is not able to reply at the moment. " +
+                    "This is a bug, please report an issue to https://github.com/sourcegraph/jetbrains/issues/new/choose " +
+                    "and include as many details as possible to help troubleshoot the problem."))
       }
     }
   }

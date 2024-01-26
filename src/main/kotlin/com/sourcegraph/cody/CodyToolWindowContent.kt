@@ -36,8 +36,7 @@ class CodyToolWindowContent(private val project: Project) {
   private val historyTree = JPanel()
   private val tabbedPane = JBTabbedPane()
 
-  private var currentChatPanelId: String? = null
-  private val chatPanel = JPanel(CardLayout())
+  private val chatContainerPanel = JPanel(CardLayout())
   private val chatPanels: ConcurrentHashMap<String, ChatPanel> = ConcurrentHashMap()
 
   private val commandsPanel =
@@ -46,14 +45,21 @@ class CodyToolWindowContent(private val project: Project) {
   private val subscriptionPanel = SubscriptionTabPanel()
 
   init {
-    tabbedPane.insertSimpleTab("Chat", chatPanel, CHAT_TAB_INDEX)
+    CodyAgentService.getInstance(project).addStartupAction { agent ->
+      agent.client.onChatUpdate = Consumer { params ->
+        chatPanels[params.id]?.let { Chat.processResponse(project, it, params.message) }
+      }
+    }
+
+    tabbedPane.insertSimpleTab("Chat", chatContainerPanel, CHAT_TAB_INDEX)
     tabbedPane.insertSimpleTab("Chat History", historyTree, HISTORY_TAB_INDEX)
     tabbedPane.insertSimpleTab("Commands", commandsPanel, RECIPES_TAB_INDEX)
     tabbedPane.insertSimpleTab("Subscription", subscriptionPanel, SUBSCRIPTION_TAB_INDEX)
 
     tabbedPane.addChangeListener {
       if (tabbedPane.selectedIndex == CHAT_TAB_INDEX) {
-        chatPanels[currentChatPanelId]?.requestFocusOnInputPrompt()
+        val currentChatPanel = chatContainerPanel.getComponent(0) as? ChatPanel
+        currentChatPanel?.requestFocusOnInputPrompt()
       }
     }
 
@@ -65,14 +71,6 @@ class CodyToolWindowContent(private val project: Project) {
     ApplicationManager.getApplication().executeOnPooledThread { refreshSubscriptionTab() }
 
     startNewChat(project)
-
-    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-      agent.client.onChatUpdate = Consumer { params ->
-        Chat.processResponse(project, chatPanels, params.id, params.message)
-      }
-    }
-
-    //    historyTree.refreshTree()
   }
 
   @RequiresBackgroundThread
@@ -118,12 +116,11 @@ class CodyToolWindowContent(private val project: Project) {
   ) {
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
       try {
-        currentChatPanelId = newPanelAction(agent).get()
+        val panelId = newPanelAction(agent).get()
         ApplicationManager.getApplication().invokeLater {
-          val newChatPanel = ChatPanel(project, currentChatPanelId!!)
-          chatPanels[currentChatPanelId!!] = newChatPanel
-          chatPanel.removeAll()
-          chatPanel.add(newChatPanel)
+          chatPanels[panelId] = ChatPanel(project, panelId)
+          chatContainerPanel.removeAll()
+          chatContainerPanel.add(chatPanels[panelId])
           activateChatTab()
         }
       } catch (e: ExecutionException) {
@@ -136,14 +133,6 @@ class CodyToolWindowContent(private val project: Project) {
       }
     }
   }
-
-  //  private fun deleteChat(item: ChatState) {
-  //    HistoryService.getInstance().removeChat(item.panelId!!)
-  //    if (chatId == item.panelId) {
-  //      refreshChatToEmpty()
-  //    }
-  //    historyTree.refreshTree()
-  //  }
 
   @RequiresEdt
   fun refreshPanelsVisibility() {

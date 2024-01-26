@@ -102,12 +102,9 @@ class ChatPanel(private val project: Project, private val panelId: String) :
     val humanMessage = ChatMessage(Speaker.HUMAN, text, displayText)
     messagesPanel.addOrUpdateMessage(humanMessage)
 
-    Chat.sendMessageViaAgent(
-        project,
-        ::registerNewChatInteraction,
-        panelId,
-        humanMessage,
-        contextView.isEnhancedContextEnabled.get())
+    registerNewChatInteraction(
+        Chat.sendMessageViaAgent(
+            project, panelId, humanMessage, contextView.isEnhancedContextEnabled.get()))
 
     promptPanel.reset()
   }
