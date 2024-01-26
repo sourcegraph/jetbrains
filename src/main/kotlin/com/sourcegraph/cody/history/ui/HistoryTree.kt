@@ -52,13 +52,11 @@ class HistoryTree(
   }
 
   private fun selectSelected() {
-    val leaf = tree.selectedLeafOrNull()
-    if (leaf != null) onSelect(leaf.chat)
+    tree.selectedLeafOrNull()?.let { onSelect(it.chat) }
   }
 
   private fun deleteSelected() {
-    val leaf = tree.selectedLeafOrNull()
-    if (leaf != null) {
+    tree.selectedLeafOrNull()?.let { leaf ->
       onDelete(leaf.chat)
       model.removeNodeFromParent(leaf)
     }
