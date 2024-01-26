@@ -14,11 +14,11 @@ import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.BrowserOpener.openInBrowser
 import com.sourcegraph.config.ConfigUtil
-import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class EndOfTrialNotification private constructor(title: String, content: String) :
+class EndOfTrialNotification
+private constructor(title: String, content: String, actionLink: String) :
     Notification("Sourcegraph errors", title, content, NotificationType.WARNING),
     NotificationFullContent {
   init {
@@ -31,9 +31,9 @@ class EndOfTrialNotification private constructor(title: String, content: String)
         }
 
     val upgradeAction: AnAction =
-        object : DumbAwareAction("Upgrade") {
+        object : DumbAwareAction(CodyBundle.getString("EndOfTrialNotification.link-action-name")) {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
-            openInBrowser(anActionEvent.project, "https://sourcegraph.com/cody/subscription")
+            openInBrowser(anActionEvent.project, actionLink)
             hideBalloon()
           }
         }
@@ -54,18 +54,20 @@ class EndOfTrialNotification private constructor(title: String, content: String)
         if (currentUserCodySubscription.plan == "PRO" &&
             currentUserCodySubscription.status == "PENDING" &&
             useSscForCodySubscription) {
-          val (title, content) =
+          val (title, content, link) =
               if (codyProTrialEnded) {
-                Pair(
+                Triple(
                     CodyBundle.getString("EndOfTrialNotification.ended.title"),
-                    CodyBundle.getString("EndOfTrialNotification.ended.content"))
+                    CodyBundle.getString("EndOfTrialNotification.ended.content"),
+                    CodyBundle.getString("EndOfTrialNotification.ended.link"))
               } else {
-                Pair(
+                Triple(
                     CodyBundle.getString("EndOfTrialNotification.ending-soon.title"),
-                    CodyBundle.getString("EndOfTrialNotification.ending-soon.content"))
+                    CodyBundle.getString("EndOfTrialNotification.ending-soon.content"),
+                    CodyBundle.getString("EndOfTrialNotification.ending-soon.link"))
               }
 
-          EndOfTrialNotification(title, content).notify(project)
+          EndOfTrialNotification(title, content, link).notify(project)
         }
       }
     }
@@ -99,7 +101,7 @@ class EndOfTrialNotification private constructor(title: String, content: String)
                                 useSscForCodySubscription ->
                               showEndOfTrialNotificationIfApplicable(
                                   project,
-                                  it,
+                                  currentUserCodySubscription = it,
                                   codyProTrialEnded ?: false,
                                   useSscForCodySubscription ?: false)
                               scheduler.shutdown()
