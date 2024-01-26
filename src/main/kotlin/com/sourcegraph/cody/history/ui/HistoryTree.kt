@@ -11,6 +11,7 @@ import com.intellij.ui.treeStructure.SimpleTree
 import com.intellij.util.EditSourceOnDoubleClickHandler
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.ChatState
+import com.sourcegraph.common.CodyBundle
 import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
 import javax.swing.*
@@ -37,9 +38,9 @@ class HistoryTree(
 
   init {
     val group = DefaultActionGroup()
-    group.add(LeafPopupAction(tree, "Select Chat", null, ::selectSelected))
+    group.add(LeafPopupAction(tree, CodyBundle.getString("popup.select-chat"), null, ::selectSelected))
     group.addSeparator()
-    group.add(LeafPopupAction(tree, "Remove Chat", AllIcons.Actions.GC, ::deleteSelected))
+    group.add(LeafPopupAction(tree, CodyBundle.getString("popup.remove-chat"), AllIcons.Actions.GC, ::deleteSelected))
     PopupHandler.installPopupMenu(tree, group, "ChatActionsPopup")
     EditSourceOnDoubleClickHandler.install(tree, ::selectSelected)
     setContent(ScrollPaneFactory.createScrollPane(tree))

@@ -3,6 +3,8 @@ package com.sourcegraph.cody.history.ui
 import com.intellij.ide.util.treeView.NodeRenderer
 import com.intellij.ui.SimpleTextAttributes
 import com.sourcegraph.cody.Icons
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import javax.swing.JTree
@@ -29,7 +31,7 @@ class HistoryTreeNodeRenderer : NodeRenderer() {
         if (isShortDuration(lastUpdated)) {
           append(" ")
           val duration = DurationUnitFormatter.format(lastUpdated)
-          append("$duration ago", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+          append(CodyBundle.getString("duration.x-ago").fmt(duration), SimpleTextAttributes.GRAYED_ATTRIBUTES)
         }
       }
       else -> append(value.toString())
