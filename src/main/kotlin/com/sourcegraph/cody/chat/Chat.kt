@@ -90,12 +90,12 @@ class Chat {
       request.handle { lastReply, error ->
         HistoryService.getInstance().updateReply(chat.chatId!!, lastReply.chatID!!)
         if (error != null) {
-//          if (error.message?.startsWith("No panel with ID") == true) {
-//            chat.loadNewChatId { handleReply(project, chat, token, requestFun) }
-//          } else {
-//            logger.warn("Error while sending the message", error)
-//            handleError(project, error, chat)
-//          }
+          //          if (error.message?.startsWith("No panel with ID") == true) {
+          //            chat.loadNewChatId { handleReply(project, chat, token, requestFun) }
+          //          } else {
+          //            logger.warn("Error while sending the message", error)
+          //            handleError(project, error, chat)
+          //          }
         } else {
           val err = lastReply.messages?.lastOrNull()?.error
           if (lastReply.type == ExtensionMessage.Type.TRANSCRIPT && err != null) {

@@ -27,15 +27,15 @@ class HistoryTreeNodeRenderer : NodeRenderer() {
 
         val lastUpdated = value.chat.latestMessage()
         if (isShortDuration(lastUpdated)) {
-                append(" ")
-                val duration = DurationUnitFormatter.format(lastUpdated)
-                append("$duration ago", SimpleTextAttributes.GRAYED_ATTRIBUTES)
-            }
+          append(" ")
+          val duration = DurationUnitFormatter.format(lastUpdated)
+          append("$duration ago", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+        }
       }
       else -> append(value.toString())
     }
   }
 
-    private fun isShortDuration(since: LocalDateTime) =
-        ChronoUnit.DAYS.between(since, LocalDateTime.now()).toInt() < 7
+  private fun isShortDuration(since: LocalDateTime) =
+      ChronoUnit.DAYS.between(since, LocalDateTime.now()).toInt() < 7
 }

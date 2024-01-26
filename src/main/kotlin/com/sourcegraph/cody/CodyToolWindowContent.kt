@@ -20,8 +20,8 @@ import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.ui.EnhancedContextPanel
 import com.sourcegraph.cody.history.HistoryService
-import com.sourcegraph.cody.history.ui.HistoryTree
 import com.sourcegraph.cody.history.state.ChatState
+import com.sourcegraph.cody.history.ui.HistoryTree
 import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.ui.SendButton
 import com.sourcegraph.cody.vscode.CancellationToken
