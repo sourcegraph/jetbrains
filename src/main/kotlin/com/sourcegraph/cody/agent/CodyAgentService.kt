@@ -19,6 +19,14 @@ class CodyAgentService : Disposable {
   private val logger = Logger.getInstance(CodyAgent::class.java)
   @GuardedBy("this") private var codyAgent: CompletableFuture<CodyAgent> = CompletableFuture()
 
+  private val startupActions: MutableList<(CodyAgent) -> Unit> = mutableListOf()
+
+  @GuardedBy("this")
+  fun addStartupAction(action: (CodyAgent) -> Unit) {
+    startupActions.add(action)
+    codyAgent.getNow(null)?.let { action(it) }
+  }
+
   @GuardedBy("this")
   private fun getInitializedAgent(project: Project): CompletableFuture<CodyAgent> {
     return if (codyAgent.isDone) {
@@ -39,6 +47,7 @@ class CodyAgentService : Disposable {
           logger.warn("Failed to start Cody agent, retrying...", e)
         }
       }
+      startupActions.forEach { action -> action(agent) }
       codyAgent.complete(agent)
       CodyAutocompleteStatusService.resetApplication(project)
     }
