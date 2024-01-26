@@ -1,5 +1,6 @@
 package com.sourcegraph.cody
 
+import CodyAgent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
@@ -8,6 +9,7 @@ import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.chat.Chat
 import com.sourcegraph.cody.chat.SignInWithSourcegraphPanel
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.chat.ui.CodyOnboardingGuidancePanel
@@ -16,9 +18,10 @@ import com.sourcegraph.cody.commands.ui.CommandsTabPanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.vscode.CancellationToken
 import java.awt.CardLayout
 import java.awt.Component
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.function.Consumer
 import javax.swing.JPanel
@@ -30,18 +33,15 @@ class CodyToolWindowContent(private val project: Project) {
 
   private var codyOnboardingGuidancePanel: CodyOnboardingGuidancePanel? = null
   private val signInWithSourcegraphPanel = SignInWithSourcegraphPanel(project)
-  private val historyTree = JPanel() // HistoryTree(::selectChat, ::deleteChat)
+  private val historyTree = JPanel()
   private val tabbedPane = JBTabbedPane()
 
+  private var currentChatPanelId: String? = null
   private val chatPanel = JPanel(CardLayout())
-  private var chatPanelEmbedded = ChatPanel(project, "default")
+  private val chatPanels: ConcurrentHashMap<String, ChatPanel> = ConcurrentHashMap()
 
   private val commandsPanel =
-      CommandsTabPanel(project) { cancellationToken: CancellationToken, cmdId: CommandId ->
-        ApplicationManager.getApplication().invokeLater {
-          // sendMessage(project, cancellationToken, cmdId.displayName, cmdId)
-        }
-      }
+      CommandsTabPanel(project) { commandId: CommandId -> runNewCommand(project, commandId) }
 
   private val subscriptionPanel = SubscriptionTabPanel()
 
@@ -53,11 +53,9 @@ class CodyToolWindowContent(private val project: Project) {
 
     tabbedPane.addChangeListener {
       if (tabbedPane.selectedIndex == CHAT_TAB_INDEX) {
-        chatPanelEmbedded.requestFocusOnInputPrompt()
+        chatPanels[currentChatPanelId]?.requestFocusOnInputPrompt()
       }
     }
-
-    chatPanel.add(chatPanelEmbedded)
 
     allContentPanel.add(tabbedPane, "tabbedPane", CHAT_PANEL_INDEX)
     allContentPanel.add(signInWithSourcegraphPanel, SIGN_IN_PANEL, SIGN_IN_PANEL_INDEX)
@@ -66,15 +64,14 @@ class CodyToolWindowContent(private val project: Project) {
     ApplicationManager.getApplication().invokeLater { refreshPanelsVisibility() }
     ApplicationManager.getApplication().executeOnPooledThread { refreshSubscriptionTab() }
 
-    startNewChat(project) { panelId ->
-      ApplicationManager.getApplication().invokeLater {
-        chatPanelEmbedded = ChatPanel(project, panelId)
-        chatPanel.removeAll()
-        chatPanel.add(chatPanelEmbedded)
+    startNewChat(project)
+
+    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+      agent.client.onChatUpdate = Consumer { params ->
+        Chat.processResponse(project, chatPanels, params.id, params.message)
       }
     }
 
-    //    refreshChatToEmpty()
     //    historyTree.refreshTree()
   }
 
@@ -101,33 +98,44 @@ class CodyToolWindowContent(private val project: Project) {
     }
   }
 
-  fun startNewChat(project: Project, onNewChatId: Consumer<String>) {
-    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-      try {
-        onNewChatId.accept(agent.server.chatNew().get())
-      } catch (e: ExecutionException) {
-        // Agent cannot gracefully recover when connection is lost, we need to restart it
-        // TODO https://github.com/sourcegraph/jetbrains/issues/306
-        CodyToolWindowContent.logger.warn("Failed to load new chat, restarting agent", e)
-        CodyAgentService.getInstance(project).restartAgent(project)
-        Thread.sleep(5000)
-        startNewChat(project, onNewChatId)
+  private fun runNewCommand(project: Project, commandId: CommandId) {
+    startNewPanel(project) { agent: CodyAgent ->
+      when (commandId) {
+        CommandId.Explain -> agent.server.commandsExplain()
+        CommandId.Smell -> agent.server.commandsSmell()
+        CommandId.Test -> agent.server.commandsTest()
       }
     }
   }
 
-  //  fun refreshChatToEmpty() {
-  //    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-  //      ApplicationManager.getApplication().invokeLater {
-  //        messagesPanel.removeAll()
-  //        chatMessageHistory.clearHistory()
-  //        inProgressChat.abort()
-  //        addWelcomeMessage()
-  //        activateChatTab()
-  //      }
-  //      chatId = agent.server.chatNew().get()
-  //    }
-  //  }
+  private fun startNewChat(project: Project) {
+    startNewPanel(project) { it.server.chatNew() }
+  }
+
+  private fun startNewPanel(
+      project: Project,
+      newPanelAction: (CodyAgent) -> CompletableFuture<String>
+  ) {
+    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+      try {
+        currentChatPanelId = newPanelAction(agent).get()
+        ApplicationManager.getApplication().invokeLater {
+          val newChatPanel = ChatPanel(project, currentChatPanelId!!)
+          chatPanels[currentChatPanelId!!] = newChatPanel
+          chatPanel.removeAll()
+          chatPanel.add(newChatPanel)
+          activateChatTab()
+        }
+      } catch (e: ExecutionException) {
+        // Agent cannot gracefully recover when connection is lost, we need to restart it
+        // TODO https://github.com/sourcegraph/jetbrains/issues/306
+        logger.warn("Failed to load new chat, restarting agent", e)
+        CodyAgentService.getInstance(project).restartAgent(project)
+        Thread.sleep(5000)
+        startNewPanel(project, newPanelAction)
+      }
+    }
+  }
 
   //  private fun deleteChat(item: ChatState) {
   //    HistoryService.getInstance().removeChat(item.panelId!!)

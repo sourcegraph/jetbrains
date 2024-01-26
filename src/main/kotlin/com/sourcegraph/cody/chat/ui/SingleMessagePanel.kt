@@ -13,6 +13,7 @@ import org.commonmark.node.Node
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
 import java.awt.Color
+import java.util.*
 import javax.swing.JEditorPane
 import javax.swing.JPanel
 
@@ -29,7 +30,7 @@ class SingleMessagePanel(
     markdownNodes.accept(MessageContentCreatorFromMarkdownNodes(this, htmlRenderer))
   }
 
-  fun getMessageId(): String = chatMessage.id
+  fun getMessageId(): UUID = chatMessage.id
 
   fun updateContentWith(message: ChatMessage) {
     val markdownNodes = markdownParser.parse(message.actualMessage())

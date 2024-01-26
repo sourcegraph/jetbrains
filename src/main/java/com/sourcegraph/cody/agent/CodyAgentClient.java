@@ -17,7 +17,7 @@ public class CodyAgentClient {
 
   private static final Logger logger = Logger.getInstance(CodyAgentClient.class);
   // Callback that is invoked when the agent sends a "chat/updateMessageInProgress" notification.
-  @Nullable public Consumer<ExtensionMessage> onChatUpdate;
+  @Nullable public Consumer<WebviewPostMessageParams> onChatUpdate;
   @Nullable public Editor editor;
 
   /**
@@ -61,8 +61,7 @@ public class CodyAgentClient {
 
     if (onChatUpdate != null
         && extensionMessage.getType().equals(ExtensionMessage.Type.TRANSCRIPT)) {
-      ApplicationManager.getApplication()
-          .invokeLater(() -> onChatUpdate.accept(extensionMessage));
+      ApplicationManager.getApplication().invokeLater(() -> onChatUpdate.accept(params));
     } else {
       logger.warn("onChatUpdateMessageInProgress is null or message type is not transcript");
       logger.warn(String.format("webview/postMessage %s: %s", params.getId(), extensionMessage));
