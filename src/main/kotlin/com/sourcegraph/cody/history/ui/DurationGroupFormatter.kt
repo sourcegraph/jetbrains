@@ -1,5 +1,7 @@
 package com.sourcegraph.cody.history.ui
 
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
@@ -13,15 +15,16 @@ object DurationGroupFormatter {
     // order of these conditions looks shuffled, but this covers edge-cases
     // for example: "last month" has higher priority than "4 weeks ago"
     return when {
-      days == 0 -> "Today"
-      days == 1 -> "Yesterday"
-      days in 2..6 -> "$days days ago"
-      weeks == 1 -> "Last week"
-      months == 1 -> "Last month"
-      weeks in 2..4 -> "$weeks weeks ago"
-      years == 1 -> "Last year"
-      months in 2..12 -> "$months months ago"
-      else -> "$years years ago"
+      days == 0 -> CodyBundle.getString("duration.today")
+      days == 1 -> CodyBundle.getString("duration.yesterday")
+      days in 2..6 -> CodyBundle.getString("duration.x-days-ago").fmt(days.toString())
+      weeks == 1 -> CodyBundle.getString("duration.last-week")
+      months == 1 -> CodyBundle.getString("duration.last-month")
+      weeks in 2..4 -> CodyBundle.getString("duration.x-weeks-ago").fmt(weeks.toString())
+      years == 1 -> CodyBundle.getString("duration.last-year")
+      months in 2..12 -> CodyBundle.getString("duration.x-months-ago").fmt(months.toString())
+      else -> CodyBundle.getString("duration.x-years-ago").fmt(years.toString())
     }
   }
+
 }
