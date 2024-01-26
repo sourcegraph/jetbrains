@@ -1,4 +1,4 @@
-package com.sourcegraph.cody.history
+package com.sourcegraph.cody.history.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
@@ -9,8 +9,8 @@ import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.treeStructure.SimpleTree
 import com.intellij.util.EditSourceOnDoubleClickHandler
+import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.ChatState
-import com.sourcegraph.cody.history.util.DurationGroupFormatter
 import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
 import javax.swing.*

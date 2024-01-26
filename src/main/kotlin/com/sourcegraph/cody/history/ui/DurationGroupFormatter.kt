@@ -1,4 +1,4 @@
-package com.sourcegraph.cody.history.util
+package com.sourcegraph.cody.history.ui
 
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit

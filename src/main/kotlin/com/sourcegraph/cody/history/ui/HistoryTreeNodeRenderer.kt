@@ -1,9 +1,8 @@
-package com.sourcegraph.cody.history
+package com.sourcegraph.cody.history.ui
 
 import com.intellij.ide.util.treeView.NodeRenderer
 import com.intellij.ui.SimpleTextAttributes
 import com.sourcegraph.cody.Icons
-import com.sourcegraph.cody.history.util.DurationUnitFormatter
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import javax.swing.JTree
