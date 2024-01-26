@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.agent.protocol
 
 import java.time.OffsetDateTime
+import java.util.*
 
 data class ChatError(
     val kind: String? = null,
@@ -31,10 +32,9 @@ data class ChatMessage(
     val displayText: String? = null,
     val contextFiles: List<ContextFile>? = null,
     val error: ChatError? = null,
-    // `id` is used to identify if updates are sent for the same message
-    // If none is provided we are just assigning new UUID to give the message unique identity
-    // (e.g. in case of messages created at once by human)
-    val id: String = java.util.UUID.randomUUID().toString()
+    // Internal ID used for identifying message updates
+    // All partial messages being part of the same response are guaranteed to have the same ID
+    val id: UUID = UUID.randomUUID()
 ) : Message {
   fun actualMessage(): String = displayText ?: text ?: ""
 }
