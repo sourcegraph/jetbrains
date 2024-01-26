@@ -31,7 +31,9 @@ class HistoryTreeNodeRenderer : NodeRenderer() {
         if (isShortDuration(lastUpdated)) {
           append(" ")
           val duration = DurationUnitFormatter.format(lastUpdated)
-          append(CodyBundle.getString("duration.x-ago").fmt(duration), SimpleTextAttributes.GRAYED_ATTRIBUTES)
+          append(
+              CodyBundle.getString("duration.x-ago").fmt(duration),
+              SimpleTextAttributes.GRAYED_ATTRIBUTES)
         }
       }
       else -> append(value.toString())

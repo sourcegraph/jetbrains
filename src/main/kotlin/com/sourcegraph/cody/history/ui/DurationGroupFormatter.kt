@@ -26,5 +26,4 @@ object DurationGroupFormatter {
       else -> CodyBundle.getString("duration.x-years-ago").fmt(years.toString())
     }
   }
-
 }
