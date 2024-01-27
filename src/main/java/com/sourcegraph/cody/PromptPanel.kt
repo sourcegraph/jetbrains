@@ -8,6 +8,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.ui.DocumentAdapter
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.chat.CodyChatMessageHistory
 import com.sourcegraph.cody.chat.ui.SendButton
 import com.sourcegraph.cody.ui.AutoGrowingTextArea
@@ -24,7 +25,7 @@ import javax.swing.event.DocumentEvent
 class PromptPanel(
     chatMessageHistory: CodyChatMessageHistory,
     onSendMessageAction: () -> Unit,
-    isGenerating: () -> Boolean,
+    chatSession: ChatSession,
 ) : JLayeredPane() {
 
   private var isInHistoryMode = true
@@ -73,7 +74,7 @@ class PromptPanel(
         object : DocumentAdapter() {
           override fun textChanged(e: DocumentEvent) {
             val empty = textArea.getText().isEmpty()
-            sendButton.isEnabled = !empty && !isGenerating()
+            sendButton.isEnabled = !empty && chatSession.getCancellationToken().isDone
           }
         })
     scrollPane.border = EmptyBorder(JBUI.insets(0, margin, margin, margin))

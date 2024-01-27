@@ -1,15 +1,13 @@
 package com.sourcegraph.cody
 
-import CodyAgent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBTabbedPane
-import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.chat.Chat
+import com.sourcegraph.cody.chat.AgentChatSession
 import com.sourcegraph.cody.chat.SignInWithSourcegraphPanel
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.chat.ui.CodyOnboardingGuidancePanel
@@ -18,11 +16,9 @@ import com.sourcegraph.cody.commands.ui.CommandsTabPanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import io.ktor.util.collections.*
 import java.awt.CardLayout
 import java.awt.Component
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ExecutionException
 import java.util.function.Consumer
 import javax.swing.JPanel
 
@@ -37,18 +33,23 @@ class CodyToolWindowContent(private val project: Project) {
   private val tabbedPane = JBTabbedPane()
 
   private val chatContainerPanel = JPanel(CardLayout())
-  private val chatPanels: ConcurrentHashMap<String, ChatPanel> = ConcurrentHashMap()
+  private val chatSessions: ConcurrentList<AgentChatSession> = ConcurrentList()
 
   private val commandsPanel =
-      CommandsTabPanel(project) { commandId: CommandId -> runNewCommand(project, commandId) }
+      CommandsTabPanel(project) { commandId: CommandId ->
+        addChatSession(AgentChatSession(project, commandId))
+      }
 
   private val subscriptionPanel = SubscriptionTabPanel()
 
   init {
-    CodyAgentService.getInstance(project).addStartupAction { agent ->
-      agent.client.onChatUpdate = Consumer { params ->
-        chatPanels[params.id]?.let { Chat.processResponse(project, it, params.message) }
+    CodyAgentService.getInstance(project).onStartup { agent ->
+      agent.client.onNewMessage = Consumer { params ->
+        chatSessions
+            .find { it.getPanelId().getNow(null) == params.id }
+            ?.receiveMessage(params.message)
       }
+      ApplicationManager.getApplication().invokeLater { refreshPanelsVisibility() }
     }
 
     tabbedPane.insertSimpleTab("Chat", chatContainerPanel, CHAT_TAB_INDEX)
@@ -63,17 +64,27 @@ class CodyToolWindowContent(private val project: Project) {
       }
     }
 
-    allContentPanel.add(tabbedPane, "tabbedPane", CHAT_PANEL_INDEX)
+    allContentPanel.add(tabbedPane, MAIN_PANEL, CHAT_PANEL_INDEX)
     allContentPanel.add(signInWithSourcegraphPanel, SIGN_IN_PANEL, SIGN_IN_PANEL_INDEX)
     allContentLayout.show(allContentPanel, SIGN_IN_PANEL)
 
-    ApplicationManager.getApplication().invokeLater { refreshPanelsVisibility() }
-    ApplicationManager.getApplication().executeOnPooledThread { refreshSubscriptionTab() }
-
-    startNewChat(project)
+    refreshPanelsVisibility()
+    refreshSubscriptionTab()
+    createNewChatSession()
   }
 
-  @RequiresBackgroundThread
+  fun createNewChatSession() {
+    ApplicationManager.getApplication().invokeLater { addChatSession(AgentChatSession(project)) }
+  }
+
+  private fun addChatSession(chatSession: AgentChatSession) {
+    ApplicationManager.getApplication().invokeLater {
+      chatSessions.add(chatSession)
+      chatContainerPanel.removeAll()
+      chatContainerPanel.add(chatSession.getPanel())
+    }
+  }
+
   fun refreshSubscriptionTab() {
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
       val data = fetchSubscriptionPanelData(project, agent.server)
@@ -92,44 +103,6 @@ class CodyToolWindowContent(private val project: Project) {
         } else if (isSubscriptionTabPresent) {
           tabbedPane.remove(SUBSCRIPTION_TAB_INDEX)
         }
-      }
-    }
-  }
-
-  private fun runNewCommand(project: Project, commandId: CommandId) {
-    startNewPanel(project) { agent: CodyAgent ->
-      when (commandId) {
-        CommandId.Explain -> agent.server.commandsExplain()
-        CommandId.Smell -> agent.server.commandsSmell()
-        CommandId.Test -> agent.server.commandsTest()
-      }
-    }
-  }
-
-  private fun startNewChat(project: Project) {
-    startNewPanel(project) { it.server.chatNew() }
-  }
-
-  private fun startNewPanel(
-      project: Project,
-      newPanelAction: (CodyAgent) -> CompletableFuture<String>
-  ) {
-    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-      try {
-        val panelId = newPanelAction(agent).get()
-        ApplicationManager.getApplication().invokeLater {
-          chatPanels[panelId] = ChatPanel(project, panelId)
-          chatContainerPanel.removeAll()
-          chatContainerPanel.add(chatPanels[panelId])
-          activateChatTab()
-        }
-      } catch (e: ExecutionException) {
-        // Agent cannot gracefully recover when connection is lost, we need to restart it
-        // TODO https://github.com/sourcegraph/jetbrains/issues/306
-        logger.warn("Failed to load new chat, restarting agent", e)
-        CodyAgentService.getInstance(project).restartAgent(project)
-        Thread.sleep(5000)
-        startNewPanel(project, newPanelAction)
       }
     }
   }
@@ -162,7 +135,7 @@ class CodyToolWindowContent(private val project: Project) {
       allContentLayout.show(allContentPanel, ONBOARDING_PANEL)
       return
     }
-    allContentLayout.show(allContentPanel, "tabbedPane")
+    allContentLayout.show(allContentPanel, MAIN_PANEL)
   }
 
   private fun activateChatTab() {
@@ -172,6 +145,7 @@ class CodyToolWindowContent(private val project: Project) {
   companion object {
     const val ONBOARDING_PANEL = "onboardingPanel"
     const val SIGN_IN_PANEL = "singInWithSourcegraphPanel"
+    const val MAIN_PANEL = "mainPanel"
 
     const val CHAT_PANEL_INDEX = 0
     const val SIGN_IN_PANEL_INDEX = 1
