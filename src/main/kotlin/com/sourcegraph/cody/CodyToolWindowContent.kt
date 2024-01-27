@@ -65,7 +65,7 @@ class CodyToolWindowContent(private val project: Project) {
 
     tabbedPane.insertSimpleTab("Chat", chatContainerPanel, CHAT_TAB_INDEX)
     tabbedPane.insertSimpleTab("Chat History", historyTree, HISTORY_TAB_INDEX)
-    tabbedPane.insertSimpleTab("Commands", commandsPanel, RECIPES_TAB_INDEX)
+    tabbedPane.insertSimpleTab("Commands", commandsPanel, COMMANDS_TAB_INDEX)
     tabbedPane.insertSimpleTab("Subscription", subscriptionPanel, SUBSCRIPTION_TAB_INDEX)
 
     tabbedPane.addChangeListener {
@@ -164,7 +164,7 @@ class CodyToolWindowContent(private val project: Project) {
 
     private const val CHAT_TAB_INDEX = 0
     private const val HISTORY_TAB_INDEX = 1
-    private const val RECIPES_TAB_INDEX = 2
+    private const val COMMANDS_TAB_INDEX = 2
     private const val SUBSCRIPTION_TAB_INDEX = 3
 
     var logger = Logger.getInstance(CodyToolWindowContent::class.java)
