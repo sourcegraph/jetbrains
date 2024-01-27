@@ -19,11 +19,11 @@ import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
 import com.sourcegraph.telemetry.GraphQlLogger
 import io.ktor.util.collections.*
-import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import javax.annotation.concurrent.GuardedBy
+import org.slf4j.LoggerFactory
 
 typealias PanelId = String
 
