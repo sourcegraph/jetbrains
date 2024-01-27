@@ -1,46 +1,16 @@
 package com.sourcegraph.common
 
-import com.intellij.notification.Notification
-import com.intellij.notification.NotificationType
-import com.intellij.notification.impl.NotificationFullContent
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.project.Project
-import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
 import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.common.BrowserOpener.openInBrowser
 import com.sourcegraph.config.ConfigUtil
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class EndOfTrialNotification
-private constructor(title: String, content: String, actionLink: String) :
-    Notification("Sourcegraph errors", title, content, NotificationType.WARNING),
-    NotificationFullContent {
-  init {
-    icon = Icons.CodyLogo
-    val dismissAction: AnAction =
-        object : DumbAwareAction("Dismiss") {
-          override fun actionPerformed(anActionEvent: AnActionEvent) {
-            hideBalloon()
-          }
-        }
-
-    val upgradeAction: AnAction =
-        object : DumbAwareAction(CodyBundle.getString("EndOfTrialNotification.link-action-name")) {
-          override fun actionPerformed(anActionEvent: AnActionEvent) {
-            openInBrowser(anActionEvent.project, actionLink)
-            hideBalloon()
-          }
-        }
-    addAction(upgradeAction)
-    addAction(dismissAction)
-  }
-
+class EndOfTrialNotification {
   companion object {
     private fun showEndOfTrialNotificationIfApplicable(
         project: Project,
@@ -54,20 +24,17 @@ private constructor(title: String, content: String, actionLink: String) :
         if (currentUserCodySubscription.plan == "PRO" &&
             currentUserCodySubscription.status == "PENDING" &&
             useSscForCodySubscription) {
-          val (title, content, link) =
-              if (codyProTrialEnded) {
-                Triple(
-                    CodyBundle.getString("EndOfTrialNotification.ended.title"),
-                    CodyBundle.getString("EndOfTrialNotification.ended.content"),
-                    CodyBundle.getString("EndOfTrialNotification.ended.link"))
-              } else {
-                Triple(
-                    CodyBundle.getString("EndOfTrialNotification.ending-soon.title"),
-                    CodyBundle.getString("EndOfTrialNotification.ending-soon.content"),
-                    CodyBundle.getString("EndOfTrialNotification.ending-soon.link"))
-              }
-
-          EndOfTrialNotification(title, content, link).notify(project)
+          if (codyProTrialEnded) {
+            if (PropertiesComponent.getInstance().getBoolean(TrialEndedNotification.ignore)) {
+              return
+            }
+            TrialEndedNotification().notify(project)
+          } else {
+            if (PropertiesComponent.getInstance().getBoolean(TrialEndingSoonNotification.ignore)) {
+              return
+            }
+            TrialEndingSoonNotification().notify(project)
+          }
         }
       }
     }
@@ -104,7 +71,7 @@ private constructor(title: String, content: String, actionLink: String) :
                                   currentUserCodySubscription = it,
                                   codyProTrialEnded ?: false,
                                   useSscForCodySubscription ?: false)
-                              scheduler.shutdown()
+                              scheduler.shutdown() // todo: ensure it running after ending soon dismissed
                             }
                   }
                   .completeOnTimeout(null, 4, TimeUnit.SECONDS)
