@@ -1,4 +1,4 @@
-package com.sourcegraph.common
+package com.sourcegraph.cody.initialization
 
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.Notification
@@ -8,12 +8,13 @@ import com.intellij.notification.impl.NotificationFullContent
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.sourcegraph.Icons
 import com.sourcegraph.common.BrowserOpener.openInBrowser
+import com.sourcegraph.common.CodyBundle
 
-class TrialEndedNotification :
+class TrialEndingSoonNotification :
     Notification(
         "Sourcegraph errors",
-        CodyBundle.getString("EndOfTrialNotification.ended.title"),
-        CodyBundle.getString("EndOfTrialNotification.ended.content"),
+        CodyBundle.getString("TrialEndingSoonNotification.ending-soon.title"),
+        CodyBundle.getString("TrialEndingSoonNotification.ending-soon.content"),
         NotificationType.WARNING),
     NotificationFullContent {
 
@@ -25,7 +26,8 @@ class TrialEndedNotification :
             NotificationAction(CodyBundle.getString("EndOfTrialNotification.link-action-name")) {
           override fun actionPerformed(anActionEvent: AnActionEvent, notification: Notification) {
             openInBrowser(
-                anActionEvent.project, CodyBundle.getString("EndOfTrialNotification.ended.link"))
+                anActionEvent.project,
+                CodyBundle.getString("TrialEndingSoonNotification.ending-soon.link"))
             notification.expire()
           }
         })
@@ -40,6 +42,6 @@ class TrialEndedNotification :
   }
 
   companion object {
-    val ignore: String = CodyBundle.getString("EndOfTrialNotification.ignore.ended")
+    val ignore: String = CodyBundle.getString("TrialEndingSoonNotification.ignore")
   }
 }
