@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
 import com.sourcegraph.cody.chat.AgentChatSession
 import com.sourcegraph.cody.chat.SignInWithSourcegraphPanel
 import com.sourcegraph.cody.chat.ui.ChatPanel
@@ -49,6 +50,16 @@ class CodyToolWindowContent(private val project: Project) {
             .find { it.getPanelId().getNow(null) == params.id }
             ?.receiveMessage(params.message)
       }
+
+      chatSessions.forEach { session ->
+        val model = "openai/gpt-3.5-turbo"
+        session.getPanelId().getNow(null)?.let { panelId ->
+          val newPanelId =
+              agent.server.chatRestore(ChatRestoreParams(model, session.getMessages(), panelId))
+          session.setPanelId(newPanelId)
+        }
+      }
+
       ApplicationManager.getApplication().invokeLater { refreshPanelsVisibility() }
     }
 
@@ -89,7 +100,7 @@ class CodyToolWindowContent(private val project: Project) {
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
       val data = fetchSubscriptionPanelData(project, agent.server)
       if (data != null) {
-        val isSubscriptionTabPresent = tabbedPane.tabCount >= SUBSCRIPTION_TAB_INDEX + 1
+        val isSubscriptionTabPresent = tabbedPane.tabCount > SUBSCRIPTION_TAB_INDEX
         if (data.isDotcomAccount && data.codyProFeatureFlag) {
           if (!isSubscriptionTabPresent) {
             tabbedPane.insertTab(

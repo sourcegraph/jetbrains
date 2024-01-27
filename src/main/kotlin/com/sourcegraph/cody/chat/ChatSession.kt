@@ -18,6 +18,7 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
 import com.sourcegraph.telemetry.GraphQlLogger
+import io.ktor.util.collections.*
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -48,6 +49,8 @@ class AgentChatSession : ChatSession {
   private val chatPanel: ChatPanel
 
   private val cancellationToken = AtomicReference(CancellationToken())
+
+  private val messages = ConcurrentList<ChatMessage>()
 
   private val logger = LoggerFactory.getLogger(ChatSession::class.java)
 
@@ -81,10 +84,18 @@ class AgentChatSession : ChatSession {
 
   fun getPanelId(): CompletableFuture<PanelId> = panelId.get()
 
+  fun setPanelId(newPanelId: CompletableFuture<PanelId>) {
+    panelId.getAndSet(newPanelId)
+  }
+
   fun getPanel(): ChatPanel = chatPanel
+
+  fun getMessages(): List<ChatMessage> = messages.toList()
 
   @GuardedBy("this")
   override fun sendMessage(humanMessage: ChatMessage): CancellationToken {
+    messages.add(humanMessage)
+
     val newCancellationToken = CancellationToken()
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
       val message =
@@ -115,8 +126,12 @@ class AgentChatSession : ChatSession {
       // Updates of the given message will always have the same UUID
       val messageId =
           UUID.nameUUIDFromBytes(extensionMessage.messages?.count().toString().toByteArray())
-      chatPanel.addOrUpdateMessage(
-          ChatMessage(Speaker.ASSISTANT, text, displayText, id = messageId))
+
+      val chatMessage = ChatMessage(Speaker.ASSISTANT, text, displayText, id = messageId)
+      chatPanel.addOrUpdateMessage(chatMessage)
+
+      if (messages.lastOrNull()?.id == chatMessage.id) messages.removeLast()
+      messages.add(chatMessage)
     }
 
     try {
