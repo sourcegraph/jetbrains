@@ -22,7 +22,7 @@ class CodyAgentService : Disposable {
   private val startupActions: MutableList<(CodyAgent) -> Unit> = mutableListOf()
 
   @GuardedBy("this")
-  fun addStartupAction(action: (CodyAgent) -> Unit) {
+  fun onStartup(action: (CodyAgent) -> Unit) {
     startupActions.add(action)
     codyAgent.getNow(null)?.let { action(it) }
   }
