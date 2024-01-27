@@ -21,8 +21,8 @@ class EndOfTrialNotification {
       val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
       if (activeAccountType != null && activeAccountType.isDotcomAccount()) {
 
-        if (currentUserCodySubscription.plan == "PRO" &&
-            currentUserCodySubscription.status == "PENDING" &&
+        if (currentUserCodySubscription.plan == Plan.PRO &&
+            currentUserCodySubscription.status == Status.PENDING &&
             useSscForCodySubscription) {
           if (codyProTrialEnded) {
             if (PropertiesComponent.getInstance().getBoolean(TrialEndedNotification.ignore)) {
