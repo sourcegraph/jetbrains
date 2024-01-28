@@ -63,8 +63,8 @@ public class CodyAgentClient {
         && extensionMessage.getType().equals(ExtensionMessage.Type.TRANSCRIPT)) {
       ApplicationManager.getApplication().invokeLater(() -> onNewMessage.accept(params));
     } else {
-      logger.warn("onChatUpdateMessageInProgress is null or message type is not transcript");
-      logger.warn(String.format("webview/postMessage %s: %s", params.getId(), extensionMessage));
+      logger.debug("onNewMessage is null or message type is not transcript");
+      logger.debug(String.format("webview/postMessage %s: %s", params.getId(), extensionMessage));
     }
   }
 }

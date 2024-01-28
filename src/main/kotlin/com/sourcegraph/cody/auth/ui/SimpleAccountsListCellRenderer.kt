@@ -11,20 +11,10 @@ import com.sourcegraph.cody.auth.Account
 import com.sourcegraph.cody.auth.AccountDetails
 import com.sourcegraph.cody.auth.ServerAccount
 import com.sourcegraph.cody.config.CachingCodyUserAvatarLoader
-import java.awt.Component
-import java.awt.FlowLayout
-import java.awt.Font
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
-import java.awt.Image
-import java.util.concurrent.CompletableFuture
-import javax.swing.Icon
-import javax.swing.JComponent
-import javax.swing.JLabel
-import javax.swing.JList
-import javax.swing.JPanel
-import javax.swing.ListCellRenderer
 import org.jetbrains.annotations.Nls
+import java.awt.*
+import java.util.concurrent.CompletableFuture
+import javax.swing.*
 
 class SimpleAccountsListCellRenderer<A : Account, D : AccountDetails>(
     private val listModel: AccountsListModel<A, *>,

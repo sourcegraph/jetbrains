@@ -32,8 +32,8 @@ data class ChatMessage(
     val displayText: String? = null,
     val contextFiles: List<ContextFile>? = null,
     val error: ChatError? = null,
-    // Internal ID used for identifying message updates
-    // All partial messages being part of the same response are guaranteed to have the same ID
+    // Internal ID used for identifying updates of the message
+    // All partial messages which are part of the same response are required to have the same ID
     val id: UUID = UUID.randomUUID()
 ) : Message {
   fun actualMessage(): String = displayText ?: text ?: ""

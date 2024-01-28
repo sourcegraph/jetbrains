@@ -7,10 +7,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
 import com.sourcegraph.cody.chat.AgentChatSession
 import com.sourcegraph.cody.chat.SignInWithSourcegraphPanel
-import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.chat.ui.CodyOnboardingGuidancePanel
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.commands.ui.CommandsTabPanel
@@ -22,6 +20,7 @@ import java.awt.CardLayout
 import java.awt.Component
 import java.util.function.Consumer
 import javax.swing.JPanel
+import javax.swing.border.Border
 
 @Service(Service.Level.PROJECT)
 class CodyToolWindowContent(private val project: Project) {
@@ -33,7 +32,12 @@ class CodyToolWindowContent(private val project: Project) {
   private val historyTree = JPanel()
   private val tabbedPane = JBTabbedPane()
 
-  private val chatContainerPanel = JPanel(CardLayout())
+  private val chatContainerPanel =
+      object : JPanel(CardLayout()) {
+        override fun setBorder(border: Border?) {
+          // Do not allow parent to add any borders for this component
+        }
+      }
   private val chatSessions: ConcurrentList<AgentChatSession> = ConcurrentList()
 
   private val commandsPanel =
@@ -46,34 +50,18 @@ class CodyToolWindowContent(private val project: Project) {
   init {
     CodyAgentService.getInstance(project).onStartup { agent ->
       agent.client.onNewMessage = Consumer { params ->
-        chatSessions
-            .find { it.getPanelId().getNow(null) == params.id }
-            ?.receiveMessage(params.message)
+        chatSessions.find { it.hasSessionId(params.id) }?.receiveMessage(params.message)
       }
 
-      chatSessions.forEach { session ->
-        val model = "openai/gpt-3.5-turbo"
-        session.getPanelId().getNow(null)?.let { panelId ->
-          val newPanelId =
-              agent.server.chatRestore(ChatRestoreParams(model, session.getMessages(), panelId))
-          session.setPanelId(newPanelId)
-        }
-      }
+      chatSessions.forEach { it.restoreAgentSession(agent) }
 
       ApplicationManager.getApplication().invokeLater { refreshPanelsVisibility() }
     }
 
     tabbedPane.insertSimpleTab("Chat", chatContainerPanel, CHAT_TAB_INDEX)
     tabbedPane.insertSimpleTab("Chat History", historyTree, HISTORY_TAB_INDEX)
-    tabbedPane.insertSimpleTab("Commands", commandsPanel, RECIPES_TAB_INDEX)
+    tabbedPane.insertSimpleTab("Commands", commandsPanel, COMMANDS_TAB_INDEX)
     tabbedPane.insertSimpleTab("Subscription", subscriptionPanel, SUBSCRIPTION_TAB_INDEX)
-
-    tabbedPane.addChangeListener {
-      if (tabbedPane.selectedIndex == CHAT_TAB_INDEX) {
-        val currentChatPanel = chatContainerPanel.getComponent(0) as? ChatPanel
-        currentChatPanel?.requestFocusOnInputPrompt()
-      }
-    }
 
     allContentPanel.add(tabbedPane, MAIN_PANEL, CHAT_PANEL_INDEX)
     allContentPanel.add(signInWithSourcegraphPanel, SIGN_IN_PANEL, SIGN_IN_PANEL_INDEX)
@@ -119,7 +107,7 @@ class CodyToolWindowContent(private val project: Project) {
   }
 
   @RequiresEdt
-  fun refreshPanelsVisibility() {
+  private fun refreshPanelsVisibility() {
     val codyAuthenticationManager = CodyAuthenticationManager.instance
     if (codyAuthenticationManager.getAccounts().isEmpty()) {
       allContentLayout.show(allContentPanel, SIGN_IN_PANEL)
@@ -164,7 +152,7 @@ class CodyToolWindowContent(private val project: Project) {
 
     private const val CHAT_TAB_INDEX = 0
     private const val HISTORY_TAB_INDEX = 1
-    private const val RECIPES_TAB_INDEX = 2
+    private const val COMMANDS_TAB_INDEX = 2
     private const val SUBSCRIPTION_TAB_INDEX = 3
 
     var logger = Logger.getInstance(CodyToolWindowContent::class.java)

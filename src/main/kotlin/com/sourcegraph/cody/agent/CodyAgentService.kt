@@ -24,7 +24,6 @@ class CodyAgentService : Disposable {
   @GuardedBy("this")
   fun onStartup(action: (CodyAgent) -> Unit) {
     startupActions.add(action)
-    codyAgent.getNow(null)?.let { action(it) }
   }
 
   @GuardedBy("this")

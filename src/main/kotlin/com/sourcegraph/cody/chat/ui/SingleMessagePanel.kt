@@ -8,14 +8,14 @@ import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.*
 import com.sourcegraph.cody.ui.HtmlViewer.createHtmlViewer
-import org.commonmark.ext.gfm.tables.TablesExtension
-import org.commonmark.node.Node
-import org.commonmark.parser.Parser
-import org.commonmark.renderer.html.HtmlRenderer
 import java.awt.Color
 import java.util.*
 import javax.swing.JEditorPane
 import javax.swing.JPanel
+import org.commonmark.ext.gfm.tables.TablesExtension
+import org.commonmark.node.Node
+import org.commonmark.parser.Parser
+import org.commonmark.renderer.html.HtmlRenderer
 
 class SingleMessagePanel(
     private val chatMessage: ChatMessage,

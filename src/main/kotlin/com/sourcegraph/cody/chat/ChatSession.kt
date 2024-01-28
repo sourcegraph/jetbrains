@@ -1,13 +1,16 @@
 package com.sourcegraph.cody.chat
 
 import CodyAgent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.xml.util.XmlStringUtil
 import com.jetbrains.rd.util.AtomicReference
 import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
 import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ui.ChatPanel
@@ -25,11 +28,11 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import javax.annotation.concurrent.GuardedBy
 
-typealias PanelId = String
+typealias SessionId = String
 
 interface ChatSession {
 
-  fun sendMessage(humanMessage: ChatMessage): CancellationToken
+  fun sendMessage(text: String)
 
   fun receiveMessage(extensionMessage: ExtensionMessage)
 
@@ -42,9 +45,9 @@ class AgentChatSession : ChatSession {
   /**
    * There are situations (like startup of tne chat) when we want to show UI immediately, but we
    * have not established connection with the agent yet. This is why we use CompletableFuture to
-   * store the panelId.
+   * store the sessionId.
    */
-  private val panelId: AtomicReference<CompletableFuture<PanelId>>
+  private val sessionId: AtomicReference<CompletableFuture<SessionId>>
 
   private val chatPanel: ChatPanel
 
@@ -54,10 +57,11 @@ class AgentChatSession : ChatSession {
 
   private val logger = LoggerFactory.getLogger(ChatSession::class.java)
 
-  private constructor(project: Project, newPanelId: CompletableFuture<PanelId>) {
+  private constructor(project: Project, newSessionId: CompletableFuture<SessionId>) {
     this.project = project
-    this.panelId = AtomicReference(newPanelId)
+    this.sessionId = AtomicReference(newSessionId)
     this.chatPanel = ChatPanel(project, this)
+    cancellationToken.get().dispose()
   }
 
   constructor(project: Project) : this(project, createNewPanel(project) { it.server.chatNew() })
@@ -75,28 +79,28 @@ class AgentChatSession : ChatSession {
         }
       })
 
-  constructor(
-      project: Project,
-      panelId: PanelId
-  ) : this(project, CompletableFuture.completedFuture(panelId)) {
-    // Reload chat
-  }
-
-  fun getPanelId(): CompletableFuture<PanelId> = panelId.get()
-
-  fun setPanelId(newPanelId: CompletableFuture<PanelId>) {
-    panelId.getAndSet(newPanelId)
-  }
-
   fun getPanel(): ChatPanel = chatPanel
 
-  fun getMessages(): List<ChatMessage> = messages.toList()
+  fun hasSessionId(thatSessionId: SessionId): Boolean =
+      sessionId.get().getNow(null) == thatSessionId
+
+  fun restoreAgentSession(agent: CodyAgent) {
+    /**
+     * TODO: We should get and save that information after panel is created or model is changed by
+     *   user. Also, `chatId` parameter doesn't really matter as long as it's unique, we need to
+     *   refactor Cody to not require it at all
+     */
+    val model = "openai/gpt-3.5-turbo"
+    val restoreParams = ChatRestoreParams(model, messages.toList(), UUID.randomUUID().toString())
+    val newSessionId = agent.server.chatRestore(restoreParams)
+    sessionId.getAndSet(newSessionId)
+  }
 
   @GuardedBy("this")
-  override fun sendMessage(humanMessage: ChatMessage): CancellationToken {
-    messages.add(humanMessage)
+  override fun sendMessage(text: String) {
+    val displayText = XmlStringUtil.escapeString(text)
+    val humanMessage = ChatMessage(Speaker.HUMAN, text, displayText)
 
-    val newCancellationToken = CancellationToken()
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
       val message =
           WebviewMessage(
@@ -108,13 +112,18 @@ class AgentChatSession : ChatSession {
               contextFiles = listOf())
 
       val request =
-          agent.server.chatSubmitMessage(ChatSubmitMessageParams(panelId.get().get(), message))
+          agent.server.chatSubmitMessage(ChatSubmitMessageParams(sessionId.get().get(), message))
 
+      val newCancellationToken = CancellationToken()
       newCancellationToken.onCancellationRequested { request.cancel(true) }
       cancellationToken.getAndSet(newCancellationToken).abort()
-    }
 
-    return newCancellationToken
+      ApplicationManager.getApplication().invokeLater {
+        chatPanel.registerCancellationToken(newCancellationToken)
+      }
+
+      addMessage(humanMessage)
+    }
   }
 
   override fun getCancellationToken(): CancellationToken = cancellationToken.get()
@@ -126,12 +135,7 @@ class AgentChatSession : ChatSession {
       // Updates of the given message will always have the same UUID
       val messageId =
           UUID.nameUUIDFromBytes(extensionMessage.messages?.count().toString().toByteArray())
-
-      val chatMessage = ChatMessage(Speaker.ASSISTANT, text, displayText, id = messageId)
-      chatPanel.addOrUpdateMessage(chatMessage)
-
-      if (messages.lastOrNull()?.id == chatMessage.id) messages.removeLast()
-      messages.add(chatMessage)
+      addMessage(ChatMessage(Speaker.ASSISTANT, text, displayText, id = messageId))
     }
 
     try {
@@ -182,15 +186,21 @@ class AgentChatSession : ChatSession {
     }
   }
 
+  private fun addMessage(message: ChatMessage) {
+    if (messages.lastOrNull()?.id == message.id) messages.removeLast()
+    messages.add(message)
+    ApplicationManager.getApplication().invokeLater { chatPanel.addOrUpdateMessage(message) }
+  }
+
   companion object {
     private fun createNewPanel(
         project: Project,
         newPanelAction: (CodyAgent) -> CompletableFuture<String>
-    ): CompletableFuture<PanelId> {
-      val panelId = CompletableFuture<PanelId>()
+    ): CompletableFuture<SessionId> {
+      val sessionId = CompletableFuture<SessionId>()
       CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
         try {
-          panelId.complete(newPanelAction(agent).get())
+          sessionId.complete(newPanelAction(agent).get())
         } catch (e: ExecutionException) {
           // Agent cannot gracefully recover when connection is lost, we need to restart it
           // TODO https://github.com/sourcegraph/jetbrains/issues/306
@@ -200,7 +210,7 @@ class AgentChatSession : ChatSession {
           createNewPanel(project, newPanelAction)
         }
       }
-      return panelId
+      return sessionId
     }
   }
 }

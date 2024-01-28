@@ -39,18 +39,12 @@ class EnhancedContextPanel(private val project: Project) : JPanel() {
   }
 
   private val toolbarPanel = run {
-    //    val borderColor = ColorUtil.brighter(UIUtil.getPanelBackground(), 3)
-    //    val lightBorder = BorderFactory.createMatteBorder(1, 0, 0, 1, borderColor)
-    //    val titledBorder = TitledBorder(lightBorder,
-    // CodyBundle.getString("context-panel.panel-name"))
-
     ToolbarDecorator.createDecorator(tree)
         .disableUpDownActions()
         .addExtraAction(reindexButton)
         .addExtraAction(helpButton)
         .setPreferredSize(Dimension(0, 30))
         .setToolbarPosition(ActionToolbarPosition.LEFT)
-        //        .setPanelBorder(titledBorder)
         .setScrollPaneBorder(BorderFactory.createEmptyBorder())
         .setToolbarBorder(BorderFactory.createEmptyBorder())
         .createPanel()

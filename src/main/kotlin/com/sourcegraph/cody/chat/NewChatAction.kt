@@ -11,11 +11,4 @@ class NewChatAction : DumbAwareAction() {
 
     CodyToolWindowContent.executeOnInstanceIfNotDisposed(event.project!!) { createNewChatSession() }
   }
-
-  //  override fun update(event: AnActionEvent) {
-  //    if (event.project == null) return
-  //    CodyToolWindowContent.executeOnInstanceIfNotDisposed(event.project!!) {
-  //      // event.presentation.isVisible = isChatVisible
-  //    }
-  //  }
 }
