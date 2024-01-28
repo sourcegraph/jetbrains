@@ -2,6 +2,7 @@ package com.sourcegraph.cody.initialization
 
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
@@ -13,7 +14,10 @@ import com.sourcegraph.config.ConfigUtil
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class EndOfTrialNotificationScheduler private constructor(project: Project) : Disposable {
+class EndOfTrialNotificationScheduler private constructor(val project: Project) : Disposable {
+
+  private val logger = Logger.getInstance(EndOfTrialNotificationScheduler::class.java)
+
   private val scheduler = Executors.newScheduledThreadPool(1)
 
   init {
@@ -27,13 +31,17 @@ class EndOfTrialNotificationScheduler private constructor(project: Project) : Di
             this.dispose()
           }
 
+          if (CodyAuthenticationManager.instance.getActiveAccount(project)?.isDotcomAccount() ==
+              false) {
+            return@scheduleAtFixedRate
+          }
+
           CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
             agent.server
                 .getCurrentUserCodySubscription()
                 .thenApply { currentUserCodySubscription ->
                   if (currentUserCodySubscription == null) {
-                    // todo: proper handling
-                    println("getCurrentUserCodySubscription returned null")
+                    logger.warn("currentUserCodySubscription is null")
                     return@thenApply
                   }
 
@@ -46,8 +54,7 @@ class EndOfTrialNotificationScheduler private constructor(project: Project) : Di
                               .completeOnTimeout(false, 4, TimeUnit.SECONDS)) {
                               codyProTrialEnded,
                               useSscForCodySubscription ->
-                            showEndOfTrialNotificationIfApplicable(
-                                project,
+                            showProperNotificationIfApplicable(
                                 currentUserCodySubscription = currentUserCodySubscription,
                                 codyProTrialEnded ?: false,
                                 useSscForCodySubscription ?: false)
@@ -61,29 +68,25 @@ class EndOfTrialNotificationScheduler private constructor(project: Project) : Di
         /* unit = */ TimeUnit.HOURS)
   }
 
-  private fun showEndOfTrialNotificationIfApplicable(
-      project: Project,
+  private fun showProperNotificationIfApplicable(
       currentUserCodySubscription: CurrentUserCodySubscription,
       codyProTrialEnded: Boolean,
       useSscForCodySubscription: Boolean
   ) {
-    val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-    if (activeAccountType != null && activeAccountType.isDotcomAccount()) {
-
-      if (currentUserCodySubscription.plan == Plan.PRO &&
-          currentUserCodySubscription.status == Status.PENDING &&
-          useSscForCodySubscription) {
-        if (codyProTrialEnded) {
-          if (PropertiesComponent.getInstance().getBoolean(TrialEndedNotification.ignore)) {
-            return
-          }
-          TrialEndedNotification(disposable = this).notify(project)
-        } else {
-          if (PropertiesComponent.getInstance().getBoolean(TrialEndingSoonNotification.ignore)) {
-            return
-          }
-          TrialEndingSoonNotification().notify(project)
+    if (currentUserCodySubscription.plan == Plan.PRO &&
+        currentUserCodySubscription.status == Status.PENDING &&
+        useSscForCodySubscription) {
+      if (codyProTrialEnded) {
+        if (PropertiesComponent.getInstance().getBoolean(TrialEndedNotification.ignore)) {
+          dispose()
+          return
         }
+        TrialEndedNotification(disposable = this).notify(project)
+      } else {
+        if (PropertiesComponent.getInstance().getBoolean(TrialEndingSoonNotification.ignore)) {
+          return
+        }
+        TrialEndingSoonNotification().notify(project)
       }
     }
   }
