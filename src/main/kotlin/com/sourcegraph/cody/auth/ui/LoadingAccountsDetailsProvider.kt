@@ -9,10 +9,10 @@ import com.intellij.util.ui.EmptyIcon
 import com.sourcegraph.cody.auth.Account
 import com.sourcegraph.cody.auth.AccountDetails
 import com.sourcegraph.cody.auth.SingleValueModel
-import org.jetbrains.annotations.Nls
 import java.awt.Image
 import java.util.concurrent.CompletableFuture
 import javax.swing.Icon
+import org.jetbrains.annotations.Nls
 
 abstract class LoadingAccountsDetailsProvider<in A : Account, D : AccountDetails>(
     private val progressIndicatorsProvider: ProgressIndicatorsProvider
