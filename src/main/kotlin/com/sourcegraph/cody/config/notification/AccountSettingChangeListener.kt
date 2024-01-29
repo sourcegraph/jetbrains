@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.config.notification
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.CodyToolWindowContent
@@ -27,21 +26,15 @@ class AccountSettingChangeListener(project: Project) : ChangeListener(project) {
               CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
                 agent.server.configurationDidChange(ConfigUtil.getAgentConfiguration(project))
               }
+              CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
+                removeAllChatSessions()
+              }
               CodyAgentService.getInstance(project).restartAgent(project)
             }
 
-            CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
-              // Refresh onboarding panels
-              if (ConfigUtil.isCodyEnabled()) {
-                refreshPanelsVisibility()
-              }
-
-              UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
-              UpgradeToCodyProNotification.chatRateLimitError.set(null)
-              CodyAutocompleteStatusService.resetApplication(project)
-
-              ApplicationManager.getApplication().executeOnPooledThread { refreshSubscriptionTab() }
-            }
+            UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
+            UpgradeToCodyProNotification.chatRateLimitError.set(null)
+            CodyAutocompleteStatusService.resetApplication(project)
 
             if (context.serverUrlChanged) {
               GraphQlLogger.logCodyEvent(project, "settings.serverURL", "changed")
