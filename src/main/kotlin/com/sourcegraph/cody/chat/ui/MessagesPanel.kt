@@ -14,10 +14,8 @@ import javax.swing.JPanel
 class MessagesPanel(private val project: Project) :
     JPanel(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true)) {
   init {
-    ApplicationManager.getApplication().invokeLater {
-      val welcomeText = CodyBundle.getString("messages-panel.welcome-text")
-      addChatMessageAsComponent(ChatMessage(Speaker.ASSISTANT, welcomeText))
-    }
+    val welcomeText = CodyBundle.getString("messages-panel.welcome-text")
+    addChatMessageAsComponent(ChatMessage(Speaker.ASSISTANT, welcomeText))
   }
 
   @RequiresEdt
