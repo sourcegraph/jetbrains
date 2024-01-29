@@ -1,9 +1,9 @@
 package com.sourcegraph.cody.agent
 
 import com.sourcegraph.cody.agent.protocol.*
-import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
+import java.util.concurrent.CompletableFuture
 
 /**
  * Interface for the server-part of the Cody agent protocol. The implementation of this interface is
