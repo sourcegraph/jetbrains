@@ -5,12 +5,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ContextFile
 import com.sourcegraph.cody.agent.protocol.ContextMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ChatUIConstants
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
-import java.awt.BorderLayout
 import javax.swing.JPanel
 
 class MessagesPanel(private val project: Project) :
@@ -26,10 +26,14 @@ class MessagesPanel(private val project: Project) :
     removeBlinkingCursor()
 
     if (componentCount > 0) {
-      val lastPanel = components.last() as? JPanel
-      val lastMessage = lastPanel?.getComponent(0) as? SingleMessagePanel
-      if (message.id == lastMessage?.getMessageId()) {
-        lastMessage.updateContentWith(message)
+      val messageToUpdate =
+          components
+              .mapNotNull { (it as? JPanel) }
+              .filter { it.componentCount > 0 }
+              .map { it.getComponent(0) as? SingleMessagePanel }
+              .find { it?.getMessageId() == message.id }
+      if (messageToUpdate != null) {
+        messageToUpdate.updateContentWith(message)
       } else {
         addChatMessageAsComponent(message)
       }
@@ -45,16 +49,42 @@ class MessagesPanel(private val project: Project) :
     repaint()
   }
 
-  fun displayUsedContext(contextMessages: List<ContextMessage>) {
+  @RequiresEdt
+  @Synchronized
+  fun addOrUpdateContext(message: ChatMessage) {
+    if (componentCount > 0) {
+      val messageToUpdateIndex =
+          components
+              .mapNotNull { (it as? JPanel) }
+              .filter { it.componentCount > 0 }
+              .map { it.getComponent(0) as? ContextFilesMessage }
+              .indexOfLast { it?.getMessageId() == message.id }
+      if (messageToUpdateIndex >= 0) {
+        createUsedContextFilesPanel(message)?.let { components[messageToUpdateIndex] = it }
+      } else {
+        createUsedContextFilesPanel(message)?.let(::addComponentToChat)
+      }
+    } else {
+      createUsedContextFilesPanel(message)?.let(::addComponentToChat)
+    }
+
+    revalidate()
+    repaint()
+  }
+
+  private fun createUsedContextFilesPanel(message: ChatMessage): JPanel? {
+    val contextMessages =
+        message.contextFiles?.map { contextFile: ContextFile ->
+          ContextMessage(Speaker.ASSISTANT, message.text ?: "", contextFile)
+        } ?: emptyList()
+
     if (contextMessages.isEmpty()) {
       // Do nothing when there are no context files. It's normal that some answers have no context
       // files.
-      return
+      return null
     }
-    val contextFilesMessage = ContextFilesMessage(project, contextMessages)
-    val messageContentPanel = JPanel(BorderLayout())
-    messageContentPanel.add(contextFilesMessage)
-    addComponentToChat(messageContentPanel)
+
+    return ContextFilesMessage(project, contextMessages, message.id)
   }
 
   @RequiresEdt

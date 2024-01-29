@@ -55,8 +55,6 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
 
   private val logger = LoggerFactory.getLogger(ChatSession::class.java)
 
-  private val isFirstMessage = AtomicReference<UUID>(UUID.randomUUID())
-
   init {
     cancellationToken.get().dispose()
   }
@@ -152,19 +150,21 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
             getCancellationToken().dispose()
           } else {
 
-            val penultimateMessage = extensionMessage.messages?.dropLast(1)?.last()
+            val penultimateMessage = extensionMessage.messages?.dropLast(1)?.lastOrNull()
             if (extensionMessage.chatID != null) {
               if (penultimateMessage != null) {
+                val messageId =
+                    UUID.nameUUIDFromBytes(
+                        (extensionMessage.messages.count() - 1).toString().toByteArray())
                 val message =
                     ChatMessage(
                         speaker = Speaker.ASSISTANT,
                         text = penultimateMessage.text,
                         displayText = penultimateMessage.displayText,
-                        contextFiles = penultimateMessage.contextFiles)
-                if (!isFirstMessage.compareAndSet(message.id, message.id)) {
-                  ApplicationManager.getApplication().invokeLater {
-                    addAssistantUsedContextToChat(message)
-                  }
+                        contextFiles = penultimateMessage.contextFiles,
+                        id = messageId)
+                ApplicationManager.getApplication().invokeLater {
+                  addAssistantUsedContextToChat(message)
                 }
               }
 
@@ -194,16 +194,17 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
   }
 
   @RequiresEdt
-  @GuardedBy("this")
   private fun addAssistantUsedContextToChat(message: ChatMessage) {
-    if (messages.lastOrNull()?.id == message.id) messages.removeLast()
-    messages.add(message)
+    synchronized(this) {
+      val findResult = messages.indexOfLast { it.id == message.id }
+      if (findResult >= 0) {
+        messages[findResult] = message
+      } else {
+        messages.add(message)
+      }
 
-    val contextMessages =
-        message.contextFiles?.map { contextFile: ContextFile ->
-          ContextMessage(Speaker.ASSISTANT, message.text ?: "", contextFile)
-        } ?: emptyList()
-    chatPanel.displayUsedContext(contextMessages)
+      chatPanel.displayUsedContext(message)
+    }
   }
 
   @RequiresEdt

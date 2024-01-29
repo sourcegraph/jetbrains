@@ -21,12 +21,16 @@ import com.sourcegraph.cody.ui.AccordionSection
 import java.awt.BorderLayout
 import java.awt.Insets
 import java.nio.file.Paths
+import java.util.*
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
 import kotlin.io.path.absolutePathString
 
-class ContextFilesMessage(val project: Project, contextMessages: List<ContextMessage>) :
-    PanelWithGradientBorder(ASSISTANT_MESSAGE_GRADIENT_WIDTH, Speaker.ASSISTANT) {
+class ContextFilesMessage(
+    val project: Project,
+    contextMessages: List<ContextMessage>,
+    val id: UUID
+) : PanelWithGradientBorder(ASSISTANT_MESSAGE_GRADIENT_WIDTH, Speaker.ASSISTANT) {
   init {
     this.layout = BorderLayout()
 
@@ -44,6 +48,8 @@ class ContextFilesMessage(val project: Project, contextMessages: List<ContextMes
 
     ApplicationManager.getApplication().executeOnPooledThread { updateFileList(contextFileNames) }
   }
+
+  fun getMessageId(): UUID = id
 
   @RequiresBackgroundThread
   private fun updateFileList(contextFileNames: Set<String>) {
