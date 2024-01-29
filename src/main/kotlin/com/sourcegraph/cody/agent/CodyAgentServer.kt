@@ -1,9 +1,9 @@
 package com.sourcegraph.cody.agent
 
 import com.sourcegraph.cody.agent.protocol.*
-import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
+import java.util.concurrent.CompletableFuture
 
 /**
  * Interface for the server-part of the Cody agent protocol. The implementation of this interface is
@@ -76,8 +76,8 @@ interface CodyAgentServer {
   // Webviews
   @JsonRequest("webview/didDispose") fun webviewDidDispose(): CompletableFuture<Void?>
 
-  @JsonNotification("webview/receiveMessage")
-  fun webviewReceiveMessage(params: WebviewReceiveMessageParams)
+  @JsonRequest("webview/receiveMessage")
+  fun webviewReceiveMessage(params: WebviewReceiveMessageParams): CompletableFuture<Any?>
 
   @JsonRequest("command/execute")
   fun commandExecute(params: CommandExecuteParams): CompletableFuture<Any?>
@@ -92,4 +92,9 @@ interface CodyAgentServer {
 
   @JsonRequest("chat/submitMessage")
   fun chatSubmitMessage(params: ChatSubmitMessageParams): CompletableFuture<ExtensionMessage>
+
+  @JsonRequest("chat/models")
+  fun chatModels(params: ChatModelsParams): CompletableFuture<ChatModelsResponse>
+
+  @JsonRequest("chat/restore") fun chatRestore(params: ChatRestoreParams): CompletableFuture<String>
 }

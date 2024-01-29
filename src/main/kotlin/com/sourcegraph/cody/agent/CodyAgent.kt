@@ -52,7 +52,9 @@ private constructor(
     private val PLUGIN_ID = PluginId.getId("com.sourcegraph.jetbrains")
     @JvmField val executorService: ExecutorService = Executors.newCachedThreadPool()
 
-    fun create(project: Project): CompletableFuture<CodyAgent> {
+    fun create(
+        project: Project,
+    ): CompletableFuture<CodyAgent> {
       try {
         val agentProcess = startAgentProcess()
         val client = CodyAgentClient()
@@ -137,6 +139,7 @@ private constructor(
                 .serializeNulls()
                 .registerTypeAdapter(CompletionItemID::class.java, CompletionItemIDSerializer)
                 .registerTypeAdapter(ContextFile::class.java, contextFileDeserializer)
+                .registerTypeAdapter(Speaker::class.java, SpeakerSerializer)
           }
           .setRemoteInterface(CodyAgentServer::class.java)
           .traceMessages(traceWriter())
