@@ -10,10 +10,7 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.WebviewReceiveMessageParams
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
-import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
-import com.sourcegraph.cody.agent.protocol.Speaker
+import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.RateLimitStateManager
@@ -55,6 +52,10 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
   private val cancellationToken = AtomicReference(CancellationToken())
 
   private val messages = mutableListOf<ChatMessage>()
+
+  private val logger = LoggerFactory.getLogger(ChatSession::class.java)
+
+  private val isFirstMessage = AtomicReference<UUID>(UUID.randomUUID())
 
   init {
     cancellationToken.get().dispose()
@@ -139,19 +140,38 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
                   else -> CodyBundle.getString("chat.rate-limit-error.explain")
                 }
 
-            addAssistantResponseToChat(text)
+              addAssistantResponseToChat(text)
+            }
+          } else {
+            // Currently we ignore other kind of errors like context window limit reached
           }
         } else {
-          // Currently we ignore other kind of errors like context window limit reached
-        }
-      } else {
-        RateLimitStateManager.invalidateForChat(project)
-        if (extensionMessage.messages?.isNotEmpty() == true &&
-            extensionMessage.isMessageInProgress == false) {
-          getCancellationToken().dispose()
-        } else {
-          if (lastMessage?.text != null && extensionMessage.chatID != null) {
-            addAssistantResponseToChat(lastMessage.text, lastMessage.displayText)
+          RateLimitStateManager.invalidateForChat(project)
+          if (extensionMessage.messages?.isNotEmpty() == true &&
+              extensionMessage.isMessageInProgress == false) {
+            getCancellationToken().dispose()
+          } else {
+
+            val penultimateMessage = extensionMessage.messages?.dropLast(1)?.last()
+            if (extensionMessage.chatID != null) {
+              if (penultimateMessage != null) {
+                val message =
+                    ChatMessage(
+                        speaker = Speaker.ASSISTANT,
+                        text = penultimateMessage.text,
+                        displayText = penultimateMessage.displayText,
+                        contextFiles = penultimateMessage.contextFiles)
+                if (!isFirstMessage.compareAndSet(message.id, message.id)) {
+                  ApplicationManager.getApplication().invokeLater {
+                    addAssistantUsedContextToChat(message)
+                  }
+                }
+              }
+
+              if (lastMessage?.text != null) {
+                addAssistantResponseToChat(lastMessage.text, lastMessage.displayText)
+              } else {}
+            } else {}
           }
         }
       }
@@ -171,6 +191,19 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
       messages.add(message)
       chatPanel.addOrUpdateMessage(message)
     }
+  }
+
+  @RequiresEdt
+  @GuardedBy("this")
+  private fun addAssistantUsedContextToChat(message: ChatMessage) {
+    if (messages.lastOrNull()?.id == message.id) messages.removeLast()
+    messages.add(message)
+
+    val contextMessages =
+        message.contextFiles?.map { contextFile: ContextFile ->
+          ContextMessage(Speaker.ASSISTANT, message.text ?: "", contextFile)
+        } ?: emptyList()
+    chatPanel.displayUsedContext(contextMessages)
   }
 
   @RequiresEdt

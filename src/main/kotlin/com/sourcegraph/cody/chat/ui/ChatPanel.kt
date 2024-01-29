@@ -7,6 +7,7 @@ import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.PromptPanel
 import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ContextMessage
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.context.ui.EnhancedContextPanel
 import com.sourcegraph.cody.ui.ChatScrollPane
@@ -52,6 +53,10 @@ class ChatPanel(project: Project, chatSession: ChatSession) :
   @RequiresEdt
   fun addOrUpdateMessage(message: ChatMessage) {
     messagesPanel.addOrUpdateMessage(message)
+  }
+
+  fun displayUsedContext(contextMessages: List<ContextMessage>) {
+    messagesPanel.displayUsedContext(contextMessages)
   }
 
   @RequiresEdt

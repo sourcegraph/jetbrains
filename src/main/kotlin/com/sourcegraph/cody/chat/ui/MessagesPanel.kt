@@ -5,10 +5,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ContextMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ChatUIConstants
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
+import java.awt.BorderLayout
 import javax.swing.JPanel
 
 class MessagesPanel(private val project: Project) :
@@ -41,6 +43,18 @@ class MessagesPanel(private val project: Project) :
 
     revalidate()
     repaint()
+  }
+
+  fun displayUsedContext(contextMessages: List<ContextMessage>) {
+    if (contextMessages.isEmpty()) {
+      // Do nothing when there are no context files. It's normal that some answers have no context
+      // files.
+      return
+    }
+    val contextFilesMessage = ContextFilesMessage(project, contextMessages)
+    val messageContentPanel = JPanel(BorderLayout())
+    messageContentPanel.add(contextFilesMessage)
+    addComponentToChat(messageContentPanel)
   }
 
   @RequiresEdt
