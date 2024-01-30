@@ -18,6 +18,9 @@ import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.RateLimitStateManager
+import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.history.state.ChatState
+import com.sourcegraph.cody.history.state.MessageState
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
@@ -40,7 +43,7 @@ interface ChatSession {
 }
 
 class AgentChatSession
-private constructor(private val project: Project, newSessionId: CompletableFuture<SessionId>) :
+private constructor(private val project: Project, private val internalId: String, newSessionId: CompletableFuture<SessionId>, ) :
     ChatSession {
 
   /**
@@ -174,6 +177,7 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
       if (messages.lastOrNull()?.id == message.id) {
         messages.removeLast()
       }
+      HistoryService.getInstance().update(internalId, messages + message)
       messages.add(message)
       chatPanel.addOrUpdateMessage(message)
     }
@@ -216,7 +220,7 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
           GraphQlLogger.logCodyEvent(project, "command:${commandId.displayName}", "submitted")
         }
 
-        val chatSession = getSession(sessionId.get()) ?: AgentChatSession(project, sessionId)
+        val chatSession = getSession(sessionId.get()) ?: AgentChatSession(project, UUID.randomUUID().toString(), sessionId)
 
         chatSession.createCancellationToken(
             onCancel = {
@@ -239,10 +243,31 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
     fun createNew(project: Project): AgentChatSession {
       synchronized(AgentChatSession) {
         val sessionId = createNewPanel(project) { it.server.chatNew() }
-        val chatSession = AgentChatSession(project, sessionId)
+        val chatSession = AgentChatSession(project, UUID.randomUUID().toString(), sessionId)
         chatSessions.add(chatSession)
         return chatSession
       }
+    }
+
+    fun createFromState(project: Project, state: ChatState): AgentChatSession {
+      // todo do przemyslenia czy nie wrzucic w watek restore
+      val sessionId = createNewPanel(project) { it.server.chatNew() }
+      val chatSession = AgentChatSession(project, state.internalId!!, sessionId)
+      chatSessions.add(chatSession)
+      for (message in state.messages) {
+        val parsed = when (val speaker = message.speaker) {
+          MessageState.SpeakerState.HUMAN -> Speaker.HUMAN
+          MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
+          else -> error("unrecognized speaker $speaker")
+        }
+        val chatMessage = ChatMessage(parsed, message.text, id = UUID.randomUUID())
+        chatSession.messages.add(chatMessage)
+        chatSession.chatPanel.addOrUpdateMessage(chatMessage)
+      }
+      CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+        chatSession.restoreAgentSession(agent)
+      }
+      return chatSession
     }
 
     private fun createNewPanel(
