@@ -16,17 +16,19 @@ class CommandsContextMenu {
       for (commandId in CommandId.values()) {
         val actionId = "cody.command.$commandId"
         val existingAction = actionManager.getAction(actionId)
-        if (existingAction != null) {
-          continue
-        }
         val action: DumbAwareAction =
             object : DumbAwareAction(commandId.displayName) {
               override fun actionPerformed(e: AnActionEvent) {
                 executeCommand(commandId)
               }
             }
-        actionManager.registerAction(actionId, action)
-        group.addAction(action)
+        if (existingAction != null) {
+          actionManager.replaceAction(actionId, action)
+          group.replaceAction(existingAction, action)
+        } else {
+          actionManager.registerAction(actionId, action)
+          group.addAction(action)
+        }
       }
     }
   }
