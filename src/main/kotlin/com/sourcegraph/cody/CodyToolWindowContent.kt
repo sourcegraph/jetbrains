@@ -139,7 +139,9 @@ class CodyToolWindowContent(private val project: Project) {
   }
 
   private fun selectHistory(state: ChatState) {
-    addChatSession(AgentChatSession.createFromState(project, state))
+    val session = AgentChatSession.getSessionByInternalId(state.internalId!!)
+      ?: AgentChatSession.createFromState(project, state)
+    addChatSession(session)
   }
 
   private fun deleteHistory(state: ChatState) {
