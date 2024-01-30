@@ -219,33 +219,6 @@ private constructor(
     fun getSessionByInternalId(internalId: String): AgentChatSession? =
       synchronized(chatSessions) { chatSessions.find { it.internalId == internalId } }
 
-//    fun removeByInternalId(internalId: String) {
-//      synchronized(chatSessions) {
-//
-//        val session = chatSessions.find { it.internalId == internalId }
-//        if (session != null) {
-//          chatSessions.remove(session)
-//        }
-//
-//
-////        if (session?.chatPanel?.chatSession?.getInternalId() == internalId) {
-//
-//
-//
-//
-//
-////        }
-//
-//
-////        chatSessions.removeAll { it.internalId == internalId }
-//
-//
-//
-//        // todo clear chat panel when "current" session is removed
-//      }
-//    }
-
-
     @RequiresEdt
     fun createFromCommand(project: Project, commandId: CommandId): AgentChatSession {
       val sessionId =
