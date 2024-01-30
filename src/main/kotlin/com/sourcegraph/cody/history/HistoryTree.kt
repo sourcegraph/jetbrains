@@ -18,7 +18,9 @@ import com.sourcegraph.cody.history.ui.HistoryTreeNodeRenderer
 import com.sourcegraph.common.CodyBundle
 import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
-import javax.swing.*
+import javax.swing.AbstractAction
+import javax.swing.Icon
+import javax.swing.KeyStroke
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreeSelectionModel
@@ -86,7 +88,10 @@ class HistoryTree(
   private fun deleteSelected() {
     tree.selectedLeafOrNull()?.let { leaf ->
       onDelete(leaf.chat)
+      val period = leaf.parent as PeriodNode
       model.removeNodeFromParent(leaf)
+      if (model.getChildCount(period) == 0)
+        model.removeNodeFromParent(period)
     }
   }
 

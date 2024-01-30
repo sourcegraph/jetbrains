@@ -30,9 +30,7 @@ class CodyToolWindowContent(private val project: Project) {
 
   private var codyOnboardingGuidancePanel: CodyOnboardingGuidancePanel? = null
   private val signInWithSourcegraphPanel = SignInWithSourcegraphPanel(project)
-  private val historyTree = HistoryTree(::selectHistory, onDelete = {
-    // todo
-  })
+  private val historyTree = HistoryTree(::selectHistory, ::deleteHistory)
   private val tabbedPane = JBTabbedPane()
 
   private val chatContainerPanel =
@@ -141,6 +139,16 @@ class CodyToolWindowContent(private val project: Project) {
 
   private fun selectHistory(state: ChatState) {
     addChatSession(AgentChatSession.createFromState(project, state))
+  }
+
+  private fun deleteHistory(state: ChatState) {
+    val session = AgentChatSession.getSessionByInternalId(state.internalId!!)
+    if (session != null) {
+      AgentChatSession.removeSession(session)
+      val isVisible = session.getPanel().chatSession.getInternalId() == state.internalId!!
+      if (isVisible)
+        addChatSession(AgentChatSession.createNew(project))
+    }
   }
 
   companion object {

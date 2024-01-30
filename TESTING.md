@@ -296,7 +296,7 @@ Test ideas:
 5. Press "new chat" while being inside Subscription panel or something other than Chat tab. Tabs should switch automatically.
 6. Use commands/recipes inside empty, new chat. Verify serialization/deserialization.
 7. Ask about codebase to force response with listed context files and verify if everything is correctly serialized/deserialized. Links to context files should be clickable.
-8. Remove all chats using history UI. File with transcripts should disappear.
+8. Remove all chats using history UI. Tree presentation is empty and branches like "Today" are removed from panel. File with transcripts should also disappear.
 9. Use only the keyboard. For example, navigate transcripts with arrows, delete, enter.
 10. Start typing while being focused on Chat History to perform search-by-title.
 11. Open multiple chats and ask few simultaneous questions in several sessions at once.

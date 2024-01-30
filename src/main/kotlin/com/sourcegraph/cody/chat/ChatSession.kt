@@ -39,6 +39,9 @@ interface ChatSession {
   fun receiveMessage(extensionMessage: ExtensionMessage)
 
   fun getCancellationToken(): CancellationToken
+
+  fun getInternalId(): String
+
 }
 
 class AgentChatSession
@@ -115,6 +118,8 @@ private constructor(
   }
 
   override fun getCancellationToken(): CancellationToken = cancellationToken.get()
+
+  override fun getInternalId(): String = internalId
 
   @Throws(ExecutionException::class, InterruptedException::class)
   override fun receiveMessage(extensionMessage: ExtensionMessage) {
@@ -206,6 +211,40 @@ private constructor(
     fun removeAllSessions() {
       synchronized(chatSessions) { chatSessions.clear() }
     }
+
+    fun removeSession(session: ChatSession) {
+      synchronized(chatSessions) { chatSessions.remove(session) }
+    }
+
+    fun getSessionByInternalId(internalId: String): AgentChatSession? =
+      synchronized(chatSessions) { chatSessions.find { it.internalId == internalId } }
+
+//    fun removeByInternalId(internalId: String) {
+//      synchronized(chatSessions) {
+//
+//        val session = chatSessions.find { it.internalId == internalId }
+//        if (session != null) {
+//          chatSessions.remove(session)
+//        }
+//
+//
+////        if (session?.chatPanel?.chatSession?.getInternalId() == internalId) {
+//
+//
+//
+//
+//
+////        }
+//
+//
+////        chatSessions.removeAll { it.internalId == internalId }
+//
+//
+//
+//        // todo clear chat panel when "current" session is removed
+//      }
+//    }
+
 
     @RequiresEdt
     fun createFromCommand(project: Project, commandId: CommandId): AgentChatSession {
