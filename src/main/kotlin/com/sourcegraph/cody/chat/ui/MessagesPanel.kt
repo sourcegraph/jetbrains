@@ -52,21 +52,9 @@ class MessagesPanel(private val project: Project) :
   @RequiresEdt
   @Synchronized
   fun addOrUpdateContext(message: ChatMessage) {
-    if (componentCount > 0) {
-      val messageToUpdateIndex =
-          components
-              .mapNotNull { (it as? JPanel) }
-              .filter { it.componentCount > 0 }
-              .map { it.getComponent(0) as? ContextFilesMessage }
-              .indexOfLast { it?.getMessageId() == message.id }
-      if (messageToUpdateIndex >= 0) {
-        createUsedContextFilesPanel(message)?.let { components[messageToUpdateIndex] = it }
-      } else {
-        createUsedContextFilesPanel(message)?.let(::addComponentToChat)
-      }
-    } else {
-      createUsedContextFilesPanel(message)?.let(::addComponentToChat)
-    }
+    removeBlinkingCursor()
+    createUsedContextFilesPanel(message)?.let(::addComponentToChat)
+    add(BlinkingCursorComponent.instance)
 
     revalidate()
     repaint()
@@ -84,7 +72,7 @@ class MessagesPanel(private val project: Project) :
       return null
     }
 
-    return ContextFilesMessage(project, contextMessages, message.id)
+    return ContextFilesMessage(project, contextMessages)
   }
 
   @RequiresEdt

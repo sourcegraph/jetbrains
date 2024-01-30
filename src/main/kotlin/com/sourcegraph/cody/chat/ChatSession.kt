@@ -10,7 +10,10 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.WebviewReceiveMessageParams
-import com.sourcegraph.cody.agent.protocol.*
+import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
+import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
+import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.RateLimitStateManager
@@ -19,7 +22,7 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
 import com.sourcegraph.telemetry.GraphQlLogger
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import org.slf4j.LoggerFactory
@@ -54,6 +57,8 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
   private val messages = mutableListOf<ChatMessage>()
 
   private val logger = LoggerFactory.getLogger(ChatSession::class.java)
+
+  private val theMostRecentContextFilesMessageId = AtomicReference<UUID>(UUID.randomUUID())
 
   init {
     cancellationToken.get().dispose()
@@ -199,11 +204,16 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
       val findResult = messages.indexOfLast { it.id == message.id }
       if (findResult >= 0) {
         messages[findResult] = message
+
+        // The first response does not include the context files. We must check
+        // for the second version of it when it's updated with the proper data.
+        val isFirstUpdate = theMostRecentContextFilesMessageId.getAndSet(message.id) != message.id
+        if (isFirstUpdate && !message.contextFiles.isNullOrEmpty()) {
+          chatPanel.displayUsedContext(message)
+        } else {}
       } else {
         messages.add(message)
       }
-
-      chatPanel.displayUsedContext(message)
     }
   }
 
