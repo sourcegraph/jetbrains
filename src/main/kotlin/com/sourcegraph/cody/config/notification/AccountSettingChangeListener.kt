@@ -36,6 +36,12 @@ class AccountSettingChangeListener(project: Project) : ChangeListener(project) {
             UpgradeToCodyProNotification.chatRateLimitError.set(null)
             CodyAutocompleteStatusService.resetApplication(project)
 
+            if (ConfigUtil.isCodyEnabled()) {
+              CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
+                refreshSubscriptionTab()
+              }
+            }
+
             if (context.serverUrlChanged) {
               GraphQlLogger.logCodyEvent(project, "settings.serverURL", "changed")
             } else if (context.accessTokenChanged) {
