@@ -15,6 +15,7 @@ import com.sourcegraph.cody.commands.ui.CommandsTabPanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.HistoryTree
 import com.sourcegraph.cody.history.state.ChatState
 import java.awt.CardLayout
@@ -142,6 +143,7 @@ class CodyToolWindowContent(private val project: Project) {
   }
 
   private fun deleteHistory(state: ChatState) {
+    HistoryService.getInstance().remove(state.internalId!!)
     val session = AgentChatSession.getSessionByInternalId(state.internalId!!)
     if (session != null) {
       AgentChatSession.removeSession(session)
