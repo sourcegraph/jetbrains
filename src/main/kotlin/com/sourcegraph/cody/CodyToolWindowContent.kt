@@ -15,6 +15,8 @@ import com.sourcegraph.cody.commands.ui.CommandsTabPanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.history.HistoryTree
+import com.sourcegraph.cody.history.state.ChatState
 import java.awt.CardLayout
 import java.awt.Component
 import java.util.function.Consumer
@@ -28,7 +30,9 @@ class CodyToolWindowContent(private val project: Project) {
 
   private var codyOnboardingGuidancePanel: CodyOnboardingGuidancePanel? = null
   private val signInWithSourcegraphPanel = SignInWithSourcegraphPanel(project)
-  private val historyTree = JPanel()
+  private val historyTree = HistoryTree(::selectHistory, onDelete = {
+    // todo
+  })
   private val tabbedPane = JBTabbedPane()
 
   private val chatContainerPanel =
@@ -133,6 +137,10 @@ class CodyToolWindowContent(private val project: Project) {
       return
     }
     allContentLayout.show(allContentPanel, MAIN_PANEL)
+  }
+
+  private fun selectHistory(state: ChatState) {
+    addChatSession(AgentChatSession.createFromState(project, state))
   }
 
   companion object {
