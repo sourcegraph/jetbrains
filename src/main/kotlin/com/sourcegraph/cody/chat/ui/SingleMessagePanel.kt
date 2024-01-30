@@ -30,8 +30,6 @@ class SingleMessagePanel(
     markdownNodes.accept(MessageContentCreatorFromMarkdownNodes(this, htmlRenderer))
   }
 
-  fun getMessageId(): UUID = chatMessage.id
-
   fun updateContentWith(message: ChatMessage) {
     val markdownNodes = markdownParser.parse(message.actualMessage())
     val lastMarkdownNode = markdownNodes.lastChild

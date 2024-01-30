@@ -50,12 +50,13 @@ class ChatPanel(project: Project, chatSession: ChatSession) :
   fun isEnhancedContextEnabled(): Boolean = contextView.isEnhancedContextEnabled.get()
 
   @RequiresEdt
-  fun addOrUpdateMessage(message: ChatMessage) {
-    messagesPanel.addOrUpdateMessage(message)
+  fun setMessages(messages: List<ChatMessage>) {
+    messagesPanel.setMessages(messages)
   }
 
-  fun displayUsedContext(message: ChatMessage) {
-    messagesPanel.addOrUpdateContext(message)
+  @RequiresEdt
+  fun addMessage(message: ChatMessage) {
+    messagesPanel.addMessages(message)
   }
 
   @RequiresEdt

@@ -54,11 +54,9 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
 
   private val cancellationToken = AtomicReference(CancellationToken())
 
-  private val messages = mutableListOf<ChatMessage>()
+  private val messages = AtomicReference<List<ChatMessage>>(emptyList())
 
   private val logger = LoggerFactory.getLogger(ChatSession::class.java)
-
-  private val theMostRecentContextFilesMessageId = AtomicReference<UUID>(UUID.randomUUID())
 
   init {
     cancellationToken.get().dispose()
@@ -77,7 +75,7 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
        *   refactor Cody to not require it at all
        */
       val model = "openai/gpt-3.5-turbo"
-      val restoreParams = ChatRestoreParams(model, messages.toList(), UUID.randomUUID().toString())
+      val restoreParams = ChatRestoreParams(model, messages.get(), UUID.randomUUID().toString())
       val newSessionId = agent.server.chatRestore(restoreParams)
       sessionId.getAndSet(newSessionId)
     }
@@ -116,34 +114,28 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
 
   @Throws(ExecutionException::class, InterruptedException::class)
   override fun receiveMessage(extensionMessage: ExtensionMessage) {
-    fun addAssistantResponseToChat(text: String, displayText: String? = null) {
-      // Updates of the given message will always have the same UUID
-      val messageId =
-          UUID.nameUUIDFromBytes(extensionMessage.messages?.count().toString().toByteArray())
-      ApplicationManager.getApplication().invokeLater {
-        addMessage(ChatMessage(Speaker.ASSISTANT, text, displayText, id = messageId))
-      }
-    }
+    synchronized(this) {
+      try {
+        val lastMessage = extensionMessage.messages?.lastOrNull()
 
-    try {
-      val lastMessage = extensionMessage.messages?.lastOrNull()
+        if (lastMessage?.error != null && extensionMessage.isMessageInProgress == false) {
 
-      if (lastMessage?.error != null && extensionMessage.isMessageInProgress == false) {
+          getCancellationToken().dispose()
+          val rateLimitError = lastMessage.error.toRateLimitError()
+          if (rateLimitError != null) {
+            RateLimitStateManager.reportForChat(project, rateLimitError)
+            isCodyProJetbrains(project).thenApply { isCodyPro ->
+              val text =
+                  when {
+                    rateLimitError.upgradeIsAvailable && isCodyPro ->
+                        CodyBundle.getString("chat.rate-limit-error.upgrade")
+                            .fmt(rateLimitError.limit?.let { " $it" } ?: "")
+                    else -> CodyBundle.getString("chat.rate-limit-error.explain")
+                  }
 
-        getCancellationToken().dispose()
-        val rateLimitError = lastMessage.error.toRateLimitError()
-        if (rateLimitError != null) {
-          RateLimitStateManager.reportForChat(project, rateLimitError)
-          isCodyProJetbrains(project).thenApply { isCodyPro ->
-            val text =
-                when {
-                  rateLimitError.upgradeIsAvailable && isCodyPro ->
-                      CodyBundle.getString("chat.rate-limit-error.upgrade")
-                          .fmt(rateLimitError.limit?.let { " $it" } ?: "")
-                  else -> CodyBundle.getString("chat.rate-limit-error.explain")
-                }
-
-              addAssistantResponseToChat(text)
+              ApplicationManager.getApplication().invokeLater {
+                addMessage(ChatMessage(speaker = Speaker.ASSISTANT, text))
+              }
             }
           } else {
             // Currently we ignore other kind of errors like context window limit reached
@@ -155,66 +147,37 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
             getCancellationToken().dispose()
           } else {
 
-            val penultimateMessage = extensionMessage.messages?.dropLast(1)?.lastOrNull()
-            if (extensionMessage.chatID != null) {
-              if (penultimateMessage != null) {
-                val messageId =
-                    UUID.nameUUIDFromBytes(
-                        (extensionMessage.messages.count() - 1).toString().toByteArray())
-                val message =
-                    ChatMessage(
-                        speaker = Speaker.ASSISTANT,
-                        text = penultimateMessage.text,
-                        displayText = penultimateMessage.displayText,
-                        contextFiles = penultimateMessage.contextFiles,
-                        id = messageId)
-                ApplicationManager.getApplication().invokeLater {
-                  addAssistantUsedContextToChat(message)
-                }
+            if (extensionMessage.chatID != null && !extensionMessage.messages.isNullOrEmpty()) {
+              ApplicationManager.getApplication().invokeLater {
+                updateMessages(extensionMessage.messages)
               }
-
-              if (lastMessage?.text != null) {
-                addAssistantResponseToChat(lastMessage.text, lastMessage.displayText)
-              } else {}
             } else {}
           }
         }
+      } catch (error: Exception) {
+        getCancellationToken().dispose()
+        logger.error(CodyBundle.getString("chat-session.error-title"), error)
+        ApplicationManager.getApplication().invokeLater {
+          addMessage(
+              ChatMessage(
+                  speaker = Speaker.ASSISTANT,
+                  text = CodyBundle.getString("chat-session.error-title")))
+        }
       }
-    } catch (error: Exception) {
-      getCancellationToken().dispose()
-      logger.error(CodyBundle.getString("chat-session.error-title"), error)
-      addAssistantResponseToChat(CodyBundle.getString("chat-session.error-title"))
+    }
+  }
+
+  @RequiresEdt
+  private fun updateMessages(messages: List<ChatMessage>) {
+    synchronized(this) {
+      this.messages.getAndSet(messages)
+      chatPanel.setMessages(messages)
     }
   }
 
   @RequiresEdt
   private fun addMessage(message: ChatMessage) {
-    synchronized(messages) {
-      if (messages.lastOrNull()?.id == message.id) {
-        messages.removeLast()
-      }
-      messages.add(message)
-      chatPanel.addOrUpdateMessage(message)
-    }
-  }
-
-  @RequiresEdt
-  private fun addAssistantUsedContextToChat(message: ChatMessage) {
-    synchronized(this) {
-      val findResult = messages.indexOfLast { it.id == message.id }
-      if (findResult >= 0) {
-        messages[findResult] = message
-
-        // The first response does not include the context files. We must check
-        // for the second version of it when it's updated with the proper data.
-        val isFirstUpdate = theMostRecentContextFilesMessageId.getAndSet(message.id) != message.id
-        if (isFirstUpdate && !message.contextFiles.isNullOrEmpty()) {
-          chatPanel.displayUsedContext(message)
-        } else {}
-      } else {
-        messages.add(message)
-      }
-    }
+    synchronized(this) { chatPanel.addMessage(message) }
   }
 
   @RequiresEdt
@@ -272,8 +235,9 @@ private constructor(private val project: Project, newSessionId: CompletableFutur
             GraphQlLogger.logCodyEvent(project, "command:${commandId.displayName}", "executed")
           })
 
+      // todo: remove?
       chatSession.addMessage(ChatMessage(Speaker.HUMAN, commandId.displayName))
-      synchronized(chatSessions) { chatSessions.add(chatSession) }
+      chatSessions.add(chatSession)
       return chatSession
     }
 
