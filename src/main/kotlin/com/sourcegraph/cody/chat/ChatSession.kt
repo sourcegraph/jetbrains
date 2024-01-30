@@ -1,11 +1,11 @@
 package com.sourcegraph.cody.chat
 
-import CodyAgent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.xml.util.XmlStringUtil
 import com.jetbrains.rd.util.AtomicReference
+import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
