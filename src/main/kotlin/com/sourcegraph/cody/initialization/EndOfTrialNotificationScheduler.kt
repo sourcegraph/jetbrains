@@ -20,6 +20,8 @@ class EndOfTrialNotificationScheduler private constructor(val project: Project) 
 
   private val scheduler = Executors.newScheduledThreadPool(1)
 
+  private var times = 1
+
   init {
     scheduler.scheduleAtFixedRate(
         /* command = */ {
@@ -56,16 +58,16 @@ class EndOfTrialNotificationScheduler private constructor(val project: Project) 
                               useSscForCodySubscription ->
                             showProperNotificationIfApplicable(
                                 currentUserCodySubscription = currentUserCodySubscription,
-                                codyProTrialEnded ?: false,
-                                useSscForCodySubscription ?: false)
+                                codyProTrialEnded = times-- < 0,
+                                useSscForCodySubscription = true)
                           }
                 }
                 .completeOnTimeout(null, 4, TimeUnit.SECONDS)
           }
         },
         /* initialDelay = */ 0,
-        /* period = */ 2,
-        /* unit = */ TimeUnit.HOURS)
+        /* period = */ 29,
+        /* unit = */ TimeUnit.SECONDS)
   }
 
   private fun showProperNotificationIfApplicable(
