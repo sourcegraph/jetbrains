@@ -18,8 +18,9 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
     synchronized(listeners) { listeners += listener }
   }
 
-  fun update(internalId: String, chatMessages: List<ChatMessage>) {
+  fun update(internalId: String, chatMessages: List<ChatMessage>, modelId: String) {
     val found = getChatOrCreate(internalId)
+    found.modelId = modelId
     found.messages = chatMessages.map(::convertToMessageState).toMutableList()
     found.setUpdatedTimeAt(LocalDateTime.now())
     synchronized(listeners) { listeners.forEach { it(found) } }
