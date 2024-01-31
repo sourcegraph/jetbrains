@@ -25,7 +25,7 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
     synchronized(listeners) { listeners.forEach { it(found) } }
   }
 
-  fun remove(internalId: String) {
+  fun remove(internalId: String?) {
     state.chats.removeIf { it.internalId == internalId }
   }
 

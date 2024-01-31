@@ -15,13 +15,17 @@ class ChatState : BaseState() {
 
   @get:OptionTag(tag = "updatedAt", nameAttribute = "") var updatedAt: String? by string()
 
-  fun title(): String = messages.first().text ?: ""
+  fun title(): String? = messages.firstOrNull()?.text
 
   fun setUpdatedTimeAt(date: LocalDateTime) {
     updatedAt = date.format(DATE_FORMAT)
   }
 
-  fun getUpdatedTimeAt(): LocalDateTime = LocalDateTime.parse(updatedAt, DATE_FORMAT)
+  fun getUpdatedTimeAt(): LocalDateTime {
+    if (updatedAt == null)
+      return LocalDateTime.now()
+    return LocalDateTime.parse(updatedAt, DATE_FORMAT)
+  }
 
   companion object {
 
