@@ -57,11 +57,8 @@ private constructor(
    */
   private val sessionId: AtomicReference<CompletableFuture<SessionId>> =
       AtomicReference(newSessionId)
-
   private val chatPanel: ChatPanel = ChatPanel(project, this)
-
   private val cancellationToken = AtomicReference(CancellationToken())
-
   private val messages = mutableListOf<ChatMessage>()
 
   init {
@@ -260,6 +257,7 @@ private constructor(
       return chatSession
     }
 
+    @RequiresEdt
     fun createFromState(project: Project, state: ChatState): AgentChatSession {
       val sessionId = createNewPanel(project) { it.server.chatNew() }
       val chatSession = AgentChatSession(project, sessionId, state.internalId!!)
