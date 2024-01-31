@@ -38,7 +38,10 @@ class EndOfTrialNotificationScheduler private constructor(val project: Project) 
 
           CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
             val currentUserCodySubscription =
-                agent.server.getCurrentUserCodySubscription().get(4, TimeUnit.SECONDS)
+                agent.server
+                    .getCurrentUserCodySubscription()
+                    .orTimeout(4, TimeUnit.SECONDS)
+                    .getNow(null)
 
             if (currentUserCodySubscription == null) {
               logger.debug("currentUserCodySubscription is null")
@@ -48,12 +51,14 @@ class EndOfTrialNotificationScheduler private constructor(val project: Project) 
             val codyProTrialEnded =
                 agent.server
                     .evaluateFeatureFlag(GetFeatureFlag.CodyProTrialEnded)
-                    .get(4, TimeUnit.SECONDS) == true
+                    .orTimeout(4, TimeUnit.SECONDS)
+                    .getNow(false) == true
 
             val useSscForCodySubscription =
                 agent.server
                     .evaluateFeatureFlag(GetFeatureFlag.UseSscForCodySubscription)
-                    .get(4, TimeUnit.SECONDS) == true
+                    .orTimeout(4, TimeUnit.SECONDS)
+                    .getNow(false) == true
 
             showProperNotificationIfApplicable(
                 currentUserCodySubscription, codyProTrialEnded, useSscForCodySubscription)
