@@ -72,7 +72,7 @@ public class CodyAgentClient {
     if (onSetConfigFeatures != null
         && extensionMessage.getType().equals(ExtensionMessage.Type.SET_CONFIG_FEATURES)) {
       ApplicationManager.getApplication()
-              .invokeLater(() -> onSetConfigFeatures.update(extensionMessage.getConfigFeatures()));
+          .invokeLater(() -> onSetConfigFeatures.update(extensionMessage.getConfigFeatures()));
     }
   }
 }
