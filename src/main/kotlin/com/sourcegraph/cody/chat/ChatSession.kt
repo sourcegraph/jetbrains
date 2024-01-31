@@ -204,11 +204,6 @@ private constructor(
     fun getSession(sessionId: SessionId): AgentChatSession? =
         synchronized(chatSessions) { chatSessions.find { it.hasSessionId(sessionId) } }
 
-    private fun getSessionOrCreate(
-        sessionId: SessionId,
-        create: () -> AgentChatSession
-    ): AgentChatSession = getSession(sessionId) ?: create()
-
     fun restoreAllSessions(agent: CodyAgent) {
       synchronized(chatSessions) { chatSessions.forEach { it.restoreAgentSession(agent) } }
     }
@@ -239,7 +234,7 @@ private constructor(
         GraphQlLogger.logCodyEvent(project, "command:${commandId.displayName}", "submitted")
       }
 
-      val chatSession = getSessionOrCreate(sessionId.get()) { AgentChatSession(project, sessionId) }
+      val chatSession = AgentChatSession(project, sessionId)
 
       chatSession.createCancellationToken(
           onCancel = {
@@ -260,17 +255,14 @@ private constructor(
     @RequiresEdt
     fun createNew(project: Project): AgentChatSession {
       val sessionId = createNewPanel(project) { it.server.chatNew() }
-      val chatSession = getSessionOrCreate(sessionId.get()) { AgentChatSession(project, sessionId) }
+      val chatSession = AgentChatSession(project, sessionId)
       synchronized(chatSessions) { chatSessions.add(chatSession) }
       return chatSession
     }
 
     fun createFromState(project: Project, state: ChatState): AgentChatSession {
       val sessionId = createNewPanel(project) { it.server.chatNew() }
-      val chatSession =
-          getSessionOrCreate(sessionId.get()) {
-            AgentChatSession(project, sessionId, state.internalId!!)
-          }
+      val chatSession = AgentChatSession(project, sessionId, state.internalId!!)
       for (message in state.messages) {
         val parsed =
             when (val speaker = message.speaker) {
