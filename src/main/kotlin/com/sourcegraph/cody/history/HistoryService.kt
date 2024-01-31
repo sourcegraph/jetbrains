@@ -22,7 +22,7 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
     val found = getChatOrCreate(internalId)
     found.messages = chatMessages.map(::convertToMessageState).toMutableList()
     found.setUpdatedTimeAt(LocalDateTime.now())
-    listeners.forEach { it(found) }
+    synchronized(listeners) { listeners.forEach { it(found) } }
   }
 
   fun remove(internalId: String) {
