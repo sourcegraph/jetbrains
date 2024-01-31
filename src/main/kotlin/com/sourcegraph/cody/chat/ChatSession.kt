@@ -81,6 +81,10 @@ private constructor(
        *   refactor Cody to not require it at all
        */
       val model = "openai/gpt-3.5-turbo"
+      // todo dodac serializacje
+      // todo sprawdzic czy moge podmienic model na po za free planem, bo mam 3.5 zahardkodowane a
+      // dziala
+      // todo spytac taylor czy skroty klawiszowe sa na GA
       val restoreParams = ChatRestoreParams(model, messages.toList(), UUID.randomUUID().toString())
       val newSessionId = agent.server.chatRestore(restoreParams)
       sessionId.getAndSet(newSessionId)
@@ -203,6 +207,11 @@ private constructor(
     fun getSession(sessionId: SessionId): AgentChatSession? =
         synchronized(chatSessions) { chatSessions.find { it.hasSessionId(sessionId) } }
 
+    private fun getSessionOrCreate(
+        sessionId: SessionId,
+        create: () -> AgentChatSession
+    ): AgentChatSession = getSession(sessionId) ?: create()
+
     fun restoreAllSessions(agent: CodyAgent) {
       synchronized(chatSessions) { chatSessions.forEach { it.restoreAgentSession(agent) } }
     }
@@ -215,7 +224,7 @@ private constructor(
       synchronized(chatSessions) { chatSessions.remove(session) }
     }
 
-    fun getSessionByInternalId(internalId: String): AgentChatSession? =
+    fun getSessionByInternalId(internalId: String?): AgentChatSession? =
         synchronized(chatSessions) { chatSessions.find { it.internalId == internalId } }
 
     @RequiresEdt
@@ -233,7 +242,7 @@ private constructor(
         GraphQlLogger.logCodyEvent(project, "command:${commandId.displayName}", "submitted")
       }
 
-      val chatSession = getSession(sessionId.get()) ?: AgentChatSession(project, sessionId)
+      val chatSession = getSessionOrCreate(sessionId.get()) { AgentChatSession(project, sessionId) }
 
       chatSession.createCancellationToken(
           onCancel = {
@@ -254,7 +263,7 @@ private constructor(
     @RequiresEdt
     fun createNew(project: Project): AgentChatSession {
       val sessionId = createNewPanel(project) { it.server.chatNew() }
-      val chatSession = getSession(sessionId.get()) ?: AgentChatSession(project, sessionId)
+      val chatSession = getSessionOrCreate(sessionId.get()) { AgentChatSession(project, sessionId) }
       synchronized(chatSessions) { chatSessions.add(chatSession) }
       return chatSession
     }
@@ -262,7 +271,9 @@ private constructor(
     fun createFromState(project: Project, state: ChatState): AgentChatSession {
       val sessionId = createNewPanel(project) { it.server.chatNew() }
       val chatSession =
-          getSession(sessionId.get()) ?: AgentChatSession(project, sessionId, state.internalId!!)
+          getSessionOrCreate(sessionId.get()) {
+            AgentChatSession(project, sessionId, state.internalId!!)
+          }
       for (message in state.messages) {
         val parsed =
             when (val speaker = message.speaker) {
