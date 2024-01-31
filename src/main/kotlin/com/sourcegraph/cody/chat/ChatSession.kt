@@ -21,10 +21,10 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
 import com.sourcegraph.telemetry.GraphQlLogger
-import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
+import org.slf4j.LoggerFactory
 
 typealias SessionId = String
 
@@ -76,9 +76,12 @@ private constructor(
       val model = "openai/gpt-3.5-turbo"
       // todo serialize model
       val messagesToReload =
-          messages.toList().fold(emptyList<ChatMessage>()) { acc, msg ->
-            if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
-          }
+          messages
+              .toList()
+              .dropWhile { it.speaker == Speaker.ASSISTANT }
+              .fold(emptyList<ChatMessage>()) { acc, msg ->
+                if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
+              }
       val restoreParams = ChatRestoreParams(model, messagesToReload, UUID.randomUUID().toString())
       val newSessionId = agent.server.chatRestore(restoreParams)
       sessionId.getAndSet(newSessionId)
