@@ -68,13 +68,8 @@ private constructor(
 
   fun restoreAgentSession(agent: CodyAgent) {
     synchronized(this) {
-      /**
-       * TODO: We should get and save that information after panel is created or model is changed by
-       *   user. Also, `chatId` parameter doesn't really matter as long as it's unique, we need to
-       *   refactor Cody to not require it at all
-       */
-      val model = "openai/gpt-3.5-turbo"
       // todo serialize model
+      val model = "anthropic/claude-2.0"
       val messagesToReload =
           messages
               .toList()
