@@ -10,8 +10,8 @@ import com.sourcegraph.cody.agent.protocol.ContextFile
  */
 data class WebviewMessage(
     val command: String,
-    val text: String? = null,
-    val submitType: String? = null, // One of: "user", "suggestion", "example"
+    val text: String,
+    val submitType: String, // One of: "user", "suggestion", "example"
     val addEnhancedContext: Boolean? = null,
     val contextFiles: List<ContextFile>? = null,
     val error: ChatError? = null,
@@ -31,13 +31,19 @@ data class ExtensionMessage(
     val isTranscriptError: Boolean? = null,
     val customPrompts: List<List<Any>>? = null,
     val context: Any? = null,
-    val errors: String?
+    val errors: String?,
+    val configFeatures: ConfigFeatures?,
 ) {
 
   object Type {
     const val TRANSCRIPT = "transcript"
     const val ERRORS = "errors"
+    const val SET_CONFIG_FEATURES = "setConfigFeatures"
   }
 }
+
+data class ConfigFeatures(
+    val attribution: Boolean,
+)
 
 data class WebviewPostMessageParams(val id: String, val message: ExtensionMessage)
