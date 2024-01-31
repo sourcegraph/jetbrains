@@ -7,11 +7,9 @@ import com.intellij.util.xmlb.annotations.Tag
 @Tag("message")
 class MessageState : BaseState() {
 
-  @get:OptionTag(tag = "text", nameAttribute = "")
-  var text: String? by string()
+  @get:OptionTag(tag = "text", nameAttribute = "") var text: String? by string()
 
-  @get:OptionTag(tag = "speaker", nameAttribute = "")
-  var speaker by enum<SpeakerState>()
+  @get:OptionTag(tag = "speaker", nameAttribute = "") var speaker by enum<SpeakerState>()
   // todo var contextFiles by list<String>()
 
   enum class SpeakerState {

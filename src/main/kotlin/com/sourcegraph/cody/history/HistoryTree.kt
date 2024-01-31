@@ -90,8 +90,7 @@ class HistoryTree(
       onDelete(leaf.chat)
       val period = leaf.parent as PeriodNode
       model.removeNodeFromParent(leaf)
-      if (model.getChildCount(period) == 0)
-        model.removeNodeFromParent(period)
+      if (model.getChildCount(period) == 0) model.removeNodeFromParent(period)
     }
   }
 

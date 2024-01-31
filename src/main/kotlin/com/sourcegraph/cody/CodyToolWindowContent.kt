@@ -139,8 +139,9 @@ class CodyToolWindowContent(private val project: Project) {
   }
 
   private fun selectHistory(state: ChatState) {
-    val session = AgentChatSession.getSessionByInternalId(state.internalId!!)
-      ?: AgentChatSession.createFromState(project, state)
+    val session =
+        AgentChatSession.getSessionByInternalId(state.internalId!!)
+            ?: AgentChatSession.createFromState(project, state)
     addChatSession(session)
   }
 
@@ -150,8 +151,7 @@ class CodyToolWindowContent(private val project: Project) {
     if (session != null) {
       AgentChatSession.removeSession(session)
       val isVisible = session.getPanel().chatSession.getInternalId() == state.internalId!!
-      if (isVisible)
-        addChatSession(AgentChatSession.createNew(project))
+      if (isVisible) addChatSession(AgentChatSession.createNew(project))
     }
   }
 

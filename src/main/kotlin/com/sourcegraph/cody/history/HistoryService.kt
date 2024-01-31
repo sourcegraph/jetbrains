@@ -15,9 +15,7 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
   private val listeners = mutableListOf<(ChatState) -> Unit>()
 
   fun listenOnUpdate(listener: (ChatState) -> Unit) {
-    synchronized(listeners) {
-      listeners += listener
-    }
+    synchronized(listeners) { listeners += listener }
   }
 
   fun update(internalId: String, chatMessages: List<ChatMessage>) {

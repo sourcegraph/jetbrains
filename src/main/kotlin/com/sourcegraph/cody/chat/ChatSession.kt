@@ -41,7 +41,6 @@ interface ChatSession {
   fun getCancellationToken(): CancellationToken
 
   fun getInternalId(): String
-
 }
 
 class AgentChatSession
@@ -217,7 +216,7 @@ private constructor(
     }
 
     fun getSessionByInternalId(internalId: String): AgentChatSession? =
-      synchronized(chatSessions) { chatSessions.find { it.internalId == internalId } }
+        synchronized(chatSessions) { chatSessions.find { it.internalId == internalId } }
 
     @RequiresEdt
     fun createFromCommand(project: Project, commandId: CommandId): AgentChatSession {
@@ -234,9 +233,7 @@ private constructor(
         GraphQlLogger.logCodyEvent(project, "command:${commandId.displayName}", "submitted")
       }
 
-      val chatSession =
-          getSession(sessionId.get())
-              ?: AgentChatSession(project, sessionId)
+      val chatSession = getSession(sessionId.get()) ?: AgentChatSession(project, sessionId)
 
       chatSession.createCancellationToken(
           onCancel = {
@@ -257,9 +254,7 @@ private constructor(
     @RequiresEdt
     fun createNew(project: Project): AgentChatSession {
       val sessionId = createNewPanel(project) { it.server.chatNew() }
-      val chatSession =
-          getSession(sessionId.get())
-              ?: AgentChatSession(project, sessionId)
+      val chatSession = getSession(sessionId.get()) ?: AgentChatSession(project, sessionId)
       synchronized(chatSessions) { chatSessions.add(chatSession) }
       return chatSession
     }

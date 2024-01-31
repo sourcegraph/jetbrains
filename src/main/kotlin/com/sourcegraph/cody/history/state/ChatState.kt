@@ -9,14 +9,11 @@ import java.time.format.DateTimeFormatter
 @Tag("chat")
 class ChatState : BaseState() {
 
-  @get:OptionTag(tag = "internalId", nameAttribute = "")
-  var internalId by string()
+  @get:OptionTag(tag = "internalId", nameAttribute = "") var internalId by string()
 
-  @get:OptionTag(tag = "messages", nameAttribute = "")
-  var messages by list<MessageState>()
+  @get:OptionTag(tag = "messages", nameAttribute = "") var messages by list<MessageState>()
 
-  @get:OptionTag(tag = "updatedAt", nameAttribute = "")
-  var updatedAt by string()
+  @get:OptionTag(tag = "updatedAt", nameAttribute = "") var updatedAt by string()
 
   fun title() = messages.first().text!!
 

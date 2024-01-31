@@ -5,7 +5,5 @@ import com.intellij.util.xmlb.annotations.OptionTag
 
 class HistoryState : BaseState() {
 
-  @get:OptionTag(tag = "chats", nameAttribute = "")
-  var chats by list<ChatState>()
-
+  @get:OptionTag(tag = "chats", nameAttribute = "") var chats by list<ChatState>()
 }
