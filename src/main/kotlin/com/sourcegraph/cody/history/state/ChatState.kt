@@ -9,13 +9,13 @@ import java.time.format.DateTimeFormatter
 @Tag("chat")
 class ChatState : BaseState() {
 
-  @get:OptionTag(tag = "internalId", nameAttribute = "") var internalId by string()
+  @get:OptionTag(tag = "internalId", nameAttribute = "") var internalId: String? by string()
 
-  @get:OptionTag(tag = "messages", nameAttribute = "") var messages by list<MessageState>()
+  @get:OptionTag(tag = "messages", nameAttribute = "") var messages: MutableList<MessageState> by list()
 
-  @get:OptionTag(tag = "updatedAt", nameAttribute = "") var updatedAt by string()
+  @get:OptionTag(tag = "updatedAt", nameAttribute = "") var updatedAt: String? by string()
 
-  fun title() = messages.first().text!!
+  fun title(): String = messages.first().text ?: ""
 
   fun setUpdatedTimeAt(date: LocalDateTime) {
     updatedAt = date.format(DATE_FORMAT)
