@@ -268,7 +268,7 @@ private constructor(
               MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
               else -> error("unrecognized speaker $speaker")
             }
-        val chatMessage = ChatMessage(parsed, message.text, id = UUID.randomUUID())
+        val chatMessage = ChatMessage(parsed, message.text)
         chatSession.messages.add(chatMessage)
         chatSession.chatPanel.addOrUpdateMessage(chatMessage)
       }
