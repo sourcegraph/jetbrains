@@ -8,8 +8,7 @@ import com.sourcegraph.cody.history.state.HistoryState
 import com.sourcegraph.cody.history.state.MessageState
 import java.time.LocalDateTime
 
-@State(
-    name = "com.sourcegraph.cody.history.HistoryService", storages = [Storage("cody_history.xml")])
+@State(name = "ChatHistory", storages = [Storage("cody_history.xml")])
 @Service(Service.Level.PROJECT)
 class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState()) {
 
