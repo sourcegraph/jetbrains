@@ -37,30 +37,26 @@ class EndOfTrialNotificationScheduler private constructor(val project: Project) 
           }
 
           CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-            agent.server
-                .getCurrentUserCodySubscription()
-                .thenApply { currentUserCodySubscription ->
-                  if (currentUserCodySubscription == null) {
-                    logger.warn("currentUserCodySubscription is null")
-                    return@thenApply
-                  }
+            val currentUserCodySubscription =
+                agent.server.getCurrentUserCodySubscription().get(4, TimeUnit.SECONDS)
 
-                  agent.server
-                      .evaluateFeatureFlag(GetFeatureFlag.CodyProTrialEnded)
-                      .completeOnTimeout(false, 4, TimeUnit.SECONDS)
-                      .thenCombine(
-                          agent.server
-                              .evaluateFeatureFlag(GetFeatureFlag.UseSscForCodySubscription)
-                              .completeOnTimeout(false, 4, TimeUnit.SECONDS)) {
-                              codyProTrialEnded,
-                              useSscForCodySubscription ->
-                            showProperNotificationIfApplicable(
-                                currentUserCodySubscription = currentUserCodySubscription,
-                                codyProTrialEnded ?: false,
-                                useSscForCodySubscription ?: false)
-                          }
-                }
-                .completeOnTimeout(null, 4, TimeUnit.SECONDS)
+            if (currentUserCodySubscription == null) {
+              logger.debug("currentUserCodySubscription is null")
+              return@applyAgentOnBackgroundThread
+            }
+
+            val codyProTrialEnded =
+                agent.server
+                    .evaluateFeatureFlag(GetFeatureFlag.CodyProTrialEnded)
+                    .get(4, TimeUnit.SECONDS) == true
+
+            val useSscForCodySubscription =
+                agent.server
+                    .evaluateFeatureFlag(GetFeatureFlag.UseSscForCodySubscription)
+                    .get(4, TimeUnit.SECONDS) == true
+
+            showProperNotificationIfApplicable(
+                currentUserCodySubscription, codyProTrialEnded, useSscForCodySubscription)
           }
         },
         /* initialDelay = */ 0,
