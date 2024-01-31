@@ -14,7 +14,7 @@ class HistoryStateTest : TestCase() {
     val history = HistoryState().apply {
       chats += ChatState().apply {
         internalId = "0f8b7034-9fa8-488a-a13e-09c52677008a"
-        setUpdatedTimeAt(LocalDateTime.parse("1972-01-01T06:00:00"))
+        updatedAt = "2024-01-31T01:06:18.524621"
         messages += MessageState().apply {
           speaker = HUMAN
           text = "hi"
@@ -46,7 +46,7 @@ class HistoryStateTest : TestCase() {
                   </message>
                 </list>
               </messages>
-              <updatedAt value="1972-01-01T06:00:00" />
+              <updatedAt value="2024-01-31T01:06:18.524621" />
             </chat>
           </list>
         </chats>
