@@ -5,11 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.xml.util.XmlStringUtil
 import com.jetbrains.rd.util.AtomicReference
-import com.sourcegraph.cody.agent.CodyAgent
-import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.ExtensionMessage
-import com.sourcegraph.cody.agent.WebviewMessage
-import com.sourcegraph.cody.agent.WebviewReceiveMessageParams
+import com.sourcegraph.cody.agent.*
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
 import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
@@ -25,10 +21,10 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
 import com.sourcegraph.telemetry.GraphQlLogger
+import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
-import org.slf4j.LoggerFactory
 
 typealias SessionId = String
 
@@ -79,7 +75,11 @@ private constructor(
        */
       val model = "openai/gpt-3.5-turbo"
       // todo serialize model
-      val restoreParams = ChatRestoreParams(model, messages.toList(), UUID.randomUUID().toString())
+      val messagesToReload =
+          messages.toList().fold(emptyList<ChatMessage>()) { acc, msg ->
+            if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
+          }
+      val restoreParams = ChatRestoreParams(model, messagesToReload, UUID.randomUUID().toString())
       val newSessionId = agent.server.chatRestore(restoreParams)
       sessionId.getAndSet(newSessionId)
     }
