@@ -81,10 +81,7 @@ private constructor(
        *   refactor Cody to not require it at all
        */
       val model = "openai/gpt-3.5-turbo"
-      // todo dodac serializacje
-      // todo sprawdzic czy moge podmienic model na po za free planem, bo mam 3.5 zahardkodowane a
-      // dziala
-      // todo spytac taylor czy skroty klawiszowe sa na GA
+      // todo serialize model
       val restoreParams = ChatRestoreParams(model, messages.toList(), UUID.randomUUID().toString())
       val newSessionId = agent.server.chatRestore(restoreParams)
       sessionId.getAndSet(newSessionId)
