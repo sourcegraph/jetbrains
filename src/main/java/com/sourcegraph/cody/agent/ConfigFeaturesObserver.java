@@ -7,6 +7,7 @@ package com.sourcegraph.cody.agent;
  * <p>This can be attached to {@link CurrentConfigFeatures}, which multiplexes notifications from
  * {@link CodyAgentClient#onConfigFeatures}.
  */
+@FunctionalInterface
 public interface ConfigFeaturesObserver {
   void update(ConfigFeatures newConfigFeatures);
 }

@@ -386,4 +386,8 @@ tasks {
         listOf(
             properties("pluginVersion").split('-').getOrElse(1) { "default" }.split('.').first()))
   }
+
+  test {
+    dependsOn(project.tasks.getByPath("buildCody"))
+  }
 }
