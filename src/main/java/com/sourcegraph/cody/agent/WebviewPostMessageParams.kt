@@ -32,7 +32,7 @@ data class ExtensionMessage(
     val customPrompts: List<List<Any>>? = null,
     val context: Any? = null,
     val errors: String?,
-    val configFeatures: CurrentConfigFeatures?,
+    val configFeatures: ConfigFeatures?,
 ) {
 
   object Type {

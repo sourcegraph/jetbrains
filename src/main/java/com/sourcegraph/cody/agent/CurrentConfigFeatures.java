@@ -1,6 +1,8 @@
 package com.sourcegraph.cody.agent;
 
 import com.intellij.openapi.components.Service;
+import com.sourcegraph.cody.vscode.CancellationToken;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -52,12 +54,14 @@ public final class CurrentConfigFeatures implements ConfigFeaturesObserver {
 
   /**
    * Given listener will be given new {@link ConfigFeatures} whenever they arrive. Observation
-   * relationship is ended once the returned cleanup {@link Runnable} is {@link Runnable#run()}.
+   * relationship is ended once the returned cleanup {@link CancellationToken} is disposed.
    */
-  public Runnable attach(ConfigFeaturesObserver observer) {
+  public CancellationToken attach(ConfigFeaturesObserver observer) {
     IdentityObserver id = new IdentityObserver(observer);
     observers.add(id);
-    return () -> observers.remove(id);
+    CancellationToken cancellation = new CancellationToken();
+    cancellation.onCancellationRequested(() -> observers.remove(id));
+    return cancellation;
   }
 
   /**
