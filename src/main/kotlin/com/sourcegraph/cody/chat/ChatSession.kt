@@ -6,7 +6,10 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.xml.util.XmlStringUtil
 import com.jetbrains.rd.util.AtomicReference
 import com.sourcegraph.cody.agent.*
-import com.sourcegraph.cody.agent.protocol.*
+import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
+import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
+import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.RateLimitStateManager
@@ -38,11 +41,9 @@ interface ChatSession {
 
 class AgentChatSession
 private constructor(
-  private val project: Project,
-  newSessionId: CompletableFuture<SessionId>,
-  private val availableModels: CompletableFuture<List<ChatModel>> = CompletableFuture.completedFuture(emptyList()),
-  private var selectedModel: String? = null,
-  private val internalId: String = UUID.randomUUID().toString(),
+    private val project: Project,
+    newSessionId: CompletableFuture<SessionId>,
+    private val internalId: String = UUID.randomUUID().toString(),
 ) : ChatSession {
 
   /**
@@ -67,6 +68,13 @@ private constructor(
 
   fun restoreAgentSession(agent: CodyAgent) {
     synchronized(this) {
+      /**
+       * TODO: We should get and save that information after panel is created or model is changed by
+       *   user. Also, `chatId` parameter doesn't really matter as long as it's unique, we need to
+       *   refactor Cody to not require it at all
+       */
+      val model = "openai/gpt-3.5-turbo"
+      // todo serialize model
       val messagesToReload =
           messages
               .toList()
@@ -74,8 +82,6 @@ private constructor(
               .fold(emptyList<ChatMessage>()) { acc, msg ->
                 if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
               }
-      // todo enterprise accounts and normal accounts shouldn't share same history
-      val model = selectedModel ?: "anthropic/claude-2.0"
       val restoreParams = ChatRestoreParams(model, messagesToReload, UUID.randomUUID().toString())
       val newSessionId = agent.server.chatRestore(restoreParams)
       sessionId.getAndSet(newSessionId)
@@ -175,7 +181,7 @@ private constructor(
       }
       messages.add(message)
       chatPanel.addOrUpdateMessage(message)
-      HistoryService.getInstance().update(internalId, messages, getModelIdOrDefault())
+      HistoryService.getInstance().update(internalId, messages)
     }
   }
 
@@ -188,12 +194,6 @@ private constructor(
       cancellationToken.getAndSet(newCancellationToken).abort()
       chatPanel.registerCancellationToken(newCancellationToken)
     }
-  }
-
-  private fun getModelIdOrDefault(): String {
-    if (selectedModel == null)
-      selectedModel = availableModels.get().find { it.default }?.modelId
-    return selectedModel!!
   }
 
   companion object {
@@ -222,20 +222,19 @@ private constructor(
     @RequiresEdt
     fun createFromCommand(project: Project, commandId: CommandId): AgentChatSession {
       val sessionId =
-          executeOnAgentOrRestart(project) { agent: CodyAgent ->
+          createNewPanel(project) { agent: CodyAgent ->
             when (commandId) {
               CommandId.Explain -> agent.server.commandsExplain()
               CommandId.Smell -> agent.server.commandsSmell()
               CommandId.Test -> agent.server.commandsTest()
             }
           }
-      val availableModels = fetchAvailableModels(project, sessionId.get())
 
       ApplicationManager.getApplication().executeOnPooledThread {
         GraphQlLogger.logCodyEvent(project, "command:${commandId.displayName}", "submitted")
       }
 
-      val chatSession = AgentChatSession(project, sessionId, availableModels)
+      val chatSession = AgentChatSession(project, sessionId)
 
       chatSession.createCancellationToken(
           onCancel = {
@@ -255,17 +254,16 @@ private constructor(
 
     @RequiresEdt
     fun createNew(project: Project): AgentChatSession {
-      val sessionId = fetchNewSessionId(project)
-      val availableModels = fetchAvailableModels(project, sessionId.get())
-      val chatSession = AgentChatSession(project, sessionId, availableModels)
+      val sessionId = createNewPanel(project) { it.server.chatNew() }
+      val chatSession = AgentChatSession(project, sessionId)
       synchronized(chatSessions) { chatSessions.add(chatSession) }
       return chatSession
     }
 
     @RequiresEdt
     fun createFromState(project: Project, state: ChatState): AgentChatSession {
-      val sessionId = executeOnAgentOrRestart(project) { it.server.chatNew() }
-      val chatSession = AgentChatSession(project, sessionId, internalId = state.internalId!!, selectedModel = state.modelId!!)
+      val sessionId = createNewPanel(project) { it.server.chatNew() }
+      val chatSession = AgentChatSession(project, sessionId, state.internalId!!)
       for (message in state.messages) {
         val parsed =
             when (val speaker = message.speaker) {
@@ -284,39 +282,24 @@ private constructor(
       return chatSession
     }
 
-    private fun fetchNewSessionId(project: Project) = executeOnAgentOrRestart(project) { it.server.chatNew() }
-
-    private fun fetchAvailableModels(project: Project, sessionId: SessionId) = executeOnAgentOrRestart(project) { agent ->
-      agent.server.chatModels(ChatModelsParams(sessionId))
-        .thenApply { it.models.map { model -> ChatModel(model.model, model.title, model.default) } }
-    }
-
-    private fun <T> executeOnAgentOrRestart(
-      project: Project,
-      onAgent: (CodyAgent) -> CompletableFuture<T>
-    ): CompletableFuture<T> {
-      val result = CompletableFuture<T>()
+    private fun createNewPanel(
+        project: Project,
+        newPanelAction: (CodyAgent) -> CompletableFuture<String>
+    ): CompletableFuture<SessionId> {
+      val sessionId = CompletableFuture<SessionId>()
       CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
         try {
-          result.complete(onAgent(agent).get())
+          sessionId.complete(newPanelAction(agent).get())
         } catch (e: ExecutionException) {
           // Agent cannot gracefully recover when connection is lost, we need to restart it
           // TODO https://github.com/sourcegraph/jetbrains/issues/306
           logger.warn("Failed to load new chat, restarting agent", e)
           CodyAgentService.getInstance(project).restartAgent(project)
           Thread.sleep(5000)
-          executeOnAgentOrRestart(project, onAgent)
+          createNewPanel(project, newPanelAction)
         }
       }
-      return result
+      return sessionId
     }
-
   }
-
-  private data class ChatModel(
-    val modelId: String,
-    val displayName: String,
-    val default: Boolean
-  )
-
 }

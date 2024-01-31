@@ -11,8 +11,6 @@ class ChatState : BaseState() {
 
   @get:OptionTag(tag = "internalId", nameAttribute = "") var internalId: String? by string()
 
-  @get:OptionTag(tag = "modelId", nameAttribute = "") var modelId: String? by string()
-
   @get:OptionTag(tag = "messages", nameAttribute = "") var messages: MutableList<MessageState> by list()
 
   @get:OptionTag(tag = "updatedAt", nameAttribute = "") var updatedAt: String? by string()
