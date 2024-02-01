@@ -23,9 +23,11 @@ class CodyAgentService(project: Project) : Disposable {
   init {
     onStartup { agent ->
       agent.client.onNewMessage = Consumer { params ->
-        AgentChatSessionService.getInstance(project)
-            .getSession(params.id)
-            ?.receiveMessage(params.message)
+        if (!project.isDisposed) {
+          AgentChatSessionService.getInstance(project)
+              .getSession(params.id)
+              ?.receiveMessage(params.message)
+        }
       }
 
       AgentChatSessionService.getInstance(project).restoreAllSessions(agent)
