@@ -78,6 +78,17 @@ class HistoryTree(
         for (child in sorted) period.add(child)
         model.reload(period)
       }
+    } else {
+      val period =
+          root
+              .periods()
+              .flatMap { it.leafs() }
+              .find { it.chat.internalId == chat.internalId }!!
+              .parent as PeriodNode
+      val sorted = period.leafs().sortedByDescending { it.chat.getUpdatedTimeAt() }
+      period.removeAllChildren()
+      for (child in sorted) period.add(child)
+      model.reload(period)
     }
   }
 
