@@ -4,6 +4,8 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.sourcegraph.cody.agent.protocol.DebugMessage;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -63,8 +65,19 @@ public class CodyAgentClient {
         && extensionMessage.getType().equals(ExtensionMessage.Type.TRANSCRIPT)) {
       ApplicationManager.getApplication().invokeLater(() -> onNewMessage.accept(params));
     } else {
-      logger.debug("onNewMessage is null or message type is not transcript");
-      logger.debug(String.format("webview/postMessage %s: %s", params.getId(), extensionMessage));
+      var listener = this.webviewMessageListeners.get(params.getId());
+      if (listener != null) {
+        listener.accept(params.getMessage());
+      } else {
+        logger.warn(
+            String.format("webview/postMessage %s: %s", params.getId(), params.getMessage()));
+      }
     }
+  }
+
+  private final Map<String, Consumer<ExtensionMessage>> webviewMessageListeners = new HashMap<>();
+
+  public void onWebviewMessage(String panelID, Consumer<ExtensionMessage> callback) {
+    this.webviewMessageListeners.put(panelID, callback);
   }
 }

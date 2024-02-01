@@ -6,10 +6,7 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.xml.util.XmlStringUtil
 import com.jetbrains.rd.util.AtomicReference
 import com.sourcegraph.cody.agent.*
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
-import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
-import com.sourcegraph.cody.agent.protocol.Speaker
+import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.RateLimitStateManager
@@ -24,6 +21,7 @@ import com.sourcegraph.telemetry.GraphQlLogger
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
+import java.util.function.Consumer
 import org.slf4j.LoggerFactory
 
 class AgentChatSession
@@ -46,6 +44,25 @@ private constructor(
 
   init {
     cancellationToken.get().dispose()
+
+    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+      agent.client.onWebviewMessage(
+          this.sessionId.get().get(),
+          Consumer { message -> this.receiveWebviewExtensionMessage(message) })
+    }
+  }
+
+  private fun receiveWebviewExtensionMessage(message: ExtensionMessage) {
+    when (message.type) {
+      ExtensionMessage.Type.USER_CONTEXT_FILES -> {
+        if (message.context is List<*>) {
+          this.chatPanel.promptPanel.setContextFilesSelector(message.context)
+        }
+      }
+      else -> {
+        logger.warn(String.format("CodyToolWindowContent: unknown message type: %s", message.type))
+      }
+    }
   }
 
   fun getPanel(): ChatPanel = chatPanel
@@ -68,8 +85,15 @@ private constructor(
     sessionId.getAndSet(newSessionId)
   }
 
+  override fun sendWebviewMessage(message: WebviewMessage) {
+    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+      agent.server.webviewReceiveMessage(
+          WebviewReceiveMessageParams(this.sessionId.get().get(), message))
+    }
+  }
+
   @RequiresEdt
-  override fun sendMessage(text: String) {
+  override fun sendMessage(text: String, contextFiles: List<ContextFile>) {
     val displayText = XmlStringUtil.escapeString(text)
     val humanMessage = ChatMessage(Speaker.HUMAN, text, displayText)
     addMessage(humanMessage)
@@ -81,8 +105,7 @@ private constructor(
               text = humanMessage.actualMessage(),
               submitType = "user",
               addEnhancedContext = chatPanel.isEnhancedContextEnabled(),
-              // TODO(#242): allow to manually add files to the context via `@`
-              contextFiles = listOf())
+              contextFiles = contextFiles)
 
       val request =
           agent.server.chatSubmitMessage(ChatSubmitMessageParams(sessionId.get().get(), message))

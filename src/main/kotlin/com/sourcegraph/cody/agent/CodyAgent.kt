@@ -10,6 +10,7 @@ import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.config.ConfigUtil
 import java.io.*
 import java.net.Socket
+import java.net.URI
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
@@ -103,7 +104,8 @@ private constructor(
               .initialize(
                   ClientInfo(
                       version = ConfigUtil.getPluginVersion(),
-                      workspaceRootUri = ConfigUtil.getWorkspaceRootPath(project).toUri(),
+                      workspaceRootUri =
+                          ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
                       extensionConfiguration = ConfigUtil.getAgentConfiguration(project)))
               .thenApply { info ->
                 logger.info("Connected to Cody agent " + info.name)
@@ -180,6 +182,8 @@ private constructor(
                 .registerTypeAdapter(CompletionItemID::class.java, CompletionItemIDSerializer)
                 .registerTypeAdapter(ContextFile::class.java, contextFileDeserializer)
                 .registerTypeAdapter(Speaker::class.java, SpeakerSerializer)
+                .registerTypeAdapter(URI::class.java, uriDeserializer)
+                .registerTypeAdapter(URI::class.java, uriSerializer)
           }
           .setRemoteInterface(CodyAgentServer::class.java)
           .traceMessages(traceWriter())
