@@ -3,13 +3,13 @@ package com.sourcegraph.cody.cody.agent
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.sourcegraph.cody.agent.*
+import java.util.concurrent.locks.ReentrantLock
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import java.util.concurrent.locks.ReentrantLock
 
 @RunWith(JUnit4::class)
-class CodyAgentClientTest: BasePlatformTestCase() {
+class CodyAgentClientTest : BasePlatformTestCase() {
   companion object {
     const val WEBVIEW_ID: String = "unused-webview-id"
   }
@@ -34,18 +34,19 @@ class CodyAgentClientTest: BasePlatformTestCase() {
     return client
   }
 
-  @Test fun `notifies observer`() {
+  @Test
+  fun `notifies observer`() {
     val expected = ConfigFeatures(attribution = true)
-    client().webviewPostMessage(
-      WebviewPostMessageParams(
-        id = WEBVIEW_ID,
-        message = ExtensionMessage(
-          type = ExtensionMessage.Type.SET_CONFIG_FEATURES,
-          errors = null,
-          configFeatures = expected,
-        )
-      )
-    )
+    client()
+        .webviewPostMessage(
+            WebviewPostMessageParams(
+                id = WEBVIEW_ID,
+                message =
+                    ExtensionMessage(
+                        type = ExtensionMessage.Type.SET_CONFIG_FEATURES,
+                        errors = null,
+                        configFeatures = expected,
+                    )))
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
     lock.lock()
     try {

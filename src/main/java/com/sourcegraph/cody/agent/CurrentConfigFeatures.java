@@ -2,7 +2,6 @@ package com.sourcegraph.cody.agent;
 
 import com.intellij.openapi.components.Service;
 import com.sourcegraph.cody.vscode.CancellationToken;
-
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
