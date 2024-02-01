@@ -6,7 +6,7 @@ import com.intellij.util.ui.UIUtil
 import java.awt.*
 import javax.swing.JButton
 
-class TransparentButton(text: String) : JButton(text) {
+open class TransparentButton(text: String) : JButton(text) {
   private val cornerRadius = 5
 
   init {

@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.chat;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.CaretModel;
@@ -17,8 +18,10 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.util.ui.JBInsets;
+import com.sourcegraph.cody.agent.CurrentConfigFeatures;
 import com.sourcegraph.cody.chat.ui.CodeEditorButtons;
 import com.sourcegraph.cody.chat.ui.CodeEditorPart;
+import com.sourcegraph.cody.ui.ConditionalVisibilityButton;
 import com.sourcegraph.cody.ui.TransparentButton;
 import java.awt.Dimension;
 import java.awt.Insets;
@@ -64,6 +67,18 @@ public class CodeEditorFactory {
     insertAtCursorButton.setToolTipText("Insert text at current cursor position");
     insertAtCursorButton.addActionListener(insertAtCursorActionListener(editor));
 
+    ConditionalVisibilityButton attributionButton =
+        new ConditionalVisibilityButton("Attribution search");
+    attributionButton.setToolTipText("Searching for attribution...");
+    CurrentConfigFeatures currentConfigFeatures = project.getService(CurrentConfigFeatures.class);
+    attributionButton.setVisibilityAllowed(currentConfigFeatures.get().getAttribution());
+    // TODO(#59335): Make sure to dispose of the listener once the editor is not used anymore.
+    currentConfigFeatures.attach(
+        configFeatures ->
+            ApplicationManager.getApplication()
+                .invokeLater(
+                    () -> attributionButton.setVisibilityAllowed(configFeatures.getAttribution())));
+
     Dimension copyButtonPreferredSize = copyButton.getPreferredSize();
     int halfOfButtonHeight = copyButtonPreferredSize.height / 2;
     JLayeredPane layeredEditorPane = new JLayeredPane();
@@ -89,7 +104,7 @@ public class CodeEditorFactory {
         editorPreferredSize.height + halfOfButtonHeight);
     layeredEditorPane.add(editorComponent, JLayeredPane.DEFAULT_LAYER);
 
-    JButton[] buttons = new JButton[] {copyButton, insertAtCursorButton};
+    JButton[] buttons = new JButton[] {copyButton, insertAtCursorButton, attributionButton};
     CodeEditorButtons codeEditorButtons = new CodeEditorButtons(buttons);
     codeEditorButtons.addButtons(layeredEditorPane, editorComponent.getWidth());
 
