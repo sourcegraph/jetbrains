@@ -59,7 +59,7 @@ public final class CurrentConfigFeatures implements ConfigFeaturesObserver {
     IdentityObserver id = new IdentityObserver(observer);
     observers.add(id);
     CancellationToken cancellation = new CancellationToken();
-    cancellation.onCancellationRequested(() -> observers.remove(id));
+    cancellation.onFinished((disposedOrAborted) -> observers.remove(id));
     return cancellation;
   }
 
