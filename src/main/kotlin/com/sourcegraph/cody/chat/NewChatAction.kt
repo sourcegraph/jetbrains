@@ -18,5 +18,7 @@ class NewChatAction : DumbAwareAction() {
   }
 
   private fun showToolbar(project: Project) =
-    ToolWindowManager.getInstance(project).getToolWindow(CodyToolWindowFactory.TOOL_WINDOW_ID)?.show()
+      ToolWindowManager.getInstance(project)
+          .getToolWindow(CodyToolWindowFactory.TOOL_WINDOW_ID)
+          ?.show()
 }
