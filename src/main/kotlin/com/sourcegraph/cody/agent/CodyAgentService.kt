@@ -30,7 +30,9 @@ class CodyAgentService(project: Project) : Disposable {
         }
       }
 
-      AgentChatSessionService.getInstance(project).restoreAllSessions(agent)
+      if (!project.isDisposed) {
+        AgentChatSessionService.getInstance(project).restoreAllSessions(agent)
+      }
     }
   }
 
