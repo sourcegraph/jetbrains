@@ -31,8 +31,8 @@ fun fetchSubscriptionPanelData(
         val codyProFeatureFlag =
             server
                 .evaluateFeatureFlag(GetFeatureFlag.CodyProJetBrains)
-                .orTimeout(4, TimeUnit.SECONDS)
-                .getNow(false) == true
+                .completeOnTimeout(false, 4, TimeUnit.SECONDS)
+                .get() == true
         if (codyProFeatureFlag) {
           val isCurrentUserPro = getIsCurrentUserPro(server) ?: false
           result.complete(

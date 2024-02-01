@@ -41,8 +41,8 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
     val chatRLE = UpgradeToCodyProNotification.chatRateLimitError.get()
     val isCodyPro =
         UpgradeToCodyProNotification.isCodyProJetbrains(project)
-            .orTimeout(500, TimeUnit.MILLISECONDS)
-            .getNow(false)
+            .completeOnTimeout(false, 500, TimeUnit.MILLISECONDS)
+            .get()
 
     val shouldShowUpgradeOption =
         isCodyPro && autocompleteRLE?.upgradeIsAvailable ?: chatRLE?.upgradeIsAvailable ?: false
