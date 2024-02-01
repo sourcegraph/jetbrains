@@ -85,17 +85,25 @@ class HistoryTree(
               .flatMap { it.leafs() }
               .find { it.chat.internalId == chat.internalId }
 
-      leafWithChangedPeriod?.let {
-        val previousPeriod = it.parent as? PeriodNode
+      if (leafWithChangedPeriod != null) {
+        val previousPeriod = leafWithChangedPeriod.parent as? PeriodNode
         previousPeriod?.let { period ->
-          period.remove(it)
+          period.remove(leafWithChangedPeriod)
           if (period.childCount == 0) period.removeFromParent()
           model.reload(period)
         }
-
         currentPeriod?.let { period ->
           addChatToPeriodAndSort(period, chat)
           model.reload(period)
+        }
+      } else {
+        currentPeriod?.let { period ->
+          val sorted = period.leafs().sortedByDescending { it.chat.getUpdatedTimeAt() }
+          if (period.leafs() != sorted) {
+            period.removeAllChildren()
+            for (child in sorted) period.add(child)
+            model.reload(period)
+          }
         }
       }
     }
