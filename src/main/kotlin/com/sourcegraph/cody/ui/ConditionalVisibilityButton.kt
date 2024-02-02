@@ -5,8 +5,8 @@ import java.awt.Dimension
 /**
  * [ConditionalVisibilityButton] is only made visible if visibility is allowed.
  *
- * This is to implement a hover visibility that is conditional on another factor,
- * like enabling attribution setting.
+ * This is to implement a hover visibility that is conditional on another factor, like enabling
+ * attribution setting.
  */
 class ConditionalVisibilityButton(text: String) : TransparentButton(text) {
 
@@ -27,5 +27,5 @@ class ConditionalVisibilityButton(text: String) : TransparentButton(text) {
   }
 
   override fun getPreferredSize(): Dimension =
-    if (visibilityAllowed) super.getPreferredSize() else Dimension(0, 0)
+      if (visibilityAllowed) super.getPreferredSize() else Dimension(0, 0)
 }
