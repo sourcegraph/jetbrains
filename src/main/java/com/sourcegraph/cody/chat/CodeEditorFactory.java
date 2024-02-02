@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.chat;
 
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.CaretModel;
@@ -18,11 +17,9 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.util.ui.JBInsets;
-import com.sourcegraph.cody.agent.CurrentConfigFeatures;
 import com.sourcegraph.cody.chat.ui.CodeEditorButtons;
 import com.sourcegraph.cody.chat.ui.CodeEditorPart;
 import com.sourcegraph.cody.ui.AttributionButtonController;
-import com.sourcegraph.cody.ui.ConditionalVisibilityButton;
 import com.sourcegraph.cody.ui.TransparentButton;
 import java.awt.Dimension;
 import java.awt.Insets;
@@ -68,7 +65,8 @@ public class CodeEditorFactory {
     insertAtCursorButton.setToolTipText("Insert text at current cursor position");
     insertAtCursorButton.addActionListener(insertAtCursorActionListener(editor));
 
-    AttributionButtonController attributionButtonController = AttributionButtonController.Companion.setup(project);
+    AttributionButtonController attributionButtonController =
+        AttributionButtonController.Companion.setup(project);
 
     Dimension copyButtonPreferredSize = copyButton.getPreferredSize();
     int halfOfButtonHeight = copyButtonPreferredSize.height / 2;
@@ -95,7 +93,8 @@ public class CodeEditorFactory {
         editorPreferredSize.height + halfOfButtonHeight);
     layeredEditorPane.add(editorComponent, JLayeredPane.DEFAULT_LAYER);
 
-    JButton[] buttons = new JButton[] {copyButton, insertAtCursorButton, attributionButtonController.getButton()};
+    JButton[] buttons =
+        new JButton[] {copyButton, insertAtCursorButton, attributionButtonController.getButton()};
     CodeEditorButtons codeEditorButtons = new CodeEditorButtons(buttons);
     codeEditorButtons.addButtons(layeredEditorPane, editorComponent.getWidth());
 
@@ -150,7 +149,8 @@ public class CodeEditorFactory {
 
     editor.addEditorMouseMotionListener(editorMouseMotionListener);
     editor.addEditorMouseListener(editorMouseListener);
-    CodeEditorPart codeEditorPart = new CodeEditorPart(layeredEditorPane, editor, attributionButtonController);
+    CodeEditorPart codeEditorPart =
+        new CodeEditorPart(layeredEditorPane, editor, attributionButtonController);
     codeEditorPart.updateLanguage(language);
     return codeEditorPart;
   }

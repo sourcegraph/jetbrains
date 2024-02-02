@@ -10,9 +10,7 @@ import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.fileTypes.PlainTextFileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
-import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.SwingHelper
-import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
 import com.sourcegraph.cody.attribution.AttributionListener
 import java.util.concurrent.atomic.AtomicReference
 import javax.swing.JComponent
@@ -26,7 +24,11 @@ class TextPart(val component: JEditorPane) : MessagePart {
   }
 }
 
-class CodeEditorPart(val component: JComponent, private val editor: EditorEx, val attributionListener: AttributionListener) : MessagePart {
+class CodeEditorPart(
+    val component: JComponent,
+    private val editor: EditorEx,
+    val attributionListener: AttributionListener
+) : MessagePart {
 
   val text = AtomicReference("")
 

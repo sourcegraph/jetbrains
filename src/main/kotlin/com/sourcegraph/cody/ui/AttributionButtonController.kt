@@ -7,14 +7,14 @@ import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
 import com.sourcegraph.cody.attribution.AttributionListener
 import javax.swing.JButton
 
-class AttributionButtonController(val button: JButton): AttributionListener {
+class AttributionButtonController(val button: JButton) : AttributionListener {
 
   companion object {
     fun setup(project: Project): AttributionButtonController {
       val button = ConditionalVisibilityButton("Attribution search")
       button.setToolTipText("Searching for attribution...")
       val currentConfigFeatures: CurrentConfigFeatures =
-        project.getService(CurrentConfigFeatures::class.java)
+          project.getService(CurrentConfigFeatures::class.java)
       button.visibilityAllowed = currentConfigFeatures.get().attribution
       return AttributionButtonController(button)
     }
