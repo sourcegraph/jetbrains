@@ -73,13 +73,48 @@ class HistoryTree(
         model.reload(root)
       } else {
         val period = root.periods().find { it.periodText == periodText }!!
-        val extended = period.leafs() + LeafNode(chat)
-        val sorted = extended.sortedByDescending { it.chat.getUpdatedTimeAt() }
-        period.removeAllChildren()
-        for (child in sorted) period.add(child)
-        model.reload(period)
+        addChatToPeriodAndSort(period, chat)
+      }
+    } else {
+      val currentPeriodText = DurationGroupFormatter.format(chat.getUpdatedTimeAt())
+      val currentPeriod = root.periods().find { it.periodText == currentPeriodText }
+      val leafWithChangedPeriod =
+          root
+              .periods()
+              .filter { it.periodText != currentPeriodText }
+              .flatMap { it.leafs() }
+              .find { it.chat.internalId == chat.internalId }
+
+      if (leafWithChangedPeriod != null) {
+        val previousPeriod = leafWithChangedPeriod.parent as? PeriodNode
+        previousPeriod?.let { period ->
+          period.remove(leafWithChangedPeriod)
+          if (period.childCount == 0) period.removeFromParent()
+          model.reload(period)
+        }
+        currentPeriod?.let { period ->
+          addChatToPeriodAndSort(period, chat)
+          model.reload(period)
+        }
+      } else {
+        currentPeriod?.let { period ->
+          val sorted = period.leafs().sortedByDescending { it.chat.getUpdatedTimeAt() }
+          if (period.leafs() != sorted) {
+            period.removeAllChildren()
+            for (child in sorted) period.add(child)
+            model.reload(period)
+          }
+        }
       }
     }
+  }
+
+  private fun addChatToPeriodAndSort(period: PeriodNode, chat: ChatState) {
+    val extended = period.leafs() + LeafNode(chat)
+    val sorted = extended.sortedByDescending { it.chat.getUpdatedTimeAt() }
+    period.removeAllChildren()
+    for (child in sorted) period.add(child)
+    model.reload(period)
   }
 
   private fun selectSelected() {
