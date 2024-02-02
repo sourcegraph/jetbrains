@@ -1,8 +1,6 @@
 package com.sourcegraph.cody.agent;
 
 import com.intellij.openapi.components.Service;
-import com.intellij.openapi.fileEditor.impl.CurrentEditorProvider;
-import com.intellij.openapi.project.Project;
 import com.sourcegraph.cody.vscode.CancellationToken;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;

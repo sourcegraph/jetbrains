@@ -22,6 +22,12 @@ class AttributionMediator(private val project: Project) {
       project.getService(AttributionMediator::class.java)
   }
 
+  /**
+   * [onSnippetFinished] invoked when assistant finished writing a code snippet
+   * in a chat message, and triggers attribution search (if enabled).
+   * Once attribution returns, the [CodeEditorPart.attributionListener]
+   * is updated.
+   */
   fun onSnippetFinished(editor: CodeEditorPart, messageId: UUID) {
     if (attributionEnabled()) {
       findChatSessionFor(messageId)?.snippetAttribution(editor.text.get(), callbackInUiThread(editor.attributionListener))
@@ -34,6 +40,10 @@ class AttributionMediator(private val project: Project) {
   private fun findChatSessionFor(messageId: UUID): AgentChatSession? =
     AgentChatSessionService.getInstance(project).findByMessage(messageId)
 
+  /**
+   * [AttributionListener] decorator that invokes changes
+   * via [com.intellij.openapi.application.Application.invokeLater].
+   */
   private fun callbackInUiThread(listener: AttributionListener): AttributionListener =
     AttributionListener { response ->
       ApplicationManager.getApplication().invokeLater {

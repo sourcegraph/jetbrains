@@ -11,7 +11,7 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import javax.swing.JPanel
 
-class MessagesPanel(private val project: Project, val onNewCodeSnippet: () -> Unit) :
+class MessagesPanel(private val project: Project) :
     JPanel(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true)) {
   init {
     val welcomeText = CodyBundle.getString("messages-panel.welcome-text")
