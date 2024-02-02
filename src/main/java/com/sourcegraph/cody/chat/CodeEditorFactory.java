@@ -93,8 +93,9 @@ public class CodeEditorFactory {
         editorPreferredSize.height + halfOfButtonHeight);
     layeredEditorPane.add(editorComponent, JLayeredPane.DEFAULT_LAYER);
 
+    // Rendering order of buttons is right-to-left:
     JButton[] buttons =
-        new JButton[] {copyButton, insertAtCursorButton, attributionButtonController.getButton()};
+        new JButton[] {attributionButtonController.getButton(), copyButton, insertAtCursorButton};
     CodeEditorButtons codeEditorButtons = new CodeEditorButtons(buttons);
     codeEditorButtons.addButtons(layeredEditorPane, editorComponent.getWidth());
 
