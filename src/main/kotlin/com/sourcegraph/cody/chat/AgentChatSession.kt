@@ -6,10 +6,9 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.xml.util.XmlStringUtil
 import com.jetbrains.rd.util.AtomicReference
 import com.sourcegraph.cody.agent.*
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
-import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
-import com.sourcegraph.cody.agent.protocol.Speaker
+import com.sourcegraph.cody.agent.protocol.*
+import com.sourcegraph.cody.attribution.AttributionListener
+import com.sourcegraph.cody.attribution.AttributionMediator
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.RateLimitStateManager
@@ -53,6 +52,9 @@ private constructor(
   fun hasSessionId(thatSessionId: SessionId): Boolean =
       sessionId.get().getNow(null) == thatSessionId
 
+  fun hasMessageId(messageId: UUID): Boolean =
+      messages.any { it.id == messageId }
+
   fun restoreAgentSession(agent: CodyAgent) {
     // todo serialize model
     val model = "anthropic/claude-2.0"
@@ -66,6 +68,22 @@ private constructor(
     val restoreParams = ChatRestoreParams(model, messagesToReload, UUID.randomUUID().toString())
     val newSessionId = agent.server.chatRestore(restoreParams)
     sessionId.getAndSet(newSessionId)
+  }
+
+  fun snippetAttribution(snippet: String, listener: AttributionListener) {
+    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+      val params = AttributionSearchParams(id = sessionId.get().get(), snippet = snippet)
+      agent.server.attributionSearch(params).handle { result, throwable ->
+        listener.updateAttribution(
+          result
+            ?: AttributionSearchResponse(
+              error = throwable?.message ?: "TODO DEFAULT MESAGE HERE",
+              repoNames = listOf(),
+              limitHit = false,
+            )
+        )
+      }
+    }
   }
 
   @RequiresEdt

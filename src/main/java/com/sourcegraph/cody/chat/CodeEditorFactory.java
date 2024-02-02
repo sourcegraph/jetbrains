@@ -21,6 +21,7 @@ import com.intellij.util.ui.JBInsets;
 import com.sourcegraph.cody.agent.CurrentConfigFeatures;
 import com.sourcegraph.cody.chat.ui.CodeEditorButtons;
 import com.sourcegraph.cody.chat.ui.CodeEditorPart;
+import com.sourcegraph.cody.ui.AttributionButtonController;
 import com.sourcegraph.cody.ui.ConditionalVisibilityButton;
 import com.sourcegraph.cody.ui.TransparentButton;
 import java.awt.Dimension;
@@ -67,17 +68,7 @@ public class CodeEditorFactory {
     insertAtCursorButton.setToolTipText("Insert text at current cursor position");
     insertAtCursorButton.addActionListener(insertAtCursorActionListener(editor));
 
-    ConditionalVisibilityButton attributionButton =
-        new ConditionalVisibilityButton("Attribution search");
-    attributionButton.setToolTipText("Searching for attribution...");
-    CurrentConfigFeatures currentConfigFeatures = project.getService(CurrentConfigFeatures.class);
-    attributionButton.setVisibilityAllowed(currentConfigFeatures.get().getAttribution());
-    // TODO(#59335): Make sure to dispose of the listener once the editor is not used anymore.
-    currentConfigFeatures.attach(
-        configFeatures ->
-            ApplicationManager.getApplication()
-                .invokeLater(
-                    () -> attributionButton.setVisibilityAllowed(configFeatures.getAttribution())));
+    AttributionButtonController attributionButtonController = AttributionButtonController.Companion.setup(project);
 
     Dimension copyButtonPreferredSize = copyButton.getPreferredSize();
     int halfOfButtonHeight = copyButtonPreferredSize.height / 2;
@@ -104,7 +95,7 @@ public class CodeEditorFactory {
         editorPreferredSize.height + halfOfButtonHeight);
     layeredEditorPane.add(editorComponent, JLayeredPane.DEFAULT_LAYER);
 
-    JButton[] buttons = new JButton[] {copyButton, insertAtCursorButton, attributionButton};
+    JButton[] buttons = new JButton[] {copyButton, insertAtCursorButton, attributionButtonController.getButton()};
     CodeEditorButtons codeEditorButtons = new CodeEditorButtons(buttons);
     codeEditorButtons.addButtons(layeredEditorPane, editorComponent.getWidth());
 
@@ -159,7 +150,7 @@ public class CodeEditorFactory {
 
     editor.addEditorMouseMotionListener(editorMouseMotionListener);
     editor.addEditorMouseListener(editorMouseListener);
-    CodeEditorPart codeEditorPart = new CodeEditorPart(layeredEditorPane, editor);
+    CodeEditorPart codeEditorPart = new CodeEditorPart(layeredEditorPane, editor, attributionButtonController);
     codeEditorPart.updateLanguage(language);
     return codeEditorPart;
   }

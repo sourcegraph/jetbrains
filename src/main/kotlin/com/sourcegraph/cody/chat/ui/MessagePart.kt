@@ -10,7 +10,11 @@ import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.fileTypes.PlainTextFileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.SwingHelper
+import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
+import com.sourcegraph.cody.attribution.AttributionListener
+import java.util.concurrent.atomic.AtomicReference
 import javax.swing.JComponent
 import javax.swing.JEditorPane
 
@@ -22,7 +26,9 @@ class TextPart(val component: JEditorPane) : MessagePart {
   }
 }
 
-class CodeEditorPart(val component: JComponent, private val editor: EditorEx) : MessagePart {
+class CodeEditorPart(val component: JComponent, private val editor: EditorEx, val attributionListener: AttributionListener) : MessagePart {
+
+  val text = AtomicReference("")
 
   fun updateCode(project: Project, code: String, language: String?) {
     updateLanguage(language)
@@ -42,6 +48,7 @@ class CodeEditorPart(val component: JComponent, private val editor: EditorEx) : 
   }
 
   private fun updateText(project: Project, text: String) {
+    this.text.set(text)
     WriteCommandAction.runWriteCommandAction(
         project, Computable { editor.document.replaceText(text, System.currentTimeMillis()) })
   }

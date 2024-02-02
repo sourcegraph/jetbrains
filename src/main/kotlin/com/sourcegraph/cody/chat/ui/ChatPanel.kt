@@ -20,7 +20,7 @@ import javax.swing.JPanel
 
 class ChatPanel(project: Project, val chatSession: ChatSession) :
     JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
-  private val messagesPanel = MessagesPanel(project)
+  private val messagesPanel = MessagesPanel(project, this::onNewMessage)
   private val chatPanel = ChatScrollPane(messagesPanel)
   private val promptPanel: PromptPanel = PromptPanel(chatSession)
   private val contextView: EnhancedContextPanel = EnhancedContextPanel(project)
@@ -46,6 +46,8 @@ class ChatPanel(project: Project, val chatSession: ChatSession) :
     lowerPanel.add(contextView)
     add(lowerPanel, BorderLayout.SOUTH)
   }
+
+  fun onNewMessage() {}
 
   fun isEnhancedContextEnabled(): Boolean = contextView.isEnhancedContextEnabled.get()
 

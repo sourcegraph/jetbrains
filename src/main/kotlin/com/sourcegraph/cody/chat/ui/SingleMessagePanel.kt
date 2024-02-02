@@ -6,6 +6,7 @@ import com.intellij.util.ui.SwingHelper
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
+import com.sourcegraph.cody.attribution.AttributionMediator
 import com.sourcegraph.cody.chat.*
 import com.sourcegraph.cody.ui.HtmlViewer.createHtmlViewer
 import java.awt.Color
@@ -63,6 +64,11 @@ class SingleMessagePanel(
 
   fun addOrUpdateText(text: String) {
     val lastPart = lastMessagePart
+    if (lastPart is CodeEditorPart) {
+      println("code -> text")
+      // TODO: Also call attribution when code snippet is the last piece of chat UI.
+      AttributionMediator.instance(project).onSnippetFinished(lastPart, chatMessage.id)
+    }
     if (lastPart is TextPart) {
       lastPart.updateText(text)
     } else {
