@@ -7,6 +7,7 @@ import com.sourcegraph.cody.agent.protocol.DebugMessage;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
@@ -69,13 +70,13 @@ public class CodyAgentClient {
       if (listener != null) {
         listener.accept(params.getMessage());
       } else {
-        logger.warn(
+        logger.debug(
             String.format("webview/postMessage %s: %s", params.getId(), params.getMessage()));
       }
     }
   }
 
-  private final Map<String, Consumer<ExtensionMessage>> webviewMessageListeners = new HashMap<>();
+  private final ConcurrentHashMap<String, Consumer<ExtensionMessage>> webviewMessageListeners = new ConcurrentHashMap<>();
 
   public void onWebviewMessage(String panelID, Consumer<ExtensionMessage> callback) {
     this.webviewMessageListeners.put(panelID, callback);
