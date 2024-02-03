@@ -30,7 +30,12 @@ class CodeEditorPart(
     val attributionListener: AttributionListener
 ) : MessagePart {
 
-  val text = AtomicReference("")
+  private val _text = AtomicReference("")
+  var text: String
+    set(value) {
+      _text.set(value)
+    }
+    get() = _text.get()
 
   fun updateCode(project: Project, code: String, language: String?) {
     updateLanguage(language)
@@ -50,7 +55,7 @@ class CodeEditorPart(
   }
 
   private fun updateText(project: Project, text: String) {
-    this.text.set(text)
+    this.text = text
     WriteCommandAction.runWriteCommandAction(
         project, Computable { editor.document.replaceText(text, System.currentTimeMillis()) })
   }

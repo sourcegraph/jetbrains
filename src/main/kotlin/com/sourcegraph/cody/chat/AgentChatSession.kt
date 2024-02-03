@@ -7,7 +7,6 @@ import com.intellij.xml.util.XmlStringUtil
 import com.jetbrains.rd.util.AtomicReference
 import com.sourcegraph.cody.agent.*
 import com.sourcegraph.cody.agent.protocol.*
-import com.sourcegraph.cody.attribution.AttributionListener
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.RateLimitStateManager
@@ -36,8 +35,7 @@ private constructor(
    * have not established connection with the agent yet. This is why we use CompletableFuture to
    * store the sessionId.
    */
-  private val sessionId: AtomicReference<CompletableFuture<SessionId>> =
-      AtomicReference(newSessionId)
+  private val sessionId = AtomicReference(newSessionId)
   private val chatPanel: ChatPanel = ChatPanel(project, this)
   private val cancellationToken = AtomicReference(CancellationToken())
   private val messages = mutableListOf<ChatMessage>()
@@ -48,8 +46,9 @@ private constructor(
 
   fun getPanel(): ChatPanel = chatPanel
 
-  fun hasSessionId(thatSessionId: SessionId): Boolean =
-      sessionId.get().getNow(null) == thatSessionId
+  fun getSessionId(): SessionId? = sessionId.get().getNow(null)
+
+  fun hasSessionId(thatSessionId: SessionId): Boolean = getSessionId() == thatSessionId
 
   fun hasMessageId(messageId: UUID): Boolean = messages.any { it.id == messageId }
 
@@ -66,21 +65,6 @@ private constructor(
     val restoreParams = ChatRestoreParams(model, messagesToReload, UUID.randomUUID().toString())
     val newSessionId = agent.server.chatRestore(restoreParams)
     sessionId.getAndSet(newSessionId)
-  }
-
-  fun snippetAttribution(snippet: String, listener: AttributionListener) {
-    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-      val params = AttributionSearchParams(id = sessionId.get().get(), snippet = snippet)
-      agent.server.attributionSearch(params).handle { result, throwable ->
-        listener.updateAttribution(
-            result
-                ?: AttributionSearchResponse(
-                    error = throwable?.message ?: "TODO DEFAULT MESAGE HERE",
-                    repoNames = listOf(),
-                    limitHit = false,
-                ))
-      }
-    }
   }
 
   @RequiresEdt
