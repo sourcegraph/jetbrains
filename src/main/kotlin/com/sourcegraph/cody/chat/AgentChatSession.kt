@@ -41,15 +41,54 @@ private constructor(
   private val chatPanel: ChatPanel = ChatPanel(project, this)
   private val cancellationToken = AtomicReference(CancellationToken())
   private val messages = mutableListOf<ChatMessage>()
+  private val newAgentSessionCallbacks =
+      Collections.synchronizedList(mutableListOf<Consumer<CodyAgent>>())
 
   init {
     cancellationToken.get().dispose()
+    doOnceAndOnNewAgentSession { agent ->
 
-    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-      agent.client.onWebviewMessage(
-          this.sessionId.get().get(),
-          Consumer { message -> this.receiveWebviewExtensionMessage(message) })
+      // Register webview message listener on the agent.
+      //
+      // TODO(beyang): this callback registration leaks our AgentChatSession instance.
+      // It doesn't matter too much, because the leak lasts only as long as the
+      // current CodyAgent instance, which is destroyed before each call to
+      // restoreAgentSession. A proper fix would move responsibility for managing
+      // agent connection management fully into CodyAgent so that we don't
+      // have to think about connection lifecycle here (i.e., restoreAgentSession
+      // would be unnecessary).
+      agent.client.onWebviewMessage(this.sessionId.get().get()) { message ->
+        receiveWebviewExtensionMessage(message)
+      }
     }
+
+    // This should be the last statement in init, in case there are any calls to
+    // doOnceAndOnNewAgentSession earlier in the init block.
+    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+      newAgentSessionCallbacks.forEach { it.accept(agent) }
+    }
+  }
+
+  // Perform an action at least once and then subsequently whenever the agent session is restored.
+  private fun doOnceAndOnNewAgentSession(callback: Consumer<CodyAgent>) {
+    newAgentSessionCallbacks.add(callback)
+  }
+
+  fun restoreAgentSession(agent: CodyAgent) {
+    // todo serialize model
+    val model = "anthropic/claude-2.0"
+    val messagesToReload =
+        messages
+            .toList()
+            .dropWhile { it.speaker == Speaker.ASSISTANT }
+            .fold(emptyList<ChatMessage>()) { acc, msg ->
+              if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
+            }
+    val restoreParams = ChatRestoreParams(model, messagesToReload, UUID.randomUUID().toString())
+    val newSessionId = agent.server.chatRestore(restoreParams)
+    sessionId.getAndSet(newSessionId)
+
+    newAgentSessionCallbacks.forEach { it.accept(agent) }
   }
 
   private fun receiveWebviewExtensionMessage(message: ExtensionMessage) {
@@ -69,21 +108,6 @@ private constructor(
 
   fun hasSessionId(thatSessionId: SessionId): Boolean =
       sessionId.get().getNow(null) == thatSessionId
-
-  fun restoreAgentSession(agent: CodyAgent) {
-    // todo serialize model
-    val model = "anthropic/claude-2.0"
-    val messagesToReload =
-        messages
-            .toList()
-            .dropWhile { it.speaker == Speaker.ASSISTANT }
-            .fold(emptyList<ChatMessage>()) { acc, msg ->
-              if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
-            }
-    val restoreParams = ChatRestoreParams(model, messagesToReload, UUID.randomUUID().toString())
-    val newSessionId = agent.server.chatRestore(restoreParams)
-    sessionId.getAndSet(newSessionId)
-  }
 
   override fun sendWebviewMessage(message: WebviewMessage) {
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->

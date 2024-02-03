@@ -17,17 +17,9 @@ import com.sourcegraph.cody.chat.ui.SendButton
 import com.sourcegraph.cody.ui.AutoGrowingTextArea
 import com.sourcegraph.cody.vscode.CancellationToken
 import java.awt.Dimension
-import java.awt.event.ComponentAdapter
-import java.awt.event.ComponentEvent
-import java.awt.event.KeyEvent
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
+import java.awt.event.*
 import java.io.File
-import javax.swing.DefaultListModel
-import javax.swing.JLayeredPane
-import javax.swing.JList
-import javax.swing.JScrollPane
-import javax.swing.KeyStroke
+import javax.swing.*
 import javax.swing.border.EmptyBorder
 import javax.swing.event.AncestorEvent
 import javax.swing.event.AncestorListener
@@ -290,16 +282,14 @@ fun findContextFiles(contextFiles: List<ContextFile>, text: String): List<Contex
   return contextFiles.filter { f -> atExpressions.any { it.value == displayPath(f) } }
 }
 
-// TODO(beyang): temporary displayPath implementation, should be updated to mirror what the VS Code
-// plugin does
+// TODO(beyang): temporary displayPath implementation. This should be replaced by acquiring the
+// display path from the agent
+// Current behavior: if the path contains more than three components, display the last three.
 fun displayPath(contextFile: ContextFile): String {
-  // if the path contains more than three components, display the last three
   val path = contextFile.uri.path
-
-  // split path on separator (OS agnostic)
-  val pathComponents = path.split(File.separator)
+  val pathComponents = path.split("/") // uri path is posix-style
   if (pathComponents.size > 3) {
     return "...${File.separator}${pathComponents.subList(pathComponents.size - 3, pathComponents.size).joinToString(File.separator)}"
   }
-  return path
+  return path.replace("/", File.separator)
 }
