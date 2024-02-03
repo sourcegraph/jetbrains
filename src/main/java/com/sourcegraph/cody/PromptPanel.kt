@@ -6,6 +6,8 @@ import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.ui.DocumentAdapter
+import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
@@ -34,9 +36,9 @@ class PromptPanel(
   private val scrollPane = autoGrowingTextArea.scrollPane
   private val textArea = autoGrowingTextArea.textArea
   private val sendButton = SendButton()
-  private var contextFilesSelectorModel = DefaultListModel<DisplayedContextFile>()
-  private val contextFilesSelector = JList(contextFilesSelectorModel)
-  private val contextFilesScroller = JScrollPane(contextFilesSelector)
+  private var contextFilesListViewModel = DefaultListModel<DisplayedContextFile>()
+  private val contextFilesListView = JBList(contextFilesListViewModel)
+  private val contextFilesContainer = JBScrollPane(contextFilesListView)
 
   /** Externally updated state */
   private val selectedContextFiles: ArrayList<ContextFile> = ArrayList()
@@ -57,8 +59,8 @@ class PromptPanel(
     add(scrollPane, DEFAULT_LAYER)
     scrollPane.setBounds(0, 0, width, scrollPane.preferredSize.height)
 
-    contextFilesSelector.border = EmptyBorder(JBUI.emptyInsets())
-    add(contextFilesScroller, PALETTE_LAYER, 0)
+    contextFilesListView.disableEmptyText()
+    add(contextFilesContainer, PALETTE_LAYER, 0)
 
     add(sendButton, PALETTE_LAYER, 0)
 
@@ -99,10 +101,10 @@ class PromptPanel(
             didUserInputChange(textArea.text)
           }
         })
-    contextFilesSelector.addMouseListener(
+    contextFilesListView.addMouseListener(
         object : MouseAdapter() {
           override fun mouseClicked(e: MouseEvent) {
-            contextFilesSelector.selectedIndex = contextFilesSelector.locationToIndex(e.getPoint())
+            contextFilesListView.selectedIndex = contextFilesListView.locationToIndex(e.getPoint())
             didSelectContextFile()
             textArea.requestFocusInWindow()
           }
@@ -118,7 +120,7 @@ class PromptPanel(
   }
 
   private fun didUseShortcut(shortcut: CustomShortcutSet) {
-    if (contextFilesSelector.model.size > 0) {
+    if (contextFilesListView.model.size > 0) {
       when (shortcut) {
         UP -> setSelectedContextFileIndex(-1)
         DOWN -> setSelectedContextFileIndex(1)
@@ -148,9 +150,9 @@ class PromptPanel(
   }
 
   private fun didSelectContextFile() {
-    if (contextFilesSelector.selectedIndex == -1) return
+    if (contextFilesListView.selectedIndex == -1) return
 
-    val selected = contextFilesSelector.model.getElementAt(contextFilesSelector.selectedIndex)
+    val selected = contextFilesListView.model.getElementAt(contextFilesListView.selectedIndex)
     this.selectedContextFiles.add(selected.contextFile)
     val cfDisplayPath = selected.toString()
     val expr = findAtExpressions(textArea.text).lastOrNull() ?: return
@@ -177,11 +179,11 @@ class PromptPanel(
   /** State updaters */
   private fun setSelectedContextFileIndex(increment: Int) {
     var newSelectedIndex =
-        (contextFilesSelector.selectedIndex + increment) % contextFilesSelector.model.size
+        (contextFilesListView.selectedIndex + increment) % contextFilesListView.model.size
     if (newSelectedIndex < 0) {
-      newSelectedIndex += contextFilesSelector.model.size
+      newSelectedIndex += contextFilesListView.model.size
     }
-    contextFilesSelector.selectedIndex = newSelectedIndex
+    contextFilesListView.selectedIndex = newSelectedIndex
     refreshViewLayout()
   }
 
@@ -189,16 +191,20 @@ class PromptPanel(
   @RequiresEdt
   private fun refreshViewLayout() {
     // get the height of the context files list based on font height and number of context files
-    val contextFilesHeight = contextFilesSelector.preferredSize.height
-    contextFilesScroller.size = Dimension(scrollPane.width, contextFilesHeight)
+    val contextFilesContainerHeight = if (contextFilesListViewModel.isEmpty) 0 else contextFilesListView.preferredSize.height + 2
+    if (contextFilesContainerHeight == 0) {
+      contextFilesContainer.isVisible = false
+    } else {
+      contextFilesContainer.size = Dimension(scrollPane.width, contextFilesContainerHeight)
+      contextFilesContainer.isVisible = true
+    }
 
-    val margin = 10
-    scrollPane.setBounds(0, contextFilesHeight, width, scrollPane.preferredSize.height + margin)
-    preferredSize = Dimension(scrollPane.width, scrollPane.height + contextFilesHeight)
+    scrollPane.setBounds(0, contextFilesContainerHeight, width, scrollPane.preferredSize.height)
+    preferredSize = Dimension(scrollPane.width, scrollPane.height + contextFilesContainerHeight)
 
     sendButton.setLocation(
         scrollPane.width - sendButton.preferredSize.width,
-        scrollPane.height + contextFilesSelector.height - sendButton.preferredSize.height)
+        scrollPane.height + contextFilesContainerHeight - sendButton.preferredSize.height)
 
     revalidate()
   }
@@ -218,17 +224,17 @@ class PromptPanel(
 
   @RequiresEdt
   fun setContextFilesSelector(newUserContextFiles: List<ContextFile>) {
-    val changed = contextFilesSelectorModel.elements().toList() != newUserContextFiles
+    val changed = contextFilesListViewModel.elements().toList() != newUserContextFiles
     if (changed) {
       val newModel = DefaultListModel<DisplayedContextFile>()
       newModel.addAll(newUserContextFiles.map { f -> DisplayedContextFile(f) })
-      contextFilesSelector.model = newModel
-      contextFilesSelectorModel = newModel
+      contextFilesListView.model = newModel
+      contextFilesListViewModel = newModel
 
       if (newUserContextFiles.isNotEmpty()) {
-        contextFilesSelector.selectedIndex = 0
+        contextFilesListView.selectedIndex = 0
       } else {
-        contextFilesSelector.selectedIndex = -1
+        contextFilesListView.selectedIndex = -1
       }
       refreshViewLayout()
     }
