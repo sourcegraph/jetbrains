@@ -5,15 +5,14 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.sourcegraph.cody.agent.protocol.DebugMessage;
-import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
-import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
-import org.jetbrains.annotations.Nullable;
-
 import java.lang.ref.WeakReference;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
+import org.jetbrains.annotations.Nullable;
 
 /** Implementation of the client part of the Cody agent protocol. */
 @SuppressWarnings("unused")
@@ -95,7 +94,9 @@ public class CodyAgentClient {
       if (webviewMessageListeners == null) {
         return;
       }
-      webviewMessageListeners.entrySet().removeIf(entry -> entry.getKey().equals(panelID) && entry.getValue() == callback);
+      webviewMessageListeners
+          .entrySet()
+          .removeIf(entry -> entry.getKey().equals(panelID) && entry.getValue() == callback);
     };
   }
 }

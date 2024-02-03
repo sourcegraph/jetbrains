@@ -191,7 +191,8 @@ class PromptPanel(
   @RequiresEdt
   private fun refreshViewLayout() {
     // get the height of the context files list based on font height and number of context files
-    val contextFilesContainerHeight = if (contextFilesListViewModel.isEmpty) 0 else contextFilesListView.preferredSize.height + 2
+    val contextFilesContainerHeight =
+        if (contextFilesListViewModel.isEmpty) 0 else contextFilesListView.preferredSize.height + 2
     if (contextFilesContainerHeight == 0) {
       contextFilesContainer.isVisible = false
     } else {
