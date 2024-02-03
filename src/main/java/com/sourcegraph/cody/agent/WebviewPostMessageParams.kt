@@ -36,13 +36,19 @@ data class ExtensionMessage(
     val context: List<ContextFile>? = null,
     val errors: String?,
     val query: String? = null,
+    val configFeatures: ConfigFeatures? = null,
 ) {
 
   object Type {
     const val TRANSCRIPT = "transcript"
     const val ERRORS = "errors"
     const val USER_CONTEXT_FILES = "userContextFiles"
+    const val SET_CONFIG_FEATURES = "setConfigFeatures"
   }
 }
 
 data class WebviewPostMessageParams(val id: String, val message: ExtensionMessage)
+
+data class ConfigFeatures(
+    val attribution: Boolean,
+)

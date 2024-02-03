@@ -21,6 +21,8 @@ public class CodyAgentClient {
   private static final Logger logger = Logger.getInstance(CodyAgentClient.class);
   // Callback that is invoked when the agent sends a "chat/updateMessageInProgress" notification.
   @Nullable public Consumer<WebviewPostMessageParams> onNewMessage;
+  // Callback that is invoked when the agent sends a "setConfigFeatures" message.
+  @Nullable public ConfigFeaturesObserver onSetConfigFeatures;
   @Nullable public Editor editor;
 
   /**
@@ -68,13 +70,19 @@ public class CodyAgentClient {
       return;
     }
 
+    if (onSetConfigFeatures != null
+        && extensionMessage.getType().equals(ExtensionMessage.Type.SET_CONFIG_FEATURES)) {
+      ApplicationManager.getApplication()
+          .invokeLater(() -> onSetConfigFeatures.update(extensionMessage.getConfigFeatures()));
+    }
+
     var listener = this.webviewMessageListeners.get(params.getId());
     if (listener == null) {
       logger.debug(
           String.format("webview/postMessage %s: %s", params.getId(), params.getMessage()));
-      return;
+    } else {
+      listener.accept(params.getMessage());
     }
-    listener.accept(params.getMessage());
   }
 
   private final ConcurrentHashMap<String, Consumer<ExtensionMessage>> webviewMessageListeners =
