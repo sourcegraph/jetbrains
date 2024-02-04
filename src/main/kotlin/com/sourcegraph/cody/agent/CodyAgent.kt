@@ -15,14 +15,14 @@ import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
 import org.eclipse.lsp4j.jsonrpc.Launcher
-import org.jetbrains.annotations.TestOnly
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
  * Cody. The agent communicates via a JSON-RPC protocol that is documented in the file
  * "cody/agent/src/protocol.ts".
  */
-class CodyAgent(
+class CodyAgent
+private constructor(
     val client: CodyAgentClient,
     val server: CodyAgentServer,
     val launcher: Launcher<CodyAgentServer>,
@@ -55,17 +55,6 @@ class CodyAgent(
     abstract fun getInputStream(): InputStream
 
     abstract fun getOutputStream(): OutputStream
-
-    @TestOnly
-    class FakeConnection : AgentConnection() {
-      override fun isConnected() = true
-
-      override fun close() {}
-
-      override fun getInputStream() = InputStream.nullInputStream()
-
-      override fun getOutputStream() = OutputStream.nullOutputStream()
-    }
 
     class ProcessConnection(val process: Process) : AgentConnection() {
       override fun isConnected(): Boolean = process.isAlive

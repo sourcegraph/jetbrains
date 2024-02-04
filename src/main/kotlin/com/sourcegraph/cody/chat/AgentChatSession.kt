@@ -35,7 +35,8 @@ private constructor(
    * have not established connection with the agent yet. This is why we use CompletableFuture to
    * store the sessionId.
    */
-  private val sessionId = AtomicReference(newSessionId)
+  private val sessionId: AtomicReference<CompletableFuture<SessionId>> =
+      AtomicReference(newSessionId)
   private val chatPanel: ChatPanel = ChatPanel(project, this)
   private val cancellationToken = AtomicReference(CancellationToken())
   private val messages = mutableListOf<ChatMessage>()
