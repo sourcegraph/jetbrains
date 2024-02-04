@@ -11,7 +11,7 @@ import com.intellij.openapi.fileTypes.PlainTextFileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
 import com.intellij.util.ui.SwingHelper
-import com.sourcegraph.cody.attribution.AttributionListener
+import com.sourcegraph.cody.ui.AttributionButtonController
 import java.util.concurrent.atomic.AtomicReference
 import javax.swing.JComponent
 import javax.swing.JEditorPane
@@ -27,7 +27,7 @@ class TextPart(val component: JEditorPane) : MessagePart {
 class CodeEditorPart(
     val component: JComponent,
     private val editor: EditorEx,
-    val attributionListener: AttributionListener
+    val attribution: AttributionButtonController
 ) : MessagePart {
 
   private val _text = AtomicReference("")

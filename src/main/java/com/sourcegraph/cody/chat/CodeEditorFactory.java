@@ -98,10 +98,11 @@ public class CodeEditorFactory {
         new JButton[] {attributionButtonController.getButton(), copyButton, insertAtCursorButton};
     CodeEditorButtons codeEditorButtons = new CodeEditorButtons(buttons);
     codeEditorButtons.addButtons(layeredEditorPane, editorComponent.getWidth());
-    attributionButtonController.onUpdate(() -> {
-      // Resize buttons on text update.
-      codeEditorButtons.updateBounds(editorComponent.getWidth());
-    });
+    attributionButtonController.onUpdate(
+        () -> {
+          // Resize buttons on text update.
+          codeEditorButtons.updateBounds(editorComponent.getWidth());
+        });
 
     // resize the editor and move the copy button when the parent panel is resized
     layeredEditorPane.addComponentListener(

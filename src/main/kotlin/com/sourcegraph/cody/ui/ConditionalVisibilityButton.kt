@@ -10,6 +10,8 @@ import java.awt.Dimension
  */
 class ConditionalVisibilityButton(text: String) : TransparentButton(text) {
 
+  init {}
+
   var visibilityAllowed: Boolean = true
     set(value) {
       field = value

@@ -5,7 +5,6 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CurrentConfigFeatures
 import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
 import com.sourcegraph.cody.attribution.AttributionListener
-import javax.swing.JButton
 
 class AttributionButtonController(val button: ConditionalVisibilityButton) : AttributionListener {
 
@@ -14,13 +13,18 @@ class AttributionButtonController(val button: ConditionalVisibilityButton) : Att
   companion object {
     fun setup(project: Project): AttributionButtonController {
       val button = ConditionalVisibilityButton("Attribution search")
-      button.isEnabled = false
-      button.toolTipText = "Guard Rails: Running Code Attribution Check..."
+      button.isEnabled = false // non-clickable
       val currentConfigFeatures: CurrentConfigFeatures =
           project.getService(CurrentConfigFeatures::class.java)
+      // Only display the button if attribution is enabled.
       button.visibilityAllowed = currentConfigFeatures.get().attribution
       return AttributionButtonController(button)
     }
+  }
+
+  @RequiresEdt
+  override fun onAttributionSearchStart() {
+    button.toolTipText = "Guard Rails: Running Code Attribution Check..."
   }
 
   @RequiresEdt

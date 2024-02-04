@@ -24,8 +24,7 @@ class MessagesPanel(private val project: Project) :
     removeBlinkingCursor()
 
     if (componentCount > 0) {
-      val lastPanel = components.last() as? JPanel
-      val lastMessage = lastPanel?.getComponent(0) as? SingleMessagePanel
+      val lastMessage = getLastMessage()
       if (message.id == lastMessage?.getMessageId()) {
         lastMessage.updateContentWith(message)
       } else {
@@ -50,7 +49,10 @@ class MessagesPanel(private val project: Project) :
 
   fun registerCancellationToken(cancellationToken: CancellationToken) {
     cancellationToken.onFinished {
-      ApplicationManager.getApplication().invokeLater { removeBlinkingCursor() }
+      ApplicationManager.getApplication().invokeLater {
+        removeBlinkingCursor()
+        getLastMessage()?.onPartFinished()
+      }
     }
   }
 
@@ -69,5 +71,10 @@ class MessagesPanel(private val project: Project) :
     addComponentToChat(
         SingleMessagePanel(
             message, project, this, ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH))
+  }
+
+  private fun getLastMessage(): SingleMessagePanel? {
+    val lastPanel = components.last() as? JPanel
+    return lastPanel?.getComponent(0) as? SingleMessagePanel
   }
 }

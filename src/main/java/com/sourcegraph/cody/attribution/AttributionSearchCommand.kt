@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.attribution
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
@@ -35,6 +36,7 @@ class AttributionSearchCommand(private val project: Project) {
         return
       }
       CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+        ApplicationManager.getApplication().invokeLater { listener.onAttributionSearchStart() }
         val params = AttributionSearchParams(id = sessionId, snippet = snippet)
         agent.server.attributionSearch(params).handle(updateEditor(listener))
       }
