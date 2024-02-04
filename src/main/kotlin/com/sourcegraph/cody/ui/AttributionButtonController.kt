@@ -9,6 +9,8 @@ import javax.swing.JButton
 
 class AttributionButtonController(val button: JButton) : AttributionListener {
 
+  private val extraUpdates: MutableList<Runnable> = ArrayList()
+
   companion object {
     fun setup(project: Project): AttributionButtonController {
       val button = ConditionalVisibilityButton("Attribution search")
@@ -36,5 +38,13 @@ class AttributionButtonController(val button: JButton) : AttributionListener {
       button.toolTipText =
           "Guard Rails Check Failed. Code found in ${count} repositories: ${repoNames}."
     }
+    for (action in extraUpdates) {
+      action.run()
+    }
+  }
+
+  /** Run extra actions on button update, like resizing components. */
+  fun onUpdate(action: Runnable) {
+    extraUpdates += action
   }
 }
