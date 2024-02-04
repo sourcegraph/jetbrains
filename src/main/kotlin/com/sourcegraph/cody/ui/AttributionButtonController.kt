@@ -7,7 +7,7 @@ import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
 import com.sourcegraph.cody.attribution.AttributionListener
 import javax.swing.JButton
 
-class AttributionButtonController(val button: JButton) : AttributionListener {
+class AttributionButtonController(val button: ConditionalVisibilityButton) : AttributionListener {
 
   private val extraUpdates: MutableList<Runnable> = ArrayList()
 
@@ -38,6 +38,7 @@ class AttributionButtonController(val button: JButton) : AttributionListener {
       button.toolTipText =
           "Guard Rails Check Failed. Code found in ${count} repositories: ${repoNames}."
     }
+    button.updatePreferredSize()
     for (action in extraUpdates) {
       action.run()
     }
