@@ -12,7 +12,8 @@ class AttributionButtonController(val button: JButton) : AttributionListener {
   companion object {
     fun setup(project: Project): AttributionButtonController {
       val button = ConditionalVisibilityButton("Attribution search")
-      button.setToolTipText("Searching for attribution...")
+      button.isEnabled = false
+      button.toolTipText = "Guard Rails: Running Code Attribution Check..."
       val currentConfigFeatures: CurrentConfigFeatures =
           project.getService(CurrentConfigFeatures::class.java)
       button.visibilityAllowed = currentConfigFeatures.get().attribution
@@ -23,11 +24,17 @@ class AttributionButtonController(val button: JButton) : AttributionListener {
   @RequiresEdt
   override fun updateAttribution(attribution: AttributionSearchResponse) {
     if (attribution.error != null) {
-      button.text = "Attribution unavailable"
+      button.text = "Guard Rails API Error"
+      button.toolTipText = "Guard Rails API Error: ${attribution.error}."
     } else if (attribution.repoNames.isEmpty()) {
-      button.text = "Attribution successful"
+      button.text = "Guard Rails Check Passed"
+      button.toolTipText = "Snippet not found on Sourcegraph.com."
     } else {
-      button.text = "Attribution failed"
+      val count = "${attribution.repoNames.size}" + if (attribution.limitHit) "+" else ""
+      val repoNames = attribution.repoNames.joinToString(separator = ", ")
+      button.text = "Guard Rails Check Failed"
+      button.toolTipText =
+          "Guard Rails Check Failed. Code found in ${count} repositories: ${repoNames}."
     }
   }
 }

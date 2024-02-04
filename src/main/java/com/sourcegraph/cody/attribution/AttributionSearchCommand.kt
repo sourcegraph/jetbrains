@@ -50,7 +50,7 @@ class AttributionSearchCommand(private val project: Project) {
         listener.updateAttribution(
             response
                 ?: AttributionSearchResponse(
-                    error = throwable?.message ?: "TODO DEFAULT MESAGE HERE",
+                    error = throwable?.message ?: "Error searching for attribution.",
                     repoNames = listOf(),
                     limitHit = false,
                 ))
