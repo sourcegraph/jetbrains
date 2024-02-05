@@ -21,8 +21,13 @@ public class CodyAgentClient {
   private static final Logger logger = Logger.getInstance(CodyAgentClient.class);
   // Callback that is invoked when the agent sends a "chat/updateMessageInProgress" notification.
   @Nullable public Consumer<WebviewPostMessageParams> onNewMessage;
+
   // Callback that is invoked when the agent sends a "setConfigFeatures" message.
   @Nullable public ConfigFeaturesObserver onSetConfigFeatures;
+
+  // Callback that is invoked on webview messages which aren't handled by onNewMessage or onSetConfigFeatures
+  @Nullable public Consumer<WebviewPostMessageParams> onReceivedWebviewMessage;
+
   @Nullable public Editor editor;
 
   /**
@@ -74,37 +79,14 @@ public class CodyAgentClient {
         && extensionMessage.getType().equals(ExtensionMessage.Type.SET_CONFIG_FEATURES)) {
       ApplicationManager.getApplication()
           .invokeLater(() -> onSetConfigFeatures.update(extensionMessage.getConfigFeatures()));
+      return;
     }
 
-    var listener = this.webviewMessageListeners.get(params.getId());
-    if (listener == null) {
-      logger.debug(
-          String.format("webview/postMessage %s: %s", params.getId(), params.getMessage()));
-    } else {
-      listener.accept(params.getMessage());
+    if (onReceivedWebviewMessage != null) {
+      ApplicationManager.getApplication().invokeLater(() -> onReceivedWebviewMessage.accept(params));
+      return;
     }
-  }
 
-  private final ConcurrentHashMap<String, Consumer<ExtensionMessage>> webviewMessageListeners =
-      new ConcurrentHashMap<>();
-
-  /**
-   * Register a callback that will be invoked when the webview with the given panelID sends a
-   * message. If an existing callback has already been registered for the given panelID, it will be
-   * replaced. Returns a weak-referencing disposable that unregisters the callback when disposed.
-   */
-  public Disposable onWebviewMessage(String panelID, Consumer<ExtensionMessage> callback) {
-    webviewMessageListeners.put(panelID, callback);
-    var webviewMessageListenersRef = new WeakReference<>(webviewMessageListeners);
-    return () -> {
-      // Remove the callback from the map if the map is still alive.
-      var webviewMessageListeners = webviewMessageListenersRef.get();
-      if (webviewMessageListeners == null) {
-        return;
-      }
-      webviewMessageListeners
-          .entrySet()
-          .removeIf(entry -> entry.getKey().equals(panelID) && entry.getValue() == callback);
-    };
+    logger.debug(String.format("webview/postMessage %s: %s", params.getId(), params.getMessage()));
   }
 }

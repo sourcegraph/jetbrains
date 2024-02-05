@@ -21,7 +21,6 @@ import com.sourcegraph.telemetry.GraphQlLogger
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
-import java.util.function.Consumer
 import org.slf4j.LoggerFactory
 
 class AgentChatSession
@@ -41,37 +40,9 @@ private constructor(
   private val chatPanel: ChatPanel = ChatPanel(project, this)
   private val cancellationToken = AtomicReference(CancellationToken())
   private val messages = mutableListOf<ChatMessage>()
-  private val newAgentSessionCallbacks =
-      Collections.synchronizedList(mutableListOf<Consumer<CodyAgent>>())
 
   init {
     cancellationToken.get().dispose()
-    doOnceAndOnNewAgentSession { agent ->
-
-      // Register webview message listener on the agent.
-      //
-      // TODO(beyang): this callback registration leaks our AgentChatSession instance.
-      // It doesn't matter too much, because the leak lasts only as long as the
-      // current CodyAgent instance, which is destroyed before each call to
-      // restoreAgentSession. A proper fix would move responsibility for managing
-      // agent connection management fully into CodyAgent so that we don't
-      // have to think about connection lifecycle here (i.e., restoreAgentSession
-      // would be unnecessary).
-      agent.client.onWebviewMessage(this.sessionId.get().get()) { message ->
-        receiveWebviewExtensionMessage(message)
-      }
-    }
-
-    // This should be the last statement in init, in case there are any calls to
-    // doOnceAndOnNewAgentSession earlier in the init block.
-    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-      newAgentSessionCallbacks.forEach { it.accept(agent) }
-    }
-  }
-
-  // Perform an action at least once and then subsequently whenever the agent session is restored.
-  private fun doOnceAndOnNewAgentSession(callback: Consumer<CodyAgent>) {
-    newAgentSessionCallbacks.add(callback)
   }
 
   fun restoreAgentSession(agent: CodyAgent) {
@@ -87,21 +58,6 @@ private constructor(
     val restoreParams = ChatRestoreParams(model, messagesToReload, UUID.randomUUID().toString())
     val newSessionId = agent.server.chatRestore(restoreParams)
     sessionId.getAndSet(newSessionId)
-
-    newAgentSessionCallbacks.forEach { it.accept(agent) }
-  }
-
-  private fun receiveWebviewExtensionMessage(message: ExtensionMessage) {
-    when (message.type) {
-      ExtensionMessage.Type.USER_CONTEXT_FILES -> {
-        if (message.context is List<*>) {
-          this.chatPanel.promptPanel.setContextFilesSelector(message.context)
-        }
-      }
-      else -> {
-        logger.warn(String.format("CodyToolWindowContent: unknown message type: %s", message.type))
-      }
-    }
   }
 
   fun getPanel(): ChatPanel = chatPanel
@@ -109,12 +65,9 @@ private constructor(
   fun hasSessionId(thatSessionId: SessionId): Boolean =
       sessionId.get().getNow(null) == thatSessionId
 
-  override fun sendWebviewMessage(message: WebviewMessage) {
-    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
-      agent.server.webviewReceiveMessage(
-          WebviewReceiveMessageParams(this.sessionId.get().get(), message))
-    }
-  }
+  override fun getInternalId(): String = internalId
+
+  override fun getCancellationToken(): CancellationToken = cancellationToken.get()
 
   @RequiresEdt
   override fun sendMessage(text: String, contextFiles: List<ContextFile>) {
@@ -143,10 +96,6 @@ private constructor(
       }
     }
   }
-
-  override fun getInternalId(): String = internalId
-
-  override fun getCancellationToken(): CancellationToken = cancellationToken.get()
 
   @Throws(ExecutionException::class, InterruptedException::class)
   override fun receiveMessage(extensionMessage: ExtensionMessage) {
@@ -197,6 +146,26 @@ private constructor(
       getCancellationToken().dispose()
       logger.error(CodyBundle.getString("chat-session.error-title"), error)
       addAssistantResponseToChat(CodyBundle.getString("chat-session.error-title"))
+    }
+  }
+
+  override fun sendWebviewMessage(message: WebviewMessage) {
+    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+      agent.server.webviewReceiveMessage(
+          WebviewReceiveMessageParams(this.sessionId.get().get(), message))
+    }
+  }
+
+  fun receiveWebviewExtensionMessage(message: ExtensionMessage) {
+    when (message.type) {
+      ExtensionMessage.Type.USER_CONTEXT_FILES -> {
+        if (message.context is List<*>) {
+          this.chatPanel.promptPanel.setContextFilesSelector(message.context)
+        }
+      }
+      else -> {
+        logger.warn(String.format("CodyToolWindowContent: unknown message type: %s", message.type))
+      }
     }
   }
 
