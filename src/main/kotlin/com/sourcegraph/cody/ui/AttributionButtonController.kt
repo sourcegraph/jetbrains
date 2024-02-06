@@ -5,6 +5,8 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CurrentConfigFeatures
 import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
 import com.sourcegraph.cody.attribution.AttributionListener
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 
 class AttributionButtonController(val button: ConditionalVisibilityButton) : AttributionListener {
 
@@ -12,7 +14,8 @@ class AttributionButtonController(val button: ConditionalVisibilityButton) : Att
 
   companion object {
     fun setup(project: Project): AttributionButtonController {
-      val button = ConditionalVisibilityButton("Attribution search")
+      val button =
+          ConditionalVisibilityButton(CodyBundle.getString("chat.attribution.searching.label"))
       button.isEnabled = false // non-clickable
       val currentConfigFeatures: CurrentConfigFeatures =
           project.getService(CurrentConfigFeatures::class.java)
@@ -24,23 +27,24 @@ class AttributionButtonController(val button: ConditionalVisibilityButton) : Att
 
   @RequiresEdt
   override fun onAttributionSearchStart() {
-    button.toolTipText = "Guard Rails: Running Code Attribution Check..."
+    button.toolTipText = CodyBundle.getString("chat.attribution.searching.tooltip")
   }
 
   @RequiresEdt
   override fun updateAttribution(attribution: AttributionSearchResponse) {
     if (attribution.error != null) {
-      button.text = "Guard Rails API Error"
-      button.toolTipText = "Guard Rails API Error: ${attribution.error}."
+      button.text = CodyBundle.getString("chat.attribution.error.label")
+      button.toolTipText =
+          CodyBundle.getString("chat.attribution.error.tooltip").fmt(attribution.error)
     } else if (attribution.repoNames.isEmpty()) {
-      button.text = "Guard Rails Check Passed"
-      button.toolTipText = "Snippet not found on Sourcegraph.com."
+      button.text = CodyBundle.getString("chat.attribution.success.label")
+      button.toolTipText = CodyBundle.getString("chat.attribution.success.tooltip")
     } else {
       val count = "${attribution.repoNames.size}" + if (attribution.limitHit) "+" else ""
       val repoNames = attribution.repoNames.joinToString(separator = ", ")
-      button.text = "Guard Rails Check Failed"
+      button.text = CodyBundle.getString("chat.attribution.failure.label")
       button.toolTipText =
-          "Guard Rails Check Failed. Code found in ${count} repositories: ${repoNames}."
+          CodyBundle.getString("chat.attribution.failure.tooltip").fmt(count, repoNames)
     }
     button.updatePreferredSize()
     for (action in extraUpdates) {
