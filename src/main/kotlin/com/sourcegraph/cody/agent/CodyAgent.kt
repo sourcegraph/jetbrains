@@ -183,7 +183,7 @@ private constructor(
                 .serializeNulls()
                 .registerTypeAdapter(CompletionItemID::class.java, CompletionItemIDSerializer)
                 .registerTypeAdapter(ContextFile::class.java, contextFileDeserializer)
-                .registerTypeAdapter(Speaker::class.java, SpeakerSerializer)
+                .registerTypeAdapter(Speaker::class.java, speakerDeserializer)
                 .registerTypeAdapter(URI::class.java, uriDeserializer)
                 .registerTypeAdapter(URI::class.java, uriSerializer)
           }
