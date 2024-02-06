@@ -25,7 +25,7 @@
     - [ ] [Open Selection on Sourcegraph Web](#open-selection-on-sourcegraph-web)
     - [ ] [Copy Sourcegraph File Link](#copy-sourcegraph-file-link)
 - Product-led growth
-    - [ ] [Cody Free/Pro subscription tab](#cody-freepro-subscription-tab)
+    - [ ] [My Account Tab](#my-account-tab)
     - [ ] [Cody Free/Pro rate limit errors](#cody-freepro-rate-limit-errors)
 - Other
     - [ ] [Automatic repository recognition](#automatic-repository-recognition)
@@ -251,7 +251,7 @@ Test ideas:
 2. Restore historical chat, focus on chat input field and use UP/DOWN keys to cycle between previous questions.
 3. Press "new chat" as fast as you can. Especially during the IDE startup.
 4. Switch between chats as fast as you can.
-5. Press "new chat" while being inside Subscription panel or something other than Chat tab. Tabs should switch automatically.
+5. Press "new chat" while being inside `My Account` tab or something other than Chat tab. Tabs should switch automatically.
 6. Use commands/recipes inside empty, new chat. Verify serialization/deserialization.
 7. Ask about codebase to force response with listed context files and verify if everything is correctly serialized/deserialized. Links to context files should be clickable.
 8. Remove all chats using history UI. Tree presentation is empty and branches like "Today" are removed from panel. File with transcripts should also disappear.
@@ -306,23 +306,23 @@ To open the context menu:
 
 ## [Product-led growth](https://handbook.sourcegraph.com/departments/data-analytics/product-led-growth/)
 
-### Cody Free/Pro subscription tab
+### My Account Tab
 
 1. Log in to Sourcegraph.com with a **Free** account and `cody-pro-jetbrains` feature flag enabled.
-2. Go to `Cody` tool window and open `Subscription` tab.
+2. Go to `Cody` tool window and open `My Account` tab.
 3. Verify:
     * The current tier should be `Cody Free`.
     * The `Upgrade` button is visible and it points to `https://sourcegraph.com/cody/subscription`.
     * The `Check Usage` button is visible and it points to `https://sourcegraph.com/cody/manage`.
 4. Go to accounts settings and switch to **Pro** account.
-5. Go to `Subscription` tab.
+5. Go to `My Account` tab.
 6. Verify:
     * The current tier should be `Cody Pro`.
     * The `Upgrade` is **not visible**.
 7. Go to account settings and switch to an Enterprise account (AKA *non-dotcom*).
-8. Verify: `Subscription` panel is not visible in `Cody` tool window.
+8. Verify: `My Account` tab is not visible in `Cody` tool window.
 9. Go to accounts settings and switch back to the **Free** account.
-10. Verify: `Subscription` panel is visible.
+10. Verify: `My Account` tab is visible.
 
 ### Cody Free/Pro rate limit errors
 
