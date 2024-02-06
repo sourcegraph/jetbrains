@@ -129,9 +129,11 @@ Prerequisite: You have to be **signed in**. This is important because we expect 
 
 ### General commands availability from keyboard shortcuts
 
-1. Explain Code: <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd>
-2. Smell Code: <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>
-3. Generate Test: <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>
+| Command       | Windows / Linux                                      | MacOs                                                |
+|---------------|------------------------------------------------------|------------------------------------------------------|
+| Explain Code  | <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>1</kbd>     | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd> |
+| Smell Code    | <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd> | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> |
+| Generate Test | <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>3</kbd> | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd> |
 
 #### Expected behaviour
 
