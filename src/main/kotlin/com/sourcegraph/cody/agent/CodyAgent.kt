@@ -107,9 +107,9 @@ private constructor(
               .initialize(
                   ClientInfo(
                       version = ConfigUtil.getPluginVersion(),
-                      workspaceRootUri =
-                          ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
-                      extensionConfiguration = ConfigUtil.getAgentConfiguration(project)))
+                      workspaceRootUri = ConfigUtil.getWorkspaceRootPath(project).toUri(),
+                      extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
+                      capabilities = ClientCapabilities(edit = "enabled", codeLenses = "enabled")))
               .thenApply { info ->
                 logger.info("Connected to Cody agent " + info.name)
                 server.initialized()

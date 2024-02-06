@@ -197,12 +197,15 @@ There are two supported configurations for debugging this way:
     - The Cody extension connects via socket to the "remote" agent
 
 Option 1 is the simplest, and probably makes the most sense for you
-to use if you are uncertain which method to use for debugging.
+to use if you are uncertain which method to use for debugging. Option 2
+is especially useful when you need to set a breakpoint very early in
+the Agent startup.
 
 ## How to set up Run Configurations
 
-Run configurations are basically IDEA's launcher scripts. You will need to create one
-run configuration in each project window, using Run → Edit Configurations.
+Run configurations are basically IDEA's launcher scripts. You will need
+to create one run configuration in each project window, using Run → Edit
+Configurations.
 
 For both debugging setups (Cody-spawns and JB-spawned), you will need:
 
