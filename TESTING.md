@@ -11,8 +11,8 @@
 - Commands
     - [ ] [General commands availability in Cody tool window](#general-commands-availability-in-cody-tool-window)
     - [ ] [General commands availability in context menu](#general-commands-availability-in-context-menu)
-    - [ ] [Explain Selected Code](#explain-selected-code)
-    - [ ] [Generate Test](#generate-unit-test)
+    - [ ] [Explain Selected Code](#explain-code)
+    - [ ] [Generate Test](#generate-test)
     - [ ] [Smell Code](#smell-code)
 - Chat
     - [ ] [Autoscroll to latest message](#autoscroll-to-latest-message)
@@ -126,6 +126,16 @@ Prerequisite: You have to be **signed in**. This is important because we expect 
 #### Expected behaviour
 
 * List of commands is immediately available after the tool window is displayed. **No refresh is required.**
+
+### General commands availability from keyboard shortcuts
+
+1. Explain Code: <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd>
+2. Smell Code: <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>
+3. Generate Test: <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>
+
+#### Expected behaviour
+
+* Commands work as executed from any other place (the tool window opens if needed).
 
 ### General commands availability in context menu
 
