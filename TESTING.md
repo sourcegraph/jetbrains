@@ -9,7 +9,7 @@
     - [ ] [Infilling autocomplete](#infilling-autocomplete)
     - [ ] [Cycle through autocomplete](#cycle-through-autocomplete)
 - Commands
-    - [ ] [General commands availability in toolbar](#general-commands-availability-in-cody-toolbar)
+    - [ ] [General commands availability in Cody tool window](#general-commands-availability-in-cody-tool-window)
     - [ ] [General commands availability in context menu](#general-commands-availability-in-context-menu)
     - [ ] [Explain Selected Code](#explain-selected-code)
     - [ ] [Generate Test](#generate-unit-test)
@@ -38,7 +38,7 @@
 
 Prerequisite: You have to **sign out** from all existing accounts.
 
-1. Navigate to `Cody` toolbar and use `Sign in with GitHub`.
+1. Navigate to `Cody` tool window and use `Sign in with GitHub`.
 2. Browser is launched automatically and IDE freezes with spinning `Login to Sourcegraph` dialog.
 3. Authorize with a valid account.
 
@@ -58,7 +58,7 @@ Prerequisite: You have to be **signed in**. This is important because we expect 
 
 #### Expected behaviour
 
-* Cody toolbar is automatically refreshed and the user is greeted with the `Welcome to Cody` panel.
+* `Cody` tool window is automatically refreshed and the user is greeted with the `Welcome to Cody` panel.
 * Status bar widget has a `No account signed-in` status. Status bar is located in the bottom right corner of the IDE.
 
 ## Autocomplete
@@ -119,13 +119,13 @@ Prerequisite: You have to be **signed in**. This is important because we expect 
 
 ## Commands
 
-### General commands availability in Cody toolbar
+### General commands availability in Cody tool window
 
-1. Navigate to `Cody` toolbar and open `Commands`.
+1. Navigate to `Cody` tool window and open `Commands`.
 
 #### Expected behaviour
 
-* List of commands is immediately available after the toolbar is displayed. **No refresh is required.**
+* List of commands is immediately available after the tool window is displayed. **No refresh is required.**
 
 ### General commands availability in context menu
 
@@ -297,7 +297,7 @@ To open the context menu:
 ### Cody Free/Pro subscription tab
 
 1. Log in to Sourcegraph.com with a **Free** account and `cody-pro-jetbrains` feature flag enabled.
-2. Go to the `Cody` toolbar and open `Subscription` tab.
+2. Go to `Cody` tool window and open `Subscription` tab.
 3. Verify:
     * The current tier should be `Cody Free`.
     * The `Upgrade` button is visible and it points to `https://sourcegraph.com/cody/subscription`.
@@ -308,7 +308,7 @@ To open the context menu:
     * The current tier should be `Cody Pro`.
     * The `Upgrade` is **not visible**.
 7. Go to account settings and switch to an Enterprise account (AKA *non-dotcom*).
-8. Verify: `Subscription` panel is not visible in `Cody` toolbar.
+8. Verify: `Subscription` panel is not visible in `Cody` tool window.
 9. Go to accounts settings and switch back to the **Free** account.
 10. Verify: `Subscription` panel is visible.
 
@@ -325,8 +325,8 @@ To open the context menu:
 ### Automatic repository recognition
 
 1. Open project with enabled Git VCS. This repository must be publicly available on GitHub.
-2. Open to `Cody` toolbar.
-3. Click on repository button to open `Context Selection` dialog. Button is placed inside `Cody` toolbar on left, bottom
+2. Open to `Cody` tool window.
+3. Click on repository button to open `Context Selection` dialog. Button is placed inside `Cody` tool window on left, bottom
    corner.
 
 #### Expected behaviour
@@ -337,7 +337,7 @@ To open the context menu:
 ### Persistent custom repository
 
 1. Open project with enabled Git VCS. This repository must be publicly available on GitHub.
-2. Open to `Cody` toolbar.
+2. Open to `Cody` tool window.
 3. Click on repository button to open `Context Selection` dialog.
 4. Change `Git URL` to a different, valid Git URL repository.
 5. Click `OK` button and restart IDE.
