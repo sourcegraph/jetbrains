@@ -1,9 +1,8 @@
 ## Checklist
 
 - Onboarding
-    - [ ] [Sign in with GitHub](#sign-in-with-github)
-    - [ ] [Sign in with GitLab](#sign-in-with-gitlab)
-    - [ ] [Sign in with Google](#sign-in-with-google)
+    - [ ] [Sign in with GitHub, GitLab and Google](#sign-in-with-github-gitlab-and-google)
+    - [ ] [Remove all accounts](#remove-all-accounts)
 - Autocomplete
     - [ ] [Single-line autocomplete](#single-line-autocomplete)
     - [ ] [Multi-line autocomplete](#multi-line-autocomplete)
@@ -12,11 +11,8 @@
 - Commands
     - [ ] [General commands availability in toolbar](#general-commands-availability-in-cody-toolbar)
     - [ ] [General commands availability in context menu](#general-commands-availability-in-context-menu)
-    - [ ] [Explain Selected Code (Detailed)](#explain-selected-code-detailed)
-    - [ ] [Explain Selected Code (High Level)](#explain-selected-code-high-level)
-    - [ ] [Generate Docstring](#generate-docstring)
-    - [ ] [Generate Unit Test](#generate-unit-test)
-    - [ ] [Improve Variable Names](#improve-variable-names)
+    - [ ] [Explain Selected Code](#explain-selected-code)
+    - [ ] [Generate Test](#generate-unit-test)
     - [ ] [Smell Code](#smell-code)
 - Chat
     - [ ] [Autoscroll to latest message](#autoscroll-to-latest-message)
@@ -38,7 +34,7 @@
 
 ## Onboarding
 
-### Sign in with GitHub
+### Sign in with GitHub, GitLab and Google
 
 Prerequisite: You have to **sign out** from all existing accounts.
 
@@ -51,15 +47,19 @@ Prerequisite: You have to **sign out** from all existing accounts.
 * IDE should receive a valid token automatically.
 * `Commands` and `Chat` tabs are ready to use.
 
-### Sign in with GitLab
+Verify the remaining SSO methods by performing the same steps for `Sign in with GitLab` and `Sign in with Google`.
 
-Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-github), and the authorization is also done
-through the browser. Expected behaviour is identical.
+### Remove all accounts
 
-### Sign in with Google
+Prerequisite: You have to be **signed in**. This is important because we expect certain components to be refreshed automatically.
 
-Onboarding through GitLab is similar to [Sign in with GitHub](#sign-in-with-github), and the authorization is also done
-through the browser. Expected behaviour is identical.
+1. Navigate to `Settings` > `Sourcegraph & Cody`.
+2. Remove all accounts and apply settings.
+
+#### Expected behaviour
+
+* Cody toolbar is automatically refreshed and the user is greeted with the `Welcome to Cody` panel.
+* Status bar widget has a `No account signed-in` status. Status bar is located in the bottom right corner of the IDE.
 
 ## Autocomplete
 
@@ -137,34 +137,21 @@ through the browser. Expected behaviour is identical.
 * All commands are visible in context menu and can be selected.
 * All commands works after selection.
 
-### Explain Selected Code (Detailed)
+### Explain Code
 
 1. Paste the following Java code:
     ```java
     System.out.println("Hello, Cody!");
     ```
-2. Select line and use `Cody | Commands | Explain Selected Code (Detailed)`.
+2. Select line and use `Cody | Commands | Explain Code`.
 
 #### Expected behaviour
 
 * User is automatically switched to `Chat` tab.
-* Chat responds with a **detailed** description of the selected code and will elaborate on the fields, classes, and
+* Chat responds with a description of the selected code and will elaborate on the fields, classes, and
   methods, going into technical details, often structuring the text in bullet points.
 
-### Explain Selected Code (High Level)
-
-1. Paste the following Java code:
-    ```java
-    System.out.println("Hello, Cody!");
-    ```
-2. Select line and use `Cody | Commands | Explain Selected Code (Detailed)`.
-
-#### Expected behaviour
-
-* User is automatically switched to `Chat` tab.
-* Chat responds with a **high-level** and a short description of the code without going into technical details.
-
-### Generate Docstring
+### Generate Test
 
 1. Paste following Java function:
     ```java
@@ -172,32 +159,7 @@ through the browser. Expected behaviour is identical.
         return "Hello, " + name + "!";
     }
     ```
-2. Select function and use `Cody | Commands | Generate Docstring`.
-
-#### Expected behaviour
-
-* User is automatically switched to `Chat` tab.
-* Language has been identified as Java, so the documentation syntax is also in that language (see: `@param`
-  and `@return` tags).
-* Chat responds with generated docstring, similar to this:
-    ```java
-    /*
-     * Returns a greeting string with the provided name.
-     *
-     * @param name The name to greet.
-     * @return A greeting string.
-     */
-    ```
-
-### Generate Unit Test
-
-1. Paste following Java function:
-    ```java
-    public static String greet(String name) {
-        return "Hello, " + name + "!";
-    }
-    ```
-2. Select function and use `Cody | Commands | Generate Unit Test`.
+2. Select function and use `Cody | Commands | Generate Test`.
 
 #### Expected behaviour
 
@@ -209,22 +171,6 @@ through the browser. Expected behaviour is identical.
       String result = greet("Alice");
       assertEquals("Hello, Alice!", result);
     }
-    ```
-
-### Improve Variable Names
-
-1. Paste the following Java code:
-    ```java
-    String[] var0 = new String[]{"apple", "banana", "peach"};
-    ```
-2. Select line and use `Cody | Commands | Improve Variable Names`
-
-#### Expected behaviour
-
-* User is automatically switched to `Chat` tab.
-* Chat responds with code similar to this:
-    ```java
-    String[] fruits = new String[]{"apple", "banana", "peach"};
     ```
 
 ### Smell Code

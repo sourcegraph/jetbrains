@@ -45,14 +45,6 @@ private constructor(
     cancellationToken.get().dispose()
   }
 
-  fun getPanel(): ChatPanel = chatPanel
-
-  fun getSessionId(): SessionId? = sessionId.get().getNow(null)
-
-  fun hasSessionId(thatSessionId: SessionId): Boolean = getSessionId() == thatSessionId
-
-  fun hasMessageId(messageId: UUID): Boolean = messages.any { it.id == messageId }
-
   fun restoreAgentSession(agent: CodyAgent) {
     // todo serialize model
     val model = "anthropic/claude-2.0"
@@ -68,8 +60,20 @@ private constructor(
     sessionId.getAndSet(newSessionId)
   }
 
+  fun getPanel(): ChatPanel = chatPanel
+
+  fun getSessionId(): SessionId? = sessionId.get().getNow(null)
+
+  fun hasSessionId(thatSessionId: SessionId): Boolean = getSessionId() == thatSessionId
+
+  fun hasMessageId(messageId: UUID): Boolean = messages.any { it.id == messageId }
+
+  override fun getInternalId(): String = internalId
+
+  override fun getCancellationToken(): CancellationToken = cancellationToken.get()
+
   @RequiresEdt
-  override fun sendMessage(text: String) {
+  override fun sendMessage(text: String, contextFiles: List<ContextFile>) {
     val displayText = XmlStringUtil.escapeString(text)
     val humanMessage = ChatMessage(Speaker.HUMAN, text, displayText)
     addMessage(humanMessage)
@@ -81,8 +85,7 @@ private constructor(
               text = humanMessage.actualMessage(),
               submitType = "user",
               addEnhancedContext = chatPanel.isEnhancedContextEnabled(),
-              // TODO(#242): allow to manually add files to the context via `@`
-              contextFiles = listOf())
+              contextFiles = contextFiles)
 
       val request =
           agent.server.chatSubmitMessage(ChatSubmitMessageParams(sessionId.get().get(), message))
@@ -96,10 +99,6 @@ private constructor(
       }
     }
   }
-
-  override fun getInternalId(): String = internalId
-
-  override fun getCancellationToken(): CancellationToken = cancellationToken.get()
 
   @Throws(ExecutionException::class, InterruptedException::class)
   override fun receiveMessage(extensionMessage: ExtensionMessage) {
@@ -150,6 +149,26 @@ private constructor(
       getCancellationToken().dispose()
       logger.error(CodyBundle.getString("chat-session.error-title"), error)
       addAssistantResponseToChat(CodyBundle.getString("chat-session.error-title"))
+    }
+  }
+
+  override fun sendWebviewMessage(message: WebviewMessage) {
+    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+      agent.server.webviewReceiveMessage(
+          WebviewReceiveMessageParams(this.sessionId.get().get(), message))
+    }
+  }
+
+  fun receiveWebviewExtensionMessage(message: ExtensionMessage) {
+    when (message.type) {
+      ExtensionMessage.Type.USER_CONTEXT_FILES -> {
+        if (message.context is List<*>) {
+          this.chatPanel.promptPanel.setContextFilesSelector(message.context)
+        }
+      }
+      else -> {
+        logger.warn(String.format("CodyToolWindowContent: unknown message type: %s", message.type))
+      }
     }
   }
 
