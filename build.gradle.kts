@@ -182,15 +182,18 @@ tasks {
     val sourcegraphDir = unzipCodeSearch()
     exec {
       workingDir(sourcegraphDir.toString())
-      commandLine("pnpm", "install", "--frozen-lockfile")
+      commandLine(
+          "/Users/olafurpg/.local/share/rtx/installs/pnpm/8.6.7/bin/pnpm",
+          "install",
+          "--frozen-lockfile")
     }
     exec {
       workingDir(sourcegraphDir.toString())
-      commandLine("pnpm", "generate")
+      commandLine("/Users/olafurpg/.local/share/rtx/installs/pnpm/8.6.7/bin/pnpm", "generate")
     }
     val jetbrainsDir = sourcegraphDir.resolve("client").resolve("jetbrains")
     exec {
-      commandLine("pnpm", "build")
+      commandLine("/Users/olafurpg/.local/share/rtx/installs/pnpm/8.6.7/bin/pnpm", "build")
       workingDir(jetbrainsDir)
     }
     val buildOutput =
@@ -235,12 +238,18 @@ tasks {
     println("Using cody from codyDir=$codyDir")
     exec {
       workingDir(codyDir)
-      commandLine("pnpm", "install", "--frozen-lockfile")
+      commandLine(
+          "/Users/olafurpg/.local/share/rtx/installs/pnpm/8.6.7/bin/pnpm",
+          "install",
+          "--frozen-lockfile")
     }
     val agentDir = codyDir.resolve("agent").toString()
     exec {
       workingDir(agentDir)
-      commandLine("pnpm", "run", "build-agent-binaries")
+      commandLine(
+          "/Users/olafurpg/.local/share/rtx/installs/pnpm/8.6.7/bin/pnpm",
+          "run",
+          "build-agent-binaries")
       environment("AGENT_EXECUTABLE_TARGET_DIRECTORY", buildCodyDir.toString())
     }
     // If running on Linux in CI, run ldid -S on the macos-arm64 binary so that it can be run on
