@@ -16,7 +16,7 @@ data class SubscriptionTabPanelData(
 )
 
 @RequiresBackgroundThread
-fun fetchSubscriptionPanelData(
+fun fetchMyAccountPanelData(
     project: Project,
     server: CodyAgentServer
 ): CompletableFuture<SubscriptionTabPanelData?> {
