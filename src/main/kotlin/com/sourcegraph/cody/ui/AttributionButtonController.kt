@@ -41,7 +41,9 @@ class AttributionButtonController(val button: ConditionalVisibilityButton) : Att
       button.toolTipText = CodyBundle.getString("chat.attribution.success.tooltip")
     } else {
       val count = "${attribution.repoNames.size}" + if (attribution.limitHit) "+" else ""
-      val repoNames = attribution.repoNames.joinToString(separator = ", ")
+      val repoNames =
+          attribution.repoNames.joinToString(
+              prefix = "<ul><li>", separator = "</li><li>", postfix = "</li></ul>")
       button.text = CodyBundle.getString("chat.attribution.failure.label")
       button.toolTipText =
           CodyBundle.getString("chat.attribution.failure.tooltip").fmt(count, repoNames)
