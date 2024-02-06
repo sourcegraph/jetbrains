@@ -1,7 +1,6 @@
 package com.sourcegraph.cody.attribution
 
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.CurrentConfigFeatures
@@ -9,6 +8,7 @@ import com.sourcegraph.cody.agent.protocol.AttributionSearchParams
 import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
 import com.sourcegraph.cody.chat.AgentChatSession
 import com.sourcegraph.cody.chat.AgentChatSessionService
+import com.sourcegraph.cody.chat.SessionId
 import com.sourcegraph.cody.chat.ui.CodeEditorPart
 import java.util.*
 import java.util.function.BiFunction
@@ -19,22 +19,13 @@ import java.util.function.BiFunction
  */
 class AttributionSearchCommand(private val project: Project) {
 
-  companion object {
-    private val logger = Logger.getInstance(AttributionSearchCommand::class.java)
-  }
-
   /**
    * [onSnippetFinished] invoked when assistant finished writing a code snippet in a chat message,
    * and triggers attribution search (if enabled). Once attribution returns, the
    * [CodeEditorPart.attributionListener] is updated.
    */
-  fun onSnippetFinished(snippet: String, messageId: UUID, listener: AttributionListener) {
+  fun onSnippetFinished(snippet: String, sessionId: SessionId, listener: AttributionListener) {
     if (attributionEnabled()) {
-      val sessionId = findChatSessionFor(messageId)?.getSessionId()
-      if (sessionId == null) {
-        logger.warn("Unknown message chat session.")
-        return
-      }
       CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
         ApplicationManager.getApplication().invokeLater { listener.onAttributionSearchStart() }
         val params = AttributionSearchParams(id = sessionId, snippet = snippet)

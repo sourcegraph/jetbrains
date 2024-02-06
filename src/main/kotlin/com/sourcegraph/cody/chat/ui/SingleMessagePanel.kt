@@ -24,6 +24,7 @@ class SingleMessagePanel(
     private val project: Project,
     private val parentPanel: JPanel,
     private val gradientWidth: Int,
+    private val chatSession: ChatSession,
 ) : PanelWithGradientBorder(gradientWidth, chatMessage.speaker) {
   private var lastMessagePart: MessagePart? = null
 
@@ -106,8 +107,10 @@ class SingleMessagePanel(
   fun onPartFinished() {
     val lastPart = lastMessagePart
     if (lastPart is CodeEditorPart) {
-      val listener = AttributionListener.UiThreadDecorator(lastPart.attribution)
-      AttributionSearchCommand(project).onSnippetFinished(lastPart.text, chatMessage.id, listener)
+      chatSession.getSessionId()?.let { sessionId ->
+        val listener = AttributionListener.UiThreadDecorator(lastPart.attribution)
+        AttributionSearchCommand(project).onSnippetFinished(lastPart.text, sessionId, listener)
+      }
     }
   }
 
