@@ -69,7 +69,7 @@
 
         <!-- autocomplete -->
         <editorFactoryListener implementation="com.sourcegraph.cody.autocomplete.CodyEditorFactoryListener"/>
-
+        
         <errorHandler implementation="com.sourcegraph.cody.error.CodyErrorSubmitter"/>
 
         <!-- status bar -->
@@ -145,8 +145,7 @@
 
         <!-- autocomplete -->
         <action id="cody.acceptAutocompleteAction"
-                class="com.sourcegraph.cody.autocomplete.action.AcceptCodyAutocompleteAction"
-                text="Accept Autocomplete Suggestion">
+                class="com.sourcegraph.cody.autocomplete.action.AcceptCodyAutocompleteAction">
             <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
         </action>
         <action id="cody.cycleForwardAutocompleteAction"
@@ -225,13 +224,52 @@
                 id="cody.restartAgent"
                 class="com.sourcegraph.cody.agent.action.CodyAgentRestartAction"
                 text="Restart Cody Agent"/>
+        
+        <!-- Inline editor actions -->
+        <action
+            id="cody.editCodeAction"
+            class="com.sourcegraph.cody.edit.EditCodeAction"
+            text="Edit Code"/>
 
-        <group id="CodyChatActionsGroup">
-            <reference ref="cody.newChat"/>
-        </group>
+        <!-- <action -->
+        <!--     id="cody.newChatAction" -->
+        <!--     class="com.sourcegraph.cody.edit.NewChatAction" -->
+        <!--     text="New Chat"/> -->
+
+        <action
+            id="cody.documentCodeAction"
+            class="com.sourcegraph.cody.edit.DocumentCodeAction"
+            text="Document Code"/>
+
+        <action
+            id="cody.explainCodeAction"
+            class="com.sourcegraph.cody.edit.ExplainCodeAction"
+            text="Explain Code"/>
+
+        <action
+            id="cody.codeSmellsAction"
+            class="com.sourcegraph.cody.edit.CodeSmellsAction"
+            text="Find Code Smells"/>
+
+        <action
+            id="cody.generateUnitTestsAction"
+            class="com.sourcegraph.cody.edit.GenerateUnitTestsAction"
+            text="Generate Unit Test"/>
+
+        <!-- TODO: Custom commands -->
+
 
         <group id="CodyEditorActions" popup="true" text="Cody"
-               searchable="false" class="com.sourcegraph.cody.CodyActionGroup">
+               icon="/icons/codyLogoSm.svg" searchable="false"
+               class="com.sourcegraph.cody.CodyActionGroup">
+            <reference ref="cody.editCodeAction"/>
+            <!-- <reference ref="cody.newChatAction"/> -->
+            <separator/>
+            <reference ref="cody.documentCodeAction"/>
+            <reference ref="cody.explainCodeAction"/>
+            <reference ref="cody.codeSmellsAction"/>
+            <reference ref="cody.generateUnitTestsAction"/>
+            <separator/>
             <reference ref="cody.downloadAndInstallCodyAction"/>
             <reference ref="cody.runCodyAppAction"/>
             <add-to-group anchor="last" group-id="EditorPopupMenu"/>
@@ -270,5 +308,7 @@
                   class="com.sourcegraph.cody.editor.CodyLookupListener"/>
         <listener topic="com.intellij.openapi.command.CommandListener"
                   class="com.sourcegraph.cody.editor.CodyCommandListener"/>
+        <listener topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"
+                  class="com.sourcegraph.cody.CodyFileDocumentManagerListener"/>
     </projectListeners>
 </idea-plugin>

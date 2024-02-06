@@ -60,13 +60,18 @@ interface CodyAgentServer {
   @JsonNotification("extensionConfiguration/didChange")
   fun configurationDidChange(document: ExtensionConfiguration)
 
-  @JsonNotification("textDocument/didFocus") fun textDocumentDidFocus(document: TextDocument)
+  @JsonNotification("textDocument/didFocus")
+  fun textDocumentDidFocus(document: ProtocolTextDocument)
 
-  @JsonNotification("textDocument/didOpen") fun textDocumentDidOpen(document: TextDocument)
+  @JsonNotification("textDocument/didOpen") fun textDocumentDidOpen(document: ProtocolTextDocument)
 
-  @JsonNotification("textDocument/didChange") fun textDocumentDidChange(document: TextDocument)
+  @JsonNotification("textDocument/didChange")
+  fun textDocumentDidChange(document: ProtocolTextDocument)
 
-  @JsonNotification("textDocument/didClose") fun textDocumentDidClose(document: TextDocument)
+  @JsonNotification("textDocument/didClose")
+  fun textDocumentDidClose(document: ProtocolTextDocument)
+
+  @JsonNotification("textDocument/didSave") fun textDocumentDidSave(document: ProtocolTextDocument)
 
   @JsonNotification("debug/message") fun debugMessage(message: DebugMessage)
 
@@ -94,6 +99,8 @@ interface CodyAgentServer {
   @JsonRequest("commands/test") fun commandsTest(): CompletableFuture<String>
 
   @JsonRequest("commands/smell") fun commandsSmell(): CompletableFuture<String>
+
+  @JsonRequest("commands/document") fun commandsDocument(): CompletableFuture<EditTask>
 
   @JsonRequest("chat/new") fun chatNew(): CompletableFuture<String>
 

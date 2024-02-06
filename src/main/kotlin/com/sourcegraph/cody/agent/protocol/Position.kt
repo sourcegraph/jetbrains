@@ -1,3 +1,14 @@
 package com.sourcegraph.cody.agent.protocol
 
-data class Position(val line: Int, val character: Int)
+import com.intellij.openapi.editor.Document
+
+data class Position(val line: Int, val character: Int) {
+
+  /** Return zero-based offset of this position in the document. */
+  fun toOffset(document: Document): Int {
+    val lineStartOffset = document.getLineStartOffset(line)
+    return lineStartOffset + character
+  }
+
+}
+

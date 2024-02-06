@@ -256,7 +256,7 @@ class CodyAutocompleteManager {
               null
             }
             .completeOnTimeout(null, 3, TimeUnit.SECONDS)
-            .thenRun {
+            .thenRun { // This is a terminal operation, so we needn't call get().
               resetApplication(project)
               resultOuter.complete(null)
             }
@@ -268,8 +268,7 @@ class CodyAutocompleteManager {
 
   private fun handleError(project: Project, error: Throwable?) {
     if (error is ResponseErrorException) {
-      val errorCode = error.toErrorCode()
-      if (errorCode == ErrorCode.RateLimitError) {
+      if (error.toErrorCode() == ErrorCode.RateLimitError) {
         val rateLimitError = error.toRateLimitError()
         UpgradeToCodyProNotification.autocompleteRateLimitError.set(rateLimitError)
         UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = true
@@ -307,7 +306,6 @@ class CodyAutocompleteManager {
       }
       cancellationToken.dispose()
       clearAutocompleteSuggestions(editor)
-
       // https://github.com/sourcegraph/jetbrains/issues/350
       // CodyFormatter.formatStringBasedOnDocument needs to be on a write action.
       WriteCommandAction.runWriteCommandAction(editor.project) {
@@ -322,6 +320,7 @@ class CodyAutocompleteManager {
    * The reason we have a custom code path to render hints for agent autocompletions is because we
    * can use `insertText` directly and the `range` encloses the entire line.
    */
+  @RequiresEdt
   fun displayAgentAutocomplete(
       editor: Editor,
       offset: Int,
