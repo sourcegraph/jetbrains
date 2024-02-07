@@ -272,7 +272,7 @@ class CodyAutocompleteManager {
         UpgradeToCodyProNotification.autocompleteRateLimitError.set(rateLimitError)
         UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = true
         ApplicationManager.getApplication().executeOnPooledThread {
-          UpgradeToCodyProNotification.notify(rateLimitError, project)
+          UpgradeToCodyProNotification.notify(error.toRateLimitError(), project)
           CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) { refreshMyAccountTab() }
         }
       }
