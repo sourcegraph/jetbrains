@@ -108,7 +108,8 @@ private constructor(
               .initialize(
                   ClientInfo(
                       version = ConfigUtil.getPluginVersion(),
-                      workspaceRootUri = ConfigUtil.getWorkspaceRootPath(project).toUri(),
+                      workspaceRootUri =
+                          ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
                       extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
                       capabilities = ClientCapabilities(edit = "enabled", codeLenses = "enabled")))
               .thenApply { info ->
