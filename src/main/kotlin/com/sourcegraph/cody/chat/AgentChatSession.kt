@@ -18,10 +18,10 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.telemetry.GraphQlLogger
-import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
+import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
