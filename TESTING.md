@@ -98,7 +98,7 @@ Prerequisite: You have to be **signed in**. This is important because we expect 
     System.out.println("Hello World!");
     ```
 2. Place cursor at the end of the `// print ` line.
-3. Trigger autocompletion with <kbd>Alt</kbd> + <kbd>\</kbd>.
+3. Trigger autocompletion with <kbd>Alt</kbd> + <kbd>\</kbd> (or <kbd>option</kbd> + <kbd>\</kbd> on Mac).
 
 #### Expected behaviour
 
