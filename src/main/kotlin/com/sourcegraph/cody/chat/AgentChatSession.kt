@@ -152,7 +152,6 @@ private constructor(
             if (prevLastMessage != null) {
               if (lastMessage?.contextFiles != messages.lastOrNull()?.contextFiles) {
                 val messageId = extensionMessage.messages.count() - 2
-                // todo: run only once when contextFiles goes null -> []
                 ApplicationManager.getApplication().invokeLater {
                   addMessage(prevLastMessage.withId(messageId))
                 }
