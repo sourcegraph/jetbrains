@@ -77,7 +77,7 @@ private constructor(
     val humanMessage =
         ChatMessage(
             Speaker.HUMAN,
-            source = "chat",
+            source = Source.CHAT,
             text,
             id = messages.count(),
             displayText,
@@ -86,7 +86,7 @@ private constructor(
     val responsePlaceholder =
         ChatMessage(
             Speaker.ASSISTANT,
-            source = "chat",
+            source = Source.CHAT,
             text = "",
             id = messages.count(),
             displayText = "",
@@ -177,7 +177,7 @@ private constructor(
   private fun addErrorMessageAsAssistantMessage(stringMessage: String) {
     val messageId = messages.count()
     ApplicationManager.getApplication().invokeLater {
-      addMessage(ChatMessage(Speaker.ASSISTANT, source = "chat", stringMessage, id = messageId))
+      addMessage(ChatMessage(Speaker.ASSISTANT, Source.CHAT, stringMessage, id = messageId))
     }
   }
 
@@ -209,7 +209,8 @@ private constructor(
     } else {
       messages.add(message)
     }
-    chatPanel.addOrUpdateMessage(message)
+    chatPanel.addOrUpdateMessage(
+        message, shouldAddBlinkingCursor = message.actualMessage().isBlank())
     HistoryService.getInstance(project).updateChatMessages(internalId, messages)
   }
 
@@ -265,7 +266,7 @@ private constructor(
       val responsePlaceholder =
           ChatMessage(
               Speaker.ASSISTANT,
-              source = "chat",
+              Source.CHAT,
               text = "",
               id = chatSession.messages.count(),
               displayText = "",

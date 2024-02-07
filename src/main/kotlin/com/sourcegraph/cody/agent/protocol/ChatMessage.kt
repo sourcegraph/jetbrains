@@ -28,7 +28,7 @@ data class ChatError(
 
 data class ChatMessage(
     val speaker: Speaker,
-    val source: String?,
+    val source: Source?,
     val text: String?,
 
     // Internal ID used for identifying updates of the message

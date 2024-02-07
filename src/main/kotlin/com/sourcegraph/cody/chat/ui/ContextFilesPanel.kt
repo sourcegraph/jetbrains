@@ -81,13 +81,13 @@ class ContextFilesPanel(
     return panel
   }
 
-  fun updateContentWith(message: List<ContextFile>?) {
-    if (message.isNullOrEmpty()) {
+  fun updateContentWith(contextFiles: List<ContextFile>?) {
+    if (contextFiles.isNullOrEmpty()) {
       return
     }
 
     val contextFileNames =
-        message
+        contextFiles
             .map {
               if (it.repoName != null) {
                 "${project.basePath}/${it.uri.path}"

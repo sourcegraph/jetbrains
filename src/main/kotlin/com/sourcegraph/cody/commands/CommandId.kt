@@ -1,7 +1,9 @@
 package com.sourcegraph.cody.commands
 
-enum class CommandId(val displayName: String, val source: String, val mnemonic: Char) {
-  Explain("Explain Code", "explain", 'E'),
-  Smell("Smell Code", "smell", 'S'),
-  Test("Generate Test", "test", 'T')
+import com.sourcegraph.cody.agent.protocol.Source
+
+enum class CommandId(val displayName: String, val source: Source, val mnemonic: Char) {
+  Explain("Explain Code", Source.EXPLAIN, 'E'),
+  Smell("Smell Code", Source.SMELL, 'S'),
+  Test("Generate Test", Source.TEST, 'T')
 }

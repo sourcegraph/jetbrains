@@ -4,7 +4,6 @@ import com.intellij.openapi.components.BaseState
 import com.intellij.util.xmlb.annotations.OptionTag
 import com.intellij.util.xmlb.annotations.Tag
 import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ChatMessage
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
