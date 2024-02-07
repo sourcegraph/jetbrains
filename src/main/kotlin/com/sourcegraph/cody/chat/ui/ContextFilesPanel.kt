@@ -17,6 +17,7 @@ import com.intellij.util.withFragment
 import com.intellij.util.withQuery
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ContextFile
+import com.sourcegraph.cody.agent.protocol.ContextFileFile
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH
 import com.sourcegraph.cody.chat.ChatUIConstants.TEXT_MARGIN
@@ -40,11 +41,16 @@ class ContextFilesPanel(
   }
 
   @RequiresBackgroundThread
-  private fun updateFileList(contextFileNames: Set<String>) {
+  private fun updateFileList(contextFileNames: Map<String, ContextFile>) {
     val filesAvailableInEditor =
         contextFileNames
-            .map(Paths::get)
-            .mapNotNull(VirtualFileManager.getInstance()::findFileByNioPath)
+            .map {
+              val path = Paths.get(it.key)
+              val findFileByNioPath = VirtualFileManager.getInstance().findFileByNioPath(path)
+              findFileByNioPath ?: return@map null
+              Pair(findFileByNioPath, it.value as? ContextFileFile)
+            }
+            .filterNotNull()
             .toList()
 
     ApplicationManager.getApplication().invokeLater {
@@ -54,8 +60,8 @@ class ContextFilesPanel(
       val accordionSection = AccordionSection("Read ${filesAvailableInEditor.size} files")
       accordionSection.isOpaque = false
       accordionSection.border = EmptyBorder(margin)
-      filesAvailableInEditor.forEachIndexed { index, file: VirtualFile ->
-        val filePanel = createFileWithLinkPanel(file)
+      filesAvailableInEditor.forEachIndexed { index, file: Pair<VirtualFile, ContextFileFile?> ->
+        val filePanel = createFileWithLinkPanel(file.first, file.second)
         accordionSection.contentPanel.add(filePanel, index)
       }
       add(accordionSection, BorderLayout.CENTER)
@@ -63,7 +69,10 @@ class ContextFilesPanel(
   }
 
   @RequiresEdt
-  private fun createFileWithLinkPanel(file: VirtualFile): JPanel {
+  private fun createFileWithLinkPanel(
+      file: VirtualFile,
+      contextFileFile: ContextFileFile?
+  ): JPanel {
     val projectRelativeFilePath = file.path.removePrefix(project.basePath ?: "")
     val anAction =
         object : DumbAwareAction() {
@@ -73,12 +82,29 @@ class ContextFilesPanel(
             FileEditorManager.getInstance(project).openFile(file, /*focusEditor=*/ true)
           }
         }
-    val goToFile = AnActionLink("@$projectRelativeFilePath", anAction)
+    val actionText = getActionTextForFileLinkAction(contextFileFile, projectRelativeFilePath)
+    val goToFile = AnActionLink(actionText, anAction)
     val panel = JPanel(BorderLayout())
     panel.isOpaque = false
     panel.border = JBUI.Borders.emptyLeft(3)
     panel.add(goToFile, BorderLayout.PAGE_START)
     return panel
+  }
+
+  private fun getActionTextForFileLinkAction(
+      contextFileFile: ContextFileFile?,
+      projectRelativeFilePath: String
+  ): String {
+    val startLine = contextFileFile?.range?.start?.line
+    val endLine = contextFileFile?.range?.end?.line
+    return buildString {
+      append("@$projectRelativeFilePath")
+      if (startLine != null && endLine != null) {
+        if (startLine != endLine) {
+          append(":$startLine:$endLine")
+        }
+      }
+    }
   }
 
   fun updateContentWith(contextFiles: List<ContextFile>?) {
@@ -89,13 +115,16 @@ class ContextFilesPanel(
     val contextFileNames =
         contextFiles
             .map {
-              if (it.repoName != null) {
-                "${project.basePath}/${it.uri.path}"
-              } else {
-                Paths.get(it.uri.withFragment(null).withQuery(null)).absolutePathString()
-              }
+              val contextFileName =
+                  if (it.repoName != null) {
+                    "${project.basePath}/${it.uri.path}"
+                  } else {
+                    val newUri = it.uri.withFragment(null).withQuery(null)
+                    Paths.get(newUri).absolutePathString()
+                  }
+              contextFileName to it
             }
-            .toSet()
+            .toMap()
 
     ApplicationManager.getApplication().executeOnPooledThread { updateFileList(contextFileNames) }
   }
