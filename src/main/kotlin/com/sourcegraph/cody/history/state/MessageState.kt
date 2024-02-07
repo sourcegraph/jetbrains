@@ -9,13 +9,14 @@ class MessageState : BaseState() {
 
   @get:OptionTag(tag = "text", nameAttribute = "") var text: String? by string()
 
+  @get:OptionTag(tag = "source", nameAttribute = "") var source: String? by string()
+
   @get:OptionTag(tag = "speaker", nameAttribute = "")
   var speaker: SpeakerState? by enum<SpeakerState>()
 
   // todo var contextFiles by list<String>()
 
   enum class SpeakerState {
-
     HUMAN,
     ASSISTANT
   }
