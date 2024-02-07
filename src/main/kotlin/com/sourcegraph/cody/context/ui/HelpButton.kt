@@ -8,4 +8,4 @@ class HelpButton :
     ContextToolbarButton(
         CodyBundle.getString("context-panel.button.help"),
         AllIcons.Actions.Help,
-        { BrowserUtil.open("https://docs.sourcegraph.com/cody/core-concepts/keyword-search") })
+        { BrowserUtil.open("https://sourcegraph.com/docs/cody/core-concepts/context") })
