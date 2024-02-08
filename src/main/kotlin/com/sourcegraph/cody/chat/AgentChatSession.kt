@@ -28,6 +28,7 @@ private constructor(
     private val project: Project,
     newSessionId: CompletableFuture<SessionId>,
     private val internalId: String = UUID.randomUUID().toString(),
+    private val restoredMessagesCount: Int = 0
 ) : ChatSession {
 
   /**
@@ -137,7 +138,8 @@ private constructor(
                   else -> CodyBundle.getString("chat.rate-limit-error.explain")
                 }
 
-            addErrorMessageAsAssistantMessage(text, extensionMessage.messages.count() - 1)
+            addErrorMessageAsAssistantMessage(
+                text, restoredMessagesCount + extensionMessage.messages.count() - 1)
           }
         } else {
           // Currently we ignore other kind of errors like context window limit reached
@@ -152,7 +154,7 @@ private constructor(
           if (extensionMessage.chatID != null) {
             if (prevLastMessage != null) {
               if (lastMessage?.contextFiles != messages.lastOrNull()?.contextFiles) {
-                val messageId = extensionMessage.messages.count() - 2
+                val messageId = restoredMessagesCount + extensionMessage.messages.count() - 2
                 ApplicationManager.getApplication().invokeLater {
                   addMessage(prevLastMessage.withId(messageId))
                 }
@@ -160,7 +162,7 @@ private constructor(
             }
 
             if (lastMessage?.text != null) {
-              val messageId = extensionMessage.messages.count() - 1
+              val messageId = restoredMessagesCount + extensionMessage.messages.count() - 1
               ApplicationManager.getApplication().invokeLater {
                 addMessage(lastMessage.withId(messageId))
               }
@@ -278,7 +280,8 @@ private constructor(
     @RequiresEdt
     fun createFromState(project: Project, state: ChatState): AgentChatSession {
       val sessionId = createNewPanel(project) { it.server.chatNew() }
-      val chatSession = AgentChatSession(project, sessionId, state.internalId!!)
+      val chatSession =
+          AgentChatSession(project, sessionId, state.internalId!!, state.messages.count())
       state.messages.forEachIndexed { index, message ->
         val parsed =
             when (val speaker = message.speaker) {
