@@ -21,6 +21,7 @@ import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.vcs.convertGitCloneURLToCodebaseNameOrError
 import java.awt.Dimension
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import javax.swing.BorderFactory
@@ -81,8 +82,15 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
           repo.remoteUrl?.let { remoteUrl -> addRemoteRepository(remoteUrl, repo.isEnabled) }
         }
       } else {
-        CodyAgentCodebase.getInstance(project).getUrl().thenApply { repo ->
-          addRemoteRepository(repo)
+        CodyAgentCodebase.getInstance(project).getUrl().thenApply { repoUrl ->
+          val codebaseName = convertGitCloneURLToCodebaseNameOrError(repoUrl)
+          RemoteRepoUtils.getRepository(project, codebaseName)
+              .completeOnTimeout(null, 15, TimeUnit.SECONDS)
+              .thenApply { repo ->
+                if (repo != null) {
+                  addRemoteRepository(repoUrl)
+                }
+              }
         }
       }
     }
@@ -115,7 +123,6 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
   }
 
   private fun enableRemote(codebaseName: String) {
-    println("ENABLING $codebaseName")
     updateContextState { contextState ->
       contextState.remoteRepositories.find { it.remoteUrl == codebaseName }?.isEnabled = true
     }
@@ -231,6 +238,8 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
               HistoryService.getInstance(project)
                   .updateContextState(chatSession.getInternalId(), contextState = null)
               treeRoot.removeAllChildren()
+              localContextNode.removeAllChildren()
+              remoteContextNode.removeAllChildren()
               prepareTree()
             })
 
