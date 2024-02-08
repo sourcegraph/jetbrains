@@ -12,6 +12,15 @@ data class ContextFile(
     val revision: String?,
 )
 
+val uriDeserializer =
+    JsonDeserializer { jsonElement: JsonElement, _: Type, _: JsonDeserializationContext ->
+      val obj = jsonElement.asJsonObject
+      URI(
+          obj["scheme"]?.asString,
+          obj["host"]?.asString,
+          obj["path"]?.asString,
+          /* fragment= */ null)
+    }
 val contextFileDeserializer =
     JsonDeserializer { jsonElement: JsonElement, _: Type, _: JsonDeserializationContext ->
       val jsonObject = jsonElement.asJsonObject

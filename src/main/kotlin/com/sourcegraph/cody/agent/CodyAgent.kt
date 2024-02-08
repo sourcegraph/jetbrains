@@ -11,6 +11,7 @@ import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.config.ConfigUtil
 import java.io.*
 import java.net.Socket
+import java.net.URI
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
@@ -142,6 +143,11 @@ private constructor(
           }
 
       val processBuilder = ProcessBuilder(command)
+      if (System.getenv("CODY_DIR") != null) {
+        processBuilder.environment()["CODY_AGENT_TRACE_PATH"] =
+            Paths.get(System.getProperty("user.home"), ".sourcegraph", "agent-tracepath.json")
+                .toString()
+      }
       if (java.lang.Boolean.getBoolean("cody.accept-non-trusted-certificates-automatically") ||
           ConfigUtil.getShouldAcceptNonTrustedCertificatesAutomatically()) {
         processBuilder.environment()["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
@@ -181,6 +187,7 @@ private constructor(
                 .serializeNulls()
                 .registerTypeAdapter(CompletionItemID::class.java, CompletionItemIDSerializer)
                 .registerTypeAdapter(ContextFile::class.java, contextFileDeserializer)
+                .registerTypeAdapter(URI::class.java, uriDeserializer)
                 .registerTypeAdapter(Speaker::class.java, SpeakerSerializer)
           }
           .setRemoteInterface(CodyAgentServer::class.java)

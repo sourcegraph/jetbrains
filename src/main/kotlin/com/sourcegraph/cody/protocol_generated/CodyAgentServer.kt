@@ -58,6 +58,8 @@ interface CodyAgentServer {
   fun graphql_getRepoIdIfEmbeddingExists(params: Graphql_GetRepoIdIfEmbeddingExistsParams): CompletableFuture<String?>
   @JsonRequest("graphql/getRepoId")
   fun graphql_getRepoId(params: Graphql_GetRepoIdParams): CompletableFuture<String?>
+  @JsonRequest("check/isCodyIgnoredFile")
+  fun check_isCodyIgnoredFile(params: Check_IsCodyIgnoredFileParams): CompletableFuture<Boolean>
   @JsonRequest("git/codebaseName")
   fun git_codebaseName(params: Git_CodebaseNameParams): CompletableFuture<String?>
   @JsonRequest("webview/didDispose")
