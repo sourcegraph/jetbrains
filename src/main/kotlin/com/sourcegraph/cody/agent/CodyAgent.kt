@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
+import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
 import java.io.*
 import java.net.Socket
@@ -128,6 +129,7 @@ private constructor(
       if (shouldConnectToDebugAgent()) {
         return connectToDebugAgent()
       }
+      val token = CancellationToken()
       val command: List<String> =
           if (System.getenv("CODY_DIR") != null) {
             val script = File(System.getenv("CODY_DIR"), "agent/dist/index.js")
@@ -138,7 +140,7 @@ private constructor(
               listOf("node", "--enable-source-maps", script.absolutePath)
             }
           } else {
-            val binary = agentBinary()
+            val binary = agentBinary(token)
             logger.info("starting Cody agent " + binary.absolutePath)
             listOf(binary.absolutePath)
           }
@@ -158,6 +160,7 @@ private constructor(
               .redirectErrorStream(false)
               .redirectError(ProcessBuilder.Redirect.PIPE)
               .start()
+      process.onExit().thenAccept { token.abort() }
 
       // Redirect agent stderr into idea.log by buffering line by line into `logger.warn()`
       // statements. Without this logic, the stderr output of the agent process is lost if
@@ -219,7 +222,7 @@ private constructor(
     }
 
     @Throws(CodyAgentException::class)
-    private fun agentBinary(): File {
+    private fun agentBinary(token: CancellationToken): File {
       val pluginPath =
           agentDirectory()
               ?: throw CodyAgentException("Sourcegraph Cody + Code Search plugin path not found")
@@ -234,6 +237,12 @@ private constructor(
         Files.copy(binarySource, binaryTarget, StandardCopyOption.REPLACE_EXISTING)
         val binary = binaryTarget.toFile()
         if (binary.setExecutable(true)) {
+          token.onFinished {
+            // Important: delete the file from disk after the process exists
+            // Ideally, we should eventually replace this temporary file with a permanent location
+            // in the plugin directory.
+            Files.deleteIfExists(binaryTarget)
+          }
           binary.deleteOnExit()
           binary
         } else {
