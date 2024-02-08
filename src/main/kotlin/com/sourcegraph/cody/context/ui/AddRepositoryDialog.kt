@@ -46,7 +46,7 @@ class AddRepositoryDialog(private val project: Project, private val addAction: (
     fun validateRepoExists() =
         DialogValidationUtils.custom(
             repoUrlInputField, "Remote repository not found on the server") {
-            val codebaseName= convertGitCloneURLToCodebaseNameOrError(repoUrlInputField.text)
+              val codebaseName = convertGitCloneURLToCodebaseNameOrError(repoUrlInputField.text)
               val repo =
                   RemoteRepoUtils.getRepository(project, codebaseName)
                       .completeOnTimeout(null, 2, TimeUnit.SECONDS)
