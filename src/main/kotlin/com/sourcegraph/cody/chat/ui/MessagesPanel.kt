@@ -17,14 +17,15 @@ class MessagesPanel(private val project: Project, private val chatSession: ChatS
     JPanel(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true)) {
   init {
     val welcomeText = CodyBundle.getString("messages-panel.welcome-text")
-    addChatMessageAsComponent(ChatMessage(Speaker.ASSISTANT, Source.CHAT, welcomeText, id = -1))
+    addChatMessageAsComponent(ChatMessage(Speaker.ASSISTANT, Source.CHAT, welcomeText))
   }
 
   @RequiresEdt
-  fun addOrUpdateMessage(message: ChatMessage, shouldAddBlinkingCursor: Boolean) {
+  fun addOrUpdateMessage(message: ChatMessage, index: Int, shouldAddBlinkingCursor: Boolean) {
     removeBlinkingCursor()
 
-    val messageToUpdate = components.getOrNull(message.id + 1).let { it as? JPanel }
+    val indexAfterHelloMessage = index + 1
+    val messageToUpdate = components.getOrNull(indexAfterHelloMessage).let { it as? JPanel }
     if (messageToUpdate != null) {
       val singleMessagePanel = messageToUpdate.getComponent(0) as? SingleMessagePanel
       val contextFilesPanel = messageToUpdate.getComponent(1) as? ContextFilesPanel

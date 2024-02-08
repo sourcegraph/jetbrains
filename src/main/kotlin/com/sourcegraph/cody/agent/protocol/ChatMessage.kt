@@ -30,25 +30,10 @@ data class ChatMessage(
     val speaker: Speaker,
     val source: Source?,
     val text: String?,
-
-    // Internal ID used for identifying updates of the message
-    // All partial messages which are part of the same response are required to have the same ID
-    val id: Int,
     val displayText: String? = null,
     val contextFiles: List<ContextFile>? = null,
     val error: ChatError? = null
 ) {
-
-  fun withId(newId: Int) =
-      ChatMessage(
-          this.speaker,
-          this.source,
-          this.text,
-          newId,
-          this.displayText,
-          this.contextFiles,
-          this.error)
-
   companion object {
     val sourceToCommandId = CommandId.values().associateBy { it.source }
   }

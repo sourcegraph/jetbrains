@@ -81,19 +81,17 @@ private constructor(
             Speaker.HUMAN,
             source = Source.CHAT,
             text,
-            id = messages.count(),
             displayText,
         )
-    addMessage(humanMessage)
+    addMessageAtIndex(humanMessage, index = messages.count())
     val responsePlaceholder =
         ChatMessage(
             Speaker.ASSISTANT,
             source = Source.CHAT,
             text = "",
-            id = messages.count(),
             displayText = "",
         )
-    addMessage(responsePlaceholder)
+    addMessageAtIndex(responsePlaceholder, index = messages.count())
 
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
       val message =
@@ -154,17 +152,17 @@ private constructor(
           if (extensionMessage.chatID != null) {
             if (prevLastMessage != null) {
               if (lastMessage?.contextFiles != messages.lastOrNull()?.contextFiles) {
-                val messageId = restoredMessagesCount + extensionMessage.messages.count() - 2
+                val index = restoredMessagesCount + extensionMessage.messages.count() - 2
                 ApplicationManager.getApplication().invokeLater {
-                  addMessage(prevLastMessage.withId(messageId))
+                  addMessageAtIndex(prevLastMessage, index)
                 }
               }
             }
 
             if (lastMessage?.text != null) {
-              val messageId = restoredMessagesCount + extensionMessage.messages.count() - 1
+              val index = restoredMessagesCount + extensionMessage.messages.count() - 1
               ApplicationManager.getApplication().invokeLater {
-                addMessage(lastMessage.withId(messageId))
+                addMessageAtIndex(lastMessage, index)
               }
             }
           }
@@ -176,9 +174,9 @@ private constructor(
     }
   }
 
-  private fun addErrorMessageAsAssistantMessage(stringMessage: String, id: Int) {
+  private fun addErrorMessageAsAssistantMessage(stringMessage: String, index: Int) {
     UIUtil.invokeLaterIfNeeded {
-      addMessage(ChatMessage(Speaker.ASSISTANT, Source.CHAT, stringMessage, id = id))
+      addMessageAtIndex(ChatMessage(Speaker.ASSISTANT, Source.CHAT, stringMessage), index)
     }
   }
 
@@ -203,15 +201,15 @@ private constructor(
   }
 
   @RequiresEdt
-  private fun addMessage(message: ChatMessage) {
-    val messageToUpdate = messages.getOrNull(message.id)
+  private fun addMessageAtIndex(message: ChatMessage, index: Int) {
+    val messageToUpdate = messages.getOrNull(index)
     if (messageToUpdate != null) {
-      messages[message.id] = message
+      messages[index] = message
     } else {
       messages.add(message)
     }
     chatPanel.addOrUpdateMessage(
-        message, shouldAddBlinkingCursor = message.actualMessage().isBlank())
+        message, index, shouldAddBlinkingCursor = message.actualMessage().isBlank())
     HistoryService.getInstance(project).updateChatMessages(internalId, messages)
   }
 
@@ -258,21 +256,21 @@ private constructor(
             GraphQlLogger.logCodyEvent(project, "command:${commandId.displayName}", "executed")
           })
 
-      chatSession.addMessage(
+      chatSession.addMessageAtIndex(
           ChatMessage(
               Speaker.HUMAN,
               source = commandId.source,
               commandId.displayName,
-              id = chatSession.messages.count()))
-      val responsePlaceholder =
+          ),
+          chatSession.messages.count())
+      chatSession.addMessageAtIndex(
           ChatMessage(
               Speaker.ASSISTANT,
               Source.CHAT,
               text = "",
-              id = chatSession.messages.count(),
               displayText = "",
-          )
-      chatSession.addMessage(responsePlaceholder)
+          ),
+          chatSession.messages.count())
       AgentChatSessionService.getInstance(project).addSession(chatSession)
       return chatSession
     }
@@ -289,10 +287,10 @@ private constructor(
               MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
               else -> error("unrecognized speaker $speaker")
             }
-        val chatMessage =
-            ChatMessage(speaker = parsed, source = message.source, message.text, id = index)
+        val chatMessage = ChatMessage(speaker = parsed, source = message.source, message.text)
         chatSession.messages.add(chatMessage)
-        chatSession.chatPanel.addOrUpdateMessage(chatMessage, shouldAddBlinkingCursor = false)
+        chatSession.chatPanel.addOrUpdateMessage(
+            chatMessage, index, shouldAddBlinkingCursor = false)
       }
       CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
         chatSession.restoreAgentSession(agent)
