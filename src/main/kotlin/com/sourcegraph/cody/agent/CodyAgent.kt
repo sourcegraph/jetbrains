@@ -231,24 +231,25 @@ private constructor(
         throw CodyAgentException(
             "Cody agent binary not found at path " + binarySource.toAbsolutePath())
       }
+      val binaryTarget = Files.createTempFile("cody-agent", binarySuffix())
       return try {
-        val binaryTarget = Files.createTempFile("cody-agent", binarySuffix())
+        token.onFinished {
+          // Important: delete the file from disk after the process exists
+          // Ideally, we should eventually replace this temporary file with a permanent location
+          // in the plugin directory.
+          Files.deleteIfExists(binaryTarget)
+        }
         logger.info("extracting Cody agent binary to " + binaryTarget.toAbsolutePath())
         Files.copy(binarySource, binaryTarget, StandardCopyOption.REPLACE_EXISTING)
         val binary = binaryTarget.toFile()
         if (binary.setExecutable(true)) {
-          token.onFinished {
-            // Important: delete the file from disk after the process exists
-            // Ideally, we should eventually replace this temporary file with a permanent location
-            // in the plugin directory.
-            Files.deleteIfExists(binaryTarget)
-          }
           binary.deleteOnExit()
           binary
         } else {
           throw CodyAgentException("failed to make executable " + binary.absolutePath)
         }
       } catch (e: IOException) {
+        Files.deleteIfExists(binaryTarget)
         throw CodyAgentException("failed to create agent binary", e)
       }
     }
