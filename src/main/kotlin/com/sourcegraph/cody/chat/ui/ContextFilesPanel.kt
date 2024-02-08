@@ -84,6 +84,7 @@ class ContextFilesPanel(
         }
     val actionText = getActionTextForFileLinkAction(contextFileFile, projectRelativeFilePath)
     val goToFile = AnActionLink(actionText, anAction)
+    goToFile.toolTipText = actionText
     val panel = JPanel(BorderLayout())
     panel.isOpaque = false
     panel.border = JBUI.Borders.emptyLeft(3)
@@ -101,7 +102,7 @@ class ContextFilesPanel(
       append("@$projectRelativeFilePath")
       if (startLine != null && endLine != null) {
         if (startLine != endLine) {
-          append(":$startLine:$endLine")
+          append(":$startLine-$endLine")
         }
       }
     }
