@@ -1,4 +1,4 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
-typealias Date = Long // milliseconds since epoch
+typealias Date = Double
 

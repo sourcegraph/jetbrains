@@ -26,6 +26,6 @@ data class ExtensionMessage(
   var data: Boolean? = null,
   var isActive: Boolean? = null,
   var repos: List<Repo>? = null,
-  var configFeajtures: ConfigFeajturesParams? = null,
+  var configFeatures: ConfigFeaturesParams? = null,
 )
 
