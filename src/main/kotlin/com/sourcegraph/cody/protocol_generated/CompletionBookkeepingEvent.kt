@@ -2,7 +2,7 @@
 package com.sourcegraph.cody.protocol_generated
 
 data class CompletionBookkeepingEvent(
-  var id: String? = null,
+  var id: CompletionLogID? = null,
   var startedAt: Int? = null,
   var networkRequestStartedAt: Int? = null,
   var startLoggedAt: Int? = null,

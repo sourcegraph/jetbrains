@@ -7,10 +7,10 @@ data class ContextFile(
   var repoName: String? = null,
   var revision: String? = null,
   var title: String? = null,
-  var source: String? = null,
+  var source: ContextFileSource? = null,
   var content: String? = null,
   var type: String? = null,
   var symbolName: String? = null,
-  var kind: String? = null,
+  var kind: SymbolKind? = null,
 )
 
