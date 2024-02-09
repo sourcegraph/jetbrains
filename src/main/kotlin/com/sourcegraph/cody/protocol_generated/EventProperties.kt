@@ -5,6 +5,6 @@ data class EventProperties(
   var anonymousUserID: String? = null,
   var prefix: String? = null,
   var client: String? = null,
-  var source: String? = null,
+  var source: String? = null, // Oneof: IDEEXTENSION
 )
 

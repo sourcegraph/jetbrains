@@ -13,6 +13,6 @@ data class ChatError(
   var retryMessage: String? = null,
   var feature: String? = null,
   var upgradeIsAvailable: Boolean? = null,
-  var isChatErrorGuard: String? = null,
+  var isChatErrorGuard: String? = null, // Oneof: isChatErrorGuard
 )
 
