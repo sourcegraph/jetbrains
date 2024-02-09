@@ -21,9 +21,10 @@ data class WebviewMessage(
   var repoId: String? = null,
   var metadata: CodeBlockMeta? = null,
   var eventType: String? = null,
-  var type: String? = null,
+  var authKind: String? = null,
   var endpoint: String? = null,
   var authMethod: String? = null,
+  var onboardingKind: String? = null,
   var query: String? = null,
   var snippet: String? = null,
 )
