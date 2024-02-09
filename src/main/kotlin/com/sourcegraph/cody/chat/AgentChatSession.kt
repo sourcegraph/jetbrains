@@ -91,7 +91,7 @@ private constructor(
             text = "",
             displayText = "",
         )
-    addMessageAtIndex(responsePlaceholder, index = messages.count())
+    addMessageAtIndex(responsePlaceholder, index = messages.count(), shouldAddBlinkingCursor = true)
 
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
       val message =
@@ -201,7 +201,11 @@ private constructor(
   }
 
   @RequiresEdt
-  private fun addMessageAtIndex(message: ChatMessage, index: Int) {
+  private fun addMessageAtIndex(
+      message: ChatMessage,
+      index: Int,
+      shouldAddBlinkingCursor: Boolean? = null
+  ) {
     val messageToUpdate = messages.getOrNull(index)
     if (messageToUpdate != null) {
       messages[index] = message
@@ -209,7 +213,9 @@ private constructor(
       messages.add(message)
     }
     chatPanel.addOrUpdateMessage(
-        message, index, shouldAddBlinkingCursor = message.actualMessage().isBlank())
+        message,
+        index,
+        shouldAddBlinkingCursor = shouldAddBlinkingCursor ?: message.actualMessage().isBlank())
     HistoryService.getInstance(project).updateChatMessages(internalId, messages)
   }
 
