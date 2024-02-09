@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class Uri(
   var scheme: String? = null,
   var authority: String? = null,

@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class ChatMessage(
   var displayText: String? = null,
   var contextFiles: List<ContextFile>? = null,

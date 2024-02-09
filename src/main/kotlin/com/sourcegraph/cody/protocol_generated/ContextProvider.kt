@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class ContextProvider(
   var kind: String? = null,
   var state: String? = null,

@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class ContextFile(
   var uri: Uri? = null,
   var range: ActiveTextEditorSelectionRange? = null,

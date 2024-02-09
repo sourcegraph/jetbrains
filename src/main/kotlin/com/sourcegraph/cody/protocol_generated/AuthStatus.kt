@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class AuthStatus(
   var username: String? = null,
   var endpoint: String? = null,

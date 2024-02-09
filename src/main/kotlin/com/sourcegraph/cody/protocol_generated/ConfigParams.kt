@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class ConfigParams(
   var serverEndpoint: String? = null,
   var debugEnable: Boolean? = null,

@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class CurrentUserCodySubscription(
   var status: String? = null,
   var plan: String? = null,

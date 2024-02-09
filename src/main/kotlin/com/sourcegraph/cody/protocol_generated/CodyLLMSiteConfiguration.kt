@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class CodyLLMSiteConfiguration(
   var chatModel: String? = null,
   var chatModelMaxTokens: Int? = null,

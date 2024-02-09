@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class CodyTaskState(
   var idle: Int? = null,
   var working: Int? = null,

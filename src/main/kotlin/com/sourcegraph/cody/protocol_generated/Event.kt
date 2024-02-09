@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class Event(
   var event: String? = null,
   var userCookieID: String? = null,

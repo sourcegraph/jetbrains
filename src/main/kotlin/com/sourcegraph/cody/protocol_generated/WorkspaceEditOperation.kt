@@ -1,5 +1,6 @@
 @file:Suppress("FunctionName", "ClassName")
 package com.sourcegraph.cody.protocol_generated
+
 data class WorkspaceEditOperation(
   var type: String? = null,
   var uri: String? = null,
