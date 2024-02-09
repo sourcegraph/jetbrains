@@ -19,6 +19,7 @@ import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH
 import com.sourcegraph.cody.chat.ChatUIConstants.TEXT_MARGIN
 import com.sourcegraph.cody.ui.AccordionSection
+import com.sourcegraph.common.BrowserOpener.openInBrowser
 import java.awt.BorderLayout
 import java.awt.Insets
 import java.nio.file.Paths
