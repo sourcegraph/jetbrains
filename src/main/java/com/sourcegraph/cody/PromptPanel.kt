@@ -49,7 +49,7 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
 
   init {
     /** Initialize view */
-    textArea.emptyText.text = CodyBundle.getString("PromptPanel.ask-cody")
+    textArea.emptyText.text = CodyBundle.getString("PromptPanel.ask-cody.message")
     scrollPane.border = EmptyBorder(JBUI.emptyInsets())
     scrollPane.background = UIUtil.getPanelBackground()
 
@@ -241,6 +241,10 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
       }
       refreshViewLayout()
     }
+  }
+
+  fun updateEmptyTextAfterFirstMessage() {
+    textArea.emptyText.text = CodyBundle.getString("PromptPanel.ask-cody.follow-up-message")
   }
 
   companion object {
