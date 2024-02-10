@@ -110,7 +110,9 @@ private constructor(
                       workspaceRootUri =
                           ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
                       extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
-                      capabilities = ClientCapabilities(edit = "enabled", codeLenses = "enabled")))
+                      capabilities =
+                          ClientCapabilities(
+                              edit = "enabled", editWorkspace = "enabled", codeLenses = "enabled")))
               .thenApply { info ->
                 logger.info("Connected to Cody agent " + info.name)
                 server.initialized()
