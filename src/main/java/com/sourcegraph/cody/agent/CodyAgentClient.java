@@ -3,14 +3,12 @@ package com.sourcegraph.cody.agent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
-import com.sourcegraph.cody.agent.protocol.DebugMessage;
+import com.sourcegraph.cody.agent.protocol.*;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import com.sourcegraph.cody.agent.protocol.DisplayCodeLensParams;
-import com.sourcegraph.cody.agent.protocol.EditTask;
-import com.sourcegraph.cody.agent.protocol.TextDocumentEditParams;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.jetbrains.annotations.NotNull;
@@ -39,6 +37,8 @@ public class CodyAgentClient {
 
   private Consumer<TextDocumentEditParams> onTextDocumentEdit;
 
+  private Consumer<WorkspaceEditParams> onWorkspaceEdit;
+
   public void setOnEditTaskDidChange(Consumer<EditTask> callback) {
     onEditTaskDidChange = callback;
   }
@@ -54,23 +54,23 @@ public class CodyAgentClient {
 
   @JsonRequest("textDocument/edit")
   public CompletableFuture<Boolean> textDocumentEdit(TextDocumentEditParams params) {
-    var future = new CompletableFuture<Boolean>();
-    ApplicationManager.getApplication()
-        .invokeLater(
-            () -> {
-              try {
-                onTextDocumentEdit.accept(params);
-                future.complete(true);
-              } catch (Error e) {
-                future.completeExceptionally(e);
-              }
-            });
-    return future;
+    return onEventThread(() -> {
+      onTextDocumentEdit.accept(params);
+      return true;
+    });
   }
 
   @JsonNotification("codeLenses/display")
   public void codeLensesDisplay(DisplayCodeLensParams params) {
     logger.info("codeLensesDisplay");
+  }
+
+  @JsonRequest("workspace/edit")
+  public CompletableFuture<Boolean> workspaceEdit(WorkspaceEditParams params) {
+    return onEventThread(() -> {
+      onWorkspaceEdit.accept(params);
+      return true;
+    });
   }
 
   /**
