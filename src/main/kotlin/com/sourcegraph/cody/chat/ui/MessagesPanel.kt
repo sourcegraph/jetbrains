@@ -5,7 +5,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.Source
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.chat.ChatUIConstants
@@ -17,7 +16,7 @@ class MessagesPanel(private val project: Project, private val chatSession: ChatS
     JPanel(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true)) {
   init {
     val welcomeText = CodyBundle.getString("messages-panel.welcome-text")
-    addChatMessageAsComponent(ChatMessage(Speaker.ASSISTANT, Source.CHAT, welcomeText))
+    addChatMessageAsComponent(ChatMessage(Speaker.ASSISTANT, welcomeText))
   }
 
   @RequiresEdt

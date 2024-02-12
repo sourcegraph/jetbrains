@@ -79,7 +79,6 @@ private constructor(
     val humanMessage =
         ChatMessage(
             Speaker.HUMAN,
-            source = Source.CHAT,
             text,
             displayText,
         )
@@ -87,7 +86,6 @@ private constructor(
     val responsePlaceholder =
         ChatMessage(
             Speaker.ASSISTANT,
-            source = Source.CHAT,
             text = "",
             displayText = "",
         )
@@ -176,7 +174,7 @@ private constructor(
 
   private fun addErrorMessageAsAssistantMessage(stringMessage: String, index: Int) {
     UIUtil.invokeLaterIfNeeded {
-      addMessageAtIndex(ChatMessage(Speaker.ASSISTANT, Source.CHAT, stringMessage), index)
+      addMessageAtIndex(ChatMessage(Speaker.ASSISTANT, stringMessage), index)
     }
   }
 
@@ -265,14 +263,12 @@ private constructor(
       chatSession.addMessageAtIndex(
           ChatMessage(
               Speaker.HUMAN,
-              source = commandId.source,
               commandId.displayName,
           ),
           chatSession.messages.count())
       chatSession.addMessageAtIndex(
           ChatMessage(
               Speaker.ASSISTANT,
-              Source.CHAT,
               text = "",
               displayText = "",
           ),
@@ -297,7 +293,7 @@ private constructor(
               MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
               else -> error("unrecognized speaker $speaker")
             }
-        val chatMessage = ChatMessage(speaker = parsed, source = message.source, message.text)
+        val chatMessage = ChatMessage(speaker = parsed, message.text)
         chatSession.messages.add(chatMessage)
         chatSession.chatPanel.addOrUpdateMessage(
             chatMessage, index, shouldAddBlinkingCursor = false)

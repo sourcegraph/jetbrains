@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.agent.protocol
 
-import com.sourcegraph.cody.commands.CommandId
 import java.time.OffsetDateTime
 
 data class ChatError(
@@ -28,15 +27,10 @@ data class ChatError(
 
 data class ChatMessage(
     val speaker: Speaker,
-    val source: Source?,
     val text: String?,
     val displayText: String? = null,
     val contextFiles: List<ContextFile>? = null,
     val error: ChatError? = null
 ) {
-  companion object {
-    val sourceToCommandId = CommandId.values().associateBy { it.source }
-  }
-
-  fun actualMessage(): String = sourceToCommandId[source]?.displayName ?: displayText ?: text ?: ""
+  fun actualMessage(): String = displayText ?: text ?: ""
 }

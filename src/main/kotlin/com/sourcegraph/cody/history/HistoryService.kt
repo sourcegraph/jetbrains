@@ -80,7 +80,6 @@ class HistoryService(private val project: Project) :
                 Speaker.HUMAN -> MessageState.SpeakerState.HUMAN
                 Speaker.ASSISTANT -> MessageState.SpeakerState.ASSISTANT
               }
-          it.source = chatMessage.source
         }
     return message
   }
