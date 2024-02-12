@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.ui.PopupHandler
@@ -39,16 +40,7 @@ class HistoryTree(
   private val root
     get() = model.root as RootNode
 
-  private val tree =
-      SimpleTree(model).apply {
-        isRootVisible = false
-        cellRenderer = HistoryTreeNodeRenderer()
-        selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), ENTER_MAP_KEY)
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), DELETE_MAP_KEY)
-        actionMap.put(ENTER_MAP_KEY, ActionWrapper(::selectLeaf))
-        actionMap.put(DELETE_MAP_KEY, ActionWrapper(::removeLeaf))
-      }
+  private lateinit var tree: SimpleTree
 
   init {
     val group = DefaultActionGroup()
@@ -68,10 +60,21 @@ class HistoryTree(
             AllIcons.Actions.GC,
             isEnabled = { true },
             ::removeAllLeafs))
-
-    PopupHandler.installPopupMenu(tree, group, "ChatActionsPopup")
-    EditSourceOnDoubleClickHandler.install(tree, ::selectLeaf)
-    setContent(ScrollPaneFactory.createScrollPane(tree))
+    ApplicationManager.getApplication().invokeLater {
+      tree =
+          SimpleTree(model).apply {
+            isRootVisible = false
+            cellRenderer = HistoryTreeNodeRenderer()
+            selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
+            inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), ENTER_MAP_KEY)
+            inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), DELETE_MAP_KEY)
+            actionMap.put(ENTER_MAP_KEY, ActionWrapper(::selectLeaf))
+            actionMap.put(DELETE_MAP_KEY, ActionWrapper(::removeLeaf))
+          }
+      PopupHandler.installPopupMenu(tree, group, "ChatActionsPopup")
+      EditSourceOnDoubleClickHandler.install(tree, ::selectLeaf)
+      setContent(ScrollPaneFactory.createScrollPane(tree))
+    }
     HistoryService.getInstance(project).listenOnUpdate(::updatePresentation)
   }
 
