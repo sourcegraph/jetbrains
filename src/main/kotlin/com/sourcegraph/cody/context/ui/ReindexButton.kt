@@ -2,6 +2,7 @@ package com.sourcegraph.cody.context.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
@@ -16,6 +17,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 class ReindexButton(private val project: Project) :
     ContextToolbarButton(
         CodyBundle.getString("context-panel.button.reindex"), AllIcons.Actions.Refresh) {
+
+  private val isReindexingInProgress = AtomicBoolean(false)
+
+  override fun isEnabled() = !isReindexingInProgress.get()
+
   override fun actionPerformed(p0: AnActionEvent) {
     CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
       ProgressManager.getInstance()
@@ -29,10 +35,7 @@ class ReindexButton(private val project: Project) :
                     val cmd = CommandExecuteParams("cody.search.index-update", emptyList())
                     agent.server.commandExecute(cmd).get()
                   } catch (e: Exception) {
-                    val errMsg = e.message ?: e.toString()
-                    Messages.showErrorDialog(
-                        CodyBundle.getString("context-panel.error-message").fmt(errMsg),
-                        CodyBundle.getString("context-panel.error-title"))
+                    showNotification(e.message ?: e.toString())
                   } finally {
                     indicator.stop()
                     isReindexingInProgress.set(false)
@@ -42,7 +45,11 @@ class ReindexButton(private val project: Project) :
     }
   }
 
-  override fun isEnabled(): Boolean = !isReindexingInProgress.get()
-
-  private val isReindexingInProgress = AtomicBoolean(false)
+  private fun showNotification(message: String) {
+    ApplicationManager.getApplication().invokeLater {
+      Messages.showErrorDialog(
+          CodyBundle.getString("context-panel.error-message").fmt(message),
+          CodyBundle.getString("context-panel.error-title"))
+    }
+  }
 }
