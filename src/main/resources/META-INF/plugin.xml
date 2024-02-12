@@ -231,10 +231,10 @@
             class="com.sourcegraph.cody.edit.EditCodeAction"
             text="Edit Code"/>
 
-        <!-- <action -->
-        <!--     id="cody.newChatAction" -->
-        <!--     class="com.sourcegraph.cody.edit.NewChatAction" -->
-        <!--     text="New Chat"/> -->
+        <action
+            id="cody.newChatAction"
+            class="com.sourcegraph.cody.edit.NewChatAction"
+            text="New Chat"/>
 
         <action
             id="cody.documentCodeAction"

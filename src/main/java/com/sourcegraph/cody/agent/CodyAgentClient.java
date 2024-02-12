@@ -33,19 +33,19 @@ public class CodyAgentClient {
 
   // List of callbacks for the "editTaskState/didChange" notification.
   // This enables multiple concurrent inline editing tasks.
-  private Consumer<EditTask> onEditTaskDidChange = null;
+  private Consumer<EditTask> onEditTaskStateDidChange = null;
 
   private Consumer<TextDocumentEditParams> onTextDocumentEdit;
 
   private Consumer<WorkspaceEditParams> onWorkspaceEdit;
 
-  public void setOnEditTaskDidChange(Consumer<EditTask> callback) {
-    onEditTaskDidChange = callback;
+  public void setOnEditTaskStateDidChange(Consumer<EditTask> callback) {
+    onEditTaskStateDidChange = callback;
   }
 
   @JsonNotification("editTaskState/didChange")
   public void editTaskStateDidChange(EditTask params) {
-    onEditTaskDidChange.accept(params);
+    onEditTaskStateDidChange.accept(params);
   }
 
   public void setOnTextDocumentEdit(Consumer<TextDocumentEditParams> callback) {
@@ -54,10 +54,15 @@ public class CodyAgentClient {
 
   @JsonRequest("textDocument/edit")
   public CompletableFuture<Boolean> textDocumentEdit(TextDocumentEditParams params) {
-    return onEventThread(() -> {
-      onTextDocumentEdit.accept(params);
-      return true;
-    });
+    return onEventThread(
+        () -> {
+          if (onTextDocumentEdit != null) {
+            onTextDocumentEdit.accept(params);
+          } else {
+            logger.warn("No callback registered for textDocument/edit");
+          }
+          return true;
+        });
   }
 
   @JsonNotification("codeLenses/display")
@@ -65,12 +70,21 @@ public class CodyAgentClient {
     logger.info("codeLensesDisplay");
   }
 
+  public void setOnWorkspaceEdit(Consumer<WorkspaceEditParams> callback) {
+    onWorkspaceEdit = callback;
+  }
+
   @JsonRequest("workspace/edit")
   public CompletableFuture<Boolean> workspaceEdit(WorkspaceEditParams params) {
-    return onEventThread(() -> {
-      onWorkspaceEdit.accept(params);
-      return true;
-    });
+    return onEventThread(
+        () -> {
+          if (onWorkspaceEdit != null) {
+            onWorkspaceEdit.accept(params);
+          } else {
+            logger.warn("No callback registered for workspace/edit");
+          }
+          return true;
+        });
   }
 
   /**

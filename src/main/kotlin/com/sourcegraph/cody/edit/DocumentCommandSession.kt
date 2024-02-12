@@ -4,6 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.CodyTaskState
@@ -25,8 +26,12 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
   private fun triggerDocumentCodeAsync(): CompletableFuture<Void?> {
     val project = editor.project!!
     val asyncRequest = CompletableFuture<Void?>()
-    CodyAgentService.withAgent(project) .thenAccept { agent ->
+    cancellationToken.onCancellationRequested { asyncRequest.cancel(true) }
+
+    CodyAgentService.withAgent(project).thenAccept { agent ->
       workAroundUninitializedCodebase(editor)
+      addClientListeners(editor, agent)
+
       val response = agent.server.commandsDocument()
       cancellationToken.onCancellationRequested { response.cancel(true) }
 
@@ -45,11 +50,13 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
               null
             }
             .completeOnTimeout(null, 3, TimeUnit.SECONDS)
-            .thenRun { asyncRequest.complete(null) }
+            .thenRun {
+              logger.warn("DEBUG: ================ Completed request: $response")
+              asyncRequest.complete(null)
+            }
       }
     }
 
-    cancellationToken.onCancellationRequested { asyncRequest.cancel(true) }
     return asyncRequest
   }
 
@@ -69,28 +76,57 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
     //  - progress updates (didChange - EditTask)
     //  - textDocument/edit - perform update
     CodyAgentService.withAgent(editor.project!!).thenAccept { agent ->
-      agent.client.setOnEditTaskDidChange { task ->
-        if (task.id != taskId) return@setOnEditTaskDidChange
-        if (task.state.isTerminal) {
-          cancellationToken.abort() // TODO: necessary?
-          // If we're finished, we close up shop for this listener,
-          // and wait for the editing notification to arrive.
-          if (task.state == CodyTaskState.finished) {
-            logger.warn("Finished task $taskId")
-            // TODO: Remove progress indicator
-          } else {
-            logger.warn("TODO: Handle error case")
-          }
+      addClientListeners(editor, agent)
+    }
+  }
+
+  private fun addClientListeners(editor: Editor, agent: CodyAgent) {
+
+    agent.client.setOnEditTaskStateDidChange { task ->
+      if (task.id != taskId) return@setOnEditTaskStateDidChange
+      if (task.state.isTerminal) {
+        cancellationToken.abort() // TODO: necessary?
+        // If we're finished, we close up shop for this listener,
+        // and wait for the editing notification to arrive.
+        if (task.state == CodyTaskState.finished) {
+          logger.warn("Finished task $taskId")
+          // TODO: Remove progress indicator
         } else {
-          logger.warn("Progress update for task $taskId: ${task.state}")
+          logger.warn("TODO: Handle error case")
         }
+      } else {
+        logger.warn("Progress update for task $taskId: ${task.state}")
       }
-      agent.client.setOnTextDocumentEdit { params ->
-        if (params.uri != FileDocumentManager.getInstance().getFile(editor.document)?.path) {
-          logger.warn(
-              "DocumentCommand session received notification for wrong document: ${params.uri}")
-        } else {
-          performInlineEdits(params)
+    }
+
+    // TODO: This seems like it might be deprecated soon.
+    agent.client.setOnTextDocumentEdit { params ->
+      if (params.uri != FileDocumentManager.getInstance().getFile(editor.document)?.path) {
+        logger.warn(
+            "DocumentCommand session received notification for wrong document: ${params.uri}")
+      } else {
+        performInlineEdits(params.edits)
+      }
+    }
+
+    agent.client.setOnWorkspaceEdit { params ->
+      for (op in params.operations) {
+        when (op.type) {
+          "create-file" -> logger.warn("Workspace edit operation created a file: ${op.uri}")
+          "rename-file" ->
+              logger.warn("Workspace edit operation renamed a file: ${op.oldUri} -> ${op.newUri}")
+          "delete-file" -> logger.warn("Workspace edit operation deleted a file: ${op.uri}")
+          "edit-file" -> {
+            if (op.edits == null) {
+              logger.warn("Workspace edit operation has no edits")
+            } else {
+              performInlineEdits(op.edits)
+            }
+          }
+          else -> {
+            logger.warn(
+                "DocumentCommand session received unknown workspace edit operation: ${op.type}")
+          }
         }
       }
     }
