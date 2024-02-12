@@ -46,9 +46,7 @@ class CodyToolWindowContent(private val project: Project) {
 
   private val commandsPanel =
       CommandsTabPanel(project) { commandId: CommandId ->
-        ApplicationManager.getApplication().invokeLater {
-          switchToChatSession(AgentChatSession.createFromCommand(project, commandId))
-        }
+        switchToChatSession(AgentChatSession.createFromCommand(project, commandId))
       }
 
   private val myAccountPanel = MyAccountTabPanel()
@@ -69,13 +67,11 @@ class CodyToolWindowContent(private val project: Project) {
 
   fun removeAllChatSessions() {
     AgentChatSessionService.getInstance(project).removeAllSessions()
-    ApplicationManager.getApplication().invokeLater {
-      switchToChatSession(AgentChatSession.createNew(project))
-    }
+    switchToChatSession(AgentChatSession.createNew(project))
   }
 
   fun switchToChatSession(chatSession: AgentChatSession, showChatWindow: Boolean = true) {
-    ApplicationManager.getApplication().invokeLater {
+    UIUtil.invokeLaterIfNeeded {
       currentChatSession.getAndSet(chatSession)
       chatContainerPanel.removeAll()
       chatContainerPanel.add(chatSession.getPanel())
