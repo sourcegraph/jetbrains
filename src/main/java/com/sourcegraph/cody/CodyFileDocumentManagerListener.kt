@@ -10,7 +10,7 @@ import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 class CodyFileDocumentManagerListener(val project: Project) : FileDocumentManagerListener {
 
   override fun beforeDocumentSaving(document: Document) {
-    CodyAgentService.applyAgentOnBackgroundThread(project) { agent ->
+    CodyAgentService.withAgent(project).thenAccept { agent ->
       FileDocumentManager.getInstance().getFile(document)?.path?.let { path ->
         agent.server.textDocumentDidSave(ProtocolTextDocument.fromPath(path))
       }
