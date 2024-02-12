@@ -285,7 +285,11 @@ private constructor(
     fun createFromState(project: Project, state: ChatState): AgentChatSession {
       val sessionId = createNewPanel(project) { it.server.chatNew() }
       val chatSession =
-          AgentChatSession(project, sessionId, state.internalId!!, state.messages.count())
+          AgentChatSession(
+              project,
+              sessionId,
+              state.internalId!!,
+              restoredMessagesCount = state.messages.count())
       state.messages.forEachIndexed { index, message ->
         val parsed =
             when (val speaker = message.speaker) {
