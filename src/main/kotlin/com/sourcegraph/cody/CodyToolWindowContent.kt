@@ -57,7 +57,6 @@ class CodyToolWindowContent(private val project: Project) {
     tabbedPane.insertSimpleTab("Chat", chatContainerPanel, CHAT_TAB_INDEX)
     tabbedPane.insertSimpleTab("Chat History", historyTree, HISTORY_TAB_INDEX)
     tabbedPane.insertSimpleTab("Commands", commandsPanel, COMMANDS_TAB_INDEX)
-    tabbedPane.insertSimpleTab("My Account", myAccountPanel, MY_ACCOUNT_TAB_INDEX)
 
     allContentPanel.add(tabbedPane, MAIN_PANEL, CHAT_PANEL_INDEX)
     allContentPanel.add(signInWithSourcegraphPanel, SIGN_IN_PANEL, SIGN_IN_PANEL_INDEX)
