@@ -187,6 +187,7 @@ private constructor(
                 .registerTypeAdapter(CompletionItemID::class.java, CompletionItemIDSerializer)
                 .registerTypeAdapter(ContextFile::class.java, contextFileDeserializer)
                 .registerTypeAdapter(Speaker::class.java, speakerDeserializer)
+                .registerTypeAdapter(Speaker::class.java, speakerSerializer)
                 .registerTypeAdapter(URI::class.java, uriDeserializer)
                 .registerTypeAdapter(URI::class.java, uriSerializer)
           }
