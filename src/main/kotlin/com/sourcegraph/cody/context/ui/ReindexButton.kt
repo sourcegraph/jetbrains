@@ -34,22 +34,12 @@ class ReindexButton(private val project: Project) :
                     isReindexingInProgress.set(true)
                     val cmd = CommandExecuteParams("cody.search.index-update", emptyList())
                     agent.server.commandExecute(cmd).get()
-                  } catch (e: Exception) {
-                    showNotification(e.message ?: e.toString())
                   } finally {
                     indicator.stop()
                     isReindexingInProgress.set(false)
                   }
                 }
               })
-    }
-  }
-
-  private fun showNotification(message: String) {
-    ApplicationManager.getApplication().invokeLater {
-      Messages.showErrorDialog(
-          CodyBundle.getString("context-panel.error-message").fmt(message),
-          CodyBundle.getString("context-panel.error-title"))
     }
   }
 }
