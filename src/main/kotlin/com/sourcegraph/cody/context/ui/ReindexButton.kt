@@ -2,16 +2,13 @@ package com.sourcegraph.cody.context.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.Messages
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.CommandExecuteParams
 import com.sourcegraph.common.CodyBundle
-import com.sourcegraph.common.CodyBundle.fmt
 import java.util.concurrent.atomic.AtomicBoolean
 
 class ReindexButton(private val project: Project) :
