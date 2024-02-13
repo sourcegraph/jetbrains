@@ -23,7 +23,6 @@ class CodyErrorFormatterTest : TestCase() {
         """
             Plugin version: ```5.2.18066-nightly```
             IDE version: ```IU-233.11799.241```
-            Exception: ```java.lang.NullPointerException```
             Stacktrace:
             ```text
             java.lang.NullPointerException: Exception description
