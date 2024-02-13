@@ -32,6 +32,8 @@ interface CodyAgentServer {
   fun commands_test(params: Null): CompletableFuture<String>
   @JsonRequest("commands/smell")
   fun commands_smell(params: Null): CompletableFuture<String>
+  @JsonRequest("commands/custom")
+  fun commands_custom(params: Commands_CustomParams): CompletableFuture<CustomCommandResult>
   @JsonRequest("editCommands/test")
   fun editCommands_test(params: Null): CompletableFuture<EditTask>
   @JsonRequest("commands/document")

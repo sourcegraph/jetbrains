@@ -2,7 +2,7 @@
 package com.sourcegraph.cody.protocol_generated
 
 data class WorkspaceEditOperation(
-  var type: String? = null, // Oneof: edit-file, delete-file, rename-file, create-file
+  var type: String? = null, // Oneof: create-file
   var uri: String? = null,
   var options: WriteFileOptions? = null,
   var textContents: String? = null,

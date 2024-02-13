@@ -7,9 +7,9 @@ data class ContextFile(
   var repoName: String? = null,
   var revision: String? = null,
   var title: String? = null,
-  var source: String? = null, // Oneof: embeddings, user, keyword, editor, filename, search, unified, selection, terminal
+  var source: ContextFileSource? = null, // Oneof: embeddings, user, keyword, editor, filename, search, unified, selection, terminal
   var content: String? = null,
-  var type: String? = null, // Oneof: symbol, file
+  var type: String? = null, // Oneof: file
   var symbolName: String? = null,
   var kind: SymbolKind? = null, // Oneof: class, function, method
 )

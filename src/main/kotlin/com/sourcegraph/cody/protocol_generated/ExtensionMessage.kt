@@ -2,7 +2,7 @@
 package com.sourcegraph.cody.protocol_generated
 
 data class ExtensionMessage(
-  var type: String? = null, // Oneof: setConfigFeatures, context/remote-repos, webview-state, setChatEnabledConfigFeature, attribution, enhanced-context, index-updated, update-search-results, chatModels, userContextFiles, transcript-errors, notice, errors, view, transcript, history, search:config, config
+  var type: String? = null, // Oneof: config
   var config: ConfigParams? = null,
   var authStatus: AuthStatus? = null,
   var workspaceFolderUris: List<String>? = null,
