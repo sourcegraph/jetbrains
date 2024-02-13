@@ -24,7 +24,7 @@ class ChatPanel(project: Project, chatSession: ChatSession, selectedModel: ChatM
     JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
 
   val promptPanel: PromptPanel = PromptPanel(project, chatSession)
-  val llmModelDropdown = LLMModelDropdown(project, selectedModel)
+  val llmDropdown = LLMDropdown(project, selectedModel)
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)
 
@@ -50,7 +50,7 @@ class ChatPanel(project: Project, chatSession: ChatSession, selectedModel: ChatM
     lowerPanel.add(promptPanel)
     lowerPanel.add(contextView)
     add(lowerPanel, BorderLayout.SOUTH)
-    add(llmModelDropdown, BorderLayout.NORTH)
+    add(llmDropdown, BorderLayout.NORTH)
   }
 
   fun setAsActive() {
@@ -67,7 +67,7 @@ class ChatPanel(project: Project, chatSession: ChatSession, selectedModel: ChatM
       shouldAddBlinkingCursor: Boolean = true
   ) {
     if (messagesPanel.componentCount == 1) {
-      llmModelDropdown.isEnabled = false
+      llmDropdown.isEnabled = false
     }
     promptPanel.updateEmptyTextAfterFirstMessage()
     messagesPanel.addOrUpdateMessage(message, index, shouldAddBlinkingCursor)
@@ -88,6 +88,6 @@ class ChatPanel(project: Project, chatSession: ChatSession, selectedModel: ChatM
   }
 
   fun updateWithSessionId(sessionId: SessionId) {
-    llmModelDropdown.fetchAndUpdateModels(sessionId)
+    llmDropdown.fetchAndUpdateModels(sessionId)
   }
 }

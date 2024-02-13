@@ -17,7 +17,7 @@ import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.MessageState
 import com.sourcegraph.cody.ui.ChatModel
-import com.sourcegraph.cody.ui.LLMModelComboBoxItem
+import com.sourcegraph.cody.ui.LLMComboBoxItem
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
@@ -61,9 +61,7 @@ private constructor(
             }
 
     val selectedItem =
-        chatPanel.llmModelDropdown.selectedItem?.let {
-          ChatModel.fromDisplayNameNullable(it.toString())
-        }
+        chatPanel.llmDropdown.selectedItem?.let { ChatModel.fromDisplayNameNullable(it.toString()) }
     val restoreParams =
         ChatRestoreParams(
             // TODO: Change in the agent handling chat restore with null model
@@ -225,9 +223,9 @@ private constructor(
 
   @RequiresEdt
   private fun fetchModelFromDropdown(): ChatModel {
-    return if (chatPanel.llmModelDropdown.selectedItem != null) {
-      val selectedItem = chatPanel.llmModelDropdown.selectedItem
-      val displayName = (selectedItem as LLMModelComboBoxItem).name
+    return if (chatPanel.llmDropdown.selectedItem != null) {
+      val selectedItem = chatPanel.llmDropdown.selectedItem
+      val displayName = (selectedItem as LLMComboBoxItem).name
       ChatModel.fromDisplayName(displayName)
     } else {
       ChatModel.UNKNOWN_MODEL
@@ -336,8 +334,8 @@ private constructor(
       val sessionId = createNewPanel(project) { it.server.chatNew() }
       val selectedModel = state.model?.let { ChatModel.fromDisplayName(it) }
       val chatSession = AgentChatSession(project, sessionId, state.internalId!!, selectedModel)
-      chatSession.chatPanel.llmModelDropdown.selectedItem =
-          selectedModel?.let { LLMModelComboBoxItem(it.icon, it.displayName) }
+      chatSession.chatPanel.llmDropdown.selectedItem =
+          selectedModel?.let { LLMComboBoxItem(it.icon, it.displayName) }
       state.messages.forEachIndexed { index, message ->
         val parsed =
             when (val speaker = message.speaker) {
