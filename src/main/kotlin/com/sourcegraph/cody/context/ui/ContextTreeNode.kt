@@ -22,10 +22,9 @@ class ContextTreeRootNode(
 }
 
 class ContextTreeRemoteRepoCodebaseNameNode(
-    val repoUrl: String,
     val codebaseName: String,
     onSetChecked: (Boolean) -> Unit
-) : ContextTreeNode<String>(repoUrl, onSetChecked)
+) : ContextTreeNode<String>(codebaseName, onSetChecked)
 
 class ContextTreeLocalRepoNode(val project: Project) : ContextTreeNode<Project>(project, {}) {
   init {

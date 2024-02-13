@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.context.ui
 
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
@@ -61,6 +60,12 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
     CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkboxPropagationPolicy)
   }
 
+  fun setAsActive() {
+    ApplicationManager.getApplication().executeOnPooledThread {
+      getContextState()?.let { HistoryService.getInstance(project).updateDefaultContextState(it) }
+    }
+  }
+
   @RequiresEdt
   private fun prepareTree() {
     treeRoot.add(enhancedContextNode)
@@ -70,14 +75,13 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
     val contextState = getContextState()
 
     ApplicationManager.getApplication().invokeLater {
-      enhancedContextNode.isChecked = contextState.isEnabled
-      localContextNode.isChecked = contextState.isEnabled
-      localProjectNode.isChecked = contextState.isEnabled
+      enhancedContextNode.isChecked = contextState?.isEnabled ?: true
+      localContextNode.isChecked = contextState?.isEnabled ?: true
+      localProjectNode.isChecked = contextState?.isEnabled ?: true
     }
 
     if (!isDotComAccount()) {
-      enhancedContextNode.add(remoteContextNode)
-      if (contextState.remoteRepositories.isNotEmpty()) {
+      if (contextState != null) {
         contextState.remoteRepositories.forEach { repo ->
           repo.remoteUrl?.let { remoteUrl -> addRemoteRepository(remoteUrl, repo.isEnabled) }
         }
@@ -98,19 +102,19 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
     treeModel.reload()
   }
 
-  private fun getContextState(): EnhancedContextState {
+  private fun getContextState(): EnhancedContextState? {
     val historyService = HistoryService.getInstance(project)
 
-    return historyService.getOrCreateChatReadOnly(chatSession.getInternalId()).enhancedContext
-        ?: historyService.getHistoryReadOnly().defaultEnhancedContext
-        ?: EnhancedContextState()
+    return historyService.getContextReadOnly(chatSession.getInternalId())
+        ?: historyService.getDefaultContextReadOnly()
   }
 
-  private fun updateContextState(consumer: Consumer<EnhancedContextState>) {
-    val contextState = getContextState()
-    consumer.accept(contextState)
+  private fun updateContextState(modifyContext: (EnhancedContextState) -> Unit) {
+    val contextState = getContextState() ?: EnhancedContextState()
+    modifyContext(contextState)
     HistoryService.getInstance(project)
         .updateContextState(chatSession.getInternalId(), contextState)
+    HistoryService.getInstance(project).updateDefaultContextState(contextState)
   }
 
   private fun isDotComAccount() =
@@ -146,36 +150,51 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
   @RequiresEdt
   private fun removeRemoteRepository(node: ContextTreeRemoteRepoCodebaseNameNode) {
     updateContextState { contextState ->
-      contextState.remoteRepositories.removeIf { it.remoteUrl == node.repoUrl }
+      contextState.remoteRepositories.removeIf { it.remoteUrl == node.codebaseName }
     }
     remoteContextNode.remove(node)
+    if (enhancedContextNode.children().toList().contains(remoteContextNode) &&
+        !remoteContextNode.children().hasMoreElements()) {
+      enhancedContextNode.remove(remoteContextNode)
+    }
     treeModel.reload()
-    val codebaseName = convertGitCloneURLToCodebaseNameOrError(node.repoUrl)
-    disableRemote(codebaseName)
+    disableRemote(node.codebaseName)
   }
 
   @RequiresEdt
   private fun addRemoteRepository(repoUrl: String, isCheckedInitially: Boolean = true) {
-    val existingRemote = getContextState().remoteRepositories.find { it.remoteUrl == repoUrl }
-    if (existingRemote == null) {
-      updateContextState { contextState ->
-        contextState.remoteRepositories.add(
-            RemoteRepositoryState.create(repoUrl, isCheckedInitially))
-      }
-    } else {
-      existingRemote.isEnabled = isCheckedInitially
-      existingRemote.remoteUrl = repoUrl
+    val codebaseName = convertGitCloneURLToCodebaseNameOrError(repoUrl)
+
+    updateContextState { contextState ->
+      val repositories = contextState.remoteRepositories
+      val existingRepo = repositories.find { it.remoteUrl == codebaseName }
+      val modifiedRepo = existingRepo ?: RemoteRepositoryState()
+      modifiedRepo.remoteUrl = codebaseName
+      modifiedRepo.isEnabled = isCheckedInitially
+      if (existingRepo == null) repositories.add(modifiedRepo)
     }
 
-    val codebaseName = convertGitCloneURLToCodebaseNameOrError(repoUrl)
-    val remoteRepoNode =
-        ContextTreeRemoteRepoCodebaseNameNode(repoUrl, codebaseName) { isChecked ->
-          if (isChecked) enableRemote(codebaseName) else disableRemote(codebaseName)
-        }
+    val existingRemoteNode =
+        remoteContextNode
+            .children()
+            .toList()
+            .filterIsInstance<ContextTreeRemoteRepoCodebaseNameNode>()
+            .find { it.codebaseName == codebaseName }
 
-    remoteRepoNode.isChecked = isCheckedInitially
-    remoteContextNode.add(remoteRepoNode)
-    treeModel.reload()
+    if (existingRemoteNode != null) {
+      existingRemoteNode.isChecked = isCheckedInitially
+    } else {
+      val remoteRepoNode =
+          ContextTreeRemoteRepoCodebaseNameNode(codebaseName) { isChecked ->
+            if (isChecked) enableRemote(codebaseName) else disableRemote(codebaseName)
+          }
+      remoteRepoNode.isChecked = isCheckedInitially
+      remoteContextNode.add(remoteRepoNode)
+      if (!enhancedContextNode.children().toList().contains(remoteContextNode)) {
+        enhancedContextNode.add(remoteContextNode)
+      }
+      treeModel.reload()
+    }
   }
 
   @RequiresEdt
@@ -224,25 +243,6 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
     }
 
     toolbarDecorator.addExtraAction(ReindexButton(project))
-
-    toolbarDecorator.addExtraAction(
-        ContextToolbarButton(
-            CodyBundle.getString("context-panel.button.save-default"),
-            AllIcons.Actions.SetDefault) {
-              HistoryService.getInstance(project).updateDefaultContextState(getContextState())
-            })
-
-    toolbarDecorator.addExtraAction(
-        ContextToolbarButton(
-            CodyBundle.getString("context-panel.button.restore-default"), AllIcons.General.Reset) {
-              HistoryService.getInstance(project)
-                  .updateContextState(chatSession.getInternalId(), contextState = null)
-              treeRoot.removeAllChildren()
-              localContextNode.removeAllChildren()
-              remoteContextNode.removeAllChildren()
-              prepareTree()
-            })
-
     toolbarDecorator.addExtraAction(HelpButton())
 
     val panel = toolbarDecorator.createPanel()
