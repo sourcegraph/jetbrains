@@ -10,13 +10,14 @@ import com.sourcegraph.cody.agent.*
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
+import com.sourcegraph.cody.config.CodyAccount.Companion.isEnterpriseAccount
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.RateLimitStateManager
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.MessageState
 import com.sourcegraph.cody.ui.ChatModel
-import com.sourcegraph.cody.ui.CodyModelComboboxItem
+import com.sourcegraph.cody.ui.LLMModelComboBoxItem
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
@@ -31,7 +32,7 @@ private constructor(
     private val project: Project,
     newSessionId: CompletableFuture<SessionId>,
     private val internalId: String = UUID.randomUUID().toString(),
-    private val selectedModel: ChatModel? = null,
+    selectedModel: ChatModel? = null,
 ) : ChatSession {
 
   /**
@@ -41,15 +42,13 @@ private constructor(
    */
   private val sessionId: AtomicReference<CompletableFuture<SessionId>> =
       AtomicReference(newSessionId)
-  private val chatPanel: ChatPanel = ChatPanel(project, this)
+  private val chatPanel: ChatPanel = ChatPanel(project, chatSession = this, selectedModel)
   private val cancellationToken = AtomicReference(CancellationToken())
   private val messages = mutableListOf<ChatMessage>()
 
   init {
     cancellationToken.get().dispose()
-    newSessionId.thenAccept { sessionId ->
-      chatPanel.addModelDropdown(project, sessionId, selectedModel)
-    }
+    newSessionId.thenAccept { sessionId -> chatPanel.updateWithSessionId(sessionId) }
   }
 
   fun restoreAgentSession(agent: CodyAgent, model: ChatModel? = null) {
@@ -62,12 +61,12 @@ private constructor(
             }
 
     val selectedItem =
-        chatPanel.modelDropdown.selectedItem?.let {
+        chatPanel.llmModelDropdown.selectedItem?.let {
           ChatModel.fromDisplayNameNullable(it.toString())
         }
     val restoreParams =
         ChatRestoreParams(
-            //        TODO: Change in the agent handling chat restore with null model
+            // TODO: Change in the agent handling chat restore with null model
             model?.agentName ?: selectedItem?.agentName ?: DEFAULT_MODEL.agentName,
             messagesToReload,
             UUID.randomUUID().toString())
@@ -226,10 +225,10 @@ private constructor(
 
   @RequiresEdt
   private fun fetchModelFromDropdown(): ChatModel {
-    return if (chatPanel.modelDropdown.selectedItem != null) {
-      val selectedItem = chatPanel.modelDropdown.selectedItem
-      val displayModelName = (selectedItem as CodyModelComboboxItem).name
-      ChatModel.fromDisplayName(displayModelName)
+    return if (chatPanel.llmModelDropdown.selectedItem != null) {
+      val selectedItem = chatPanel.llmModelDropdown.selectedItem
+      val displayName = (selectedItem as LLMModelComboBoxItem).name
+      ChatModel.fromDisplayName(displayName)
     } else {
       ChatModel.UNKNOWN_MODEL
     }
@@ -239,7 +238,7 @@ private constructor(
     return sessionId.get().thenAccept { sessionId ->
       CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
         val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-        if (activeAccountType != null && !activeAccountType.isDotcomAccount()) {
+        if (activeAccountType.isEnterpriseAccount()) {
           agent.server.webviewReceiveMessage(
               WebviewReceiveMessageParams(sessionId, WebviewMessage(command = "chatModel")))
         } else {
@@ -337,8 +336,8 @@ private constructor(
       val sessionId = createNewPanel(project) { it.server.chatNew() }
       val selectedModel = state.model?.let { ChatModel.fromDisplayName(it) }
       val chatSession = AgentChatSession(project, sessionId, state.internalId!!, selectedModel)
-      chatSession.chatPanel.modelDropdown.selectedItem =
-          selectedModel?.let { CodyModelComboboxItem(it.icon, it.displayName) }
+      chatSession.chatPanel.llmModelDropdown.selectedItem =
+          selectedModel?.let { LLMModelComboBoxItem(it.icon, it.displayName) }
       state.messages.forEachIndexed { index, message ->
         val parsed =
             when (val speaker = message.speaker) {
