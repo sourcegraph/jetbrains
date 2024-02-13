@@ -14,11 +14,17 @@ import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/** Implementation of the client part of the Cody agent protocol. */
+/**
+ * Implementation of the client part of the Cody agent protocol. This class dispatches the requests
+ * and notifications sent by the agent.
+ */
 @SuppressWarnings("unused")
 public class CodyAgentClient {
 
   private static final Logger logger = Logger.getInstance(CodyAgentClient.class);
+
+  @Nullable public Editor editor;
+
   // Callback that is invoked when the agent sends a "chat/updateMessageInProgress" notification.
   @Nullable public Consumer<WebviewPostMessageParams> onNewMessage;
 
@@ -29,26 +35,30 @@ public class CodyAgentClient {
   // onSetConfigFeatures
   @Nullable public Consumer<WebviewPostMessageParams> onReceivedWebviewMessage;
 
-  @Nullable public Editor editor;
+  // Callback for the "editTaskState/didChange" notification from the agent.
+  @Nullable private Consumer<EditTask> onEditTaskStateDidChange;
 
-  // List of callbacks for the "editTaskState/didChange" notification.
-  // This enables multiple concurrent inline editing tasks.
-  private Consumer<EditTask> onEditTaskStateDidChange = null;
+  // Callback for the "textDocument/edit" request from the agent.
+  @Nullable private Consumer<TextDocumentEditParams> onTextDocumentEdit;
 
-  private Consumer<TextDocumentEditParams> onTextDocumentEdit;
+  // Callback for the "workspace/executeCommand" request from the agent.
+  @Nullable private Consumer<DisplayCodeLensParams> onDisplayCodeLens;
 
-  private Consumer<WorkspaceEditParams> onWorkspaceEdit;
+  // Callback for the "workspace/edit" request from the agent.
+  @Nullable private Consumer<WorkspaceEditParams> onWorkspaceEdit;
 
-  public void setOnEditTaskStateDidChange(Consumer<EditTask> callback) {
+  public void setOnEditTaskStateDidChange(@Nullable Consumer<EditTask> callback) {
     onEditTaskStateDidChange = callback;
   }
 
   @JsonNotification("editTaskState/didChange")
   public void editTaskStateDidChange(EditTask params) {
-    onEditTaskStateDidChange.accept(params);
+    if (onEditTaskStateDidChange != null) {
+      onEditTaskStateDidChange.accept(params);
+    }
   }
 
-  public void setOnTextDocumentEdit(Consumer<TextDocumentEditParams> callback) {
+  public void setOnTextDocumentEdit(@Nullable Consumer<TextDocumentEditParams> callback) {
     onTextDocumentEdit = callback;
   }
 
@@ -65,9 +75,17 @@ public class CodyAgentClient {
         });
   }
 
+  public void setOnDisplayCodeLens(@Nullable Consumer<DisplayCodeLensParams> callback) {
+    onDisplayCodeLens = callback;
+  }
+
   @JsonNotification("codeLenses/display")
   public void codeLensesDisplay(DisplayCodeLensParams params) {
-    logger.info("codeLensesDisplay");
+    if (onDisplayCodeLens != null) {
+      onDisplayCodeLens.accept(params);
+    } else {
+      logger.warn("No callback registered for codeLenses/display");
+    }
   }
 
   public void setOnWorkspaceEdit(Consumer<WorkspaceEditParams> callback) {

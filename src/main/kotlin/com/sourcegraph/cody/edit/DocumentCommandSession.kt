@@ -10,6 +10,7 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.CodyTaskState
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.isTerminal
+import com.sourcegraph.cody.edit.InlineFixups.Companion.backgroundThread
 import com.sourcegraph.cody.vscode.CancellationToken
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -17,6 +18,8 @@ import java.util.concurrent.TimeUnit
 class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToken) :
     InlineFixupCommandSession(editor, cancellationToken) {
   private val logger = Logger.getInstance(DocumentCommandSession::class.java)
+
+  private var codeLensController: InlineFixupCodeLenses? = null
 
   init {
     triggerDocumentCodeAsync()
@@ -35,7 +38,7 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
       val response = agent.server.commandsDocument()
       cancellationToken.onCancellationRequested { response.cancel(true) }
 
-      ApplicationManager.getApplication().executeOnPooledThread {
+      backgroundThread {
         response
             .handle { result, error ->
               if (error != null || result == null) {
@@ -71,10 +74,6 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
 
   private fun beginTrackingTask(editor: Editor, task: EditTask) {
     taskId = task.id
-    // TODO: (in super)
-    // Add listeners for notifications from the agent.
-    //  - progress updates (didChange - EditTask)
-    //  - textDocument/edit - perform update
     CodyAgentService.withAgent(editor.project!!).thenAccept { agent ->
       addClientListeners(editor, agent)
     }
@@ -99,11 +98,21 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
       }
     }
 
+    agent.client.setOnDisplayCodeLens { params ->
+      if (params.uri != FileDocumentManager.getInstance().getFile(editor.document)?.url) {
+        logger.warn("received code lens for wrong document: ${params.uri}")
+        return@setOnDisplayCodeLens
+      }
+      codeLensController = InlineFixupCodeLenses(editor)
+      ApplicationManager.getApplication().invokeLater {
+        codeLensController?.display(params)
+      }
+    }
+
     // TODO: This seems like it might be deprecated soon.
     agent.client.setOnTextDocumentEdit { params ->
       if (params.uri != FileDocumentManager.getInstance().getFile(editor.document)?.path) {
-        logger.warn(
-            "DocumentCommand session received notification for wrong document: ${params.uri}")
+        logger.warn("received notification for wrong document: ${params.uri}")
       } else {
         performInlineEdits(params.edits)
       }
