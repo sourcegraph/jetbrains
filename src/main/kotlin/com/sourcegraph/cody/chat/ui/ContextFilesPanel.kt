@@ -43,8 +43,9 @@ class ContextFilesPanel(
       return
     }
 
+    val title = deriveAccordionTitle(contextFileFiles)
     val margin = JBInsets.create(Insets(TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN))
-    val accordionSection = AccordionSection("Read ${contextFileFiles.size} files")
+    val accordionSection = AccordionSection(title)
     accordionSection.isOpaque = false
     accordionSection.border = EmptyBorder(margin)
     contextFileFiles.forEachIndexed { index, contextFile: ContextFileFile ->
@@ -55,6 +56,34 @@ class ContextFilesPanel(
     this.removeAll()
     this.isVisible = true
     add(accordionSection, BorderLayout.CENTER)
+  }
+
+  private fun deriveAccordionTitle(contextFileFiles: List<ContextFileFile>): String {
+    val uniqueFiles = mutableSetOf<String>()
+
+    val filteredFiles =
+        contextFileFiles.filter { file ->
+          if (uniqueFiles.contains(file.uri.toString())) {
+            false
+          } else {
+            uniqueFiles.add(file.uri.toString())
+            true
+          }
+        }
+
+    val prefix = "✨ Context: "
+    val lineCount = contextFileFiles.sumOf { it.range?.delta() ?: 0 }
+    val fileCount = filteredFiles.size
+    val lines = "$lineCount line${if (lineCount > 1) "s" else ""}"
+    val files = "$fileCount file${if (fileCount > 1) "s" else ""}"
+    val title =
+        if (lineCount > 0) {
+          "$lines from $files"
+        } else {
+          files
+        }
+
+    return "$prefix $title"
   }
 
   @RequiresEdt
