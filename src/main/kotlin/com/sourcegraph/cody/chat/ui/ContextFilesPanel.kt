@@ -3,11 +3,11 @@ package com.sourcegraph.cody.chat.ui
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.ui.components.AnActionLink
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.concurrency.annotations.RequiresEdt
@@ -18,6 +18,7 @@ import com.intellij.util.withQuery
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ContextFile
 import com.sourcegraph.cody.agent.protocol.ContextFileFile
+import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH
 import com.sourcegraph.cody.chat.ChatUIConstants.TEXT_MARGIN
@@ -45,8 +46,7 @@ class ContextFilesPanel(
     val filesAvailableInEditor =
         contextFileNames
             .map {
-              val path = Paths.get(it.key)
-              val findFileByNioPath = VirtualFileManager.getInstance().findFileByNioPath(path)
+              val findFileByNioPath = LocalFileSystem.getInstance().findFileByPath(it.key)
               findFileByNioPath ?: return@map null
               Pair(findFileByNioPath, it.value as? ContextFileFile)
             }
@@ -77,9 +77,9 @@ class ContextFilesPanel(
     val anAction =
         object : DumbAwareAction() {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
-            logger.info(
-                "Opening a file from the used context (projectRelativeFilePath=$projectRelativeFilePath, file=$file)")
-            FileEditorManager.getInstance(project).openFile(file, /*focusEditor=*/ true)
+            val logicalLine = contextFileFile?.range?.start?.line ?: 0
+            OpenFileDescriptor(project, file, logicalLine, /* logicalColumn= */ 0)
+                .navigate(/* requestFocus= */ true)
           }
         }
     val actionText = getActionTextForFileLinkAction(contextFileFile, projectRelativeFilePath)
@@ -96,13 +96,20 @@ class ContextFilesPanel(
       contextFileFile: ContextFileFile?,
       projectRelativeFilePath: String
   ): String {
-    val startLine = contextFileFile?.range?.start?.line
-    val endLine = contextFileFile?.range?.end?.line
+    val (startLine, endLine) =
+        contextFileFile?.range?.let {
+          // We need to .plus(1) since the ranges use 0-based indexing
+          // but IntelliJ presents it as 1-based indexing.
+          Pair(it.start.line.plus(1), it.end.line.plus(1))
+        } ?: Pair(null, null)
+
     return buildString {
       append("@$projectRelativeFilePath")
       if (startLine != null && endLine != null) {
         if (startLine != endLine) {
           append(":$startLine-$endLine")
+        } else {
+          append(":$startLine")
         }
       }
     }
@@ -112,20 +119,26 @@ class ContextFilesPanel(
     if (contextFiles.isNullOrEmpty()) {
       return
     }
+    this.removeAll()
 
-    val contextFileNames =
-        contextFiles
-            .map {
-              val contextFileName =
-                  if (it.repoName != null) {
-                    "${project.basePath}/${it.uri.path}"
-                  } else {
-                    val newUri = it.uri.withFragment(null).withQuery(null)
-                    Paths.get(newUri).absolutePathString()
-                  }
-              contextFileName to it
-            }
-            .toMap()
+    val contextFileNames = mutableMapOf<String, ContextFile>()
+    for (contextFile in contextFiles) {
+      val contextFileName =
+          if (contextFile.repoName != null) {
+            "${project.basePath}/${contextFile.uri.path}"
+          } else {
+            val newUri = contextFile.uri.withFragment(null).withQuery(null)
+            Paths.get(newUri).absolutePathString()
+          }
+
+      val existingValue = contextFileNames[contextFileName] as? ContextFileFile
+      val newValue = contextFile as? ContextFileFile
+      val isNewValueNarrower = newValue?.range?.isNarrowerThan(existingValue?.range) ?: false
+
+      if (existingValue == null || isNewValueNarrower) {
+        contextFileNames[contextFileName] = contextFile
+      }
+    }
 
     ApplicationManager.getApplication().executeOnPooledThread { updateFileList(contextFileNames) }
   }
@@ -133,4 +146,14 @@ class ContextFilesPanel(
   companion object {
     private val logger = Logger.getInstance(ContextFilesPanel::class.java)
   }
+}
+
+fun Range.isNarrowerThan(otherRange: Range?): Boolean {
+  if (otherRange == null) {
+    return false
+  }
+
+  val thisRangeWidth = this.end.line - this.start.line
+  val otherRangeWidth = otherRange.end.line - otherRange.start.line
+  return thisRangeWidth < otherRangeWidth
 }
