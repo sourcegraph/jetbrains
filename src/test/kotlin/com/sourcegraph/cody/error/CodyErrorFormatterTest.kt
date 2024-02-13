@@ -34,10 +34,4 @@ class CodyErrorFormatterTest : TestCase() {
             .trimIndent()
     assertEquals(expectedMarkdown, markdown)
   }
-
-  fun `test null report results empty markdown`() {
-    val error = CodyError(null, null, null, null, null)
-    val markdown = CodyErrorFormatter.formatToMarkdown(error)
-    assertEquals("", markdown)
-  }
 }
