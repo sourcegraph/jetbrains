@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.edit
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
@@ -76,5 +77,9 @@ class InlineFixups {
     @JvmStatic
     val instance: InlineFixups
       get() = service()
+
+    fun backgroundThread(code: Runnable) {
+      ApplicationManager.getApplication().executeOnPooledThread(code)
+    }
   }
 }
