@@ -169,10 +169,7 @@ public class CodeEditorFactory {
   private ActionListener copyCodeListener(EditorEx editor, JButton copyButton) {
     return e -> {
       String text = editor.getDocument().getText();
-      StringSelection/**
- * There is no code selected, so I cannot generate documentation for it.
- */
- stringSelection = new StringSelection(text);
+      StringSelection stringSelection = new StringSelection(text);
       Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
       clipboard.setContents(stringSelection, null);
       copyButton.setText("Copied");
