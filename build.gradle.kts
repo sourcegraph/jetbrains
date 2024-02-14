@@ -233,7 +233,12 @@ tasks {
             .toFile()
     val outputDirectory = rootDir.resolve(relativePath)
     val inputDirectory =
-        codyDir.resolve("agent").resolve("bindings").resolve("lib").resolve(relativePath)
+        codyDir
+            .resolve("agent")
+            .resolve("bindings")
+            .resolve("kotlin")
+            .resolve("lib")
+            .resolve(relativePath)
 
     outputDirectory.deleteRecursively()
     inputDirectory.copyRecursively(outputDirectory)
