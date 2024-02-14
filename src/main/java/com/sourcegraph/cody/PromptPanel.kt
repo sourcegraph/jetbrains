@@ -13,10 +13,10 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.WebviewMessage
-import com.sourcegraph.cody.agent.protocol.ContextFile
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.chat.CodyChatMessageHistory
 import com.sourcegraph.cody.chat.ui.SendButton
+import com.sourcegraph.cody.protocol_generated.ContextFile
 import com.sourcegraph.cody.ui.AutoGrowingTextArea
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle

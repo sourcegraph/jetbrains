@@ -3,7 +3,7 @@ package com.sourcegraph.telemetry;
 import com.google.gson.JsonObject;
 import com.intellij.openapi.project.Project;
 import com.sourcegraph.cody.agent.CodyAgentService;
-import com.sourcegraph.cody.agent.protocol.Event;
+import com.sourcegraph.cody.protocol_generated.Event;
 import com.sourcegraph.cody.config.CodyApplicationSettings;
 import com.sourcegraph.cody.config.SourcegraphServerPath;
 import com.sourcegraph.config.ConfigUtil;

@@ -6,9 +6,9 @@ import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.actionSystem.EditorActionHandler
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.agent.protocol.AutocompleteItem
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil
+import com.sourcegraph.cody.protocol_generated.AutocompleteItem
 import com.sourcegraph.utils.CodyEditorUtil
 
 open class AutocompleteActionHandler : EditorActionHandler() {

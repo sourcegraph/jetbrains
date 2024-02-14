@@ -9,9 +9,9 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
-import com.sourcegraph.cody.agent.protocol_extensions.RateLimitError
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.protocol_generated.GetFeatureFlag
+import com.sourcegraph.cody.protocol_generated_extensions.RateLimitError
 import com.sourcegraph.common.BrowserOpener.openInBrowser
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicReference

@@ -6,7 +6,7 @@ import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.ui.ColorUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import com.sourcegraph.cody.agent.protocol.Speaker
+import com.sourcegraph.cody.protocol_generated.Speaker
 import com.sourcegraph.cody.ui.Colors
 import java.awt.GradientPaint
 import java.awt.Graphics

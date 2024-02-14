@@ -3,8 +3,8 @@ package com.sourcegraph.cody.ui
 import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CurrentConfigFeatures
-import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
 import com.sourcegraph.cody.attribution.AttributionListener
+import com.sourcegraph.cody.protocol_generated.AttributionSearchResponse
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 

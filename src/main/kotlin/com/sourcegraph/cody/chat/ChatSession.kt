@@ -3,7 +3,7 @@ package com.sourcegraph.cody.chat
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
-import com.sourcegraph.cody.agent.protocol.ContextFile
+import com.sourcegraph.cody.protocol_generated.ContextFile
 import com.sourcegraph.cody.vscode.CancellationToken
 
 typealias SessionId = String

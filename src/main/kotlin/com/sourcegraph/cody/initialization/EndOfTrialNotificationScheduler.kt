@@ -5,11 +5,11 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
-import com.sourcegraph.cody.agent.protocol.Plan
-import com.sourcegraph.cody.agent.protocol.Status
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.protocol_generated.CurrentUserCodySubscription
+import com.sourcegraph.cody.protocol_generated.GetFeatureFlag
+import com.sourcegraph.cody.protocol_generated.Plan
+import com.sourcegraph.cody.protocol_generated.Status
 import com.sourcegraph.config.ConfigUtil
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit

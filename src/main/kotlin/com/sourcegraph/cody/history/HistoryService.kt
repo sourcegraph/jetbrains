@@ -3,13 +3,13 @@ package com.sourcegraph.cody.history
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
 import com.jetbrains.rd.framework.base.deepClonePolymorphic
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.HistoryState
 import com.sourcegraph.cody.history.state.MessageState
+import com.sourcegraph.cody.protocol_generated.ChatMessage
+import com.sourcegraph.cody.protocol_generated.Speaker
 import java.time.LocalDateTime
 
 @State(name = "ChatHistory", storages = [Storage("cody_history.xml")])

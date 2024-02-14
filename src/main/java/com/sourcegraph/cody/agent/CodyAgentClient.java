@@ -3,7 +3,7 @@ package com.sourcegraph.cody.agent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
-import com.sourcegraph.cody.agent.protocol.DebugMessage;
+import com.sourcegraph.cody.protocol_generated.DebugMessage;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;

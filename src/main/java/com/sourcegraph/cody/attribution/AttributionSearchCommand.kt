@@ -4,10 +4,10 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.CurrentConfigFeatures
-import com.sourcegraph.cody.agent.protocol.AttributionSearchParams
-import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
 import com.sourcegraph.cody.chat.SessionId
 import com.sourcegraph.cody.chat.ui.CodeEditorPart
+import com.sourcegraph.cody.protocol_generated.AttributionSearchParams
+import com.sourcegraph.cody.protocol_generated.AttributionSearchResponse
 import java.util.*
 import java.util.function.BiFunction
 

@@ -4,8 +4,8 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.sourcegraph.cody.agent.CodyAgentServer
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.protocol_generated.GetFeatureFlag
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 

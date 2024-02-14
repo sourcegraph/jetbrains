@@ -11,13 +11,13 @@ import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.WebviewMessage
-import com.sourcegraph.cody.agent.protocol.Repo
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.RemoteRepoUtils
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.RemoteRepositoryState
+import com.sourcegraph.cody.protocol_generated.Repo
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.vcs.convertGitCloneURLToCodebaseNameOrError
 import java.awt.Dimension

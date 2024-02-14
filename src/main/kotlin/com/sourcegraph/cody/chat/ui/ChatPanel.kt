@@ -10,12 +10,12 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.PromptPanel
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ChatModelsParams
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.ui.EnhancedContextPanel
+import com.sourcegraph.cody.protocol_generated.ChatMessage
+import com.sourcegraph.cody.protocol_generated.ChatModelsParams
+import com.sourcegraph.cody.protocol_generated.GetFeatureFlag
 import com.sourcegraph.cody.ui.ChatModel
 import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.ui.CodyModelComboboxItem

@@ -4,11 +4,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.ColorUtil
 import com.intellij.util.ui.SwingHelper
 import com.intellij.util.ui.UIUtil
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.attribution.AttributionListener
 import com.sourcegraph.cody.attribution.AttributionSearchCommand
 import com.sourcegraph.cody.chat.*
+import com.sourcegraph.cody.protocol_generated.ChatMessage
+import com.sourcegraph.cody.protocol_generated.Speaker
 import com.sourcegraph.cody.ui.HtmlViewer.createHtmlViewer
 import java.awt.Color
 import javax.swing.JEditorPane

@@ -1,7 +1,7 @@
 package com.sourcegraph.cody.autocomplete.action
 
 import com.intellij.openapi.editor.actionSystem.EditorAction
-import com.sourcegraph.cody.agent.protocol.CompletionItemID
+import com.sourcegraph.cody.protocol_generated.CompletionItemID
 import java.util.concurrent.atomic.AtomicReference
 
 /**

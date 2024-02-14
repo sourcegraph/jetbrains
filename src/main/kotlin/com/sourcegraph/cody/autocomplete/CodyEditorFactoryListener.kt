@@ -11,12 +11,12 @@ import com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl
 import com.intellij.openapi.util.Disposer
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.CompletionItemParams
-import com.sourcegraph.cody.agent.protocol.Position
-import com.sourcegraph.cody.agent.protocol.Range
-import com.sourcegraph.cody.agent.protocol.TextDocument
 import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager.Companion.instance
 import com.sourcegraph.cody.autocomplete.action.AcceptCodyAutocompleteAction
+import com.sourcegraph.cody.protocol_generated.CompletionItemParams
+import com.sourcegraph.cody.protocol_generated.Position
+import com.sourcegraph.cody.protocol_generated.ProtocolTextDocument
+import com.sourcegraph.cody.protocol_generated.Range
 import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil.VIM_EXIT_INSERT_MODE_ACTION
@@ -163,7 +163,8 @@ class CodyEditorFactoryListener : EditorFactoryListener {
         afterUpdate: () -> Unit = {}
     ) {
       val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return
-      val document = TextDocument.fromPath(file.path, editor.document.text, getSelection(editor))
+      val document =
+          ProtocolTextDocument.fromPath(file.path, editor.document.text, getSelection(editor))
       val project = editor.project!!
 
       if (hasFileChanged) {

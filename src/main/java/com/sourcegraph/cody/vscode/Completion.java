@@ -1,6 +1,6 @@
 package com.sourcegraph.cody.vscode;
 
-import com.sourcegraph.cody.agent.protocol.ChatMessage;
+import com.sourcegraph.cody.protocol_generated.ChatMessage;
 import java.util.List;
 
 public class Completion {

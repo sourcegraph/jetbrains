@@ -1,7 +1,7 @@
 package com.sourcegraph.cody.attribution
 
 import com.intellij.openapi.application.ApplicationManager
-import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
+import com.sourcegraph.cody.protocol_generated.AttributionSearchResponse
 
 /**
  * [AttributionListener] responds to attribution search state changes.

@@ -4,10 +4,10 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.chat.ChatUIConstants
+import com.sourcegraph.cody.protocol_generated.ChatMessage
+import com.sourcegraph.cody.protocol_generated.Speaker
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import javax.swing.JPanel

@@ -10,7 +10,7 @@ import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.vcsUtil.VcsUtil;
 import com.sourcegraph.cody.agent.CodyAgentService;
-import com.sourcegraph.cody.agent.protocol.CloneURL;
+import com.sourcegraph.cody.protocol_generated.CloneURL;
 import com.sourcegraph.cody.config.CodyProjectSettings;
 import com.sourcegraph.common.ErrorNotification;
 import com.sourcegraph.config.ConfigUtil;

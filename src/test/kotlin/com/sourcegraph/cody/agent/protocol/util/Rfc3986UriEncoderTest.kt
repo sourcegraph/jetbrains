@@ -1,6 +1,6 @@
 package com.sourcegraph.cody.agent.protocol.util
 
-import com.sourcegraph.cody.agent.protocol_extensions.Rfc3986UriEncoder
+import com.sourcegraph.cody.protocol_generated_extensions.Rfc3986UriEncoder
 import junit.framework.TestCase
 
 class Rfc3986UriEncoderTest : TestCase() {

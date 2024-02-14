@@ -15,11 +15,11 @@ import com.intellij.util.ui.JBInsets
 import com.intellij.util.ui.JBUI
 import com.intellij.util.withFragment
 import com.intellij.util.withQuery
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ContextFile
-import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH
 import com.sourcegraph.cody.chat.ChatUIConstants.TEXT_MARGIN
+import com.sourcegraph.cody.protocol_generated.ChatMessage
+import com.sourcegraph.cody.protocol_generated.ContextFile
+import com.sourcegraph.cody.protocol_generated.Speaker
 import com.sourcegraph.cody.ui.AccordionSection
 import java.awt.BorderLayout
 import java.awt.Insets

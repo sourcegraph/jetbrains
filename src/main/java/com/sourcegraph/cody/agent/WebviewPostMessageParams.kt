@@ -1,9 +1,9 @@
 package com.sourcegraph.cody.agent
 
-import com.sourcegraph.cody.agent.protocol.ChatError
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ContextFile
-import com.sourcegraph.cody.agent.protocol.Repo
+import com.sourcegraph.cody.protocol_generated.ChatError
+import com.sourcegraph.cody.protocol_generated.ChatMessage
+import com.sourcegraph.cody.protocol_generated.ContextFile
+import com.sourcegraph.cody.protocol_generated.Repo
 
 /**
  * A message sent from the webview to the extension host. See vscode/src/chat/protocol.ts for the

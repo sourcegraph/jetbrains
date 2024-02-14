@@ -14,6 +14,7 @@ import com.sourcegraph.cody.config.RateLimitStateManager
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.MessageState
+import com.sourcegraph.cody.protocol_generated.ChatMessage
 import com.sourcegraph.cody.ui.ChatModel
 import com.sourcegraph.cody.ui.CodyModelComboboxItem
 import com.sourcegraph.cody.vscode.CancellationToken
