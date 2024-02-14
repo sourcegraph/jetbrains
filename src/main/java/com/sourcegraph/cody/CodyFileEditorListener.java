@@ -43,7 +43,8 @@ public class CodyFileEditorListener implements FileEditorManagerListener {
             .runReadAction(
                 (Computable<Document>) () -> FileDocumentManager.getInstance().getDocument(file));
     if (document != null) {
-      ProtocolTextDocument textDocument = ProtocolTextDocument.fromPath(file.getPath(), document.getText());
+      ProtocolTextDocument textDocument =
+          ProtocolTextDocument.fromPath(file.getPath(), document.getText());
       codyAgent.getServer().textDocumentDidOpen(textDocument);
     }
 

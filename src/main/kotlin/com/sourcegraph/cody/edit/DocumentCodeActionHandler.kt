@@ -16,7 +16,7 @@ class DocumentCodeActionHandler : EditorActionHandler() {
   private val logger = Logger.getInstance(DocumentCodeActionHandler::class.java)
 
   override fun isEnabledForCaret(editor: Editor, caret: Caret, dataContext: DataContext?): Boolean {
-      return CodyEditorUtil.isEditorValidForAutocomplete(editor) // close enough for now
+    return CodyEditorUtil.isEditorValidForAutocomplete(editor) // close enough for now
   }
 
   override fun doExecute(editor: Editor, where: Caret?, dataContext: DataContext?) {
