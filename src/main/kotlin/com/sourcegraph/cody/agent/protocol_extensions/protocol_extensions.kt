@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.sourcegraph.cody.agent.protocol_extensions
 
 import com.sourcegraph.cody.protocol_generated.ChatError
@@ -6,7 +8,7 @@ import com.sourcegraph.cody.protocol_generated.ProtocolTextDocument
 import com.sourcegraph.cody.protocol_generated.Range
 import java.nio.file.Paths
 
-fun ProtocolTextDocument.fromPath(
+fun protocolTextDocumentFromPath(
     path: String,
     content: String? = null,
     selection: Range? = null

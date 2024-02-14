@@ -10,3 +10,9 @@ data class Uri(
   var fsPath: String? = null,
 )
 
+ar authority: String? = null,
+  var path: String? = null,
+  var query: String? = null,
+  var fragment: String? = null,
+)
+
