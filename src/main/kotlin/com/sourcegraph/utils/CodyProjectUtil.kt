@@ -1,9 +1,7 @@
 package com.sourcegraph.utils
 
 import com.intellij.ide.lightEdit.LightEdit
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager;
 
 object CodyProjectUtil {
   @JvmStatic

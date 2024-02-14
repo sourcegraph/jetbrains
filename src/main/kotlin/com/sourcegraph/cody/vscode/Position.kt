@@ -9,5 +9,4 @@ data class Position(@JvmField val line: Int, @JvmField val character: Int) {
     val lineStartOffset = document.getLineStartOffset(line)
     return lineStartOffset + character
   }
-
 }

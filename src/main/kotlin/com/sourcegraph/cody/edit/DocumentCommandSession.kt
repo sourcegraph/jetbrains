@@ -19,8 +19,6 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
     InlineFixupCommandSession(editor, cancellationToken) {
   private val logger = Logger.getInstance(DocumentCommandSession::class.java)
 
-  private var codeLensController: InlineFixupCodeLenses? = null
-
   init {
     triggerDocumentCodeAsync()
   }
@@ -103,9 +101,8 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
         logger.warn("received code lens for wrong document: ${params.uri}")
         return@setOnDisplayCodeLens
       }
-      codeLensController = InlineFixupCodeLenses(editor)
-      ApplicationManager.getApplication().invokeLater {
-        codeLensController?.display(params)
+      InlineCodeLenses.get(editor).apply {
+        ApplicationManager.getApplication().invokeLater { this.display(params) }
       }
     }
 

@@ -12,4 +12,3 @@ data class Position(val line: Int, val character: Int) {
 
   fun isZero() = this.line == 0 && this.character == 0
 }
-
