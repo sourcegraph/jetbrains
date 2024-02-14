@@ -5,6 +5,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.vscode.CancellationToken
 
@@ -49,6 +50,10 @@ abstract class InlineFixupCommandSession(
   }
 
   private fun getOffsets(doc: Document, edit: TextEdit): Pair<Int, Int>? {
+    if (edit.position != null) {
+      val offset = edit.position.toOffset(doc)
+      return Pair(offset, offset)
+    }
     if (edit.range == null) {
       logger.warn("Invalid edit range: ${edit.range} for edit: ${edit.type}")
       return null
@@ -62,8 +67,14 @@ abstract class InlineFixupCommandSession(
   }
 
   private fun performInsert(doc: Document, edit: TextEdit) {
-    val (start, _) = getOffsets(doc, edit) ?: return
-    doc.insertString(start, edit.value ?: return)
+    // We're getting back zeroes right now for edit.position (and range).
+    // TODO: Fix the Agent to compute the correct selection if none is passed.
+    // For now, hack it to insert at cursor, for demo purposes.
+    val c = editor.caretModel.primaryCaret.offset
+    val textEdit = TextEdit("insert", null, Position.fromOffset(editor.document, c), edit.value)
+
+    val (start, _) = getOffsets(doc, textEdit) ?: return
+    doc.insertString(start, textEdit.value ?: return)
   }
 
   private fun performDelete(doc: Document, edit: TextEdit) {

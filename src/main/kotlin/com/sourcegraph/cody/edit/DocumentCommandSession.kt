@@ -52,12 +52,10 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
             }
             .completeOnTimeout(null, 3, TimeUnit.SECONDS)
             .thenRun {
-              logger.warn("DEBUG: ================ Completed request: $response")
               asyncRequest.complete(null)
             }
       }
     }
-
     return asyncRequest
   }
 
@@ -81,15 +79,13 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
 
     agent.client.setOnEditTaskStateDidChange { task ->
       if (task.id != taskId) return@setOnEditTaskStateDidChange
+      // TODO: Visual indicator of task progress.
       if (task.state.isTerminal) {
         cancellationToken.abort() // TODO: necessary?
-        // If we're finished, we close up shop for this listener,
-        // and wait for the editing notification to arrive.
         if (task.state == CodyTaskState.finished) {
           logger.warn("Finished task $taskId")
-          // TODO: Remove progress indicator
         } else {
-          logger.warn("TODO: Handle error case")
+          logger.warn("TODO: Handle error terminal case")
         }
       } else {
         logger.warn("Progress update for task $taskId: ${task.state}")
@@ -106,7 +102,7 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
       }
     }
 
-    // TODO: This seems like it might be deprecated soon.
+    // TODO: We don't get these for commands/document.
     agent.client.setOnTextDocumentEdit { params ->
       if (params.uri != FileDocumentManager.getInstance().getFile(editor.document)?.path) {
         logger.warn("received notification for wrong document: ${params.uri}")
