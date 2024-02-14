@@ -308,7 +308,5 @@
                   class="com.sourcegraph.cody.editor.CodyLookupListener"/>
         <listener topic="com.intellij.openapi.command.CommandListener"
                   class="com.sourcegraph.cody.editor.CodyCommandListener"/>
-        <listener topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"
-                  class="com.sourcegraph.cody.CodyFileDocumentManagerListener"/>
     </projectListeners>
 </idea-plugin>
