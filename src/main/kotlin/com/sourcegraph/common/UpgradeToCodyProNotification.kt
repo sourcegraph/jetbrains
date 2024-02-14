@@ -10,7 +10,7 @@ import com.intellij.openapi.project.Project
 import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
-import com.sourcegraph.cody.agent.protocol.RateLimitError
+import com.sourcegraph.cody.agent.protocol_extensions.RateLimitError
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.BrowserOpener.openInBrowser
 import java.util.concurrent.CompletableFuture

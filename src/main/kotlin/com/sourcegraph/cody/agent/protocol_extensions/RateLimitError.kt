@@ -1,4 +1,4 @@
-package com.sourcegraph.cody.agent.protocol
+package com.sourcegraph.cody.agent.protocol_extensions
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializationContext

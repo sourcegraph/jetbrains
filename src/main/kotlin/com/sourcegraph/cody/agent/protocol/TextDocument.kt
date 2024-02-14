@@ -1,6 +1,6 @@
 package com.sourcegraph.cody.agent.protocol
 
-import com.sourcegraph.cody.agent.protocol.util.Rfc3986UriEncoder
+import com.sourcegraph.cody.agent.protocol_extensions.Rfc3986UriEncoder
 import java.nio.file.Paths
 
 class TextDocument

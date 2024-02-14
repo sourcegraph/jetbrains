@@ -19,7 +19,7 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.Position
-import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
+import com.sourcegraph.cody.agent.protocol_extensions.RateLimitError.Companion.toRateLimitError
 import com.sourcegraph.cody.autocomplete.render.AutocompleteRendererType
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteBlockElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer

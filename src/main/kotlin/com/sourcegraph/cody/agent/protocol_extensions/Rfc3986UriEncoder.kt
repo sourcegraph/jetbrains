@@ -1,4 +1,4 @@
-package com.sourcegraph.cody.agent.protocol.util
+package com.sourcegraph.cody.agent.protocol_extensions
 
 object Rfc3986UriEncoder {
 

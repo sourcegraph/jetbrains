@@ -2,7 +2,7 @@ package com.sourcegraph.cody.config
 
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.CodyToolWindowContent
-import com.sourcegraph.cody.agent.protocol.RateLimitError
+import com.sourcegraph.cody.agent.protocol_extensions.RateLimitError
 import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService
 import com.sourcegraph.common.UpgradeToCodyProNotification
 

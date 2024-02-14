@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.agent.protocol
 
+import com.sourcegraph.cody.agent.protocol_extensions.RateLimitError
 import java.time.OffsetDateTime
 
 data class ChatError(
