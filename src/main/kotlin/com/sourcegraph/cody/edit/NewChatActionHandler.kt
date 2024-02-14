@@ -15,7 +15,7 @@ class NewChatActionHandler : EditorActionHandler() {
   private val logger = Logger.getInstance(NewChatActionHandler::class.java)
 
   override fun isEnabledForCaret(editor: Editor, caret: Caret, dataContext: DataContext?): Boolean {
-      return caret.hasSelection() // TODO: Make less restrictive
+    return caret.hasSelection() // TODO: Make less restrictive
   }
 
   override fun doExecute(editor: Editor, where: Caret?, dataContext: DataContext?) {

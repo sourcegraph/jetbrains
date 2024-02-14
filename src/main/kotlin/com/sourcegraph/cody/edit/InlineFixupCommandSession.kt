@@ -5,15 +5,17 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
-import com.sourcegraph.cody.agent.protocol.TextDocumentEditParams
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.vscode.CancellationToken
 
 /**
- * Common functionality for commands that let the agent edit the code inline,
- * such as adding a doc string, or fixing up a region according to user instructions.
+ * Common functionality for commands that let the agent edit the code inline, such as adding a doc
+ * string, or fixing up a region according to user instructions.
  */
-abstract class InlineFixupCommandSession(val editor: Editor, val cancellationToken: CancellationToken) {
+abstract class InlineFixupCommandSession(
+    val editor: Editor,
+    val cancellationToken: CancellationToken
+) {
   private val logger = Logger.getInstance(InlineFixupCommandSession::class.java)
   protected val controller = InlineFixups.instance
 
@@ -68,5 +70,4 @@ abstract class InlineFixupCommandSession(val editor: Editor, val cancellationTok
     val (start, end) = getOffsets(doc, edit) ?: return
     doc.deleteString(start, end)
   }
-
 }
