@@ -29,7 +29,7 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
     val asyncRequest = CompletableFuture<Void?>()
     cancellationToken.onCancellationRequested { asyncRequest.cancel(true) }
 
-    CodyAgentService.withAgent(project).thenAccept { agent ->
+    CodyAgentService.withAgent(project) { agent ->
       workAroundUninitializedCodebase(editor)
       addClientListeners(editor, agent)
 
@@ -70,7 +70,7 @@ class DocumentCommandSession(editor: Editor, cancellationToken: CancellationToke
 
   private fun beginTrackingTask(editor: Editor, task: EditTask) {
     taskId = task.id
-    CodyAgentService.withAgent(editor.project!!).thenAccept { agent ->
+    CodyAgentService.withAgent(editor.project!!) { agent ->
       addClientListeners(editor, agent)
     }
   }
