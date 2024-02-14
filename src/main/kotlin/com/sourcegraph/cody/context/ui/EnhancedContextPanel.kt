@@ -60,7 +60,7 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
     CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkboxPropagationPolicy)
   }
 
-  fun setAsActive() {
+  fun setContextFromThisChatAsDefault() {
     ApplicationManager.getApplication().executeOnPooledThread {
       getContextState()?.let { HistoryService.getInstance(project).updateDefaultContextState(it) }
     }
