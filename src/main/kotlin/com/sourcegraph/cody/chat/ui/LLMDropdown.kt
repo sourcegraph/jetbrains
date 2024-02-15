@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.MutableCollectionComboBoxModel
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ChatModelsParams
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
@@ -21,7 +22,7 @@ class LLMDropdown(val project: Project, initiallySelected: ChatModel?) :
     ComboBox<LLMComboBoxItem>(MutableCollectionComboBoxModel()) {
 
   init {
-    renderer = LLMComboBoxRenderer(isCurrentUserFree = true) // todo
+    renderer = LLMComboBoxRenderer()
     if (initiallySelected != null) {
       addItem(LLMComboBoxItem(initiallySelected.icon, initiallySelected.displayName))
     }
@@ -36,6 +37,8 @@ class LLMDropdown(val project: Project, initiallySelected: ChatModel?) :
     CodyAgentService.withAgent(project) { agent ->
       val chatModels = agent.server.chatModels(ChatModelsParams(sessionId))
       val response = chatModels.completeOnTimeout(null, 4, TimeUnit.SECONDS).get()
+      val isCurrentUserPro = isCurrentUserPro(agent)
+      (renderer as LLMComboBoxRenderer).updateTier(isCurrentUserFree = !isCurrentUserPro)
       ApplicationManager.getApplication().invokeLater { updateModels(response.models) }
     }
   }
@@ -65,7 +68,7 @@ class LLMDropdown(val project: Project, initiallySelected: ChatModel?) :
         val llmComboBoxItem = anObject as? LLMComboBoxItem
         if (llmComboBoxItem != null) {
           if (llmComboBoxItem.codyProOnly) {
-            val isCurrentUserPro = agent.server.isCurrentUserPro().get()
+            val isCurrentUserPro = isCurrentUserPro(agent)
             if (!isCurrentUserPro) {
               BrowserOpener.openInBrowser(project, "https://sourcegraph.com/cody/subscription")
               return@withAgent
@@ -75,4 +78,7 @@ class LLMDropdown(val project: Project, initiallySelected: ChatModel?) :
 
         super.setSelectedItem(anObject)
       }
+
+  private fun isCurrentUserPro(agent: CodyAgent): Boolean =
+      agent.server.isCurrentUserPro().completeOnTimeout(false, 4, TimeUnit.SECONDS).get() == true
 }

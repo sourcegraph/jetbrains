@@ -10,7 +10,10 @@ import javax.swing.JLabel
 import javax.swing.JList
 import javax.swing.JPanel
 
-class LLMComboBoxRenderer(var isCurrentUserFree: Boolean) : DefaultListCellRenderer() {
+class LLMComboBoxRenderer : DefaultListCellRenderer() {
+
+  private var isCurrentUserFree: Boolean = true
+
   override fun getListCellRendererComponent(
       list: JList<*>?,
       llmComboBoxItem: Any?,
@@ -38,5 +41,9 @@ class LLMComboBoxRenderer(var isCurrentUserFree: Boolean) : DefaultListCellRende
     panel.add(iconLabel, BorderLayout.WEST)
     panel.add(textBadgePanel, BorderLayout.CENTER)
     return panel
+  }
+
+  fun updateTier(isCurrentUserFree: Boolean) {
+    this.isCurrentUserFree = isCurrentUserFree
   }
 }
