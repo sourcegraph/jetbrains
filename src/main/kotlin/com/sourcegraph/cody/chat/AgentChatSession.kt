@@ -21,6 +21,7 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.UpgradeToCodyProNotification.Companion.isCodyProJetbrains
 import com.sourcegraph.telemetry.GraphQlLogger
+import java.net.URI
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
@@ -346,7 +347,17 @@ private constructor(
               MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
               else -> error("unrecognized speaker $speaker")
             }
-        val chatMessage = ChatMessage(speaker = parsed, message.text)
+        val stateContextFiles = message.contextFiles
+        val chatMessage =
+            if (stateContextFiles.isNotEmpty()) {
+              val contextFiles = mutableListOf<ContextFile>()
+              stateContextFiles.forEach { file ->
+                contextFiles.add(ContextFileFile(URI(file.uri.toString()), null, null))
+              }
+              ChatMessage(speaker = parsed, message.text, contextFiles = contextFiles)
+            } else {
+              ChatMessage(speaker = parsed, message.text)
+            }
         chatSession.messages.add(chatMessage)
         chatSession.chatPanel.addOrUpdateMessage(
             chatMessage, index, shouldAddBlinkingCursor = false)

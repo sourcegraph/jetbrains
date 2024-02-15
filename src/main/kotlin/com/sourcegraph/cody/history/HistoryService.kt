@@ -6,10 +6,7 @@ import com.jetbrains.rd.framework.base.deepClonePolymorphic
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.history.state.ChatState
-import com.sourcegraph.cody.history.state.EnhancedContextState
-import com.sourcegraph.cody.history.state.HistoryState
-import com.sourcegraph.cody.history.state.MessageState
+import com.sourcegraph.cody.history.state.*
 import java.time.LocalDateTime
 
 @State(name = "ChatHistory", storages = [Storage("cody_history.xml")])
@@ -93,6 +90,16 @@ class HistoryService(private val project: Project) :
                 Speaker.HUMAN -> MessageState.SpeakerState.HUMAN
                 Speaker.ASSISTANT -> MessageState.SpeakerState.ASSISTANT
               }
+          val contextFiles = chatMessage.contextFiles
+          if (!contextFiles.isNullOrEmpty()) {
+            contextFiles.forEach { contextFile ->
+              val element = ContextFile()
+              element.uri = contextFile.uri.toString()
+              if (!it.contextFiles.contains(element)) {
+                it.contextFiles.add(element)
+              }
+            }
+          }
         }
     return message
   }
