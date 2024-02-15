@@ -1,11 +1,13 @@
 package com.sourcegraph.cody.ui
 
+import com.intellij.openapi.util.IconLoader.toImage
 import com.intellij.ui.CellRendererPanel
 import com.sourcegraph.cody.Icons
 import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.BorderFactory
 import javax.swing.DefaultListCellRenderer
+import javax.swing.ImageIcon
 import javax.swing.JLabel
 import javax.swing.JList
 import javax.swing.JPanel
@@ -34,7 +36,8 @@ class LLMComboBoxRenderer : DefaultListCellRenderer() {
     textBadgePanel.background = this.background
 
     if (llmComboBoxItem.codyProOnly && isCurrentUserFree) {
-      textBadgePanel.add(JLabel(Icons.LLM.ProSticker), BorderLayout.EAST)
+      val badge = ImageIcon(toImage(Icons.LLM.ProSticker).getScaledInstance(20, 20, Image.SCALE_SMOOTH))
+      textBadgePanel.add(JLabel(badge), BorderLayout.EAST)
     }
 
     val iconLabel = JLabel(llmComboBoxItem.icon)

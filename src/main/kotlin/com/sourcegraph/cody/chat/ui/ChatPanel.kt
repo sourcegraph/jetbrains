@@ -13,6 +13,7 @@ import com.sourcegraph.cody.context.ui.EnhancedContextPanel
 import com.sourcegraph.cody.ui.ChatModel
 import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.vscode.CancellationToken
+import com.sourcegraph.common.CodyBundle
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
@@ -67,11 +68,12 @@ class ChatPanel(project: Project, chatSession: ChatSession, selectedModel: ChatM
       shouldAddBlinkingCursor: Boolean = true
   ) {
     if (messagesPanel.componentCount == 1) {
-      llmDropdown.isEnabled = false
+      llmDropdown.updateAfterFirstMessage()
     }
     promptPanel.updateEmptyTextAfterFirstMessage()
     messagesPanel.addOrUpdateMessage(message, index, shouldAddBlinkingCursor)
   }
+
 
   @RequiresEdt
   fun registerCancellationToken(cancellationToken: CancellationToken) {

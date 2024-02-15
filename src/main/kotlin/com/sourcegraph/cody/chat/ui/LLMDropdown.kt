@@ -16,6 +16,7 @@ import com.sourcegraph.cody.ui.ChatModel
 import com.sourcegraph.cody.ui.LLMComboBoxItem
 import com.sourcegraph.cody.ui.LLMComboBoxRenderer
 import com.sourcegraph.common.BrowserOpener
+import com.sourcegraph.common.CodyBundle
 import java.util.concurrent.TimeUnit
 
 class LLMDropdown(val project: Project, initiallySelected: ChatModel?) :
@@ -81,4 +82,11 @@ class LLMDropdown(val project: Project, initiallySelected: ChatModel?) :
 
   private fun isCurrentUserPro(agent: CodyAgent): Boolean =
       agent.server.isCurrentUserPro().completeOnTimeout(false, 4, TimeUnit.SECONDS).get() == true
+
+  fun updateAfterFirstMessage() {
+      isEnabled = false
+    val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
+    if (activeAccountType?.isDotcomAccount() == true && model.size > 1)
+      toolTipText = CodyBundle.getString("LLMDropdown.disabled.text")
+    }
 }
