@@ -1,16 +1,18 @@
 package com.sourcegraph.cody.edit
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.util.Disposer
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
 
 /** Controller for commands that allow the LLM to edit the code directly. */
 @Service
-class InlineFixups {
+class InlineFixups : Disposable {
   private val logger = Logger.getInstance(InlineFixups::class.java)
   private var activeSession: InlineFixupSession? = null
   private var currentModel = "GPT-3.5" // last selected from dropdown
@@ -56,6 +58,7 @@ class InlineFixups {
   fun getLastPrompt(): String = lastPrompt
 
   private fun setSession(session: InlineFixupSession?) {
+    activeSession?.let { Disposer.dispose(it) }
     activeSession = session
   }
 
@@ -67,5 +70,9 @@ class InlineFixups {
     fun backgroundThread(code: Runnable) {
       ApplicationManager.getApplication().executeOnPooledThread(code)
     }
+  }
+
+  override fun dispose() {
+    TODO("Not yet implemented")
   }
 }

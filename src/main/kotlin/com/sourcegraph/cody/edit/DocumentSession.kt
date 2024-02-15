@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.edit
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -91,7 +92,14 @@ class DocumentSession(editor: Editor) : InlineFixupSession(editor) {
         logger.warn("received code lens for wrong document: ${params.uri}")
         return@setOnDisplayCodeLens
       }
-      InlineCodeLenses(this, editor).apply { backgroundThread { display(params) } }
+      // TODO: go back to constructor, tie it to session, then:
+      //  - keep it in the editor-to-lenses map
+      //  - register it with Disposable, with the Session as the parent
+      //  - when a new session starts, dispose the active session (for that editor)
+      //  - finish registering all the widgets as disposable children
+      ApplicationManager.getApplication().invokeLater {
+        InlineCodeLenses.get(this, editor).display(params)
+      }
     }
 
     // TODO: We don't get these for commands/document.
@@ -126,4 +134,8 @@ class DocumentSession(editor: Editor) : InlineFixupSession(editor) {
   }
 
   override fun getLogger() = logger
+
+  override fun dispose() {
+    TODO("Not yet implemented")
+  }
 }
