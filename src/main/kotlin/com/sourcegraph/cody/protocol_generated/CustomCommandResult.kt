@@ -1,5 +1,7 @@
-@file:Suppress("FunctionName", "ClassName", "unused")
+@file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName")
 package com.sourcegraph.cody.protocol_generated
+
+import com.google.gson.annotations.SerializedName
 
 data class CustomCommandResult(
   val type: TypeEnum? = null, // Oneof: edit, chat
@@ -8,7 +10,7 @@ data class CustomCommandResult(
 )
 
 enum class TypeEnum {
-  @com.google.gson.annotations.SerializedName("edit") Edit,
-  @com.google.gson.annotations.SerializedName("chat") Chat,
+  @SerializedName("edit") Edit,
+  @SerializedName("chat") Chat,
 }
 

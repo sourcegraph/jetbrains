@@ -1,5 +1,7 @@
-@file:Suppress("FunctionName", "ClassName", "unused")
+@file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName")
 package com.sourcegraph.cody.protocol_generated
+
+import com.google.gson.annotations.SerializedName
 
 data class CompletionItemInfo(
   val parseErrorCount: Int? = null,
@@ -14,7 +16,7 @@ data class CompletionItemInfo(
 )
 
 enum class TruncatedWithEnum {
-  @com.google.gson.annotations.SerializedName("tree-sitter") `tree-sitter`,
-  @com.google.gson.annotations.SerializedName("indentation") Indentation,
+  @SerializedName("tree-sitter") `Tree-sitter`,
+  @SerializedName("indentation") Indentation,
 }
 

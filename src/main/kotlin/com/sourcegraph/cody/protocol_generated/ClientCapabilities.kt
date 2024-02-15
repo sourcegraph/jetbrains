@@ -1,5 +1,7 @@
-@file:Suppress("FunctionName", "ClassName", "unused")
+@file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName")
 package com.sourcegraph.cody.protocol_generated
+
+import com.google.gson.annotations.SerializedName
 
 data class ClientCapabilities(
   val completions: CompletionsEnum? = null, // Oneof: none
@@ -15,51 +17,51 @@ data class ClientCapabilities(
 )
 
 enum class CompletionsEnum {
-  @com.google.gson.annotations.SerializedName("none") None,
+  @SerializedName("none") None,
 }
 
 enum class ChatEnum {
-  @com.google.gson.annotations.SerializedName("none") None,
-  @com.google.gson.annotations.SerializedName("streaming") Streaming,
+  @SerializedName("none") None,
+  @SerializedName("streaming") Streaming,
 }
 
 enum class GitEnum {
-  @com.google.gson.annotations.SerializedName("none") None,
-  @com.google.gson.annotations.SerializedName("disabled") Disabled,
+  @SerializedName("none") None,
+  @SerializedName("disabled") Disabled,
 }
 
 enum class ProgressBarsEnum {
-  @com.google.gson.annotations.SerializedName("none") None,
-  @com.google.gson.annotations.SerializedName("enabled") Enabled,
+  @SerializedName("none") None,
+  @SerializedName("enabled") Enabled,
 }
 
 enum class EditEnum {
-  @com.google.gson.annotations.SerializedName("none") None,
-  @com.google.gson.annotations.SerializedName("enabled") Enabled,
+  @SerializedName("none") None,
+  @SerializedName("enabled") Enabled,
 }
 
 enum class EditWorkspaceEnum {
-  @com.google.gson.annotations.SerializedName("none") None,
-  @com.google.gson.annotations.SerializedName("enabled") Enabled,
+  @SerializedName("none") None,
+  @SerializedName("enabled") Enabled,
 }
 
 enum class UntitledDocumentsEnum {
-  @com.google.gson.annotations.SerializedName("none") None,
-  @com.google.gson.annotations.SerializedName("enabled") Enabled,
+  @SerializedName("none") None,
+  @SerializedName("enabled") Enabled,
 }
 
 enum class ShowDocumentEnum {
-  @com.google.gson.annotations.SerializedName("none") None,
-  @com.google.gson.annotations.SerializedName("enabled") Enabled,
+  @SerializedName("none") None,
+  @SerializedName("enabled") Enabled,
 }
 
 enum class CodeLensesEnum {
-  @com.google.gson.annotations.SerializedName("none") None,
-  @com.google.gson.annotations.SerializedName("enabled") Enabled,
+  @SerializedName("none") None,
+  @SerializedName("enabled") Enabled,
 }
 
 enum class ShowWindowMessageEnum {
-  @com.google.gson.annotations.SerializedName("notification") Notification,
-  @com.google.gson.annotations.SerializedName("request") Request,
+  @SerializedName("notification") Notification,
+  @SerializedName("request") Request,
 }
 

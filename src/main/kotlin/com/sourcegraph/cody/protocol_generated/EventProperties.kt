@@ -1,5 +1,7 @@
-@file:Suppress("FunctionName", "ClassName", "unused")
+@file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName")
 package com.sourcegraph.cody.protocol_generated
+
+import com.google.gson.annotations.SerializedName
 
 data class EventProperties(
   val anonymousUserID: String? = null,
@@ -9,6 +11,6 @@ data class EventProperties(
 )
 
 enum class SourceEnum {
-  @com.google.gson.annotations.SerializedName("IDEEXTENSION") IDEEXTENSION,
+  @SerializedName("IDEEXTENSION") IDEEXTENSION,
 }
 

@@ -1,5 +1,7 @@
-@file:Suppress("FunctionName", "ClassName", "unused")
+@file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName")
 package com.sourcegraph.cody.protocol_generated
+
+import com.google.gson.annotations.SerializedName
 
 data class TextEdit(
   val type: TypeEnum? = null, // Oneof: insert, delete, replace
@@ -10,8 +12,8 @@ data class TextEdit(
 )
 
 enum class TypeEnum {
-  @com.google.gson.annotations.SerializedName("insert") Insert,
-  @com.google.gson.annotations.SerializedName("delete") Delete,
-  @com.google.gson.annotations.SerializedName("replace") Replace,
+  @SerializedName("insert") Insert,
+  @SerializedName("delete") Delete,
+  @SerializedName("replace") Replace,
 }
 

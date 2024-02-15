@@ -1,5 +1,7 @@
-@file:Suppress("FunctionName", "ClassName", "unused")
+@file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName")
 package com.sourcegraph.cody.protocol_generated
+
+import com.google.gson.annotations.SerializedName
 
 data class ContextProvider(
   val kind: KindEnum? = null, // Oneof: search, search, embeddings
@@ -11,37 +13,37 @@ data class ContextProvider(
 )
 
 enum class KindEnum {
-  @com.google.gson.annotations.SerializedName("search") Search,
-  @com.google.gson.annotations.SerializedName("search") Search,
-  @com.google.gson.annotations.SerializedName("embeddings") Embeddings,
+  @SerializedName("search") Search,
+  @SerializedName("search") Search,
+  @SerializedName("embeddings") Embeddings,
 }
 
 enum class StateEnum {
-  @com.google.gson.annotations.SerializedName("unindexed") Unindexed,
-  @com.google.gson.annotations.SerializedName("indexing") Indexing,
-  @com.google.gson.annotations.SerializedName("ready") Ready,
-  @com.google.gson.annotations.SerializedName("failed") Failed,
-  @com.google.gson.annotations.SerializedName("ready") Ready,
-  @com.google.gson.annotations.SerializedName("no-match") `no-match`,
-  @com.google.gson.annotations.SerializedName("indeterminate") Indeterminate,
-  @com.google.gson.annotations.SerializedName("no-match") `no-match`,
-  @com.google.gson.annotations.SerializedName("unconsented") Unconsented,
-  @com.google.gson.annotations.SerializedName("indexing") Indexing,
-  @com.google.gson.annotations.SerializedName("ready") Ready,
+  @SerializedName("unindexed") Unindexed,
+  @SerializedName("indexing") Indexing,
+  @SerializedName("ready") Ready,
+  @SerializedName("failed") Failed,
+  @SerializedName("ready") Ready,
+  @SerializedName("no-match") `No-match`,
+  @SerializedName("indeterminate") Indeterminate,
+  @SerializedName("no-match") `No-match`,
+  @SerializedName("unconsented") Unconsented,
+  @SerializedName("indexing") Indexing,
+  @SerializedName("ready") Ready,
 }
 
 enum class ErrorReasonEnum {
-  @com.google.gson.annotations.SerializedName("not-a-git-repo") `not-a-git-repo`,
-  @com.google.gson.annotations.SerializedName("git-repo-has-no-remote") `git-repo-has-no-remote`,
+  @SerializedName("not-a-git-repo") `Not-a-git-repo`,
+  @SerializedName("git-repo-has-no-remote") `Git-repo-has-no-remote`,
 }
 
 enum class TypeEnum {
-  @com.google.gson.annotations.SerializedName("remote") Remote,
-  @com.google.gson.annotations.SerializedName("local") Local,
+  @SerializedName("remote") Remote,
+  @SerializedName("local") Local,
 }
 
 enum class InclusionEnum {
-  @com.google.gson.annotations.SerializedName("auto") Auto,
-  @com.google.gson.annotations.SerializedName("manual") Manual,
+  @SerializedName("auto") Auto,
+  @SerializedName("manual") Manual,
 }
 

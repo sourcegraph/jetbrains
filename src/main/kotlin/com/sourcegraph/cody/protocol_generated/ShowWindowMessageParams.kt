@@ -1,5 +1,7 @@
-@file:Suppress("FunctionName", "ClassName", "unused")
+@file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName")
 package com.sourcegraph.cody.protocol_generated
+
+import com.google.gson.annotations.SerializedName
 
 data class ShowWindowMessageParams(
   val severity: SeverityEnum? = null, // Oneof: error, warning, information
@@ -9,8 +11,8 @@ data class ShowWindowMessageParams(
 )
 
 enum class SeverityEnum {
-  @com.google.gson.annotations.SerializedName("error") Error,
-  @com.google.gson.annotations.SerializedName("warning") Warning,
-  @com.google.gson.annotations.SerializedName("information") Information,
+  @SerializedName("error") Error,
+  @SerializedName("warning") Warning,
+  @SerializedName("information") Information,
 }
 

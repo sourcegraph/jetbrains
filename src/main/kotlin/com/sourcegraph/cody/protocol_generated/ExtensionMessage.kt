@@ -1,5 +1,7 @@
-@file:Suppress("FunctionName", "ClassName", "unused")
+@file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName")
 package com.sourcegraph.cody.protocol_generated
+
+import com.google.gson.annotations.SerializedName
 
 data class ExtensionMessage(
   val type: TypeEnum? = null, // Oneof: search:config, history, transcript, view, errors, notice, transcript-errors, userContextFiles, chatModels, update-search-results, index-updated, enhanced-context, attribution, setChatEnabledConfigFeature, webview-state, context/remote-repos, setConfigFeatures, config
@@ -31,23 +33,23 @@ data class ExtensionMessage(
 )
 
 enum class TypeEnum {
-  @com.google.gson.annotations.SerializedName("search:config") Search_config,
-  @com.google.gson.annotations.SerializedName("history") History,
-  @com.google.gson.annotations.SerializedName("transcript") Transcript,
-  @com.google.gson.annotations.SerializedName("view") View,
-  @com.google.gson.annotations.SerializedName("errors") Errors,
-  @com.google.gson.annotations.SerializedName("notice") Notice,
-  @com.google.gson.annotations.SerializedName("transcript-errors") `transcript-errors`,
-  @com.google.gson.annotations.SerializedName("userContextFiles") UserContextFiles,
-  @com.google.gson.annotations.SerializedName("chatModels") ChatModels,
-  @com.google.gson.annotations.SerializedName("update-search-results") `update-search-results`,
-  @com.google.gson.annotations.SerializedName("index-updated") `index-updated`,
-  @com.google.gson.annotations.SerializedName("enhanced-context") `enhanced-context`,
-  @com.google.gson.annotations.SerializedName("attribution") Attribution,
-  @com.google.gson.annotations.SerializedName("setChatEnabledConfigFeature") SetChatEnabledConfigFeature,
-  @com.google.gson.annotations.SerializedName("webview-state") `webview-state`,
-  @com.google.gson.annotations.SerializedName("context/remote-repos") `context_remote-repos`,
-  @com.google.gson.annotations.SerializedName("setConfigFeatures") SetConfigFeatures,
-  @com.google.gson.annotations.SerializedName("config") Config,
+  @SerializedName("search:config") Search_config,
+  @SerializedName("history") History,
+  @SerializedName("transcript") Transcript,
+  @SerializedName("view") View,
+  @SerializedName("errors") Errors,
+  @SerializedName("notice") Notice,
+  @SerializedName("transcript-errors") `Transcript-errors`,
+  @SerializedName("userContextFiles") UserContextFiles,
+  @SerializedName("chatModels") ChatModels,
+  @SerializedName("update-search-results") `Update-search-results`,
+  @SerializedName("index-updated") `Index-updated`,
+  @SerializedName("enhanced-context") `Enhanced-context`,
+  @SerializedName("attribution") Attribution,
+  @SerializedName("setChatEnabledConfigFeature") SetChatEnabledConfigFeature,
+  @SerializedName("webview-state") `Webview-state`,
+  @SerializedName("context/remote-repos") `Context_remote-repos`,
+  @SerializedName("setConfigFeatures") SetConfigFeatures,
+  @SerializedName("config") Config,
 }
 
