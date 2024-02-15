@@ -11,13 +11,11 @@ import com.intellij.openapi.editor.event.EditorMouseListener
 import com.intellij.openapi.editor.event.EditorMouseMotionListener
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.TextAttributes
+import com.intellij.ui.Gray
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.protocol.ProtocolCodeLens
 import com.sourcegraph.cody.edit.InlineCodeLenses
-import java.awt.Font
-import java.awt.FontMetrics
-import java.awt.Graphics2D
-import java.awt.Point
+import java.awt.*
 import java.awt.geom.Rectangle2D
 
 /**
@@ -33,7 +31,7 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
 
   lateinit var supportedActions: Map<String, () -> Unit>
 
-  lateinit var mouseHandler: EditorMouseListener
+  lateinit var mouseClickListener: EditorMouseListener
   lateinit var mouseMotionListener: EditorMouseMotionListener
 
   lateinit var widgetFont: Font
@@ -42,6 +40,7 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
   private var lastHoveredWidget: LensWidget? = null
 
   operator fun Point.component1() = this.x
+
   operator fun Point.component2() = this.y
 
   init {
@@ -76,13 +75,15 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
       textAttributes: TextAttributes
   ) {
     g.font = widgetFont
+    g.color = lensColor
     if (widgetFontMetrics == null) { // Cache for hit box detection later.
       widgetFontMetrics = g.fontMetrics
     }
+    val top = targetRegion.y.toFloat()
     // Draw all the widgets left to right, keeping track of their width.
     widgets.fold(targetRegion.x.toFloat()) { acc, widget ->
       try {
-        widget.paint(g, acc, targetRegion.y.toFloat())
+        widget.paint(g, acc, top)
         acc + widget.calcWidthInPixels(g.fontMetrics)
       } finally {
         g.font = widgetFont // In case widget changed it.
@@ -96,8 +97,7 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
 
   private fun initWidgetFont() {
     val editorFont = editor.colorsScheme.getFont(EditorFontType.PLAIN)
-    val originalSize = editorFont.size2D
-    widgetFont = Font("Arial, Helvetica, sans-serif", editorFont.style, (originalSize - 1).toInt())
+    widgetFont = Font(editorFont.name, editorFont.style, editorFont.size - 2)
   }
 
   private fun findWidgetAt(x: Int, y: Int): LensWidget? {
@@ -119,15 +119,13 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
   }
 
   override fun dispose() {
-    widgets.forEach { it.dispose() }
-    widgets.clear()
-    supportedActions = emptyMap()
-    editor.removeEditorMouseListener(mouseHandler)
+    editor.removeEditorMouseListener(mouseClickListener)
+    editor.removeEditorMouseMotionListener(mouseMotionListener)
+    widgets.clear() // Don't hold refs to disposed objects
   }
 
   /* Parse the RPC data and create widgets. */
   fun parse(lenses: List<ProtocolCodeLens>) {
-    widgets.clear()
     var separator = false
     lenses.forEachIndexed { i, lens ->
       // Even icons/spinners are currently encoded in the title field.
@@ -152,7 +150,7 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
         // This is a hack, but works for the lenses we've seen so far.
         // We only start adding separators after the first action or nonempty label.
         if (i < lenses.size && separator) {
-          widgets.add(LensLabel(this, " | "))
+          widgets.add(LensLabel(this, actionSeparator))
         }
         widgets.add(LensAction(this, text, supportedActions[text]!!))
         separator = true
@@ -164,7 +162,8 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
   }
 
   private fun registerMouseHandlers() {
-    mouseHandler =
+    // TODO: Register all these with Disposable
+    mouseClickListener =
         object : EditorMouseListener {
           override fun mouseClicked(e: EditorMouseEvent) {
             val (x, y) = e.mouseEvent.point
@@ -173,22 +172,19 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
             }
           }
         }
-    editor.addEditorMouseListener(mouseHandler)
+    editor.addEditorMouseListener(mouseClickListener)
     mouseMotionListener =
         object : EditorMouseMotionListener {
           override fun mouseMoved(e: EditorMouseEvent) {
             val (x, y) = e.mouseEvent.point
             val widget = findWidgetAt(x, y)
             val lastWidget = lastHoveredWidget
+            // Check if the mouse has moved from one widget to another or from/to outside
             if (widget != lastWidget) {
-              if (lastWidget != null) {
-                lastWidget.onMouseExit()
-                logger.warn("Exiting: $lastWidget")
-              }
-              if (widget != null) {
-                widget.onMouseEnter()
-                logger.warn(" Entering: $widget")
-              }
+              lastWidget?.onMouseExit()
+              // Update the lastHoveredWidget (can be null if now outside)
+              lastHoveredWidget = widget
+              widget?.onMouseEnter()
             }
           }
         }
@@ -196,8 +192,10 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
   }
 
   companion object {
-    val logoMarker = "$(cody-logo)"
-    val spinnerMarker = "$(sync~spin)"
-    val iconSpacer = "  "
+    const val logoMarker = "$(cody-logo)"
+    const val spinnerMarker = "$(sync~spin)"
+    const val iconSpacer = " "
+    const val actionSeparator = " | "
+    val lensColor = Gray._153
   }
 }
