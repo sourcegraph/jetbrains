@@ -1,26 +1,31 @@
 package com.sourcegraph.cody.edit.widget
 
+import com.intellij.openapi.application.ApplicationManager
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.geom.AffineTransform
-import java.util.*
 import javax.swing.Icon
 import javax.swing.Timer
 
-class LensSpinner(private val icon: Icon) : LensWidget {
+class LensSpinner(group: LensWidgetGroup, private val icon: Icon) : LensWidget(group) {
   private var rotationDegrees = 0f
-  private val animationDelay = 100 // Milliseconds between frames
-  private lateinit var parentInvalidateCallback: () -> Unit
+  private val animationDelay = 50 // Milliseconds between frames
+
+  init {
+    ApplicationManager.getApplication().invokeLater { start() }
+  }
 
   private val timer =
-      Timer(animationDelay) { e ->
-        rotationDegrees =
-            (rotationDegrees + 10) % 360 // Adjust rotation speed and step as necessary
-        parentInvalidateCallback.invoke()
+      Timer(animationDelay) {
+        if (parentGroup.editor.isDisposed) {
+          stop()
+        } else {
+          rotationDegrees = (rotationDegrees + 10) % 360
+          parentGroup.update()
+        }
       }
 
-  fun start(parentInvalidate: () -> Unit) {
-    this.parentInvalidateCallback = parentInvalidate
+  fun start() {
     timer.start()
   }
 

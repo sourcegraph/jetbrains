@@ -21,6 +21,7 @@ import com.sourcegraph.cody.chat.ui.CodeEditorButtons;
 import com.sourcegraph.cody.chat.ui.CodeEditorPart;
 import com.sourcegraph.cody.ui.AttributionButtonController;
 import com.sourcegraph.cody.ui.TransparentButton;
+
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.Toolkit;
@@ -30,6 +31,7 @@ import java.awt.event.*;
 import java.time.Duration;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

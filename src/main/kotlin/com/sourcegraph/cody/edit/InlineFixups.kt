@@ -4,50 +4,32 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.editor.Editor
-import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
-import java.util.concurrent.atomic.AtomicReference
 
 /** Controller for commands that allow the LLM to edit the code directly. */
 @Service
 class InlineFixups {
   private val logger = Logger.getInstance(InlineFixups::class.java)
-  private val currentJob = AtomicReference(CancellationToken().apply { abort() })
-  private var activeSession: InlineFixupCommandSession? = null
+  private var activeSession: InlineFixupSession? = null
   private var currentModel = "GPT-3.5" // last selected from dropdown
 
   // The last text the user typed in without saving it, for continuity.
   private var lastPrompt: String = ""
 
-  private fun cancelCurrentSession() {
-    activeSession?.cancel()
-  }
-
-  private fun setSession(session: InlineFixupCommandSession?) {
-    cancelCurrentSession()
-    activeSession = session
-  }
-
   // Prompt user for instructions for editing selected code.
-  fun startCodeEdit(editor: Editor, where: Caret?) {
+  fun startCodeEdit(editor: Editor) {
     if (!isEligibleForInlineEdit(editor)) return
-    where ?: editor.caretModel.primaryCaret
     EditCommandPrompt(editor).displayPromptUI()
   }
 
   // Generate and insert a doc string for the current code.
   fun documentCode(editor: Editor) {
     // Check eligibility before we send the request, and also when we get the response.
-    if (!isEligibleForInlineEdit(editor)) return
-    setSession(DocumentCommandSession(editor, resetCancellationToken()))
-  }
-
-  fun resetCancellationToken(): CancellationToken {
-    currentJob.get().abort()
-    return CancellationToken().apply { currentJob.set(this) }
+    if (isEligibleForInlineEdit(editor)) {
+      setSession(DocumentSession(editor))
+    }
   }
 
   fun isEligibleForInlineEdit(editor: Editor): Boolean {
@@ -72,6 +54,10 @@ class InlineFixups {
   }
 
   fun getLastPrompt(): String = lastPrompt
+
+  private fun setSession(session: InlineFixupSession?) {
+    activeSession = session
+  }
 
   companion object {
     @JvmStatic
