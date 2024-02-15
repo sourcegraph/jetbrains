@@ -6,19 +6,22 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.rd.util.ConcurrentHashMap
 import com.sourcegraph.cody.agent.protocol.DisplayCodeLensParams
 import com.sourcegraph.cody.agent.protocol.ProtocolCodeLens
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 
-/** This class handles displaying and dispatching code lenses. */
-class InlineCodeLenses(val editor: Editor) : Disposable {
+/**
+ * This class handles displaying and dispatching code lenses. There should be at most one instance of this
+ * class and one active session per editor.
+ */
+class InlineCodeLenses(val session: InlineFixupSession, val editor: Editor) : Disposable {
   private val logger = Logger.getInstance(InlineCodeLenses::class.java)
 
-  private val widgetGroup = LensWidgetGroup(editor)
-  private var inlay: Inlay<EditorCustomElementRenderer>? = null
+  private val widgetGroup = LensWidgetGroup(this, editor)
+  var inlay: Inlay<EditorCustomElementRenderer>? = null
+    private set
 
-  val ACTIONS =
+  private val ACTIONS =
       mapOf(
           "Show Diff" to { showDiff() },
           "Accept" to { accept() },
@@ -26,6 +29,11 @@ class InlineCodeLenses(val editor: Editor) : Disposable {
           "Undo" to { undo() },
           "Cancel" to { cancel() })
 
+  /**
+   * Creates a fresh code-lens inlay associated with the given editor.
+   *
+   * @params - the RPC params for the code lenses to display.
+   */
   fun display(params: DisplayCodeLensParams) {
     inlay?.let { Disposer.dispose(it) }
     try {
@@ -39,6 +47,10 @@ class InlineCodeLenses(val editor: Editor) : Disposable {
     val offset =
         editor.document.getLineStartOffset(getLineForDisplayingLenses(params.codeLenses.first()))
     inlay = editor.inlayModel.addBlockElement(offset, true, false, 0, widgetGroup)
+  }
+
+  fun update() {
+    inlay?.update()
   }
 
   // Brings up a diff view showing the changes the AI made.
@@ -59,11 +71,12 @@ class InlineCodeLenses(val editor: Editor) : Disposable {
   }
 
   fun cancel() {
-    logger.warn("Code Lenses: Cancel")
+    session.cancelCurrentJob()
   }
 
   override fun dispose() {
     // TODO: What do we need to do here?
+    // The widgets are Disposable - is this their parent Disposable? How?
   }
 
   private fun getLineForDisplayingLenses(lens: ProtocolCodeLens): Int {
@@ -75,14 +88,5 @@ class InlineCodeLenses(val editor: Editor) : Disposable {
     val line = editor.caretModel.logicalPosition.line
     // TODO: Fallback should be the caret when the command was invoked.
     return (line - 1).coerceAtLeast(0) // Fall back to line before caret.
-  }
-
-  companion object {
-
-    val lensesForEditors = ConcurrentHashMap<Editor, InlineCodeLenses>()
-
-    fun get(editor: Editor): InlineCodeLenses {
-      return lensesForEditors.computeIfAbsent(editor) { InlineCodeLenses(editor) }
-    }
   }
 }

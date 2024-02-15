@@ -8,28 +8,32 @@ import com.intellij.openapi.editor.Editor
 import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.vscode.CancellationToken
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Common functionality for commands that let the agent edit the code inline, such as adding a doc
  * string, or fixing up a region according to user instructions.
  */
-abstract class InlineFixupCommandSession(
-    val editor: Editor,
-    val cancellationToken: CancellationToken
-) {
-  private val logger = Logger.getInstance(InlineFixupCommandSession::class.java)
+abstract class InlineFixupSession(val editor: Editor) {
   protected val controller = InlineFixups.instance
 
+  protected val currentJob = AtomicReference(CancellationToken())
   protected var taskId: String? = null
-
-  abstract fun cancel()
 
   abstract fun getLogger(): Logger
 
+  fun cancelCurrentJob() {
+    getLogger().warn("Aborting current job: $this")
+    currentJob.get().abort()
+    currentJob.set(CancellationToken())
+    // TODO:
+    //  - make sure it's plumbed through to the agent
+    //  - clear all the UI
+  }
+
   fun performInlineEdits(edits: List<TextEdit>) {
     if (!controller.isEligibleForInlineEdit(editor)) {
-      getLogger().warn("Inline edit not eligible")
-      return
+      return getLogger().warn("Inline edit not eligible")
     }
     WriteCommandAction.runWriteCommandAction(editor.project ?: return) {
       for (edit in edits) {
@@ -55,7 +59,7 @@ abstract class InlineFixupCommandSession(
       return Pair(offset, offset)
     }
     if (edit.range == null) {
-      logger.warn("Invalid edit range: ${edit.range} for edit: ${edit.type}")
+      getLogger().warn("Invalid edit range: ${edit.range} for edit: ${edit.type}")
       return null
     }
     return edit.range.toOffsets(doc)

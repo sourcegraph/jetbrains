@@ -7,7 +7,7 @@ import java.awt.image.BufferedImage
 import javax.swing.Icon
 import javax.swing.ImageIcon
 
-class LensIcon(val icon: Icon) : LensWidget {
+class LensIcon(group: LensWidgetGroup, val icon: Icon) : LensWidget(group) {
 
   private var scaledImage: Image? = null
 

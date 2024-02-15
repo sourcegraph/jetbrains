@@ -164,7 +164,7 @@ class EditCommandPrompt(val editor: Editor) {
       controller.setCurrentModel(model)
       if (text.isNotBlank()) {
         addToHistory(text)
-        EditCommandSession(editor, text, controller.resetCancellationToken())
+        EditSession(editor, text)
       }
     }
 

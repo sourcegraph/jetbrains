@@ -19,6 +19,6 @@ class EditCodeActionHandler : EditorActionHandler() {
   }
 
   override fun doExecute(editor: Editor, where: Caret?, dataContext: DataContext?) {
-    InlineFixups.instance.startCodeEdit(editor, where)
+    InlineFixups.instance.startCodeEdit(editor)
   }
 }
