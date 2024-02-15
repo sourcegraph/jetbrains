@@ -8,11 +8,12 @@ data class ShowWindowMessageParams(
   val message: String? = null,
   val options: MessageOptions? = null,
   val items: List<String>? = null,
-)
+) {
 
-enum class SeverityEnum {
-  @SerializedName("error") Error,
-  @SerializedName("warning") Warning,
-  @SerializedName("information") Information,
+  enum class SeverityEnum {
+    @SerializedName("error") Error,
+    @SerializedName("warning") Warning,
+    @SerializedName("information") Information,
+  }
 }
 

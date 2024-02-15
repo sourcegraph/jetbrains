@@ -8,9 +8,10 @@ data class EventProperties(
   val prefix: String? = null,
   val client: String? = null,
   val source: SourceEnum? = null, // Oneof: IDEEXTENSION
-)
+) {
 
-enum class SourceEnum {
-  @SerializedName("IDEEXTENSION") IDEEXTENSION,
+  enum class SourceEnum {
+    @SerializedName("IDEEXTENSION") IDEEXTENSION,
+  }
 }
 

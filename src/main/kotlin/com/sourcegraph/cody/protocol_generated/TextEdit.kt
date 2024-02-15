@@ -9,11 +9,12 @@ data class TextEdit(
   val value: String? = null,
   val metadata: WorkspaceEditEntryMetadata? = null,
   val position: Position? = null,
-)
+) {
 
-enum class TypeEnum {
-  @SerializedName("insert") Insert,
-  @SerializedName("delete") Delete,
-  @SerializedName("replace") Replace,
+  enum class TypeEnum {
+    @SerializedName("insert") Insert,
+    @SerializedName("delete") Delete,
+    @SerializedName("replace") Replace,
+  }
 }
 

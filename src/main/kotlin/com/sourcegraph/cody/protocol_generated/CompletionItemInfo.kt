@@ -13,10 +13,11 @@ data class CompletionItemInfo(
   val charCount: Int? = null,
   val insertText: String? = null,
   val stopReason: String? = null,
-)
+) {
 
-enum class TruncatedWithEnum {
-  @SerializedName("tree-sitter") `Tree-sitter`,
-  @SerializedName("indentation") Indentation,
+  enum class TruncatedWithEnum {
+    @SerializedName("tree-sitter") `Tree-sitter`,
+    @SerializedName("indentation") Indentation,
+  }
 }
 

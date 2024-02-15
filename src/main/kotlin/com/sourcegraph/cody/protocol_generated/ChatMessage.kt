@@ -13,10 +13,11 @@ data class ChatMessage(
   val data: Any? = null,
   val metadata: ChatMetadata? = null,
   val error: ChatError? = null,
-)
+) {
 
-enum class SpeakerEnum {
-  @SerializedName("human") Human,
-  @SerializedName("assistant") Assistant,
+  enum class SpeakerEnum {
+    @SerializedName("human") Human,
+    @SerializedName("assistant") Assistant,
+  }
 }
 

@@ -9,10 +9,11 @@ data class AutocompleteParams(
   val position: Position? = null,
   val triggerKind: TriggerKindEnum? = null, // Oneof: Automatic, Invoke
   val selectedCompletionInfo: SelectedCompletionInfo? = null,
-)
+) {
 
-enum class TriggerKindEnum {
-  @SerializedName("Automatic") Automatic,
-  @SerializedName("Invoke") Invoke,
+  enum class TriggerKindEnum {
+    @SerializedName("Automatic") Automatic,
+    @SerializedName("Invoke") Invoke,
+  }
 }
 

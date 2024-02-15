@@ -30,62 +30,63 @@ data class WebviewMessage(
   val onboardingKind: OnboardingKindEnum? = null, // Oneof: web-sign-in-token
   val query: String? = null,
   val snippet: String? = null,
-)
+) {
 
-enum class CommandEnum {
-  @SerializedName("initialized") Initialized,
-  @SerializedName("event") Event,
-  @SerializedName("submit") Submit,
-  @SerializedName("history") History,
-  @SerializedName("restoreHistory") RestoreHistory,
-  @SerializedName("deleteHistory") DeleteHistory,
-  @SerializedName("links") Links,
-  @SerializedName("show-page") `Show-page`,
-  @SerializedName("chatModel") ChatModel,
-  @SerializedName("get-chat-models") `Get-chat-models`,
-  @SerializedName("openFile") OpenFile,
-  @SerializedName("openLocalFileWithRange") OpenLocalFileWithRange,
-  @SerializedName("edit") Edit,
-  @SerializedName("context/get-remote-search-repos") `Context_get-remote-search-repos`,
-  @SerializedName("context/choose-remote-search-repo") `Context_choose-remote-search-repo`,
-  @SerializedName("context/remove-remote-search-repo") `Context_remove-remote-search-repo`,
-  @SerializedName("embeddings/index") Embeddings_index,
-  @SerializedName("symf/index") Symf_index,
-  @SerializedName("insert") Insert,
-  @SerializedName("newFile") NewFile,
-  @SerializedName("copy") Copy,
-  @SerializedName("auth") Auth,
-  @SerializedName("abort") Abort,
-  @SerializedName("reload") Reload,
-  @SerializedName("simplified-onboarding") `Simplified-onboarding`,
-  @SerializedName("getUserContext") GetUserContext,
-  @SerializedName("search") Search,
-  @SerializedName("show-search-result") `Show-search-result`,
-  @SerializedName("reset") Reset,
-  @SerializedName("attribution-search") `Attribution-search`,
-  @SerializedName("ready") Ready,
-}
+  enum class CommandEnum {
+    @SerializedName("initialized") Initialized,
+    @SerializedName("event") Event,
+    @SerializedName("submit") Submit,
+    @SerializedName("history") History,
+    @SerializedName("restoreHistory") RestoreHistory,
+    @SerializedName("deleteHistory") DeleteHistory,
+    @SerializedName("links") Links,
+    @SerializedName("show-page") `Show-page`,
+    @SerializedName("chatModel") ChatModel,
+    @SerializedName("get-chat-models") `Get-chat-models`,
+    @SerializedName("openFile") OpenFile,
+    @SerializedName("openLocalFileWithRange") OpenLocalFileWithRange,
+    @SerializedName("edit") Edit,
+    @SerializedName("context/get-remote-search-repos") `Context_get-remote-search-repos`,
+    @SerializedName("context/choose-remote-search-repo") `Context_choose-remote-search-repo`,
+    @SerializedName("context/remove-remote-search-repo") `Context_remove-remote-search-repo`,
+    @SerializedName("embeddings/index") Embeddings_index,
+    @SerializedName("symf/index") Symf_index,
+    @SerializedName("insert") Insert,
+    @SerializedName("newFile") NewFile,
+    @SerializedName("copy") Copy,
+    @SerializedName("auth") Auth,
+    @SerializedName("abort") Abort,
+    @SerializedName("reload") Reload,
+    @SerializedName("simplified-onboarding") `Simplified-onboarding`,
+    @SerializedName("getUserContext") GetUserContext,
+    @SerializedName("search") Search,
+    @SerializedName("show-search-result") `Show-search-result`,
+    @SerializedName("reset") Reset,
+    @SerializedName("attribution-search") `Attribution-search`,
+    @SerializedName("ready") Ready,
+  }
 
-enum class ActionEnum {
-  @SerializedName("clear") Clear,
-  @SerializedName("export") Export,
-}
+  enum class ActionEnum {
+    @SerializedName("clear") Clear,
+    @SerializedName("export") Export,
+  }
 
-enum class EventTypeEnum {
-  @SerializedName("Button") Button,
-  @SerializedName("Keydown") Keydown,
-}
+  enum class EventTypeEnum {
+    @SerializedName("Button") Button,
+    @SerializedName("Keydown") Keydown,
+  }
 
-enum class AuthKindEnum {
-  @SerializedName("signin") Signin,
-  @SerializedName("signout") Signout,
-  @SerializedName("support") Support,
-  @SerializedName("callback") Callback,
-  @SerializedName("simplified-onboarding") `Simplified-onboarding`,
-  @SerializedName("simplified-onboarding-exposure") `Simplified-onboarding-exposure`,
-}
+  enum class AuthKindEnum {
+    @SerializedName("signin") Signin,
+    @SerializedName("signout") Signout,
+    @SerializedName("support") Support,
+    @SerializedName("callback") Callback,
+    @SerializedName("simplified-onboarding") `Simplified-onboarding`,
+    @SerializedName("simplified-onboarding-exposure") `Simplified-onboarding-exposure`,
+  }
 
-enum class OnboardingKindEnum {
-  @SerializedName("web-sign-in-token") `Web-sign-in-token`,
+  enum class OnboardingKindEnum {
+    @SerializedName("web-sign-in-token") `Web-sign-in-token`,
+  }
 }
 

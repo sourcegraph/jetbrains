@@ -13,12 +13,13 @@ data class WorkspaceEditOperation(
   val newUri: String? = null,
   val deleteOptions: DeleteOptionsParams? = null,
   val edits: List<TextEdit>? = null,
-)
+) {
 
-enum class TypeEnum {
-  @SerializedName("rename-file") `Rename-file`,
-  @SerializedName("delete-file") `Delete-file`,
-  @SerializedName("edit-file") `Edit-file`,
-  @SerializedName("create-file") `Create-file`,
+  enum class TypeEnum {
+    @SerializedName("rename-file") `Rename-file`,
+    @SerializedName("delete-file") `Delete-file`,
+    @SerializedName("edit-file") `Edit-file`,
+    @SerializedName("create-file") `Create-file`,
+  }
 }
 

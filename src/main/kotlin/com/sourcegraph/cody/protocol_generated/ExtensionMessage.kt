@@ -30,26 +30,27 @@ data class ExtensionMessage(
   val isActive: Boolean? = null,
   val repos: List<Repo>? = null,
   val configFeatures: ConfigFeaturesParams? = null,
-)
+) {
 
-enum class TypeEnum {
-  @SerializedName("search:config") Search_config,
-  @SerializedName("history") History,
-  @SerializedName("transcript") Transcript,
-  @SerializedName("view") View,
-  @SerializedName("errors") Errors,
-  @SerializedName("notice") Notice,
-  @SerializedName("transcript-errors") `Transcript-errors`,
-  @SerializedName("userContextFiles") UserContextFiles,
-  @SerializedName("chatModels") ChatModels,
-  @SerializedName("update-search-results") `Update-search-results`,
-  @SerializedName("index-updated") `Index-updated`,
-  @SerializedName("enhanced-context") `Enhanced-context`,
-  @SerializedName("attribution") Attribution,
-  @SerializedName("setChatEnabledConfigFeature") SetChatEnabledConfigFeature,
-  @SerializedName("webview-state") `Webview-state`,
-  @SerializedName("context/remote-repos") `Context_remote-repos`,
-  @SerializedName("setConfigFeatures") SetConfigFeatures,
-  @SerializedName("config") Config,
+  enum class TypeEnum {
+    @SerializedName("search:config") Search_config,
+    @SerializedName("history") History,
+    @SerializedName("transcript") Transcript,
+    @SerializedName("view") View,
+    @SerializedName("errors") Errors,
+    @SerializedName("notice") Notice,
+    @SerializedName("transcript-errors") `Transcript-errors`,
+    @SerializedName("userContextFiles") UserContextFiles,
+    @SerializedName("chatModels") ChatModels,
+    @SerializedName("update-search-results") `Update-search-results`,
+    @SerializedName("index-updated") `Index-updated`,
+    @SerializedName("enhanced-context") `Enhanced-context`,
+    @SerializedName("attribution") Attribution,
+    @SerializedName("setChatEnabledConfigFeature") SetChatEnabledConfigFeature,
+    @SerializedName("webview-state") `Webview-state`,
+    @SerializedName("context/remote-repos") `Context_remote-repos`,
+    @SerializedName("setConfigFeatures") SetConfigFeatures,
+    @SerializedName("config") Config,
+  }
 }
 

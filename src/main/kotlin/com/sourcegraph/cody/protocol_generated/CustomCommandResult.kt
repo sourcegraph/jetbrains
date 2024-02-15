@@ -7,10 +7,11 @@ data class CustomCommandResult(
   val type: TypeEnum? = null, // Oneof: edit, chat
   val chatResult: String? = null,
   val editResult: EditTask? = null,
-)
+) {
 
-enum class TypeEnum {
-  @SerializedName("edit") Edit,
-  @SerializedName("chat") Chat,
+  enum class TypeEnum {
+    @SerializedName("edit") Edit,
+    @SerializedName("chat") Chat,
+  }
 }
 

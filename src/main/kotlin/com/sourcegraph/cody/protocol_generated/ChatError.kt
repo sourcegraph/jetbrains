@@ -16,9 +16,10 @@ data class ChatError(
   val feature: String? = null,
   val upgradeIsAvailable: Boolean? = null,
   val isChatErrorGuard: IsChatErrorGuardEnum? = null, // Oneof: isChatErrorGuard
-)
+) {
 
-enum class IsChatErrorGuardEnum {
-  @SerializedName("isChatErrorGuard") IsChatErrorGuard,
+  enum class IsChatErrorGuardEnum {
+    @SerializedName("isChatErrorGuard") IsChatErrorGuard,
+  }
 }
 
