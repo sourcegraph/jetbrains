@@ -16,6 +16,11 @@ class EditSession(
 
   override fun getLogger() = logger
 
+  override fun dispose() {
+    // No resources to dispose until we implement this class.
+    logger.info("Disposing edit session")
+  }
+
   private fun sendRequest(prompt: String, model: String) {
     logger.info("Sending inline-edit request: $prompt")
     // TODO: This will be very similar to DocumentCommandSession.sendRequest()

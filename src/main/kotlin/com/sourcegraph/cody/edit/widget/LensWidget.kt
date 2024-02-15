@@ -31,11 +31,9 @@ abstract class LensWidget(val parentGroup: LensWidgetGroup) : Disposable {
   }
 
   open fun onMouseEnter() {
-    logger.warn("Entering: $this")
     mouseInBounds = true
   }
   open fun onMouseExit() {
-    logger.warn("Existing: $this")
     mouseInBounds = false
   }
 

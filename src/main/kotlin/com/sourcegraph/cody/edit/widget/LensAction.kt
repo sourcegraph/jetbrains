@@ -18,6 +18,8 @@ class LensAction(
   // Bounds of the last paint call, to check for clicks
   private var lastPaintedBounds: Rectangle2D.Float? = null
 
+  private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
+
   override fun calcWidthInPixels(fontMetrics: FontMetrics): Int = fontMetrics.stringWidth(text)
 
   override fun calcHeightInPixels(fontMetrics: FontMetrics): Int = fontMetrics.height
@@ -27,12 +29,11 @@ class LensAction(
     val originalColor = g.color
     try {
       if (mouseInBounds) {
-        val attributes = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
-        g.font = originalFont.deriveFont(attributes)
+        g.font = originalFont.deriveFont(underline)
       } else {
         g.font = originalFont.deriveFont(Font.PLAIN)
       }
-      g.color = if (mouseInBounds) JBColor.WHITE else JBColor.GRAY
+      if (mouseInBounds) g.color = JBColor.BLUE
       g.drawString(text, x, y + g.fontMetrics.ascent)
 
       // After drawing, update lastPaintedBounds with the area we just used.

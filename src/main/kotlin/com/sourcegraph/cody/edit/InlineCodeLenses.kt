@@ -6,13 +6,14 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.DisplayCodeLensParams
 import com.sourcegraph.cody.agent.protocol.ProtocolCodeLens
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 
 /**
- * This class handles displaying and dispatching code lenses. There should be at most one instance of this
- * class and one active session per editor.
+ * This class handles displaying and dispatching code lenses. There should be at most one instance
+ * of this class and one active session per editor.
  */
 class InlineCodeLenses(val session: InlineFixupSession, val editor: Editor) : Disposable {
   private val logger = Logger.getInstance(InlineCodeLenses::class.java)
@@ -34,8 +35,9 @@ class InlineCodeLenses(val session: InlineFixupSession, val editor: Editor) : Di
    *
    * @params - the RPC params for the code lenses to display.
    */
+  @RequiresEdt
   fun display(params: DisplayCodeLensParams) {
-    inlay?.let { Disposer.dispose(it) }
+   disposeInlay()
     try {
       widgetGroup.reset()
       widgetGroup.setActions(ACTIONS)
@@ -75,8 +77,13 @@ class InlineCodeLenses(val session: InlineFixupSession, val editor: Editor) : Di
   }
 
   override fun dispose() {
-    // TODO: What do we need to do here?
-    // The widgets are Disposable - is this their parent Disposable? How?
+    disposeInlay()
+  }
+
+  private fun disposeInlay() {
+    if (inlay != null) {
+      Disposer.dispose(inlay!!)
+    }
   }
 
   private fun getLineForDisplayingLenses(lens: ProtocolCodeLens): Int {
@@ -88,5 +95,13 @@ class InlineCodeLenses(val session: InlineFixupSession, val editor: Editor) : Di
     val line = editor.caretModel.logicalPosition.line
     // TODO: Fallback should be the caret when the command was invoked.
     return (line - 1).coerceAtLeast(0) // Fall back to line before caret.
+  }
+
+  companion object {
+    private val codeLensesForEditor = mutableMapOf<Editor, InlineCodeLenses>()
+
+    fun get(session: InlineFixupSession, editor: Editor): InlineCodeLenses {
+      return codeLensesForEditor.computeIfAbsent(editor) { InlineCodeLenses(session, editor) }
+    }
   }
 }
