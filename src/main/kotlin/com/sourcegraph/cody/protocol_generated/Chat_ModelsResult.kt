@@ -1,7 +1,7 @@
-@file:Suppress("FunctionName", "ClassName")
+@file:Suppress("FunctionName", "ClassName", "unused")
 package com.sourcegraph.cody.protocol_generated
 
 data class Chat_ModelsResult(
-  var models: List<ModelProvider>? = null,
+  val models: List<ModelProvider>? = null,
 )
 

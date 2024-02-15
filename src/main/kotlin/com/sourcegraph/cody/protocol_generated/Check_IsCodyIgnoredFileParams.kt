@@ -1,7 +1,7 @@
-@file:Suppress("FunctionName", "ClassName")
+@file:Suppress("FunctionName", "ClassName", "unused")
 package com.sourcegraph.cody.protocol_generated
 
 data class Check_IsCodyIgnoredFileParams(
-  var urls: List<String>? = null,
+  val urls: List<String>? = null,
 )
 

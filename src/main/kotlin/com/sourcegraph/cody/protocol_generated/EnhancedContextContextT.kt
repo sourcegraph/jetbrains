@@ -1,7 +1,7 @@
-@file:Suppress("FunctionName", "ClassName")
+@file:Suppress("FunctionName", "ClassName", "unused")
 package com.sourcegraph.cody.protocol_generated
 
 data class EnhancedContextContextT(
-  var groups: List<ContextGroup>? = null,
+  val groups: List<ContextGroup>? = null,
 )
 

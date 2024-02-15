@@ -1,8 +1,8 @@
-@file:Suppress("FunctionName", "ClassName")
+@file:Suppress("FunctionName", "ClassName", "unused")
 package com.sourcegraph.cody.protocol_generated
 
 data class ProgressStartParams(
-  var id: String? = null,
-  var options: ProgressOptions? = null,
+  val id: String? = null,
+  val options: ProgressOptions? = null,
 )
 

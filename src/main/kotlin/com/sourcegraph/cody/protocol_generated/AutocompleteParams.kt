@@ -1,11 +1,16 @@
-@file:Suppress("FunctionName", "ClassName")
+@file:Suppress("FunctionName", "ClassName", "unused")
 package com.sourcegraph.cody.protocol_generated
 
 data class AutocompleteParams(
-  var uri: String? = null,
-  var filePath: String? = null,
-  var position: Position? = null,
-  var triggerKind: String? = null, // Oneof: Automatic, Invoke
-  var selectedCompletionInfo: SelectedCompletionInfo? = null,
+  val uri: String? = null,
+  val filePath: String? = null,
+  val position: Position? = null,
+  val triggerKind: TriggerKindEnum? = null, // Oneof: Automatic, Invoke
+  val selectedCompletionInfo: SelectedCompletionInfo? = null,
 )
+
+enum class TriggerKindEnum {
+  @com.google.gson.annotations.SerializedName("Automatic") Automatic,
+  @com.google.gson.annotations.SerializedName("Invoke") Invoke,
+}
 

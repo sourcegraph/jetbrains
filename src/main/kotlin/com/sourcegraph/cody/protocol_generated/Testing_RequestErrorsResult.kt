@@ -1,7 +1,7 @@
-@file:Suppress("FunctionName", "ClassName")
+@file:Suppress("FunctionName", "ClassName", "unused")
 package com.sourcegraph.cody.protocol_generated
 
 data class Testing_RequestErrorsResult(
-  var errors: List<NetworkRequest>? = null,
+  val errors: List<NetworkRequest>? = null,
 )
 

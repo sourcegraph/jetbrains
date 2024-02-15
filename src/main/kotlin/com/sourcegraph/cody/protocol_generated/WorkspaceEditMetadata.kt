@@ -1,7 +1,7 @@
-@file:Suppress("FunctionName", "ClassName")
+@file:Suppress("FunctionName", "ClassName", "unused")
 package com.sourcegraph.cody.protocol_generated
 
 data class WorkspaceEditMetadata(
-  var isRefactoring: Boolean? = null,
+  val isRefactoring: Boolean? = null,
 )
 
