@@ -1,6 +1,8 @@
 package com.sourcegraph.telemetry;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import com.intellij.json.psi.JsonValue;
 import com.intellij.openapi.project.Project;
 import com.sourcegraph.cody.agent.CodyAgentService;
 import com.sourcegraph.cody.agent.protocol.Event;
@@ -59,6 +61,7 @@ public class GraphQlLogger {
     extensionDetails.addProperty("ideExtensionType", "Cody");
     extensionDetails.addProperty("version", ConfigUtil.getPluginVersion());
     updatedEventParameters.add("extensionDetails", extensionDetails);
+    updatedEventParameters.add("agent", new JsonPrimitive(true));
     return updatedEventParameters;
   }
 
