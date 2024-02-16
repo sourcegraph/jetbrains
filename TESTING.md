@@ -522,3 +522,8 @@ Repeat the above starting from different themes.
 #### Expected behaviour
 
 Changing theme should lead to full repaint of the colours according to the current theme.
+
+### Guardrails:
+
+- [ ] Check if Guardrails check passes for any code longer than 10 lines generated in Cody Chat
+- [ ] Check if Guardrails check failes for any code longer than 10 lines that matches indexed OSS
