@@ -50,8 +50,13 @@ class ChatPanel(project: Project, chatSession: ChatSession, selectedModel: ChatM
     lowerPanel.add(stopGeneratingButton)
     lowerPanel.add(promptPanel)
     lowerPanel.add(contextView)
+
+    val wrapper = JPanel()
+    wrapper.add(llmDropdown)
+    wrapper.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 12, 12, true, false)
+
     add(lowerPanel, BorderLayout.SOUTH)
-    add(llmDropdown, BorderLayout.NORTH)
+    add(wrapper, BorderLayout.NORTH)
   }
 
   fun setAsActive() {
