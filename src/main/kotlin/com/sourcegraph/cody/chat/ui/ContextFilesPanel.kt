@@ -2,7 +2,6 @@ package com.sourcegraph.cody.chat.ui
 
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -25,6 +24,7 @@ import com.sourcegraph.cody.chat.ChatUIConstants.TEXT_MARGIN
 import com.sourcegraph.cody.ui.AccordionSection
 import java.awt.BorderLayout
 import java.awt.Insets
+import java.nio.file.Path
 import java.nio.file.Paths
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
@@ -42,13 +42,14 @@ class ContextFilesPanel(
   }
 
   @RequiresBackgroundThread
-  private fun updateFileList(contextFileNames: Map<String, ContextFile>) {
+  private fun updateFileList(contextFileNames: Map<Path, ContextFile>) {
     val filesAvailableInEditor =
         contextFileNames
-            .map {
-              val findFileByNioPath = LocalFileSystem.getInstance().findFileByPath(it.key)
-              findFileByNioPath ?: return@map null
-              Pair(findFileByNioPath, it.value as? ContextFileFile)
+            .map { (key, value) ->
+              val file = if (value.repoName != null) Paths.get(key.absolutePathString()) else key
+              val findFileByNioFile = LocalFileSystem.getInstance().findFileByNioFile(file)
+              findFileByNioFile ?: return@map null
+              Pair(findFileByNioFile, value as? ContextFileFile)
             }
             .filterNotNull()
             .toList()
@@ -96,12 +97,7 @@ class ContextFilesPanel(
       contextFileFile: ContextFileFile?,
       projectRelativeFilePath: String
   ): String {
-    val (startLine, endLine) =
-        contextFileFile?.range?.let {
-          // We need to .plus(1) since the ranges use 0-based indexing
-          // but IntelliJ presents it as 1-based indexing.
-          Pair(it.start.line.plus(1), it.end.line.plus(1))
-        } ?: Pair(null, null)
+    val (startLine, endLine) = contextFileFile?.range?.intellijRange() ?: Pair(null, null)
 
     return buildString {
       append("@$projectRelativeFilePath")
@@ -121,14 +117,14 @@ class ContextFilesPanel(
     }
     this.removeAll()
 
-    val contextFileNames = mutableMapOf<String, ContextFile>()
+    val contextFileNames = mutableMapOf<Path, ContextFile>()
     for (contextFile in contextFiles) {
       val contextFileName =
           if (contextFile.repoName != null) {
-            "${project.basePath}/${contextFile.uri.path}"
+            Paths.get("${project.basePath}/${contextFile.uri.path}")
           } else {
             val newUri = contextFile.uri.withFragment(null).withQuery(null)
-            Paths.get(newUri).absolutePathString()
+            Paths.get(newUri)
           }
 
       val existingValue = contextFileNames[contextFileName] as? ContextFileFile
@@ -141,10 +137,6 @@ class ContextFilesPanel(
     }
 
     ApplicationManager.getApplication().executeOnPooledThread { updateFileList(contextFileNames) }
-  }
-
-  companion object {
-    private val logger = Logger.getInstance(ContextFilesPanel::class.java)
   }
 }
 
