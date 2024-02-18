@@ -321,17 +321,29 @@ You only need to do most of these steps once, when you create the
 External Tool. Then you can use it in any run config that spawns the
 agent, to rebuild it first.
 
-## Tips for best results
+## Debugging VS Code
 
-### Prefer clean restarts
+Sometimes, the Agent behaves differently when called from IntelliJ than
+when called from VS Code, and you may need to debug the same code paths
+through the Agent twice. First, when called from the JetBrains extension
+side, and again when called from the VS Code extension side.
 
-Avoid using the green "Restart Debug _config_" button for your run
-configuration when you are restarting your debug
-session. Force-restarting often causes the target's file indexes to be
-corrupted due to race conditions, requiring a restart of your target
-to clean them up.
+To accomplish the latter, you can use VSC to debug itself. It works very
+similarly to how it works in JetBrains. There are predefined run
+configurations for debugging VSC Cody in the file `.vscode/launch.json`
+in `sourcegraph/cody`, such as `Launch VS Code Extension (Desktop)`.
 
-Instead, go to your debug target IDE session and quit it normally with
-⌘Q or equivalent. This has the added benefit that the target will remember
-any changes you've made to your tabs and open files during your debugging;
-it can be annoying to recreate an environment on each debug restart.
+You do not launch VSC run configurations from the command palette.
+Instead, use ctrl-shift-D to open the Run and Debug view, and you can
+see the configuration dropdown at the top.
+
+## Known Issues
+
+- Force-stopping the target often corrupts the indexes, requiring an
+  extra restart of the debugged target to fix them.
+  - Workaround is to exit the target gracefully by quitting each time.
+  
+
+
+One workaround is to quit the target instance gracefully from its
+own menus/hotkeys (e.g. ⌘-Q), rather than force-stopping it.

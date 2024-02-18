@@ -21,6 +21,10 @@ class EditSession(
     logger.info("Disposing edit session")
   }
 
+  override fun accept() {
+    TODO("Not yet implemented")
+  }
+
   override fun retry() {
     logger.warn("retrying EditSession")
   }

@@ -72,7 +72,13 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var widgetFontMetrics: FontMetrics? = null
 
-  private var lastHoveredWidget: LensWidget? = null
+  private var lastHoveredWidget: LensWidget? = null // Used for mouse rollover highlighting.
+
+  /**
+   * This bears some explanation. The protocol doesn't tell us when the "last" lens is sent. This is
+   * a heuristic; we flag what looks like the final lens as soon as we see it arrive.
+   */
+  private var receivedAcceptLens = false
 
   var inlay: Inlay<EditorCustomElementRenderer>? = null
 
@@ -181,7 +187,9 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       // Even icons/spinners are currently encoded in the title field.
       var text = (lens.command?.title ?: return@forEachIndexed).trim()
       val command = lens.command.command
-
+      if (command == "cody.fixup.codelens.accept") {
+        receivedAcceptLens = true
+      }
       // These two cases are encoded in the title field.
       // TODO: Protocol should split them into separate lenses.
       // "$(sync~spin) ..."
@@ -229,12 +237,15 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       lastWidget?.onMouseExit()
       lastHoveredWidget = widget // null if now outside
       widget?.onMouseEnter()
-      inlay?.update()
+      inlay?.update() // force repaint
     }
   }
 
   private fun handleDocumentChanged(@Suppress("UNUSED_PARAMETER") e: DocumentEvent) {
-    session.cancel()
+    // We let them edit up until we show the Accept lens, and then editing auto-accepts.
+    if (receivedAcceptLens) {
+      session.accept()
+    }
   }
 
   /** Immediately hides and discards this inlay and widget group. */
