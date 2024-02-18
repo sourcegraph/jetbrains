@@ -86,7 +86,7 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
         logger.warn("received code lens for wrong document: ${params.uri}")
         return@setOnDisplayCodeLens
       }
-      disposeLenses()
+      lensGroup?.let { Disposer.dispose(it) }
       LensWidgetGroup(this, editor).let {
         synchronized(this) {
           lensGroup = it // Set this first, in case of race conditions.
@@ -96,8 +96,12 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
     }
 
     agent.client.setOnEditTaskStateDidChange { task ->
-      if (task.id == taskId) {
-        logger.warn("Task $taskId state change: ${task.state}") // TODO: Handle this.
+      // These notifications aren't super reliable at the moment, as we do not receive
+      // them all, including not being notified of the terminal state.
+      if (task.id != taskId) {
+        logger.warn("onEditTaskStateDidChange: $this got wrong task id for task $task")
+      } else {
+        logger.warn("onEditTaskStateDidChange: $this got task state $task")
       }
     }
 
@@ -122,21 +126,25 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
       }
     }
 
-    // We get a textDocument/edit notification here with the doc comment to insert.
-    // However, we also get a workspace/edit notification with the same edits.
+    // We get our insertion command via a workspace/edit request above.
     agent.client.setOnTextDocumentEdit { params ->
       logger.warn("DocumentCommand session received text document edit: $params")
     }
   }
 
-  fun accept() {
-    // TODO: Telemetry
+  override fun accept() {
+    // TODO: Telemetry -- see get-inputs.ts
+    // telemetryRecorder.recordEvent('cody.fixup.input.model', 'selected')
     finish()
   }
 
   override fun cancel() {
     // TODO: Telemetry
-    finish()
+    if (performedEdits) {
+      undo()
+    } else {
+      finish()
+    }
   }
 
   override fun retry() {
@@ -149,14 +157,13 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
     logger.warn("Code Lenses: Show Diff")
   }
 
-  @RequiresEdt
-  private fun disposeLenses() {
-    lensGroup?.let { Disposer.dispose(it) }
+  fun undo() {
+    // TODO: Telemetry
+    undoEdits()
+    finish()
   }
 
-  fun undo() {
-    finish()
-    // TODO: Telemetry
+  private fun undoEdits() {
     try {
       val undoManager = UndoManager.getInstance(editor.project!!)
       if (undoManager.isUndoAvailable(null)) {

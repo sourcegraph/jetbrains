@@ -21,6 +21,9 @@ abstract class FixupSession(val editor: Editor) : Disposable {
   protected val currentJob = AtomicReference(CancellationToken())
   protected var taskId: String? = null
 
+  var performedEdits = false
+    private set
+
   abstract fun getLogger(): Logger
 
   fun finish() {
@@ -37,6 +40,8 @@ abstract class FixupSession(val editor: Editor) : Disposable {
       currentJob.set(CancellationToken())
     }
   }
+
+  abstract fun accept()
 
   /** Subclasses must handle the retry operation. */
   abstract fun retry()
@@ -90,6 +95,8 @@ abstract class FixupSession(val editor: Editor) : Disposable {
     val textEdit = TextEdit("insert", null, pos, insertText)
 
     val (start, _) = getOffsets(doc, textEdit) ?: return
+    // Set this flag before we make the edit, since callbacks are called synchronously.
+    performedEdits = true
     doc.insertString(start, insertText)
   }
 
