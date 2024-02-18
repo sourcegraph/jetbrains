@@ -51,9 +51,15 @@ public class CodyAgentClient {
 
   @JsonNotification("editTaskState/didChange")
   public void editTaskStateDidChange(EditTask params) {
-    if (onEditTaskStateDidChange != null) {
-      onEditTaskStateDidChange.accept(params);
-    }
+    onEventThread(
+        () -> {
+          if (onEditTaskStateDidChange != null) {
+            onEditTaskStateDidChange.accept(params);
+          } else {
+            logger.warn("No callback registered for editTaskState/didChange");
+          }
+          return null;
+        });
   }
 
   public void setOnTextDocumentEdit(@Nullable Consumer<TextDocumentEditParams> callback) {
@@ -79,14 +85,18 @@ public class CodyAgentClient {
 
   @JsonNotification("codeLenses/display")
   public void codeLensesDisplay(DisplayCodeLensParams params) {
-    if (onDisplayCodeLens != null) {
-      onDisplayCodeLens.accept(params);
-    } else {
-      logger.warn("No callback registered for codeLenses/display");
-    }
+    onEventThread(
+        () -> {
+          if (onDisplayCodeLens != null) {
+            onDisplayCodeLens.accept(params);
+          } else {
+            logger.warn("No callback registered for codeLenses/display");
+          }
+          return null;
+        });
   }
 
-  public void setOnWorkspaceEdit(Consumer<WorkspaceEditParams> callback) {
+  public void setOnWorkspaceEdit(@Nullable Consumer<WorkspaceEditParams> callback) {
     onWorkspaceEdit = callback;
   }
 

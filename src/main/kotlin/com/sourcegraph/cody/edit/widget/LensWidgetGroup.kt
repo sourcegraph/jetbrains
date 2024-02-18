@@ -6,62 +6,116 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.colors.EditorFontType
-import com.intellij.openapi.editor.event.EditorMouseEvent
-import com.intellij.openapi.editor.event.EditorMouseListener
-import com.intellij.openapi.editor.event.EditorMouseMotionListener
+import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.TextAttributes
+import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.Icons
+import com.sourcegraph.cody.agent.protocol.DisplayCodeLensParams
 import com.sourcegraph.cody.agent.protocol.ProtocolCodeLens
-import com.sourcegraph.cody.edit.InlineCodeLenses
-import java.awt.*
+import com.sourcegraph.cody.edit.FixupSession
+import java.awt.Font
+import java.awt.FontMetrics
+import java.awt.Graphics2D
+import java.awt.Point
 import java.awt.geom.Rectangle2D
 
+operator fun Point.component1() = this.x
+
+operator fun Point.component2() = this.y
+
 /**
- * Manages a simple row of [LensWidget]s, delegating to them for rendering, managing their
- * positioning, and routing mouse events.
+ * Manages a single code lens group. It should only be displayed once, and disposed after displaying
+ * it, before displaying another.
  */
-class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor) :
+class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     EditorCustomElementRenderer, Disposable {
   private val logger = Logger.getInstance(LensWidgetGroup::class.java)
   val editor = parentComponent as EditorImpl
 
-  val widgets = mutableListOf<LensWidget>()
+  private val widgets = mutableListOf<LensWidget>()
 
-  lateinit var supportedActions: Map<String, () -> Unit>
+  private lateinit var commandCallbacks: Map<String, () -> Unit>
 
-  lateinit var mouseClickListener: EditorMouseListener
-  lateinit var mouseMotionListener: EditorMouseMotionListener
+  private val mouseClickListener =
+      object : EditorMouseListener {
+        override fun mouseClicked(e: EditorMouseEvent) {
+          if (!listenersMuted) {
+            handleMouseClick(e)
+          }
+        }
+      }
+  private val mouseMotionListener =
+      object : EditorMouseMotionListener {
+        override fun mouseMoved(e: EditorMouseEvent) {
+          if (!listenersMuted) {
+            handleMouseMove(e)
+          }
+        }
+      }
 
-  lateinit var widgetFont: Font
-  var widgetFontMetrics: FontMetrics? = null
+  private val documentListener =
+      object : DocumentListener {
+        override fun documentChanged(event: DocumentEvent) {
+          if (!listenersMuted) {
+            handleDocumentChanged(event)
+          }
+        }
+      }
+
+  private var listenersMuted = false
+
+  private val widgetFont =
+      with(editor.colorsScheme.getFont(EditorFontType.PLAIN)) { Font(name, style, size - 2) }
+
+  private var widgetFontMetrics: FontMetrics? = null
 
   private var lastHoveredWidget: LensWidget? = null
 
-  operator fun Point.component1() = this.x
-
-  operator fun Point.component2() = this.y
+  var inlay: Inlay<EditorCustomElementRenderer>? = null
 
   init {
-    registerMouseHandlers()
-    initWidgetFont()
+    Disposer.register(session, this)
+    editor.addEditorMouseListener(mouseClickListener)
+    editor.addEditorMouseMotionListener(mouseMotionListener)
+    editor.document.addDocumentListener(documentListener)
   }
 
-  val inlay: Inlay<EditorCustomElementRenderer>? by controller::inlay
-
-  fun reset() {
-    widgets.clear()
+  fun withListenersMuted(block: () -> Unit) {
+    try {
+      listenersMuted = true
+      block()
+    } finally {
+      listenersMuted = false
+    }
   }
 
-  fun setActions(actions: Map<String, () -> Unit>) {
-    supportedActions = actions
+  @RequiresEdt
+  fun display(params: DisplayCodeLensParams, callbacks: Map<String, () -> Unit>) {
+    try {
+      commandCallbacks = callbacks
+      parse(params.codeLenses)
+    } catch (x: Exception) {
+      logger.error("Error building CodeLens widgets", x)
+      return
+    }
+    val offset = editor.document.getLineStartOffset(getInlayLine(params.codeLenses.first()))
+    inlay = editor.inlayModel.addBlockElement(offset, true, false, 0, this)
+    Disposer.register(this, inlay!!)
+  }
+
+  // Propagate repaint requests from widgets to the inlay.
+  fun update() {
+    inlay?.update()
   }
 
   override fun calcWidthInPixels(inlay: Inlay<*>): Int {
+    // We create widgets for everything including separators; sum their widths.
+    // N.B. This method is never called; I suspect the inlay takes the whole line.
     val fontMetrics = widgetFontMetrics ?: editor.getFontMetrics(Font.PLAIN)
-    return widgets.sumOf { it.calcWidthInPixels(fontMetrics) } +
-        (widgets.size - 1) * fontMetrics.stringWidth(" | ")
+    return widgets.sumOf { it.calcWidthInPixels(fontMetrics) }
   }
 
   override fun calcHeightInPixels(inlay: Inlay<*>): Int {
@@ -91,13 +145,15 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
     }
   }
 
-  fun update() {
-    controller.update()
-  }
-
-  private fun initWidgetFont() {
-    val editorFont = editor.colorsScheme.getFont(EditorFontType.PLAIN)
-    widgetFont = Font(editorFont.name, editorFont.style, editorFont.size - 2)
+  private fun getInlayLine(lens: ProtocolCodeLens): Int {
+    if (!lens.range.isZero()) {
+      return lens.range.start.line
+    }
+    // Zeroed out (first char in buffer) usually means it's uninitialized/invalid.
+    // We recompute it just to be sure.
+    val line = editor.caretModel.logicalPosition.line
+    // TODO: Fallback should be the caret when the command was invoked.
+    return (line - 1).coerceAtLeast(0) // Fall back to line before caret.
   }
 
   private fun findWidgetAt(x: Int, y: Int): LensWidget? {
@@ -118,41 +174,36 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
     return null
   }
 
-  override fun dispose() {
-    editor.removeEditorMouseListener(mouseClickListener)
-    editor.removeEditorMouseMotionListener(mouseMotionListener)
-    widgets.clear() // Don't hold refs to disposed objects
-  }
-
   /* Parse the RPC data and create widgets. */
-  fun parse(lenses: List<ProtocolCodeLens>) {
+  private fun parse(lenses: List<ProtocolCodeLens>) {
     var separator = false
     lenses.forEachIndexed { i, lens ->
       // Even icons/spinners are currently encoded in the title field.
       var text = (lens.command?.title ?: return@forEachIndexed).trim()
+      val command = lens.command.command
 
       // These two cases are encoded in the title field.
       // TODO: Protocol should split them into separate lenses.
       // "$(sync~spin) ..."
-      if (text.startsWith(spinnerMarker)) {
+      if (text.startsWith(SPINNER_MARKER)) {
         widgets.add(LensSpinner(this, Icons.StatusBar.CompletionInProgress))
-        widgets.add(LensLabel(this, iconSpacer))
-        text = text.removePrefix(spinnerMarker).trimStart()
+        widgets.add(LensLabel(this, ICON_SPACER))
+        text = text.removePrefix(SPINNER_MARKER).trimStart()
       }
       // "$(cody-logo) ..."
-      if (text.startsWith(logoMarker)) {
+      if (text.startsWith(LOGO_MARKER)) {
         widgets.add(LensIcon(this, Icons.CodyLogo))
-        widgets.add(LensLabel(this, iconSpacer))
-        text = text.removePrefix(logoMarker).trimStart()
+        widgets.add(LensLabel(this, ICON_SPACER))
+        text = text.removePrefix(LOGO_MARKER).trimStart()
       }
       // All that's left are actions and labels.
-      if (text in supportedActions) {
+      if (command in commandCallbacks) {
         // This is a hack, but works for the lenses we've seen so far.
         // We only start adding separators after the first action or nonempty label.
         if (i < lenses.size && separator) {
-          widgets.add(LensLabel(this, actionSeparator))
+          widgets.add(LensLabel(this, SEPARATOR))
         }
-        widgets.add(LensAction(this, text, supportedActions[text]!!))
+        widgets.add(LensAction(this, text, commandCallbacks[command]!!))
         separator = true
       } else {
         widgets.add(LensLabel(this, text))
@@ -161,41 +212,55 @@ class LensWidgetGroup(val controller: InlineCodeLenses, parentComponent: Editor)
     }
   }
 
-  private fun registerMouseHandlers() {
-    // TODO: Register all these with Disposable
-    mouseClickListener =
-        object : EditorMouseListener {
-          override fun mouseClicked(e: EditorMouseEvent) {
-            val (x, y) = e.mouseEvent.point
-            if (findWidgetAt(x, y)?.onClick(x, y) == true) {
-              e.consume()
-            }
-          }
-        }
-    editor.addEditorMouseListener(mouseClickListener)
-    mouseMotionListener =
-        object : EditorMouseMotionListener {
-          override fun mouseMoved(e: EditorMouseEvent) {
-            val (x, y) = e.mouseEvent.point
-            val widget = findWidgetAt(x, y)
-            val lastWidget = lastHoveredWidget
-            // Check if the mouse has moved from one widget to another or from/to outside
-            if (widget != lastWidget) {
-              lastWidget?.onMouseExit()
-              // Update the lastHoveredWidget (can be null if now outside)
-              lastHoveredWidget = widget
-              widget?.onMouseEnter()
-            }
-          }
-        }
-    editor.addEditorMouseMotionListener(mouseMotionListener)
+  // Dispatch mouse click events to the appropriate widget.
+  private fun handleMouseClick(e: EditorMouseEvent) {
+    val (x, y) = e.mouseEvent.point
+    if (findWidgetAt(x, y)?.onClick(x, y) == true) {
+      e.consume()
+    }
+  }
+
+  private fun handleMouseMove(e: EditorMouseEvent) {
+    val (x, y) = e.mouseEvent.point
+    val widget = findWidgetAt(x, y)
+    // TODO: Fix hit box detection.
+    //logger.debug("$x, $y -> $widget (last: $lastHoveredWidget)")
+    val lastWidget = lastHoveredWidget
+    // Check if the mouse has moved from one widget to another or from/to outside
+    if (widget != lastWidget) {
+      lastWidget?.onMouseExit()
+      lastHoveredWidget = widget // null if now outside
+      widget?.onMouseEnter()
+    }
+  }
+
+  private fun handleDocumentChanged(@Suppress("UNUSED_PARAMETER") e: DocumentEvent) {
+    session.cancel()
+  }
+
+  /** Immediately hides and discards this inlay and widget group. */
+  override fun dispose() {
+    if (editor.isDisposed) return
+    editor.removeEditorMouseListener(mouseClickListener)
+    editor.removeEditorMouseMotionListener(mouseMotionListener)
+    editor.document.removeDocumentListener(documentListener)
+    disposeInlay()
+  }
+
+  private fun disposeInlay() {
+    inlay?.apply {
+      if (isValid) {
+        Disposer.dispose(this)
+      }
+      inlay = null
+    }
   }
 
   companion object {
-    const val logoMarker = "$(cody-logo)"
-    const val spinnerMarker = "$(sync~spin)"
-    const val iconSpacer = " "
-    const val actionSeparator = " | "
-    val lensColor = Gray._153
+    const val LOGO_MARKER = "$(cody-logo)"
+    const val SPINNER_MARKER = "$(sync~spin)"
+    const val ICON_SPACER = " "
+    const val SEPARATOR = " | "
+    private val lensColor = Gray._150
   }
 }

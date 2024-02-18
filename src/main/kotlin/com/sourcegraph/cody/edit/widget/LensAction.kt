@@ -1,13 +1,11 @@
 package com.sourcegraph.cody.edit.widget
 
 import com.intellij.ui.JBColor
-import java.awt.Color
 import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.font.TextAttribute
 import java.awt.geom.Rectangle2D
-import java.util.*
 
 class LensAction(
     group: LensWidgetGroup,
@@ -33,7 +31,7 @@ class LensAction(
       } else {
         g.font = originalFont.deriveFont(Font.PLAIN)
       }
-      if (mouseInBounds) g.color = JBColor.BLUE
+      if (mouseInBounds) g.color = JBColor.BLUE // TODO: use theme link rollover color
       g.drawString(text, x, y + g.fontMetrics.ascent)
 
       // After drawing, update lastPaintedBounds with the area we just used.

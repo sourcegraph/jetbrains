@@ -1,11 +1,11 @@
 package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.util.Disposer
 import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.vscode.CancellationToken
@@ -15,22 +15,35 @@ import java.util.concurrent.atomic.AtomicReference
  * Common functionality for commands that let the agent edit the code inline, such as adding a doc
  * string, or fixing up a region according to user instructions.
  */
-abstract class InlineFixupSession(val editor: Editor) : Disposable {
-  protected val controller = InlineFixups.instance
+abstract class FixupSession(val editor: Editor) : Disposable {
+  protected val controller = FixupService.instance
 
   protected val currentJob = AtomicReference(CancellationToken())
   protected var taskId: String? = null
 
   abstract fun getLogger(): Logger
 
-  fun cancelCurrentJob() {
-    getLogger().warn("Aborting current job: $this")
-    currentJob.get().abort()
-    currentJob.set(CancellationToken())
-    // TODO:
-    //  - make sure it's plumbed through to the agent
-    //  - clear all the UI
+  fun finish() {
+    Disposer.dispose(this)
   }
+
+  override fun dispose() {
+    cancelCurrentJob()
+  }
+
+  fun cancelCurrentJob() {
+    // Do not dispose ourselves here.
+    if (!currentJob.get().isCancelled) {
+      currentJob.get().abort()
+      currentJob.set(CancellationToken())
+    }
+  }
+
+  /** Subclasses must handle the retry operation. */
+  abstract fun retry()
+
+  /** Cancel this session and discard all resources. */
+  abstract fun cancel()
 
   fun performInlineEdits(edits: List<TextEdit>) {
     if (!controller.isEligibleForInlineEdit(editor)) {
@@ -47,10 +60,6 @@ abstract class InlineFixupSession(val editor: Editor) : Disposable {
           else -> getLogger().warn("Unknown edit type: ${edit.type}")
         }
       }
-      ApplicationManager.getApplication().invokeLater {
-        // TODO: Fix up selection.
-        editor.caretModel.primaryCaret.removeSelection()
-      }
     }
   }
 
@@ -60,7 +69,7 @@ abstract class InlineFixupSession(val editor: Editor) : Disposable {
       return Pair(offset, offset)
     }
     if (edit.range == null) {
-      getLogger().warn("Invalid edit range: ${edit.range} for edit: ${edit.type}")
+      getLogger().warn("null edit range for: ${edit.type}")
       return null
     }
     return edit.range.toOffsets(doc)
@@ -72,9 +81,7 @@ abstract class InlineFixupSession(val editor: Editor) : Disposable {
   }
 
   private fun performInsert(doc: Document, edit: TextEdit) {
-    // We're getting back zeroes right now for edit.position (and range).
-    // TODO: Fix the Agent to compute the correct selection if none is passed.
-
+    // TODO: Figure out why insertion-based selection guessing isn't being called in the agent.
     // For now, hack it to insert at beginning of line (BOL) at cursor, for demo purposes.
     val c = editor.caretModel.primaryCaret.offset
     val lineStart = doc.getLineStartOffset(doc.getLineNumber(c))
