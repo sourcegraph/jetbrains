@@ -1,28 +1,41 @@
 package com.sourcegraph.cody.edit
 
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.util.Disposer
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.withAgent
-import com.sourcegraph.cody.agent.protocol.CodyTaskState
-import com.sourcegraph.cody.agent.protocol.EditTask
-import com.sourcegraph.cody.agent.protocol.isTerminal
-import com.sourcegraph.cody.edit.InlineFixups.Companion.backgroundThread
+import com.sourcegraph.cody.edit.FixupService.Companion.backgroundThread
+import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
 
-class DocumentSession(editor: Editor) : InlineFixupSession(editor) {
-  private val logger = Logger.getInstance(DocumentSession::class.java)
-  val project = editor.project!!
+class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
+  private val logger = Logger.getInstance(DocumentCodeSession::class.java)
+  private val project = editor.project!!
+
+  private var lensGroup: LensWidgetGroup? = null
+
+  private val lensActionCallbacks =
+      mapOf(
+          "cody.fixup.codelens.accept" to { accept() },
+          "cody.fixup.codelens.cancel" to { cancel() },
+          "cody.fixup.codelens.retry" to { retry() },
+          "cody.fixup.codelens.diff" to { showDiff() },
+          "cody.fixup.codelens.undo" to { undo() },
+      )
 
   init {
     triggerDocumentCodeAsync()
   }
+
+  override fun getLogger() = logger
 
   private fun triggerDocumentCodeAsync(): CompletableFuture<Void?> {
     val resultOuter = CompletableFuture<Void?>()
@@ -30,8 +43,7 @@ class DocumentSession(editor: Editor) : InlineFixupSession(editor) {
 
     withAgent(project) { agent ->
       workAroundUninitializedCodebase(editor)
-      addClientListeners(editor, agent)
-
+      addClientListeners(agent)
       val response = agent.server.commandsDocument()
       currentJob.get().onCancellationRequested { response.cancel(true) }
 
@@ -42,7 +54,7 @@ class DocumentSession(editor: Editor) : InlineFixupSession(editor) {
                 // TODO: Adapt logic from CodyCompletionsManager.handleError
                 logger.warn("Error while generating doc string: $error")
               } else {
-                beginTrackingTask(editor, result)
+                taskId = result.id
               }
               null
             }
@@ -67,47 +79,25 @@ class DocumentSession(editor: Editor) : InlineFixupSession(editor) {
     CodyAgentCodebase.getInstance(project).onFileOpened(project, file)
   }
 
-  private fun beginTrackingTask(editor: Editor, task: EditTask) {
-    taskId = task.id
-    withAgent(project) { agent -> addClientListeners(editor, agent) }
-  }
-
-  private fun addClientListeners(editor: Editor, agent: CodyAgent) {
-
-    agent.client.setOnEditTaskStateDidChange { task ->
-      if (task.id != taskId) return@setOnEditTaskStateDidChange
-      if (task.state.isTerminal) {
-        if (task.state == CodyTaskState.finished) {
-          logger.warn("Finished task $taskId")
-        } else {
-          logger.warn("TODO: Handle error terminal case")
-        }
-      } else {
-        logger.warn("Progress update for task $taskId: ${task.state}")
-      }
-    }
-
+  @RequiresEdt
+  private fun addClientListeners(agent: CodyAgent) {
     agent.client.setOnDisplayCodeLens { params ->
       if (params.uri != FileDocumentManager.getInstance().getFile(editor.document)?.url) {
         logger.warn("received code lens for wrong document: ${params.uri}")
         return@setOnDisplayCodeLens
       }
-      // TODO: go back to constructor, tie it to session, then:
-      //  - keep it in the editor-to-lenses map
-      //  - register it with Disposable, with the Session as the parent
-      //  - when a new session starts, dispose the active session (for that editor)
-      //  - finish registering all the widgets as disposable children
-      ApplicationManager.getApplication().invokeLater {
-        InlineCodeLenses.get(this, editor).display(params)
+      disposeLenses()
+      LensWidgetGroup(this, editor).let {
+        synchronized(this) {
+          lensGroup = it // Set this first, in case of race conditions.
+          it.display(params, lensActionCallbacks)
+        }
       }
     }
 
-    // TODO: We don't get these for commands/document.
-    agent.client.setOnTextDocumentEdit { params ->
-      if (params.uri != FileDocumentManager.getInstance().getFile(editor.document)?.path) {
-        logger.warn("received notification for wrong document: ${params.uri}")
-      } else {
-        performInlineEdits(params.edits)
+    agent.client.setOnEditTaskStateDidChange { task ->
+      if (task.id == taskId) {
+        logger.warn("Task $taskId state change: ${task.state}") // TODO: Handle this.
       }
     }
 
@@ -122,7 +112,7 @@ class DocumentSession(editor: Editor) : InlineFixupSession(editor) {
             if (op.edits == null) {
               logger.warn("Workspace edit operation has no edits")
             } else {
-              performInlineEdits(op.edits)
+              lensGroup!!.withListenersMuted { performInlineEdits(op.edits) }
             }
           }
           else ->
@@ -131,11 +121,49 @@ class DocumentSession(editor: Editor) : InlineFixupSession(editor) {
         }
       }
     }
+
+    // This doesn't seem to be called for commands/document, but I see complaints in the logs
+    // about no handler being registered.
+    agent.client.setOnTextDocumentEdit { params ->
+      logger.warn("DocumentCommand session received text document edit: $params")
+    }
   }
 
-  override fun getLogger() = logger
+  fun accept() {
+    // TODO: Telemetry
+    finish()
+  }
 
-  override fun dispose() {
-    TODO("Not yet implemented")
+  override fun cancel() {
+    // TODO: Telemetry
+    finish()
+  }
+
+  override fun retry() {
+    // TODO: Telemetry
+    FixupService.instance.documentCode(editor) // Disposes this session.
+  }
+
+  // Brings up a diff view showing the changes the AI made.
+  private fun showDiff() {
+    logger.warn("Code Lenses: Show Diff")
+  }
+
+  @RequiresEdt
+  private fun disposeLenses() {
+    lensGroup?.let { Disposer.dispose(it) }
+  }
+
+  fun undo() {
+    finish()
+    // TODO: Telemetry
+    try {
+      val undoManager = UndoManager.getInstance(editor.project!!)
+      if (undoManager.isUndoAvailable(null)) {
+        undoManager.undo(null)
+      }
+    } catch (t: Throwable) {
+      logger.error("Error applying Undo", t)
+    }
   }
 }

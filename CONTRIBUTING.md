@@ -320,3 +320,18 @@ To set this up, in the Before launch section of any Run/Debug configuration, do 
 You only need to do most of these steps once, when you create the
 External Tool. Then you can use it in any run config that spawns the
 agent, to rebuild it first.
+
+## Tips for best results
+
+### Prefer clean restarts
+
+Avoid using the green "Restart Debug _config_" button for your run
+configuration when you are restarting your debug
+session. Force-restarting often causes the target's file indexes to be
+corrupted due to race conditions, requiring a restart of your target
+to clean them up.
+
+Instead, go to your debug target IDE session and quit it normally with
+⌘Q or equivalent. This has the added benefit that the target will remember
+any changes you've made to your tabs and open files during your debugging;
+it can be annoying to recreate an environment on each debug restart.

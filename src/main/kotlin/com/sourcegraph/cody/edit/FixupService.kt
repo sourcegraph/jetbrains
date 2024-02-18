@@ -6,15 +6,14 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.util.Disposer
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
 
 /** Controller for commands that allow the LLM to edit the code directly. */
 @Service
-class InlineFixups : Disposable {
-  private val logger = Logger.getInstance(InlineFixups::class.java)
-  private var activeSession: InlineFixupSession? = null
+class FixupService : Disposable {
+  private val logger = Logger.getInstance(FixupService::class.java)
+  private var activeSession: FixupSession? = null
   private var currentModel = "GPT-3.5" // last selected from dropdown
 
   // The last text the user typed in without saving it, for continuity.
@@ -30,7 +29,7 @@ class InlineFixups : Disposable {
   fun documentCode(editor: Editor) {
     // Check eligibility before we send the request, and also when we get the response.
     if (isEligibleForInlineEdit(editor)) {
-      setSession(DocumentSession(editor))
+      setSession(DocumentCodeSession(editor))
     }
   }
 
@@ -57,14 +56,14 @@ class InlineFixups : Disposable {
 
   fun getLastPrompt(): String = lastPrompt
 
-  private fun setSession(session: InlineFixupSession?) {
-    activeSession?.let { Disposer.dispose(it) }
+  private fun setSession(session: FixupSession?) {
+    activeSession?.cancelCurrentJob()
     activeSession = session
   }
 
   companion object {
     @JvmStatic
-    val instance: InlineFixups
+    val instance: FixupService
       get() = service()
 
     fun backgroundThread(code: Runnable) {
@@ -73,6 +72,6 @@ class InlineFixups : Disposable {
   }
 
   override fun dispose() {
-    TODO("Not yet implemented")
+    setSession(null)
   }
 }
