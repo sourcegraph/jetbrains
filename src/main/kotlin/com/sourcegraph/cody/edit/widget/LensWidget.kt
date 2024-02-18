@@ -2,12 +2,17 @@ package com.sourcegraph.cody.edit.widget
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.util.Disposer
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 
 abstract class LensWidget(val parentGroup: LensWidgetGroup) : Disposable {
   protected val logger = Logger.getInstance(LensWidget::class.java)
   protected var mouseInBounds = false
+
+  init {
+    Disposer.register(parentGroup, this)
+  }
 
   abstract fun calcWidthInPixels(fontMetrics: FontMetrics): Int
 

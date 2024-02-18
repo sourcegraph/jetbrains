@@ -20,6 +20,6 @@ class DocumentCodeActionHandler : EditorActionHandler() {
   }
 
   override fun doExecute(editor: Editor, where: Caret?, dataContext: DataContext?) {
-    InlineFixups.instance.documentCode(editor)
+    FixupService.instance.documentCode(editor)
   }
 }

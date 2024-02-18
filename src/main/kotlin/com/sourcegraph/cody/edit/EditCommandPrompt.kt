@@ -23,7 +23,7 @@ import javax.swing.event.DocumentListener
 class EditCommandPrompt(val editor: Editor) {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
   private val offset = editor.caretModel.primaryCaret.offset
-  private val controller = InlineFixups.instance
+  private val controller = FixupService.instance
   private val promptHistory = mutableListOf<String>()
 
   private var dialog: EditCommandPrompt.InstructionsDialog? = null

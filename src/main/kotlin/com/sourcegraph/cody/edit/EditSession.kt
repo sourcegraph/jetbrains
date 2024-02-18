@@ -11,7 +11,7 @@ import com.intellij.openapi.editor.Editor
 class EditSession(
     editor: Editor,
     val instructions: String,
-) : InlineFixupSession(editor) {
+) : FixupSession(editor) {
   private val logger = Logger.getInstance(EditSession::class.java)
 
   override fun getLogger() = logger
@@ -21,7 +21,16 @@ class EditSession(
     logger.info("Disposing edit session")
   }
 
-  private fun sendRequest(prompt: String, model: String) {
+  override fun retry() {
+    logger.warn("retrying EditSession")
+  }
+
+  override fun cancel() {
+    logger.warn("cancelling EditSession")
+  }
+
+  @Suppress("unused")
+  private fun sendRequest(prompt: String, @Suppress("unused_parameter") model: String) {
     logger.info("Sending inline-edit request: $prompt")
     // TODO: This will be very similar to DocumentCommandSession.sendRequest()
   }
