@@ -223,14 +223,13 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private fun handleMouseMove(e: EditorMouseEvent) {
     val (x, y) = e.mouseEvent.point
     val widget = findWidgetAt(x, y)
-    // TODO: Fix hit box detection.
-    //logger.debug("$x, $y -> $widget (last: $lastHoveredWidget)")
     val lastWidget = lastHoveredWidget
     // Check if the mouse has moved from one widget to another or from/to outside
     if (widget != lastWidget) {
       lastWidget?.onMouseExit()
       lastHoveredWidget = widget // null if now outside
       widget?.onMouseEnter()
+      inlay?.update()
     }
   }
 
