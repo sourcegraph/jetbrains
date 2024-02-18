@@ -32,7 +32,6 @@ abstract class FixupSession(val editor: Editor) : Disposable {
   }
 
   fun cancelCurrentJob() {
-    // Do not dispose ourselves here.
     if (!currentJob.get().isCancelled) {
       currentJob.get().abort()
       currentJob.set(CancellationToken())

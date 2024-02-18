@@ -122,8 +122,8 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
       }
     }
 
-    // This doesn't seem to be called for commands/document, but I see complaints in the logs
-    // about no handler being registered.
+    // We get a textDocument/edit notification here with the doc comment to insert.
+    // However, we also get a workspace/edit notification with the same edits.
     agent.client.setOnTextDocumentEdit { params ->
       logger.warn("DocumentCommand session received text document edit: $params")
     }
