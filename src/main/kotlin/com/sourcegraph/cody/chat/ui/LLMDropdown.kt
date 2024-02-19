@@ -19,27 +19,30 @@ import com.sourcegraph.common.BrowserOpener
 import com.sourcegraph.common.CodyBundle
 import java.util.concurrent.TimeUnit
 
-class LLMDropdown(val project: Project, initiallySelected: ChatModel?) :
+class LLMDropdown(val project: Project, private val modelFromState: ChatModel?) :
     ComboBox<LLMComboBoxItem>(MutableCollectionComboBoxModel()) {
 
+  private var firstMessageSent: Boolean = false
+
   init {
-    renderer = LLMComboBoxRenderer()
-    if (initiallySelected != null) {
-      addItem(LLMComboBoxItem(initiallySelected.icon, initiallySelected.displayName))
+    renderer = LLMComboBoxRenderer(this)
+    if (modelFromState != null) {
+      addItem(LLMComboBoxItem(modelFromState.icon, modelFromState.displayName))
     }
 
-    val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-    if (activeAccountType.isEnterpriseAccount() || model.size <= 1) {
-      isEnabled = false
-    }
+    isEnabled = false
   }
 
   fun fetchAndUpdateModels(sessionId: SessionId) {
+    if (modelFromState != null) {
+      return
+    }
+
     CodyAgentService.withAgent(project) { agent ->
       val chatModels = agent.server.chatModels(ChatModelsParams(sessionId))
       val response = chatModels.completeOnTimeout(null, 4, TimeUnit.SECONDS).get()
       val isCurrentUserPro = isCurrentUserPro(agent)
-      (renderer as LLMComboBoxRenderer).updateTier(isCurrentUserFree = !isCurrentUserPro)
+      (renderer as LLMComboBoxRenderer).isCurrentUserFree = !isCurrentUserPro
       ApplicationManager.getApplication().invokeLater { updateModels(response.models) }
     }
   }
@@ -53,11 +56,7 @@ class LLMDropdown(val project: Project, initiallySelected: ChatModel?) :
       addItem(LLMComboBoxItem(model.icon, name, provider.codyProOnly))
     }
     val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-    if (activeAccountType.isEnterpriseAccount() || model.size <= 1) {
-      isEnabled = false
-    } else {
-      isEnabled = true
-    }
+    isEnabled = !firstMessageSent && !(activeAccountType.isEnterpriseAccount() || model.size <= 1)
   }
 
   override fun getModel(): MutableCollectionComboBoxModel<LLMComboBoxItem> {
@@ -84,9 +83,12 @@ class LLMDropdown(val project: Project, initiallySelected: ChatModel?) :
       agent.server.isCurrentUserPro().completeOnTimeout(false, 4, TimeUnit.SECONDS).get() == true
 
   fun updateAfterFirstMessage() {
-      isEnabled = false
+    firstMessageSent = true
+    isEnabled = false
+
     val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-    if (activeAccountType?.isDotcomAccount() == true && model.size > 1)
+    if (activeAccountType?.isDotcomAccount() == true) {
       toolTipText = CodyBundle.getString("LLMDropdown.disabled.text")
     }
+  }
 }

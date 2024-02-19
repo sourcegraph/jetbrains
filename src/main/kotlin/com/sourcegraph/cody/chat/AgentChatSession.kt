@@ -32,7 +32,7 @@ private constructor(
     private val project: Project,
     newSessionId: CompletableFuture<SessionId>,
     private val internalId: String = UUID.randomUUID().toString(),
-    selectedModel: ChatModel? = null,
+    modelFromState: ChatModel? = null,
 ) : ChatSession {
 
   /**
@@ -42,7 +42,7 @@ private constructor(
    */
   private val sessionId: AtomicReference<CompletableFuture<SessionId>> =
       AtomicReference(newSessionId)
-  private val chatPanel: ChatPanel = ChatPanel(project, chatSession = this, selectedModel)
+  private val chatPanel: ChatPanel = ChatPanel(project, chatSession = this, modelFromState)
   private val cancellationToken = AtomicReference(CancellationToken())
   private val messages = mutableListOf<ChatMessage>()
 
@@ -332,10 +332,8 @@ private constructor(
     @RequiresEdt
     fun createFromState(project: Project, state: ChatState): AgentChatSession {
       val sessionId = createNewPanel(project) { it.server.chatNew() }
-      val selectedModel = state.model?.let { ChatModel.fromDisplayName(it) }
-      val chatSession = AgentChatSession(project, sessionId, state.internalId!!, selectedModel)
-      chatSession.chatPanel.llmDropdown.selectedItem =
-          selectedModel?.let { LLMComboBoxItem(it.icon, it.displayName) }
+      val modelFromState = state.model?.let { ChatModel.fromDisplayName(it) }
+      val chatSession = AgentChatSession(project, sessionId, state.internalId!!, modelFromState)
       state.messages.forEachIndexed { index, message ->
         val parsed =
             when (val speaker = message.speaker) {
@@ -350,7 +348,7 @@ private constructor(
       }
 
       CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
-        chatSession.restoreAgentSession(agent, selectedModel)
+        chatSession.restoreAgentSession(agent, modelFromState)
       }
 
       AgentChatSessionService.getInstance(project).addSession(chatSession)

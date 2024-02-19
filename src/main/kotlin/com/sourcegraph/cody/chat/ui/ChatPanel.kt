@@ -13,7 +13,6 @@ import com.sourcegraph.cody.context.ui.EnhancedContextPanel
 import com.sourcegraph.cody.ui.ChatModel
 import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.vscode.CancellationToken
-import com.sourcegraph.common.CodyBundle
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
@@ -21,11 +20,11 @@ import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JPanel
 
-class ChatPanel(project: Project, chatSession: ChatSession, selectedModel: ChatModel?) :
+class ChatPanel(project: Project, chatSession: ChatSession, modelFromState: ChatModel?) :
     JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
 
   val promptPanel: PromptPanel = PromptPanel(project, chatSession)
-  val llmDropdown = LLMDropdown(project, selectedModel)
+  val llmDropdown = LLMDropdown(project, modelFromState)
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)
 
@@ -78,7 +77,6 @@ class ChatPanel(project: Project, chatSession: ChatSession, selectedModel: ChatM
     promptPanel.updateEmptyTextAfterFirstMessage()
     messagesPanel.addOrUpdateMessage(message, index, shouldAddBlinkingCursor)
   }
-
 
   @RequiresEdt
   fun registerCancellationToken(cancellationToken: CancellationToken) {
