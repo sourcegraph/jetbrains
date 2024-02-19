@@ -97,15 +97,15 @@ class ContextFilesPanel(
       contextFileFile: ContextFileFile?,
       projectRelativeFilePath: String
   ): String {
-    val (startLine, endLine) = contextFileFile?.range?.intellijRange() ?: Pair(null, null)
+    val intelliJRange = contextFileFile?.range?.intellijRange()
 
     return buildString {
       append("@$projectRelativeFilePath")
-      if (startLine != null && endLine != null) {
-        if (startLine != endLine) {
-          append(":$startLine-$endLine")
+      if (intelliJRange != null) {
+        if (intelliJRange.first != intelliJRange.second) {
+          append(":${intelliJRange.first}-${intelliJRange.second}")
         } else {
-          append(":$startLine")
+          append(":${intelliJRange.first}")
         }
       }
     }
