@@ -35,18 +35,21 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
   val isEnhancedContextEnabled = AtomicBoolean(true)
 
   private val treeRoot = CheckedTreeNode(CodyBundle.getString("context-panel.tree.root"))
+
   private val enhancedContextNode =
       ContextTreeRootNode(CodyBundle.getString("context-panel.tree.node-chat-context")) { isChecked
         ->
         isEnhancedContextEnabled.set(isChecked)
         updateContextState { it.isEnabled = isChecked }
       }
+
   private val localContextNode =
-      ContextTreeRootNode(
-          CodyBundle.getString("context-panel.tree.node-local-project"), isEnabled = false)
+      ContextTreeLocalRootNode(
+          CodyBundle.getString("context-panel.tree.node-local-project"), isEnhancedContextEnabled)
+  private val localProjectNode = ContextTreeLocalRepoNode(project, isEnhancedContextEnabled)
+
   private val remoteContextNode =
-      ContextTreeRootNode(CodyBundle.getString("context-panel.tree.node-remote-repos"))
-  private val localProjectNode = ContextTreeLocalRepoNode(project)
+      ContextTreeRemoteRootNode(CodyBundle.getString("context-panel.tree.node-remote-repos"))
 
   private val treeModel = DefaultTreeModel(treeRoot)
 
@@ -55,7 +58,7 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
         CheckboxTreeBase.CheckPolicy(
             /* checkChildrenWithCheckedParent = */ true,
             /* uncheckChildrenWithUncheckedParent = */ true,
-            /* checkParentWithCheckedChild = */ false,
+            /* checkParentWithCheckedChild = */ true,
             /* uncheckParentWithUncheckedChild = */ false)
     CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkboxPropagationPolicy)
   }
@@ -76,8 +79,6 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
 
     ApplicationManager.getApplication().invokeLater {
       enhancedContextNode.isChecked = contextState?.isEnabled ?: true
-      localContextNode.isChecked = contextState?.isEnabled ?: true
-      localProjectNode.isChecked = contextState?.isEnabled ?: true
     }
 
     if (!isDotComAccount()) {
@@ -137,6 +138,7 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
     }
   }
 
+  @RequiresEdt
   private fun disableRemote(codebaseName: String) {
     updateContextState { contextState ->
       contextState.remoteRepositories.find { it.remoteUrl == codebaseName }?.isEnabled = false
@@ -148,7 +150,7 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
   }
 
   @RequiresEdt
-  private fun removeRemoteRepository(node: ContextTreeRemoteRepoCodebaseNameNode) {
+  private fun removeRemoteRepository(node: ContextTreeRemoteRepoNode) {
     updateContextState { contextState ->
       contextState.remoteRepositories.removeIf { it.remoteUrl == node.codebaseName }
     }
@@ -175,17 +177,15 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
     }
 
     val existingRemoteNode =
-        remoteContextNode
-            .children()
-            .toList()
-            .filterIsInstance<ContextTreeRemoteRepoCodebaseNameNode>()
-            .find { it.codebaseName == codebaseName }
+        remoteContextNode.children().toList().filterIsInstance<ContextTreeRemoteRepoNode>().find {
+          it.codebaseName == codebaseName
+        }
 
     if (existingRemoteNode != null) {
       existingRemoteNode.isChecked = isCheckedInitially
     } else {
       val remoteRepoNode =
-          ContextTreeRemoteRepoCodebaseNameNode(codebaseName) { isChecked ->
+          ContextTreeRemoteRepoNode(codebaseName) { isChecked ->
             if (isChecked) enableRemote(codebaseName) else disableRemote(codebaseName)
           }
       remoteRepoNode.isChecked = isCheckedInitially
@@ -231,11 +231,10 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
       toolbarDecorator.setRemoveActionName(
           CodyBundle.getString("context-panel.button.remove-remote-repo"))
       toolbarDecorator.setRemoveActionUpdater {
-        tree.selectionPath?.lastPathComponent is ContextTreeRemoteRepoCodebaseNameNode
+        tree.selectionPath?.lastPathComponent is ContextTreeRemoteRepoNode
       }
       toolbarDecorator.setRemoveAction {
-        (tree.selectionPath?.lastPathComponent as? ContextTreeRemoteRepoCodebaseNameNode)?.let {
-            node ->
+        (tree.selectionPath?.lastPathComponent as? ContextTreeRemoteRepoNode)?.let { node ->
           removeRemoteRepository(node)
           expandAllNodes()
         }
