@@ -312,11 +312,10 @@ Note: It's important to test performance on large repos here.
 3. Open new chat and ask question about squirrel - assistant should describe you an animal.
 4. Open new chat and disable local context. Ask about current repo (e.g. some class) - assistant should not have a
    context.
-5. Save current context as default. Close the IDE. Reopen the IDE.
+5. Close the IDE. Reopen the IDE.
     - Go to Chat History tab and open previous chats one by one. Both history and context settings are properly
       preserved.
-    - Open new chat. Context should be disabled, as we previously set that as new default. Enable it again and set as
-      default.
+    - Open new chat and check if it properly inherits all setting from previously opened historical chat
 
 ### Enterprise accounts:
 
