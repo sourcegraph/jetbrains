@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.edit
 
-import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -161,16 +160,5 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
     // TODO: Telemetry
     undoEdits()
     finish()
-  }
-
-  private fun undoEdits() {
-    try {
-      val undoManager = UndoManager.getInstance(editor.project!!)
-      if (undoManager.isUndoAvailable(null)) {
-        undoManager.undo(null)
-      }
-    } catch (t: Throwable) {
-      logger.error("Error applying Undo", t)
-    }
   }
 }

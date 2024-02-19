@@ -2,10 +2,16 @@ package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.FileEditor
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.vfs.VirtualFile
 import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.vscode.CancellationToken
@@ -54,8 +60,9 @@ abstract class FixupSession(val editor: Editor) : Disposable {
       return getLogger().warn("Inline edit not eligible")
     }
     WriteCommandAction.runWriteCommandAction(editor.project ?: return) {
+      val doc: Document = editor.document
+      val project = editor.project ?: return@runWriteCommandAction
       for (edit in edits) {
-        val doc: Document = editor.document
         // TODO: handle options if present (currently just undo bounds)
         when (edit.type) {
           "replace" -> performReplace(doc, edit)
@@ -63,45 +70,59 @@ abstract class FixupSession(val editor: Editor) : Disposable {
           "delete" -> performDelete(doc, edit)
           else -> getLogger().warn("Unknown edit type: ${edit.type}")
         }
+        // TODO: Would be nice to group all the edits into a single undo action.
+        UndoManager.getInstance(project)
+                .undoableActionPerformed(FixupUndoableAction.from(editor, edit))
       }
     }
   }
 
-  private fun getOffsets(doc: Document, edit: TextEdit): Pair<Int, Int>? {
-    if (edit.position != null) {
-      val offset = edit.position.toOffset(doc)
-      return Pair(offset, offset)
-    }
-    if (edit.range == null) {
-      getLogger().warn("null edit range for: ${edit.type}")
-      return null
-    }
-    return edit.range.toOffsets(doc)
-  }
-
   private fun performReplace(doc: Document, edit: TextEdit) {
-    val (start, end) = getOffsets(doc, edit) ?: return
+    val (start, end) = edit.range?.toOffsets(doc) ?: return
     doc.replaceString(start, end, edit.value ?: return)
+
   }
 
-  private fun performInsert(doc: Document, edit: TextEdit) {
+  private fun performInsert(doc: Document, edit: TextEdit): TextEdit? {
     // TODO: Figure out why insertion-based selection guessing isn't being called in the agent.
     // For now, hack it to insert at beginning of line (BOL) at cursor, for demo purposes.
     val c = editor.caretModel.primaryCaret.offset
     val lineStart = doc.getLineStartOffset(doc.getLineNumber(c))
     val pos = Position.fromOffset(editor.document, lineStart)
-    val insert = edit.value ?: return
+    val insert = edit.value ?: return null
+    // TODO: We shouldn't have to be fixing this up.
     val insertText = if (insert.endsWith("\n")) insert else "$insert\n"
     val textEdit = TextEdit("insert", null, pos, insertText)
 
-    val (start, _) = getOffsets(doc, textEdit) ?: return
+    val start = textEdit.position?.toOffset(doc) ?: return null
     // Set this flag before we make the edit, since callbacks are called synchronously.
     performedEdits = true
     doc.insertString(start, insertText)
+    return textEdit
   }
 
   private fun performDelete(doc: Document, edit: TextEdit) {
-    val (start, end) = getOffsets(doc, edit) ?: return
+    val (start, end) = edit.range?.toOffsets(doc) ?: return
+    performedEdits = true
     doc.deleteString(start, end)
+  }
+
+  protected fun undoEdits() {
+    val project = editor.project ?: return
+    if (project.isDisposed) return
+    val fileEditor = getEditorForDocument(editor.document, project)
+    val undoManager = UndoManager.getInstance(project)
+    if (undoManager.isUndoAvailable(fileEditor)) {
+      undoManager.undo(fileEditor)
+    }
+  }
+
+  private fun getEditorForDocument(document: Document, project: Project): FileEditor? {
+    val file = FileDocumentManager.getInstance().getFile(document)
+    return file?.let { getCurrentFileEditor(project, it) }
+  }
+
+  private fun getCurrentFileEditor(project: Project, file: VirtualFile): FileEditor? {
+    return FileEditorManager.getInstance(project).getEditors(file).firstOrNull()
   }
 }
