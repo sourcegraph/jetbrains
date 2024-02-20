@@ -22,7 +22,7 @@ class FixupService : Disposable {
   // Prompt user for instructions for editing selected code.
   fun startCodeEdit(editor: Editor) {
     if (!isEligibleForInlineEdit(editor)) return
-    EditCommandPrompt(editor).displayPromptUI()
+    EditCommandPrompt(editor, "Edit Code with Cody").displayPromptUI()
   }
 
   // Generate and insert a doc string for the current code.

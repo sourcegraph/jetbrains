@@ -3,10 +3,12 @@ package com.sourcegraph.cody.edit
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.undo.DocumentReference
 import com.intellij.openapi.command.undo.DocumentReferenceManager
+import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.command.undo.UndoableAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.RangeMarker
 import com.sourcegraph.cody.agent.protocol.TextEdit
 
 abstract class FixupUndoableAction(val editor: Editor, val edit: TextEdit) : UndoableAction {
@@ -23,9 +25,18 @@ abstract class FixupUndoableAction(val editor: Editor, val edit: TextEdit) : Und
     return true
   }
 
+  // TODO: Use this.
+  fun createRangeMarker(start: Int, end: Int): RangeMarker {
+    val rangeMarker = document.createRangeMarker(start, end)
+    rangeMarker.isGreedyToLeft = true
+    rangeMarker.isGreedyToRight = true
+    return rangeMarker
+  }
+
   class InsertUndoableAction(editor: Editor, edit: TextEdit) : FixupUndoableAction(editor, edit) {
 
     override fun undo() {
+      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
       val offsets = (edit.range ?: return).toOffsets(document)
       ApplicationManager.getApplication().runWriteAction {
         document.deleteString(offsets.first, offsets.second)
@@ -33,6 +44,7 @@ abstract class FixupUndoableAction(val editor: Editor, val edit: TextEdit) : Und
     }
 
     override fun redo() {
+      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
       val offset = edit.position?.toOffset(document) ?: return
       ApplicationManager.getApplication().runWriteAction {
         document.insertString(offset, edit.value ?: "")
@@ -43,11 +55,15 @@ abstract class FixupUndoableAction(val editor: Editor, val edit: TextEdit) : Und
   class ReplaceUndoableAction(editor: Editor, edit: TextEdit) : FixupUndoableAction(editor, edit) {
 
     override fun undo() {
+      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
+
       TODO("fix")
     }
 
     override fun redo() {
-      TODO("fix")
+      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
+
+      TODO("finish")
     }
   }
 
@@ -55,6 +71,8 @@ abstract class FixupUndoableAction(val editor: Editor, val edit: TextEdit) : Und
     var oldText = ""
 
     override fun undo() {
+      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
+
       val offsets = (edit.range ?: return).toOffsets(document)
       val deleted = document.text.substring(offsets.first, offsets.second)
       ApplicationManager.getApplication().runWriteAction {
@@ -64,6 +82,8 @@ abstract class FixupUndoableAction(val editor: Editor, val edit: TextEdit) : Und
     }
 
     override fun redo() {
+      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
+
       val offsets = (edit.range ?: return).toOffsets(document)
       ApplicationManager.getApplication().runWriteAction {
         document.deleteString(offsets.first, offsets.second)

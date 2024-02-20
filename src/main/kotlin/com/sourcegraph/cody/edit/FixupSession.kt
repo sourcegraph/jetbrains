@@ -62,6 +62,7 @@ abstract class FixupSession(val editor: Editor) : Disposable {
     WriteCommandAction.runWriteCommandAction(editor.project ?: return) {
       val doc: Document = editor.document
       val project = editor.project ?: return@runWriteCommandAction
+      // TODO: For all 3 of these, we should use a marked range to track it over edits.
       for (edit in edits) {
         // TODO: handle options if present (currently just undo bounds)
         when (edit.type) {
@@ -70,9 +71,9 @@ abstract class FixupSession(val editor: Editor) : Disposable {
           "delete" -> performDelete(doc, edit)
           else -> getLogger().warn("Unknown edit type: ${edit.type}")
         }
-        // TODO: Would be nice to group all the edits into a single undo action.
+        // TODO: Group all the edits into a single UndoableAction.
         UndoManager.getInstance(project)
-                .undoableActionPerformed(FixupUndoableAction.from(editor, edit))
+            .undoableActionPerformed(FixupUndoableAction.from(editor, edit))
       }
     }
   }
@@ -80,7 +81,6 @@ abstract class FixupSession(val editor: Editor) : Disposable {
   private fun performReplace(doc: Document, edit: TextEdit) {
     val (start, end) = edit.range?.toOffsets(doc) ?: return
     doc.replaceString(start, end, edit.value ?: return)
-
   }
 
   private fun performInsert(doc: Document, edit: TextEdit): TextEdit? {
