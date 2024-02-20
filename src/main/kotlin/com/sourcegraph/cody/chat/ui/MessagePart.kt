@@ -44,12 +44,14 @@ class CodeEditorPart(
 
   fun recognizeLanguage(languageName: String?) {
     if (recognizedLanguage != null) return
-    val language = Language.getRegisteredLanguages()
-          .filter { it != Language.ANY }
-          .firstOrNull { it.displayName.equals(languageName, ignoreCase = true) }
+    val language =
+        Language.getRegisteredLanguages()
+            .filter { it != Language.ANY }
+            .firstOrNull { it.displayName.equals(languageName, ignoreCase = true) }
     if (language != null) {
-      val fileType = FileTypeManager.getInstance().findFileTypeByLanguage(language)
-          ?: PlainTextFileType.INSTANCE
+      val fileType =
+          FileTypeManager.getInstance().findFileTypeByLanguage(language)
+              ?: PlainTextFileType.INSTANCE
       val settings = EditorColorsManager.getInstance().schemeForCurrentUITheme
       val editorHighlighter = HighlighterFactory.createHighlighter(fileType, settings, null)
       editor.highlighter = editorHighlighter
