@@ -7,10 +7,10 @@ import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.PromptPanel
 import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.chat.SessionId
 import com.sourcegraph.cody.context.ui.EnhancedContextPanel
-import com.sourcegraph.cody.ui.ChatModel
 import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.vscode.CancellationToken
 import java.awt.BorderLayout
@@ -20,11 +20,14 @@ import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JPanel
 
-class ChatPanel(project: Project, chatSession: ChatSession, modelFromState: ChatModel?) :
-    JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
+class ChatPanel(
+    project: Project,
+    chatSession: ChatSession,
+    chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?
+) : JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
 
   val promptPanel: PromptPanel = PromptPanel(project, chatSession)
-  val llmDropdown = LLMDropdown(project, modelFromState)
+  val llmDropdown = LLMDropdown(project, chatModelProviderFromState)
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)
 

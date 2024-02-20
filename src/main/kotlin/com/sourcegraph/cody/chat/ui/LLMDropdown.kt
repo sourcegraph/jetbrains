@@ -13,31 +13,31 @@ import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.chat.SessionId
 import com.sourcegraph.cody.config.CodyAccount.Companion.isEnterpriseAccount
 import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.ui.ChatModel
-import com.sourcegraph.cody.ui.LLMComboBoxItem
 import com.sourcegraph.cody.ui.LLMComboBoxRenderer
 import com.sourcegraph.common.BrowserOpener
 import com.sourcegraph.common.CodyBundle
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 
-class LLMDropdown(val project: Project, private val modelFromState: ChatModel?) :
-    ComboBox<LLMComboBoxItem>(MutableCollectionComboBoxModel()) {
+class LLMDropdown(
+    val project: Project,
+    private val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?
+) : ComboBox<ChatModelsResponse.ChatModelProvider>(MutableCollectionComboBoxModel()) {
 
   private var firstMessageSent: Boolean = false
   val sessionId = CompletableFuture<SessionId>()
 
   init {
     renderer = LLMComboBoxRenderer(this)
-    if (modelFromState != null) {
-      addItem(LLMComboBoxItem(modelFromState.icon, modelFromState.displayName))
+    if (chatModelProviderFromState != null) {
+      addItem(chatModelProviderFromState)
     }
 
     isEnabled = false
   }
 
   fun fetchAndUpdateModels(sessionId: SessionId) {
-    if (modelFromState != null) {
+    if (chatModelProviderFromState != null) {
       return
     }
 
@@ -63,30 +63,28 @@ class LLMDropdown(val project: Project, private val modelFromState: ChatModel?) 
   ) {
     removeAllItems()
     (renderer as LLMComboBoxRenderer).isCurrentUserFree = isCurrentUserFree
-    models.forEach { provider ->
-      val model = ChatModel.fromAgentName(provider.model)
-      val name = if (model == ChatModel.UNKNOWN_MODEL) provider.model else model.displayName
-      addItem(LLMComboBoxItem(model.icon, name, provider.codyProOnly))
-    }
+    models.forEach(::addItem)
+    models.find { it.default }?.let { this.selectedItem = it }
+
     val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
     isEnabled = !firstMessageSent && !(activeAccountType.isEnterpriseAccount() || model.size <= 1)
   }
 
-  override fun getModel(): MutableCollectionComboBoxModel<LLMComboBoxItem> {
+  override fun getModel(): MutableCollectionComboBoxModel<ChatModelsResponse.ChatModelProvider> {
     return super.getModel() as MutableCollectionComboBoxModel
   }
 
   override fun setSelectedItem(anObject: Any?) {
-    val llmComboBoxItem = anObject as? LLMComboBoxItem
-    if (llmComboBoxItem != null) {
-      if (llmComboBoxItem.codyProOnly) {
+    val modelProvider = anObject as? ChatModelsResponse.ChatModelProvider
+    if (modelProvider != null) {
+      if (modelProvider.codyProOnly) {
         if ((renderer as LLMComboBoxRenderer).isCurrentUserFree) {
           BrowserOpener.openInBrowser(project, "https://sourcegraph.com/cody/subscription")
           return
         }
       }
       super.setSelectedItem(anObject)
-      selectedModel()?.let { setLlmForAgentSession(it.agentName) }
+      selectedChatModelProvider()?.let { setLLMForAgentSession(it) }
     }
   }
 
@@ -100,7 +98,7 @@ class LLMDropdown(val project: Project, private val modelFromState: ChatModel?) 
     }
   }
 
-  private fun setLlmForAgentSession(modelName: String) {
+  private fun setLLMForAgentSession(chatModelProvider: ChatModelsResponse.ChatModelProvider) {
     val sessionIdGetNow = sessionId.getNow(null) ?: return
 
     CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
@@ -111,12 +109,13 @@ class LLMDropdown(val project: Project, private val modelFromState: ChatModel?) 
       } else {
         agent.server.webviewReceiveMessage(
             WebviewReceiveMessageParams(
-                sessionIdGetNow, WebviewMessage(command = "chatModel", model = modelName)))
+                sessionIdGetNow,
+                WebviewMessage(command = "chatModel", model = chatModelProvider.model)))
       }
     }
   }
 
-  fun selectedModel(): ChatModel? {
-    return (selectedItem as? LLMComboBoxItem)?.let { ChatModel.fromDisplayName(it.name) }
+  fun selectedChatModelProvider(): ChatModelsResponse.ChatModelProvider? {
+    return (selectedItem as? ChatModelsResponse.ChatModelProvider)
   }
 }

@@ -3,6 +3,7 @@ package com.sourcegraph.cody.history
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.state.ChatState
@@ -26,11 +27,11 @@ class HistoryService(private val project: Project) :
   fun updateChatMessages(
       internalId: String,
       chatMessages: List<ChatMessage>,
-      selectedModel: String?
+      chatModelProvider: ChatModelsResponse.ChatModelProvider?
   ) {
-    selectedModel?.let {
+    chatModelProvider?.let {
       val found = getOrCreateChat(internalId)
-      found.model = selectedModel
+      found.model = chatModelProvider.model
     }
     updateChatMessages(internalId, chatMessages)
   }
