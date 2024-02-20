@@ -1,5 +1,6 @@
 package com.sourcegraph.vcs
 
+import com.intellij.testFramework.UsefulTestCase.assertThrows
 import junit.framework.TestCase
 
 class ConvertUtilTest : TestCase() {
@@ -88,9 +89,9 @@ class ConvertUtilTest : TestCase() {
         convertGitCloneURLToCodebaseNameOrError("http://github.com/sourcegraph/sourcegraph"))
   }
 
-  //  fun `test if returns null for invalid UR`() {
-  //    assertThrows(Exception::class.java) { convertGitCloneURLToCodebaseNameOrError("invalid") }
-  //  }
+  fun `test if returns null for invalid UR`() {
+    assertThrows(Exception::class.java) { convertGitCloneURLToCodebaseNameOrError("invalid") }
+  }
 
   fun `test conversion URLs with dots in the repo name`() {
     assertEquals(
