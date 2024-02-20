@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.edit.widget
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
@@ -16,10 +17,7 @@ import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.protocol.DisplayCodeLensParams
 import com.sourcegraph.cody.agent.protocol.ProtocolCodeLens
 import com.sourcegraph.cody.edit.FixupSession
-import java.awt.Font
-import java.awt.FontMetrics
-import java.awt.Graphics2D
-import java.awt.Point
+import java.awt.*
 import java.awt.geom.Rectangle2D
 
 operator fun Point.component1() = this.x
@@ -81,6 +79,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private var receivedAcceptLens = false
 
   var inlay: Inlay<EditorCustomElementRenderer>? = null
+
+  private var prevCursor: Cursor? = null
 
   init {
     Disposer.register(session, this)
@@ -218,6 +218,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
         if (text.isNotEmpty()) separator = true
       }
     }
+    widgets.forEach { Disposer.register(this, it) }
   }
 
   // Dispatch mouse click events to the appropriate widget.
@@ -232,6 +233,15 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     val (x, y) = e.mouseEvent.point
     val widget = findWidgetAt(x, y)
     val lastWidget = lastHoveredWidget
+
+    if (widget != null) {
+      prevCursor = e.editor.contentComponent.cursor
+      e.editor.contentComponent.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+    } else if (prevCursor != null) {
+      e.editor.contentComponent.cursor = prevCursor!!
+      prevCursor = null
+    }
+
     // Check if the mouse has moved from one widget to another or from/to outside
     if (widget != lastWidget) {
       lastWidget?.onMouseExit()

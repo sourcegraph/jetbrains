@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.edit
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -8,6 +9,7 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.withAgent
+import com.sourcegraph.cody.agent.CommandExecuteParams
 import com.sourcegraph.cody.edit.FixupService.Companion.backgroundThread
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import java.util.concurrent.CancellationException
@@ -23,11 +25,11 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
 
   private val lensActionCallbacks =
       mapOf(
-          "cody.fixup.codelens.accept" to { accept() },
-          "cody.fixup.codelens.cancel" to { cancel() },
-          "cody.fixup.codelens.retry" to { retry() },
-          "cody.fixup.codelens.diff" to { showDiff() },
-          "cody.fixup.codelens.undo" to { undo() },
+          ACTION_ACCEPT to { accept() },
+          ACTION_CANCEL to { cancel() },
+          ACTION_RETRY to { retry() },
+          ACTION_DIFF to { diff() },
+          ACTION_UNDO to { undo() },
       )
 
   init {
@@ -132,13 +134,16 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
   }
 
   override fun accept() {
-    // TODO: Telemetry -- see get-inputs.ts
-    // telemetryRecorder.recordEvent('cody.fixup.input.model', 'selected')
+    withAgent(project) { agent ->
+      agent.server.commandExecute(CommandExecuteParams(ACTION_ACCEPT, listOf(taskId!!)))
+    }
     finish()
   }
 
   override fun cancel() {
-    // TODO: Telemetry
+    withAgent(project) { agent ->
+      agent.server.commandExecute(CommandExecuteParams(ACTION_CANCEL, listOf(taskId!!)))
+    }
     if (performedEdits) {
       undo()
     } else {
@@ -147,18 +152,33 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
   }
 
   override fun retry() {
-    // TODO: Telemetry
-    FixupService.instance.documentCode(editor) // Disposes this session.
+    // TODO: The actual prompt is displayed as ghost text in the text input field.
+    // E.g. "Write a brief documentation comment for the selected code <etc.>"
+    // We need to send the prompt along with the lenses, so that the client can display it.
+    EditCommandPrompt(editor, "Edit instructions and Retry").displayPromptUI()
   }
 
   // Brings up a diff view showing the changes the AI made.
-  private fun showDiff() {
+  private fun diff() {
+    // The FixupController issues a vscode.diff command to show the smart diff in the
+    // handler for cody.fixup.codelens.diff. TODO: Register a handler in the Agent
+    // and send a new RPC to the client to display the diff, maybe just a notification.
     logger.warn("Code Lenses: Show Diff")
   }
 
   fun undo() {
-    // TODO: Telemetry
+    withAgent(project) { agent ->
+      agent.server.commandExecute(CommandExecuteParams(ACTION_UNDO, listOf(taskId!!)))
+    }
     undoEdits()
     finish()
+  }
+
+  companion object {
+    const val ACTION_ACCEPT = "cody.fixup.codelens.accept"
+    const val ACTION_CANCEL = "cody.fixup.codelens.cancel"
+    const val ACTION_RETRY = "cody.fixup.codelens.retry"
+    const val ACTION_DIFF = "cody.fixup.codelens.diff"
+    const val ACTION_UNDO = "cody.fixup.codelens.undo"
   }
 }

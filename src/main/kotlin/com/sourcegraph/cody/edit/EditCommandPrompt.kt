@@ -20,7 +20,7 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
 /** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
-class EditCommandPrompt(val editor: Editor) {
+class EditCommandPrompt(val editor: Editor, val dialogTitle: String) {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
   private val offset = editor.caretModel.primaryCaret.offset
   private val controller = FixupService.instance
@@ -143,7 +143,7 @@ class EditCommandPrompt(val editor: Editor) {
       DialogWrapper(editor.project, false, IdeModalityType.MODELESS) {
     init {
       init()
-      title = "Edit Code with Cody"
+      title = dialogTitle
 
       instructionsField.text = controller.getLastPrompt()
       updateOkButtonState()
