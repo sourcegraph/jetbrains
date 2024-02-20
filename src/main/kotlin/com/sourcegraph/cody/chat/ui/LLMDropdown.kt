@@ -5,7 +5,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.MutableCollectionComboBoxModel
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ChatModelsParams
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
@@ -41,15 +40,25 @@ class LLMDropdown(val project: Project, private val modelFromState: ChatModel?) 
     CodyAgentService.withAgent(project) { agent ->
       val chatModels = agent.server.chatModels(ChatModelsParams(sessionId))
       val response = chatModels.completeOnTimeout(null, 4, TimeUnit.SECONDS).get()
-      val isCurrentUserPro = isCurrentUserPro(agent)
-      (renderer as LLMComboBoxRenderer).isCurrentUserFree = !isCurrentUserPro
-      ApplicationManager.getApplication().invokeLater { updateModels(response.models) }
+      val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
+      val isCurrentUserFree =
+          if (activeAccountType?.isDotcomAccount() == true) {
+            agent.server.isCurrentUserPro().completeOnTimeout(false, 4, TimeUnit.SECONDS).get() ==
+                false
+          } else false
+      ApplicationManager.getApplication().invokeLater {
+        updateModels(response.models, isCurrentUserFree)
+      }
     }
   }
 
   @RequiresEdt
-  private fun updateModels(models: List<ChatModelsResponse.ChatModelProvider>) {
+  private fun updateModels(
+      models: List<ChatModelsResponse.ChatModelProvider>,
+      isCurrentUserFree: Boolean
+  ) {
     removeAllItems()
+    (renderer as LLMComboBoxRenderer).isCurrentUserFree = isCurrentUserFree
     models.forEach { provider ->
       val model = ChatModel.fromAgentName(provider.model)
       val name = if (model == ChatModel.UNKNOWN_MODEL) provider.model else model.displayName
@@ -63,24 +72,19 @@ class LLMDropdown(val project: Project, private val modelFromState: ChatModel?) 
     return super.getModel() as MutableCollectionComboBoxModel
   }
 
-  override fun setSelectedItem(anObject: Any?) =
-      CodyAgentService.withAgent(project) { agent ->
-        val llmComboBoxItem = anObject as? LLMComboBoxItem
-        if (llmComboBoxItem != null) {
-          if (llmComboBoxItem.codyProOnly) {
-            val isCurrentUserPro = isCurrentUserPro(agent)
-            if (!isCurrentUserPro) {
-              BrowserOpener.openInBrowser(project, "https://sourcegraph.com/cody/subscription")
-              return@withAgent
-            }
-          }
+  override fun setSelectedItem(anObject: Any?) {
+    val llmComboBoxItem = anObject as? LLMComboBoxItem
+    if (llmComboBoxItem != null) {
+      if (llmComboBoxItem.codyProOnly) {
+        if ((renderer as LLMComboBoxRenderer).isCurrentUserFree) {
+          BrowserOpener.openInBrowser(project, "https://sourcegraph.com/cody/subscription")
+          return
         }
-
-        super.setSelectedItem(anObject)
       }
 
-  private fun isCurrentUserPro(agent: CodyAgent): Boolean =
-      agent.server.isCurrentUserPro().completeOnTimeout(false, 4, TimeUnit.SECONDS).get() == true
+      super.setSelectedItem(anObject)
+    }
+  }
 
   fun updateAfterFirstMessage() {
     firstMessageSent = true
