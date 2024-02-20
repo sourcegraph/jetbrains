@@ -1,9 +1,9 @@
 package com.sourcegraph.cody.agent.protocol
 
 data class ProtocolCommand(
-    val title: String,
-    val command: String,
+    val title: TitleParams? = null,
+    val command: String? = null,
     val tooltip: String? = null,
-    // First element is task ID (string).
-    val arguments: List<*>
+    // First argument is always task ID (string).
+    val arguments: List<*>,
 )
