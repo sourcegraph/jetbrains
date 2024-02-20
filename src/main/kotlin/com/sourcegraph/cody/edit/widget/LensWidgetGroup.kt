@@ -1,7 +1,6 @@
 package com.sourcegraph.cody.edit.widget
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
@@ -9,6 +8,7 @@ import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.impl.EditorImpl
+import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
@@ -68,6 +68,16 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private val widgetFont =
       with(editor.colorsScheme.getFont(EditorFontType.PLAIN)) { Font(name, style, size - 2) }
 
+  // Compute inlay height based on the widget font, not the editor font.
+  private val inlayHeight =
+      FontInfo.getFontMetrics(
+              Font(
+                  editor.colorsScheme.fontPreferences.fontFamily,
+                  widgetFont.style,
+                  widgetFont.size),
+              FontInfo.getFontRenderContext(editor.contentComponent))
+          .height
+
   private var widgetFontMetrics: FontMetrics? = null
 
   private var lastHoveredWidget: LensWidget? = null // Used for mouse rollover highlighting.
@@ -125,7 +135,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   }
 
   override fun calcHeightInPixels(inlay: Inlay<*>): Int {
-    return editor.getFontMetrics(Font.PLAIN).height
+    return inlayHeight
   }
 
   override fun paint(
@@ -185,33 +195,37 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     var separator = false
     lenses.forEachIndexed { i, lens ->
       // Even icons/spinners are currently encoded in the title field.
-      var text = (lens.command?.title ?: return@forEachIndexed).trim()
-      val command = lens.command.command
-      if (command == "cody.fixup.codelens.accept") {
+      val title = lens.command?.title ?: return@forEachIndexed
+      if (lens.command.command == "cody.fixup.codelens.accept") {
         receivedAcceptLens = true
       }
-      // These two cases are encoded in the title field.
-      // TODO: Protocol should split them into separate lenses.
-      // "$(sync~spin) ..."
-      if (text.startsWith(SPINNER_MARKER)) {
-        widgets.add(LensSpinner(this, Icons.StatusBar.CompletionInProgress))
-        widgets.add(LensLabel(this, ICON_SPACER))
-        text = text.removePrefix(SPINNER_MARKER).trimStart()
+      // Add any icons sent along. Currently, always left-aligned and one at a time.
+      title.icons?.forEach { icon ->
+        when (icon.value) {
+          SPINNER_MARKER -> {
+            widgets.add(LensSpinner(this, Icons.StatusBar.CompletionInProgress))
+            widgets.add(LensLabel(this, ICON_SPACER))
+          }
+          LOGO_MARKER -> {
+            widgets.add(LensIcon(this, Icons.CodyLogo))
+            widgets.add(LensLabel(this, ICON_SPACER))
+          }
+        }
       }
-      // "$(cody-logo) ..."
-      if (text.startsWith(LOGO_MARKER)) {
-        widgets.add(LensIcon(this, Icons.CodyLogo))
-        widgets.add(LensLabel(this, ICON_SPACER))
-        text = text.removePrefix(LOGO_MARKER).trimStart()
+      // All remaining widget types have title text.
+      val text = title.text?.trim()
+      if (text == null) {
+        logger.warn("Missing title text in CodeLens: $lens")
+        return@forEachIndexed
       }
       // All that's left are actions and labels.
-      if (command in commandCallbacks) {
+      if (lens.command.command in commandCallbacks) {
         // This is a hack, but works for the lenses we've seen so far.
         // We only start adding separators after the first action or nonempty label.
         if (i < lenses.size && separator) {
           widgets.add(LensLabel(this, SEPARATOR))
         }
-        widgets.add(LensAction(this, text, commandCallbacks[command]!!))
+        widgets.add(LensAction(this, text, commandCallbacks[lens.command.command]!!))
         separator = true
       } else {
         widgets.add(LensLabel(this, text))
