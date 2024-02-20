@@ -4,10 +4,10 @@
 
 Use Sourcegraph’s AI assistant Cody and Sourcegraph Code Search directly from your JetBrains IDE.
 
-- [Cody](https://about.sourcegraph.com/cody?utm_source=plugins.jetbrains.com&utm_medium=referral) is a free and [open-source](https://github.com/sourcegraph/cody) AI coding assistant that can write, understand and fix your code. Cody is powered by Sourcegraph’s code graph, and has knowledge of your entire codebase.
+- [Cody](https://about.sourcegraph.com/cody?utm_source=plugins.jetbrains.com&utm_medium=referral) is an AI coding assistant that can write, understand and fix your code. Cody is powered by Sourcegraph’s code graph, and has knowledge of your entire codebase.
 - With [Code Search](https://about.sourcegraph.com/code-search?utm_source=plugins.jetbrains.com&utm_medium=referral), you can search code across all your repositories and code hosts—even the code you don’t have locally.
 
-**Cody for JetBrains IDEs is experimental right now. We’d love your [feedback](https://github.com/sourcegraph/sourcegraph/discussions/new?category=product-feedback&labels=cody,cody/jetbrains)**!
+**Cody for JetBrains IDEs is in beta. We’d love your [feedback](https://github.com/sourcegraph/sourcegraph/discussions/new?category=product-feedback&labels=cody,cody/jetbrains)**!
 
 ## Cody Features
 
@@ -48,9 +48,12 @@ _We also welcome also pull request contributions for new, useful commands!_
 
 On enterprise plans, Cody supports Anthropic Claude, Claude 2, and OpenAI GPT-4/3.5 models, with more coming soon.
 
-### Free usage
+### Usage
 
-Cody is currently in beta, and includes free LLM usage for individual users on both personal and work code. Fair use limits apply.
+- Cody Free: This version of Cody is available entirely free for all developers. It includes up to 500 autocomplete suggestions & 20 chat/command invocations per month.
+- Cody Pro: This is an expanded version of Cody for developers who want to use it every day, for either work or personal projects, with no usage limits. Cody Pro is available for $9/user/month.
+
+You can find more information on our [pricing page](https://sourcegraph.com/pricing).
 
 ### Programming language support
 
