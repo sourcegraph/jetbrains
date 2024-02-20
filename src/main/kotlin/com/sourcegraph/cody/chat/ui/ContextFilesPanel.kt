@@ -17,7 +17,6 @@ import com.intellij.util.withQuery
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ContextFile
 import com.sourcegraph.cody.agent.protocol.ContextFileFile
-import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ChatUIConstants.ASSISTANT_MESSAGE_GRADIENT_WIDTH
 import com.sourcegraph.cody.chat.ChatUIConstants.TEXT_MARGIN
@@ -28,7 +27,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
-import kotlin.io.path.absolutePathString
 
 class ContextFilesPanel(
     val project: Project,
@@ -42,19 +40,19 @@ class ContextFilesPanel(
   }
 
   @RequiresBackgroundThread
-  private fun updateFileList(contextFileNames: Map<Path, ContextFile>) {
+  private fun updateFileList(pathsWithContextFiles: List<Pair<Path, ContextFile>>) {
     val filesAvailableInEditor =
-        contextFileNames
-            .map { (key, value) ->
-              val file = if (value.repoName != null) Paths.get(key.absolutePathString()) else key
-              val findFileByNioFile = LocalFileSystem.getInstance().findFileByNioFile(file)
+        pathsWithContextFiles
+            .map { (path, contextFile) ->
+              val findFileByNioFile = LocalFileSystem.getInstance().findFileByNioFile(path)
               findFileByNioFile ?: return@map null
-              Pair(findFileByNioFile, value as? ContextFileFile)
+              Pair(findFileByNioFile, contextFile as? ContextFileFile)
             }
             .filterNotNull()
             .toList()
 
     ApplicationManager.getApplication().invokeLater {
+      this.removeAll()
       this.isVisible = filesAvailableInEditor.isNotEmpty()
 
       val margin = JBInsets.create(Insets(TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN))
@@ -115,37 +113,27 @@ class ContextFilesPanel(
     if (contextFiles.isNullOrEmpty()) {
       return
     }
-    this.removeAll()
 
-    val contextFileNames = mutableMapOf<Path, ContextFile>()
-    for (contextFile in contextFiles) {
-      val contextFileName =
-          if (contextFile.repoName != null) {
-            Paths.get("${project.basePath}/${contextFile.uri.path}")
-          } else {
-            val newUri = contextFile.uri.withFragment(null).withQuery(null)
-            Paths.get(newUri)
-          }
+    val pathsWithContextFiles =
+        contextFiles
+            .map { contextFile ->
+              val contextFilePath =
+                  if (contextFile.repoName != null) {
+                    val path = contextFile.uri.path.split("blob/").lastOrNull()
+                    path.let {
+                      Paths.get("${project.basePath}/$it") // todo: reference the remote file
+                    }
+                  } else {
+                    val newUri = contextFile.uri.withFragment(null).withQuery(null)
+                    Paths.get(newUri)
+                  }
 
-      val existingValue = contextFileNames[contextFileName] as? ContextFileFile
-      val newValue = contextFile as? ContextFileFile
-      val isNewValueNarrower = newValue?.range?.isNarrowerThan(existingValue?.range) ?: false
+              contextFilePath to contextFile
+            }
+            .filter { (a, _) -> a != null }
 
-      if (existingValue == null || isNewValueNarrower) {
-        contextFileNames[contextFileName] = contextFile
-      }
+    ApplicationManager.getApplication().executeOnPooledThread {
+      updateFileList(pathsWithContextFiles)
     }
-
-    ApplicationManager.getApplication().executeOnPooledThread { updateFileList(contextFileNames) }
   }
-}
-
-fun Range.isNarrowerThan(otherRange: Range?): Boolean {
-  if (otherRange == null) {
-    return false
-  }
-
-  val thisRangeWidth = this.end.line - this.start.line
-  val otherRangeWidth = otherRange.end.line - otherRange.start.line
-  return thisRangeWidth < otherRangeWidth
 }
