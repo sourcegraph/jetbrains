@@ -38,15 +38,13 @@ Cody has quick commands for common actions. Select the commands tab or right-cli
 
 - Explain code
 - Generate unit test
-- Generate docstring
-- Improve variable names
 - Smell code
 
-_We also welcome also pull request contributions for new, useful commands!_
+_We also welcome pull request contributions for new, useful commands!_
 
 ### Swappable LLMs
 
-On enterprise plans, Cody supports Anthropic Claude, Claude 2, and OpenAI GPT-4/3.5 models, with more coming soon.
+Cody supports multiple LLMs including Anthropic Claude, Claude 2, and OpenAI GPT-4/3.5 models, with more coming soon. Cody Pro users can swap models used for chat on-demand.
 
 ### Usage
 
@@ -68,17 +66,11 @@ For example:
 - Ask Cody to find where in your codebase a specific component is defined. Cody can retrieve and describe the exact files where that component is written.
 - Ask Cody questions that require an understanding of multiple files. For example, ask Cody how frontend data is populated in a React app; Cody can find the React component definitions to understand what data is being passed and where it originates.
 
-### Embeddings
-
-Cody indexes your entire repository and generates embeddings, which are a vector representation of your entire codebase. Cody queries this embeddings database on-demand, and passes that data to the LLM as context. Embeddings make up one part of Sourcegraph’s code graph.
-
-For users who use Cody for free, embeddings are available for Open Source projects through the Sourcegraph.com instance. Support for embeddings on private codes for individual users will be available in the near future.
-
-For those with a Cody Enterprise subscription, your Sourcegraph Enterprise system will generate the embeddings specifically for your codebase.
-
 ### Cody Enterprise
 
-Cody Enterprise requires the use of a Sourcegraph Enterprise instance, and gives you access to AI coding tools across your entire organization. [Contact us](https://about.sourcegraph.com/contact/request-info?utm_source=plugins.jetbrains.com&utm_medium=referral) to set up a trial of Cody Enterprise. If you’re an existing Sourcegraph Enterprise customer, contact your technical advisor.
+Cody Enterprise is able to retrieve context from your entire remote codebase using Sourcegraph search. This gives Cody the ability to understand and answer questions about all of your code, even the repositories that don't live on your local machine.
+
+[Contact us](https://about.sourcegraph.com/contact/request-info?utm_source=plugins.jetbrains.com&utm_medium=referral) to set up a trial of Cody Enterprise. If you’re an existing Sourcegraph Enterprise customer, contact your technical advisor.
 
 ## Feedback
 
