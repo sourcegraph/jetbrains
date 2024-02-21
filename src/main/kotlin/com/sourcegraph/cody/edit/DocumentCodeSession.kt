@@ -1,10 +1,10 @@
 package com.sourcegraph.cody.edit
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
@@ -180,5 +180,19 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
     const val ACTION_RETRY = "cody.fixup.codelens.retry"
     const val ACTION_DIFF = "cody.fixup.codelens.diff"
     const val ACTION_UNDO = "cody.fixup.codelens.undo"
+
+    // TODO: Register the hotkeys now that we are displaying them.
+    fun getHotkey(command: String): String {
+      // Claude picked these key bindings for me.
+      val mac = SystemInfoRt.isMac
+      return when (command) {
+        ACTION_ACCEPT -> if (mac) "⌥⌘A" else "Ctrl+Alt+A"
+        ACTION_CANCEL -> if (mac) "⌥⌘R" else "Ctrl+Alt+R"
+        ACTION_DIFF -> if (mac) "⌘D" else "Ctrl+D" // JB default
+        ACTION_RETRY -> if (mac) "⌘Z" else "Ctrl+Z" // JB default
+        ACTION_UNDO -> if (mac) "⌥⌘C" else "Alt+Ctrl+C"
+        else -> ""
+      }
+    }
   }
 }

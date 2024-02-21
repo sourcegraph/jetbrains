@@ -1,6 +1,8 @@
 package com.sourcegraph.cody.edit.widget
 
+import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.ui.JBColor
+import com.sourcegraph.cody.edit.DocumentCodeSession
 import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics2D
@@ -10,11 +12,9 @@ import java.awt.geom.Rectangle2D
 class LensAction(
     group: LensWidgetGroup,
     private val text: String,
+    private val command: String,
     private val onClick: () -> Unit
 ) : LensWidget(group) {
-
-  // Bounds of the last paint call, to check for clicks
-  private var lastPaintedBounds: Rectangle2D.Float? = null
 
   private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
 
@@ -49,6 +49,11 @@ class LensAction(
   override fun onClick(x: Int, y: Int): Boolean {
     onClick.invoke()
     return true
+  }
+
+  override fun onMouseEnter(e: EditorMouseEvent) {
+    mouseInBounds = true
+    showTooltip(DocumentCodeSession.getHotkey(command), e.mouseEvent)
   }
 
   override fun toString(): String {
