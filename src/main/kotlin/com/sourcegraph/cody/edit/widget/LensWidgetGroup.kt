@@ -65,7 +65,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var listenersMuted = false
 
-  private val widgetFont =
+  val widgetFont =
       with(editor.colorsScheme.getFont(EditorFontType.PLAIN)) { Font(name, style, size - 2) }
 
   // Compute inlay height based on the widget font, not the editor font.
@@ -138,6 +138,21 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     return inlayHeight
   }
 
+  private fun widgetGroupXY(): Point {
+    return editor.offsetToXY(inlay?.offset ?: return Point(0, 0))
+  }
+
+  fun widgetXY(widget: LensWidget): Point {
+    val ourXY = widgetGroupXY()
+    val fontMetrics = widgetFontMetrics ?: editor.getFontMetrics(Font.PLAIN)
+    var sum = 0
+    for (w in widgets) {
+      if (w == widget) break
+      sum += w.calcWidthInPixels(fontMetrics)
+    }
+    return Point(ourXY.x + sum, ourXY.y)
+  }
+
   override fun paint(
       inlay: Inlay<*>,
       g: Graphics2D,
@@ -194,9 +209,9 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private fun parse(lenses: List<ProtocolCodeLens>) {
     var separator = false
     lenses.forEachIndexed { i, lens ->
-      // Even icons/spinners are currently encoded in the title field.
       val title = lens.command?.title ?: return@forEachIndexed
-      if (lens.command.command == "cody.fixup.codelens.accept") {
+      val command = lens.command.command
+      if (command == "cody.fixup.codelens.accept") {
         receivedAcceptLens = true
       }
       // Add any icons sent along. Currently, always left-aligned and one at a time.
@@ -218,18 +233,18 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
         logger.warn("Missing title text in CodeLens: $lens")
         return@forEachIndexed
       }
-      // All that's left are actions and labels.
-      if (lens.command.command in commandCallbacks) {
+      val callback = commandCallbacks[command]
+      if (callback == null) { // Label
+        widgets.add(LensLabel(this, text))
+        if (text.isNotEmpty()) separator = true
+      } else if (command != null) { // Action
         // This is a hack, but works for the lenses we've seen so far.
         // We only start adding separators after the first action or nonempty label.
         if (i < lenses.size && separator) {
           widgets.add(LensLabel(this, SEPARATOR))
         }
-        widgets.add(LensAction(this, text, commandCallbacks[lens.command.command]!!))
+        widgets.add(LensAction(this, text, command, callback))
         separator = true
-      } else {
-        widgets.add(LensLabel(this, text))
-        if (text.isNotEmpty()) separator = true
       }
     }
     widgets.forEach { Disposer.register(this, it) }
@@ -248,19 +263,21 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     val widget = findWidgetAt(x, y)
     val lastWidget = lastHoveredWidget
 
-    if (widget != null) {
+    if (widget is LensAction) {
       prevCursor = e.editor.contentComponent.cursor
       e.editor.contentComponent.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-    } else if (prevCursor != null) {
-      e.editor.contentComponent.cursor = prevCursor!!
-      prevCursor = null
+    } else {
+      if (prevCursor != null) {
+        e.editor.contentComponent.cursor = prevCursor!!
+        prevCursor = null
+      }
     }
 
     // Check if the mouse has moved from one widget to another or from/to outside
     if (widget != lastWidget) {
-      lastWidget?.onMouseExit()
+      lastWidget?.onMouseExit(e)
       lastHoveredWidget = widget // null if now outside
-      widget?.onMouseEnter()
+      widget?.onMouseEnter(e)
       inlay?.update() // force repaint
     }
   }

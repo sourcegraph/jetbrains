@@ -12,14 +12,14 @@ class LensSpinner(group: LensWidgetGroup, private val icon: Icon) : LensWidget(g
   private val animationDelay = 50 // Milliseconds between frames
 
   private val timer =
-          Timer(animationDelay) {
-            if (parentGroup.editor.isDisposed) {
-              stop()
-            } else {
-              rotationDegrees = (rotationDegrees + 10) % 360
-              parentGroup.update()
-            }
-          }
+      Timer(animationDelay) {
+        if (parentGroup.editor.isDisposed) {
+          stop()
+        } else {
+          rotationDegrees = (rotationDegrees + 10) % 360
+          parentGroup.update()
+        }
+      }
 
   init {
     ApplicationManager.getApplication().invokeLater { start() }
@@ -52,7 +52,6 @@ class LensSpinner(group: LensWidgetGroup, private val icon: Icon) : LensWidget(g
   }
 
   override fun dispose() {
-    // TODO: Release?
     stop()
   }
 
