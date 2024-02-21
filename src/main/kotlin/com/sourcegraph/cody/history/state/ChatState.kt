@@ -23,15 +23,21 @@ class ChatState : BaseState() {
   @get:OptionTag(tag = "enhancedContext", nameAttribute = "")
   var enhancedContext: EnhancedContextState? by property()
 
+  private var updatedAtDate: LocalDateTime? = null
+
   fun title(): String? = messages.firstOrNull()?.text?.take(48)
 
   fun setUpdatedTimeAt(date: LocalDateTime) {
+    updatedAtDate = date
     updatedAt = date.format(DATE_FORMAT)
   }
 
   fun getUpdatedTimeAt(): LocalDateTime {
-    if (updatedAt == null) return LocalDateTime.now()
-    return LocalDateTime.parse(updatedAt, DATE_FORMAT)
+    if (updatedAt == null)
+      return LocalDateTime.now()
+    if (updatedAtDate == null)
+      updatedAtDate = LocalDateTime.parse(updatedAt, DATE_FORMAT)
+    return updatedAtDate!!
   }
 
   companion object {
