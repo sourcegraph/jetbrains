@@ -33,10 +33,8 @@ class ChatState : BaseState() {
   }
 
   fun getUpdatedTimeAt(): LocalDateTime {
-    if (updatedAt == null)
-      return LocalDateTime.now()
-    if (updatedAtDate == null)
-      updatedAtDate = LocalDateTime.parse(updatedAt, DATE_FORMAT)
+    if (updatedAt == null) return LocalDateTime.now()
+    if (updatedAtDate == null) updatedAtDate = LocalDateTime.parse(updatedAt, DATE_FORMAT)
     return updatedAtDate!!
   }
 
