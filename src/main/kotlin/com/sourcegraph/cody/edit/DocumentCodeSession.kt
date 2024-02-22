@@ -87,7 +87,7 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
         logger.warn("received code lens for wrong document: ${params.uri}")
         return@setOnDisplayCodeLens
       }
-      lensGroup?.let { Disposer.dispose(it) }
+      lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
       LensWidgetGroup(this, editor).let {
         synchronized(this) {
           lensGroup = it // Set this first, in case of race conditions.
