@@ -94,8 +94,6 @@ private constructor(
             text,
             displayText,
         )
-
-    submitMessageToAgent(humanMessage, contextFiles)
     addMessageAtIndex(humanMessage, index = messages.count(), shouldAddBlinkingCursor = null)
 
     val responsePlaceholder =
@@ -105,6 +103,8 @@ private constructor(
             displayText = "",
         )
     addMessageAtIndex(responsePlaceholder, index = messages.count(), shouldAddBlinkingCursor = true)
+
+    submitMessageToAgent(humanMessage, contextFiles)
   }
 
   private fun submitMessageToAgent(humanMessage: ChatMessage, contextFiles: List<ContextFile>) {
@@ -310,20 +310,20 @@ private constructor(
 
         val chatSession =
             AgentChatSession(project, innerSessionId, state.internalId!!, modelFromState)
-        state.messages.forEachIndexed { index, message ->
-          val parsed =
-              when (val speaker = message.speaker) {
-                MessageState.SpeakerState.HUMAN -> Speaker.HUMAN
-                MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
-                else -> error("unrecognized speaker $speaker")
-              }
+        val chatMessages =
+            state.messages.map { message ->
+              val parsed =
+                  when (val speaker = message.speaker) {
+                    MessageState.SpeakerState.HUMAN -> Speaker.HUMAN
+                    MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
+                    else -> error("unrecognized speaker $speaker")
+                  }
 
-          ApplicationManager.getApplication().invokeLater {
-            val chatMessage = ChatMessage(speaker = parsed, message.text)
-            chatSession.messages.add(chatMessage)
-            chatSession.chatPanel.addOrUpdateMessage(
-                chatMessage, index, shouldAddBlinkingCursor = false)
-          }
+              ChatMessage(speaker = parsed, message.text)
+            }
+        chatSession.messages.addAll(chatMessages)
+        ApplicationManager.getApplication().invokeLater {
+          chatSession.chatPanel.addAllMessages(chatMessages)
         }
 
         chatSession.restoreAgentSession(codyAgent, modelFromState)

@@ -83,9 +83,18 @@ class ChatPanel(
   ) {
     if (messagesPanel.componentCount == 1) {
       llmDropdown.updateAfterFirstMessage()
+      promptPanel.updateEmptyTextAfterFirstMessage()
     }
-    promptPanel.updateEmptyTextAfterFirstMessage()
     messagesPanel.addOrUpdateMessage(message, index, shouldAddBlinkingCursor)
+  }
+
+  @RequiresEdt
+  fun addAllMessages(messages: List<ChatMessage>) {
+    if (messages.isNotEmpty()) {
+      llmDropdown.updateAfterFirstMessage()
+      promptPanel.updateEmptyTextAfterFirstMessage()
+    }
+    messages.forEach(messagesPanel::addChatMessageAsComponent)
   }
 
   @RequiresEdt
