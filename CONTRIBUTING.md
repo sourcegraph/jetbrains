@@ -273,7 +273,7 @@ Create this configuration in the `sourcegraph/cody` project window:
 - Working directory: `~/src/sg/cody` (or wherever you cloned sourcegraph/cody)
 - JavaScript file: `agent/dist/index.js`
     - note: this is a relative path, unlike the run configs for Option 2
-- Application Parameters: <leave empty>
+- Application Parameters: leave empty
 - Environment variables:
     - `CODY_AGENT_DEBUG_REMOTE=true`
     - `CODY_AGENT_DEBUG_PORT=3113`

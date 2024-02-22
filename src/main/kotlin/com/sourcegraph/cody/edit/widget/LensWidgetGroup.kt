@@ -35,7 +35,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private val logger = Logger.getInstance(LensWidgetGroup::class.java)
   val editor = parentComponent as EditorImpl
 
-  private val isDisposed = AtomicBoolean(false)
+  val isDisposed = AtomicBoolean(false)
 
   private val widgets = mutableListOf<LensWidget>()
 
@@ -250,6 +250,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
         }
         widgets.add(LensAction(this, text, command, callback))
         separator = true
+      } else {
+        logger.warn("Skipping malformed widget: $lens")
       }
     }
     widgets.forEach { Disposer.register(this, it) }

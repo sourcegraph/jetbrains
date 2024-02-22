@@ -10,13 +10,13 @@ import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
+import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.*
 import java.net.Socket
 import java.net.URI
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
-import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -90,8 +90,6 @@ private constructor(
     private const val DEFAULT_AGENT_DEBUG_PORT = 3113 // Also defined in agent/src/cli/jsonrpc.ts
     @JvmField val executorService: ExecutorService = Executors.newCachedThreadPool()
 
-    private fun shouldConnectToDebugAgent() = System.getenv("CODY_AGENT_DEBUG_REMOTE") == "true"
-
     private fun shouldSpawnDebuggableAgent() = System.getenv("CODY_AGENT_DEBUG_INSPECT") == "true"
 
     fun create(project: Project): CompletableFuture<CodyAgent> {
@@ -130,7 +128,7 @@ private constructor(
     }
 
     private fun startAgentProcess(): AgentConnection {
-      if (shouldConnectToDebugAgent()) {
+      if (ConfigUtil.shouldConnectToDebugAgent()) {
         return connectToDebugAgent()
       }
       val token = CancellationToken()
