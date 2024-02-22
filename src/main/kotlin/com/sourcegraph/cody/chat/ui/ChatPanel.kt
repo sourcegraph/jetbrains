@@ -12,7 +12,6 @@ import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ChatModelsParams
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.ui.EnhancedContextPanel
@@ -69,18 +68,15 @@ class ChatPanel(project: Project, chatSession: ChatSession) :
         ApplicationManager.getApplication().invokeLater { modelDropdown.isEnabled = false }
       } else {
         agent.server.isCurrentUserPro().thenApplyAsync { isUserPro ->
-          agent.server.evaluateFeatureFlag(GetFeatureFlag.CodyProTrialEnded).thenApplyAsync {
-              trialEnded ->
-            if (isUserPro && !trialEnded!!) {
-              if (selectedModel == null) {
-                addAllAvailableModelsToTheDropdown(agent, sessionId)
-              } else {
-                // Here we handle adding model to the dropdown from state
-                ApplicationManager.getApplication().invokeLater {
-                  addEmptyModelDropdownWithRenderer()
-                  modelDropdown.addItem(
-                      CodyModelComboboxItem(selectedModel.icon, selectedModel.displayName))
-                }
+          if (isUserPro) {
+            if (selectedModel == null) {
+              addAllAvailableModelsToTheDropdown(agent, sessionId)
+            } else {
+              // Here we handle adding model to the dropdown from state
+              ApplicationManager.getApplication().invokeLater {
+                addEmptyModelDropdownWithRenderer()
+                modelDropdown.addItem(
+                    CodyModelComboboxItem(selectedModel.icon, selectedModel.displayName))
               }
             }
           }
