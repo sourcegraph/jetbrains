@@ -96,11 +96,7 @@ private constructor(
         )
 
     submitMessageToAgent(humanMessage, contextFiles)
-    addMessageAtIndex(
-        humanMessage,
-        index = messages.count(),
-        shouldAddBlinkingCursor = null,
-        chatPanel.llmDropdown.selectedChatModelProvider())
+    addMessageAtIndex(humanMessage, index = messages.count(), shouldAddBlinkingCursor = null)
 
     val responsePlaceholder =
         ChatMessage(
@@ -222,8 +218,7 @@ private constructor(
   private fun addMessageAtIndex(
       message: ChatMessage,
       index: Int,
-      shouldAddBlinkingCursor: Boolean? = null,
-      chatModelProvider: ChatModelsResponse.ChatModelProvider? = null
+      shouldAddBlinkingCursor: Boolean? = null
   ) {
     val messageToUpdate = messages.getOrNull(index)
     if (messageToUpdate != null) {
@@ -235,7 +230,7 @@ private constructor(
         message,
         index,
         shouldAddBlinkingCursor = shouldAddBlinkingCursor ?: message.actualMessage().isBlank())
-    HistoryService.getInstance(project).updateChatMessages(internalId, messages, chatModelProvider)
+    HistoryService.getInstance(project).updateChatMessages(internalId, messages)
   }
 
   @RequiresEdt
@@ -303,11 +298,15 @@ private constructor(
       val agentChatSession = CompletableFuture<AgentChatSession>()
       createNewPanel(project) { codyAgent ->
         val innerSessionId = codyAgent.server.chatNew()
-        val mySessionId = innerSessionId.completeOnTimeout(null, 4, TimeUnit.SECONDS).get()
-        val chatModels = codyAgent.server.chatModels(ChatModelsParams(mySessionId))
-        val response = chatModels.completeOnTimeout(null, 4, TimeUnit.SECONDS).get()
         val modelFromState =
-            response.models.singleOrNull { provider -> provider.model == state.model }
+            state.llm?.let {
+              ChatModelsResponse.ChatModelProvider(
+                  default = false,
+                  codyProOnly = false,
+                  provider = it.provider ?: "Unknown",
+                  title = it.title ?: "Unknown",
+                  model = it.model ?: "")
+            }
 
         val chatSession =
             AgentChatSession(project, innerSessionId, state.internalId!!, modelFromState)
@@ -318,15 +317,16 @@ private constructor(
                 MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
                 else -> error("unrecognized speaker $speaker")
               }
-          val chatMessage = ChatMessage(speaker = parsed, message.text)
-          chatSession.messages.add(chatMessage)
-          chatSession.chatPanel.addOrUpdateMessage(
-              chatMessage, index, shouldAddBlinkingCursor = false)
+
+          ApplicationManager.getApplication().invokeLater {
+            val chatMessage = ChatMessage(speaker = parsed, message.text)
+            chatSession.messages.add(chatMessage)
+            chatSession.chatPanel.addOrUpdateMessage(
+                chatMessage, index, shouldAddBlinkingCursor = false)
+          }
         }
 
-        CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
-          chatSession.restoreAgentSession(agent, modelFromState)
-        }
+        chatSession.restoreAgentSession(codyAgent, modelFromState)
 
         AgentChatSessionService.getInstance(project).addSession(chatSession)
         agentChatSession.complete(chatSession)

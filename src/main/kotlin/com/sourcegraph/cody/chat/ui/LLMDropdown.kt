@@ -6,8 +6,6 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.MutableCollectionComboBoxModel
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.WebviewMessage
-import com.sourcegraph.cody.agent.WebviewReceiveMessageParams
 import com.sourcegraph.cody.agent.protocol.ChatModelsParams
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.chat.SessionId
@@ -16,16 +14,15 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.ui.LLMComboBoxRenderer
 import com.sourcegraph.common.BrowserOpener
 import com.sourcegraph.common.CodyBundle
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 
 class LLMDropdown(
     val project: Project,
-    private val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?
+    private val onSetSelectedItem: (ChatModelsResponse.ChatModelProvider) -> Unit,
+    private val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?,
 ) : ComboBox<ChatModelsResponse.ChatModelProvider>(MutableCollectionComboBoxModel()) {
 
   private var firstMessageSent: Boolean = false
-  val sessionId = CompletableFuture<SessionId>()
 
   init {
     renderer = LLMComboBoxRenderer(this)
@@ -84,7 +81,7 @@ class LLMDropdown(
         }
       }
       super.setSelectedItem(anObject)
-      selectedChatModelProvider()?.let { setLLMForAgentSession(it) }
+      onSetSelectedItem(modelProvider)
     }
   }
 
@@ -96,26 +93,5 @@ class LLMDropdown(
     if (activeAccountType?.isDotcomAccount() == true) {
       toolTipText = CodyBundle.getString("LLMDropdown.disabled.text")
     }
-  }
-
-  private fun setLLMForAgentSession(chatModelProvider: ChatModelsResponse.ChatModelProvider) {
-    val sessionIdGetNow = sessionId.getNow(null) ?: return
-
-    CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
-      val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-      if (activeAccountType.isEnterpriseAccount()) {
-        agent.server.webviewReceiveMessage(
-            WebviewReceiveMessageParams(sessionIdGetNow, WebviewMessage(command = "chatModel")))
-      } else {
-        agent.server.webviewReceiveMessage(
-            WebviewReceiveMessageParams(
-                sessionIdGetNow,
-                WebviewMessage(command = "chatModel", model = chatModelProvider.model)))
-      }
-    }
-  }
-
-  fun selectedChatModelProvider(): ChatModelsResponse.ChatModelProvider? {
-    return (selectedItem as? ChatModelsResponse.ChatModelProvider)
   }
 }

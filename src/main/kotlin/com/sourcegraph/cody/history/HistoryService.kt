@@ -9,6 +9,7 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.HistoryState
+import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.history.state.MessageState
 import java.time.LocalDateTime
 
@@ -24,16 +25,17 @@ class HistoryService(private val project: Project) :
   }
 
   @Synchronized
-  fun updateChatMessages(
+  fun updateChatLlmProvider(
       internalId: String,
-      chatMessages: List<ChatMessage>,
-      chatModelProvider: ChatModelsResponse.ChatModelProvider?
+      chatModelProvider: ChatModelsResponse.ChatModelProvider
   ) {
-    chatModelProvider?.let {
-      val found = getOrCreateChat(internalId)
-      found.model = chatModelProvider.model
-    }
-    updateChatMessages(internalId, chatMessages)
+    val found = getOrCreateChat(internalId)
+    found.llm =
+        LLMState().also {
+          it.model = chatModelProvider.model
+          it.title = chatModelProvider.title
+          it.provider = chatModelProvider.provider
+        }
   }
 
   @Synchronized

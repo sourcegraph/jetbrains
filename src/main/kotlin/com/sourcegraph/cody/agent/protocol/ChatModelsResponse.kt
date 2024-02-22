@@ -19,5 +19,7 @@ data class ChatModelsResponse(val models: List<ChatModelProvider>) {
           "Mistral" -> Icons.LLM.Mistral
           else -> null
         }
+
+    fun displayName(): String = "$title by $provider"
   }
 }
