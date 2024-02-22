@@ -16,8 +16,7 @@ class ChatState : BaseState() {
 
   @get:OptionTag(tag = "updatedAt", nameAttribute = "") var updatedAt: String? by string()
 
-  @get:OptionTag(tag = "model", nameAttribute = "")
-  var model: String? by string() // todo: migrate to llm
+  @get:OptionTag(tag = "model", nameAttribute = "") var model: String? by string()
 
   @get:OptionTag(tag = "llm", nameAttribute = "") var llm: LLMState? by property()
 

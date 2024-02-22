@@ -16,6 +16,7 @@ import com.sourcegraph.cody.CodyToolWindowFactory
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
 import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.initialization.Activity
 import com.sourcegraph.config.*
 import java.util.concurrent.CompletableFuture
@@ -28,6 +29,7 @@ class SettingsMigration : Activity {
     RunOnceUtil.runOnceForProject(project, "CodyProjectSettingsMigration") {
       migrateProjectSettings(project)
       migrateAccounts(project)
+      migrateLlms(project)
     }
     RunOnceUtil.runOnceForApp("CodyApplicationSettingsMigration") { migrateApplicationSettings() }
     RunOnceUtil.runOnceForApp("ToggleCodyToolWindowAfterMigration") {
@@ -82,6 +84,33 @@ class SettingsMigration : Activity {
     migrateDotcomAccount(project, requestExecutorFactory, customRequestHeaders)
     migrateEnterpriseAccount(project, requestExecutorFactory, customRequestHeaders)
   }
+
+  private fun migrateLlms(project: Project) {
+    HistoryService.getInstance(project)
+        .state
+        .chats
+        .filter { it.llm == null }
+        .forEach {
+          val (provider, title) =
+              modelToProviderAndTitle.getOrDefault(it.model, Pair("Unknown", "Unknown"))
+          val llmState = LLMState()
+          llmState.provider = provider
+          llmState.title = title
+          llmState.model = it.model
+          it.llm = llmState
+          it.model = null
+        }
+  }
+
+  private val modelToProviderAndTitle =
+      mapOf(
+          "anthropic/claude-2.0" to Pair("Anthropic", "Claude 2.0"),
+          "anthropic/claude-2.1" to Pair("Anthropic", "Claude 2.1 Preview"),
+          "anthropic/claude-instant-1.2" to Pair("Anthropic", "Claude Instant"),
+          "openai/gpt-3.5-turbo" to Pair("OpenAI", "GPT-3.5 Turbo"),
+          "openai/gpt-4-1106-preview" to Pair("OpenAI", "GPT-4 Turbo Preview"),
+          "fireworks/accounts/fireworks/models/mixtral-8x7b-instruct" to
+              Pair("Mistral", "Mixtral 8x7B"))
 
   private fun migrateDotcomAccount(
       project: Project,
