@@ -16,9 +16,9 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.ServerAuthLoader
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
-import org.jetbrains.annotations.Contract
 import java.nio.file.Path
 import java.nio.file.Paths
+import org.jetbrains.annotations.Contract
 
 object ConfigUtil {
   const val DOTCOM_URL = "https://sourcegraph.com/"
@@ -79,10 +79,13 @@ object ConfigUtil {
     return result
   }
 
+  @JvmStatic fun shouldConnectToDebugAgent() = System.getenv("CODY_AGENT_DEBUG_REMOTE") == "true"
+
   @JvmStatic
   fun getCustomConfiguration(): Map<String, String> {
-    // Needed by Edit commands to trigger smart-selection; without it things break,
-    // so it isn't optional (nor advertised as experimental) in the non-vscode clients.
+    // Needed by Edit commands to trigger smart-selection; without it things break.
+    // So it isn't optional in JetBrains clients, which do not offer language-neutral solutions
+    // to this problem; instead we hardwire it to use the indentation-based provider.
     return mapOf("cody.experimental.foldingRanges" to "indentation-based")
   }
 
