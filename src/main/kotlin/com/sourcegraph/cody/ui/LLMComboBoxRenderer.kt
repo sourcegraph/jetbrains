@@ -34,7 +34,8 @@ class LLMComboBoxRenderer(private val llmDropdown: LLMDropdown) : DefaultListCel
     panel.add(iconLabel, BorderLayout.WEST)
 
     val textBadgePanel = JPanel(BorderLayout())
-    textBadgePanel.add(JLabel(chatModelProvider.displayName()), BorderLayout.CENTER)
+    val displayNameLabel = JLabel(chatModelProvider.displayName())
+    textBadgePanel.add(displayNameLabel, BorderLayout.CENTER)
     textBadgePanel.border = BorderFactory.createEmptyBorder(0, 5, 0, 0)
     if (chatModelProvider.codyProOnly && isCurrentUserFree) {
       textBadgePanel.add(JLabel(Icons.LLM.ProSticker), BorderLayout.EAST)
@@ -44,6 +45,7 @@ class LLMComboBoxRenderer(private val llmDropdown: LLMDropdown) : DefaultListCel
       textBadgePanel.background = component.background
       textBadgePanel.foreground = component.foreground
     }
+    listOf(displayNameLabel, textBadgePanel, panel).forEach { it.isEnabled = llmDropdown.isEnabled }
 
     panel.add(textBadgePanel, BorderLayout.CENTER)
     return panel

@@ -22,7 +22,7 @@ class LLMDropdown(
     private val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?,
 ) : ComboBox<ChatModelsResponse.ChatModelProvider>(MutableCollectionComboBoxModel()) {
 
-  private var firstMessageSent: Boolean = false
+  private var didSendFirstMessage: Boolean = false
 
   init {
     renderer = LLMComboBoxRenderer(this)
@@ -64,7 +64,8 @@ class LLMDropdown(
     models.find { it.default }?.let { this.selectedItem = it }
 
     val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-    isEnabled = !firstMessageSent && !(activeAccountType.isEnterpriseAccount() || model.size <= 1)
+    isEnabled =
+        !didSendFirstMessage && !(activeAccountType.isEnterpriseAccount() || model.size <= 1)
   }
 
   override fun getModel(): MutableCollectionComboBoxModel<ChatModelsResponse.ChatModelProvider> {
@@ -86,7 +87,7 @@ class LLMDropdown(
   }
 
   fun updateAfterFirstMessage() {
-    firstMessageSent = true
+    didSendFirstMessage = true
     isEnabled = false
 
     val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
