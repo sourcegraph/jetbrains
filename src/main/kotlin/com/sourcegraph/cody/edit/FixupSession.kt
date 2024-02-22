@@ -12,7 +12,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
-import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.vscode.CancellationToken
 import java.util.concurrent.atomic.AtomicReference
@@ -22,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference
  * string, or fixing up a region according to user instructions.
  */
 abstract class FixupSession(val editor: Editor) : Disposable {
+  private val logger = Logger.getInstance(FixupSession::class.java)
   protected val controller = FixupService.instance
 
   protected val currentJob = AtomicReference(CancellationToken())
@@ -83,22 +83,16 @@ abstract class FixupSession(val editor: Editor) : Disposable {
     doc.replaceString(start, end, edit.value ?: return)
   }
 
-  private fun performInsert(doc: Document, edit: TextEdit): TextEdit? {
-    // TODO: Figure out why insertion-based selection guessing isn't being called in the agent.
-    // For now, hack it to insert at beginning of line (BOL) at cursor, for demo purposes.
-    val c = editor.caretModel.primaryCaret.offset
-    val lineStart = doc.getLineStartOffset(doc.getLineNumber(c))
-    val pos = Position.fromOffset(editor.document, lineStart)
-    val insert = edit.value ?: return null
-    // TODO: We shouldn't have to be fixing this up.
-    val insertText = if (insert.endsWith("\n")) insert else "$insert\n"
-    val textEdit = TextEdit("insert", null, pos, insertText)
-
-    val start = textEdit.position?.toOffset(doc) ?: return null
+  private fun performInsert(doc: Document, edit: TextEdit) {
+    val start = edit.position?.toOffset(doc) ?: edit.range?.start?.toOffset(doc)
+    val text = edit.value
+    if (start == null || text == null) {
+      logger.warn("Invalid edit operation params: $edit")
+      return
+    }
     // Set this flag before we make the edit, since callbacks are called synchronously.
     performedEdits = true
-    doc.insertString(start, insertText)
-    return textEdit
+    doc.insertString(start, text)
   }
 
   private fun performDelete(doc: Document, edit: TextEdit) {

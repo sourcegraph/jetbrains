@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.edit.widget
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
@@ -12,13 +13,14 @@ import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
-import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.protocol.DisplayCodeLensParams
 import com.sourcegraph.cody.agent.protocol.ProtocolCodeLens
+import com.sourcegraph.cody.edit.FixupService.Companion.backgroundThread
 import com.sourcegraph.cody.edit.FixupSession
 import java.awt.*
 import java.awt.geom.Rectangle2D
+import java.util.concurrent.atomic.AtomicBoolean
 
 operator fun Point.component1() = this.x
 
@@ -32,6 +34,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     EditorCustomElementRenderer, Disposable {
   private val logger = Logger.getInstance(LensWidgetGroup::class.java)
   val editor = parentComponent as EditorImpl
+
+  private val isDisposed = AtomicBoolean(false)
 
   private val widgets = mutableListOf<LensWidget>()
 
@@ -108,18 +112,30 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     }
   }
 
-  @RequiresEdt
   fun display(params: DisplayCodeLensParams, callbacks: Map<String, () -> Unit>) {
-    try {
-      commandCallbacks = callbacks
-      parse(params.codeLenses)
-    } catch (x: Exception) {
-      logger.error("Error building CodeLens widgets", x)
-      return
+    backgroundThread {
+      try {
+        commandCallbacks = callbacks
+        parse(params.codeLenses)
+      } catch (x: Exception) {
+        logger.error("Error building CodeLens widgets", x)
+        return@backgroundThread
+      }
+      val lens = params.codeLenses.first()
+      val offset =
+          editor.document.getLineStartOffset(
+              if (!lens.range.isZero()) {
+                (lens.range.start.line - 1).coerceAtLeast(0)
+              } else {
+                editor.caretModel.currentCaret.logicalPosition.line
+              })
+      ApplicationManager.getApplication().invokeLater {
+        if (!isDisposed.get()) {
+          inlay = editor.inlayModel.addBlockElement(offset, true, false, 0, this)
+          Disposer.register(this, inlay!!)
+        }
+      }
     }
-    val offset = editor.document.getLineStartOffset(getInlayLine(params.codeLenses.first()))
-    inlay = editor.inlayModel.addBlockElement(offset, true, false, 0, this)
-    Disposer.register(this, inlay!!)
   }
 
   // Propagate repaint requests from widgets to the inlay.
@@ -174,17 +190,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
         g.font = widgetFont // In case widget changed it.
       }
     }
-  }
-
-  private fun getInlayLine(lens: ProtocolCodeLens): Int {
-    if (!lens.range.isZero()) {
-      return lens.range.start.line
-    }
-    // Zeroed out (first char in buffer) usually means it's uninitialized/invalid.
-    // We recompute it just to be sure.
-    val line = editor.caretModel.logicalPosition.line
-    // TODO: Fallback should be the caret when the command was invoked.
-    return (line - 1).coerceAtLeast(0) // Fall back to line before caret.
   }
 
   private fun findWidgetAt(x: Int, y: Int): LensWidget? {
@@ -291,6 +296,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   /** Immediately hides and discards this inlay and widget group. */
   override fun dispose() {
+    isDisposed.set(true)
     if (editor.isDisposed) return
     editor.removeEditorMouseListener(mouseClickListener)
     editor.removeEditorMouseMotionListener(mouseMotionListener)
