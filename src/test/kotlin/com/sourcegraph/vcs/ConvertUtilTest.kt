@@ -89,8 +89,10 @@ class ConvertUtilTest : TestCase() {
         convertGitCloneURLToCodebaseNameOrError("http://github.com/sourcegraph/sourcegraph"))
   }
 
-  fun `test if returns null for invalid UR`() {
-    assertThrows(Exception::class.java) { convertGitCloneURLToCodebaseNameOrError("invalid") }
+  private fun invalidConversion() = convertGitCloneURLToCodebaseNameOrError("invalid")
+
+  fun `test if returns null for invalid URL`() {
+    assertThrows(Exception::class.java) { invalidConversion() }
   }
 
   fun `test conversion URLs with dots in the repo name`() {
