@@ -33,7 +33,7 @@ class ChatPanel(
 ) : JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
 
   val promptPanel: PromptPanel = PromptPanel(project, chatSession)
-  val llmDropdown =
+  private val llmDropdown =
       LLMDropdown(project, onSetSelectedItem = ::setLlmForAgentSession, chatModelProviderFromState)
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)

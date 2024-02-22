@@ -61,12 +61,10 @@ private constructor(
               if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
             }
 
-    val selectedItem =
-        chatPanel.llmDropdown.selectedItem?.let { (it as? ChatModelsResponse.ChatModelProvider) }
     val restoreParams =
         ChatRestoreParams(
             // TODO: Change in the agent handling chat restore with null model
-            chatModelProvider?.model ?: selectedItem?.model ?: "", // fixme: empty string
+            chatModelProvider?.model,
             messagesToReload,
             UUID.randomUUID().toString())
     val newSessionId = agent.server.chatRestore(restoreParams)
@@ -209,7 +207,7 @@ private constructor(
         }
       }
       else -> {
-        logger.debug(String.format("CodyToolWindowContent: unknown message type: %s", message.type))
+        logger.debug(String.format("AgentChatSession: unknown message type: %s", message.type))
       }
     }
   }
@@ -326,7 +324,11 @@ private constructor(
           chatSession.chatPanel.addAllMessages(chatMessages)
         }
 
-        chatSession.restoreAgentSession(codyAgent, modelFromState)
+        if (modelFromState?.model.isNullOrEmpty()) {
+          chatSession.restoreAgentSession(codyAgent)
+        } else {
+          chatSession.restoreAgentSession(codyAgent, modelFromState)
+        }
 
         AgentChatSessionService.getInstance(project).addSession(chatSession)
         agentChatSession.complete(chatSession)

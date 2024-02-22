@@ -40,7 +40,9 @@ class LLMDropdown(
 
     CodyAgentService.withAgent(project) { agent ->
       val chatModels = agent.server.chatModels(ChatModelsParams(sessionId))
-      val response = chatModels.completeOnTimeout(null, 4, TimeUnit.SECONDS).get()
+      val response =
+          chatModels.completeOnTimeout(null, 4, TimeUnit.SECONDS).get() ?: return@withAgent
+
       val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
       val isCurrentUserFree =
           if (activeAccountType?.isDotcomAccount() == true) {
