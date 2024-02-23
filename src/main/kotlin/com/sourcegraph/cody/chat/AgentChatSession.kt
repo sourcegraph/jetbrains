@@ -299,7 +299,7 @@ private constructor(
         val modelFromState =
             state.llm?.let {
               ChatModelsResponse.ChatModelProvider(
-                  default = false,
+                  default = it.model == null,
                   codyProOnly = false,
                   provider = it.provider ?: "Unknown",
                   title = it.title ?: "Unknown",
