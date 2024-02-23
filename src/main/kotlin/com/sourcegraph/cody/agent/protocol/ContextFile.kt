@@ -18,22 +18,6 @@ data class ContextFileFile(
     val range: Range? = null,
 ) : ContextFile() {
   override val type: String = "file"
-
-  fun getLinkActionText(projectPath: String?): String {
-    val intelliJRange = range?.intellijRange()
-    val localPath = uri.path.removePrefix(projectPath ?: "")
-
-    return buildString {
-      append("@$localPath")
-      if (intelliJRange != null) {
-        if (intelliJRange.first != intelliJRange.second) {
-          append(":${intelliJRange.first}-${intelliJRange.second}")
-        } else {
-          append(":${intelliJRange.first}")
-        }
-      }
-    }
-  }
 }
 
 val contextFileDeserializer =
