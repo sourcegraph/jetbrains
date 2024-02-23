@@ -73,7 +73,7 @@ class ContextFilesPanel(
     val goToFile = ContextFileActionLink(project, contextFileFile, anAction)
     val panel = JPanel(BorderLayout())
     panel.isOpaque = false
-    panel.border = JBUI.Borders.emptyLeft(3)
+    panel.border = JBUI.Borders.empty(3, 3, 0, 0)
     panel.add(goToFile, BorderLayout.PAGE_START)
     return panel
   }
