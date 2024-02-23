@@ -6,9 +6,7 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.components.AnActionLink
-import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBInsets
 import com.intellij.util.ui.JBUI
@@ -23,7 +21,6 @@ import com.sourcegraph.cody.chat.ChatUIConstants.TEXT_MARGIN
 import com.sourcegraph.cody.ui.AccordionSection
 import java.awt.BorderLayout
 import java.awt.Insets
-import java.nio.file.Path
 import java.nio.file.Paths
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
@@ -39,49 +36,32 @@ class ContextFilesPanel(
     updateContentWith(chatMessage.contextFiles)
   }
 
-  @RequiresBackgroundThread
-  private fun updateFileList(pathsWithContextFiles: List<Pair<Path, ContextFile>>) {
-    val filesAvailableInEditor =
-        pathsWithContextFiles
-            .map { (path, contextFile) ->
-              val findFileByNioFile = LocalFileSystem.getInstance().findFileByNioFile(path)
-              findFileByNioFile ?: return@map null
-              Pair(findFileByNioFile, contextFile as? ContextFileFile)
-            }
-            .filterNotNull()
-            .toList()
+  fun updateContentWith(contextFiles: List<ContextFile>?) {
+    val contextFileFiles =
+        contextFiles?.mapNotNull { it as? ContextFileFile }?.filter { it.repoName == null }
 
-    ApplicationManager.getApplication().invokeLater {
-      this.removeAll()
-      this.isVisible = filesAvailableInEditor.isNotEmpty()
-
-      val margin = JBInsets.create(Insets(TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN))
-      val accordionSection = AccordionSection("Read ${filesAvailableInEditor.size} files")
-      accordionSection.isOpaque = false
-      accordionSection.border = EmptyBorder(margin)
-      filesAvailableInEditor.forEachIndexed { index, file: Pair<VirtualFile, ContextFileFile?> ->
-        val filePanel = createFileWithLinkPanel(file.first, file.second)
-        accordionSection.contentPanel.add(filePanel, index)
-      }
-      add(accordionSection, BorderLayout.CENTER)
+    if (contextFileFiles.isNullOrEmpty()) {
+      return
     }
+
+    this.removeAll()
+    this.isVisible = contextFileFiles.isNotEmpty()
+
+    val margin = JBInsets.create(Insets(TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN))
+    val accordionSection = AccordionSection("Read ${contextFileFiles.size} files")
+    accordionSection.isOpaque = false
+    accordionSection.border = EmptyBorder(margin)
+    contextFileFiles.forEachIndexed { index, contextFile: ContextFileFile ->
+      val filePanel = createFileWithLinkPanel(contextFile)
+      accordionSection.contentPanel.add(filePanel, index)
+    }
+    add(accordionSection, BorderLayout.CENTER)
   }
 
   @RequiresEdt
-  private fun createFileWithLinkPanel(
-      file: VirtualFile,
-      contextFileFile: ContextFileFile?
-  ): JPanel {
-    val projectRelativeFilePath = file.path.removePrefix(project.basePath ?: "")
-    val anAction =
-        object : DumbAwareAction() {
-          override fun actionPerformed(anActionEvent: AnActionEvent) {
-            val logicalLine = contextFileFile?.range?.start?.line ?: 0
-            OpenFileDescriptor(project, file, logicalLine, /* logicalColumn= */ 0)
-                .navigate(/* requestFocus= */ true)
-          }
-        }
-    val actionText = getActionTextForFileLinkAction(contextFileFile, projectRelativeFilePath)
+  private fun createFileWithLinkPanel(contextFileFile: ContextFileFile): JPanel {
+    val anAction = OpenLocalContextFileAction(project, contextFileFile)
+    val actionText = contextFileFile.getLinkActionText(project.basePath)
     val goToFile = AnActionLink(actionText, anAction)
     goToFile.toolTipText = actionText
     val panel = JPanel(BorderLayout())
@@ -91,49 +71,23 @@ class ContextFilesPanel(
     return panel
   }
 
-  private fun getActionTextForFileLinkAction(
-      contextFileFile: ContextFileFile?,
-      projectRelativeFilePath: String
-  ): String {
-    val intelliJRange = contextFileFile?.range?.intellijRange()
-
-    return buildString {
-      append("@$projectRelativeFilePath")
-      if (intelliJRange != null) {
-        if (intelliJRange.first != intelliJRange.second) {
-          append(":${intelliJRange.first}-${intelliJRange.second}")
-        } else {
-          append(":${intelliJRange.first}")
+  class OpenLocalContextFileAction(
+      val project: Project,
+      private val contextFileFile: ContextFileFile
+  ) : DumbAwareAction() {
+    override fun actionPerformed(anActionEvent: AnActionEvent) {
+      val logicalLine = contextFileFile.range?.start?.line ?: 0
+      val newUri = contextFileFile.uri.withFragment(null).withQuery(null)
+      val contextFilePath = Paths.get(newUri)
+      ApplicationManager.getApplication().executeOnPooledThread {
+        val findFileByNioFile = LocalFileSystem.getInstance().findFileByNioFile(contextFilePath)
+        if (findFileByNioFile != null) {
+          ApplicationManager.getApplication().invokeLater {
+            OpenFileDescriptor(project, findFileByNioFile, logicalLine, /* logicalColumn= */ 0)
+                .navigate(/* requestFocus= */ true)
+          }
         }
       }
-    }
-  }
-
-  fun updateContentWith(contextFiles: List<ContextFile>?) {
-    if (contextFiles.isNullOrEmpty()) {
-      return
-    }
-
-    val pathsWithContextFiles =
-        contextFiles
-            .map { contextFile ->
-              val contextFilePath =
-                  if (contextFile.repoName != null) {
-                    val path = contextFile.uri.path.split("blob/").lastOrNull()
-                    path.let {
-                      Paths.get("${project.basePath}/$it") // todo: reference the remote file
-                    }
-                  } else {
-                    val newUri = contextFile.uri.withFragment(null).withQuery(null)
-                    Paths.get(newUri)
-                  }
-
-              contextFilePath to contextFile
-            }
-            .filter { (a, _) -> a != null }
-
-    ApplicationManager.getApplication().executeOnPooledThread {
-      updateFileList(pathsWithContextFiles)
     }
   }
 }
