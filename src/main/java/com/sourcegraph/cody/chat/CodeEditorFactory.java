@@ -169,7 +169,7 @@ public class CodeEditorFactory {
   }
 
   @NotNull
-  private static ActionListener copyCodeListener(EditorEx editor, JButton copyButton) {
+  private ActionListener copyCodeListener(EditorEx editor, JButton copyButton) {
     return e -> {
       String text = editor.getDocument().getText();
       StringSelection stringSelection = new StringSelection(text);
