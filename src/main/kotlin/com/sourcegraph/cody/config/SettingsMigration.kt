@@ -29,8 +29,8 @@ class SettingsMigration : Activity {
     RunOnceUtil.runOnceForProject(project, "CodyProjectSettingsMigration") {
       migrateProjectSettings(project)
       migrateAccounts(project)
-      migrateLlms(project)
     }
+    RunOnceUtil.runOnceForProject(project, "CodyHistoryLlmMigration") { migrateLlms(project) }
     RunOnceUtil.runOnceForApp("CodyApplicationSettingsMigration") { migrateApplicationSettings() }
     RunOnceUtil.runOnceForApp("ToggleCodyToolWindowAfterMigration") {
       toggleCodyToolbarWindow(project)
@@ -91,12 +91,12 @@ class SettingsMigration : Activity {
         .chats
         .filter { it.llm == null }
         .forEach {
-          val (provider, title) =
-              modelToProviderAndTitle.getOrDefault(it.model, Pair("Unknown", "Unknown"))
+          val (model, provider, title) =
+              modelToProviderAndTitle.getOrDefault(it.model, Triple("", "Unknown", "Unknown"))
           val llmState = LLMState()
           llmState.provider = provider
           llmState.title = title
-          llmState.model = it.model
+          llmState.model = model
           it.llm = llmState
           it.model = null
         }
@@ -104,13 +104,20 @@ class SettingsMigration : Activity {
 
   private val modelToProviderAndTitle =
       mapOf(
-          "anthropic/claude-2.0" to Pair("Anthropic", "Claude 2.0"),
-          "anthropic/claude-2.1" to Pair("Anthropic", "Claude 2.1 Preview"),
-          "anthropic/claude-instant-1.2" to Pair("Anthropic", "Claude Instant"),
-          "openai/gpt-3.5-turbo" to Pair("OpenAI", "GPT-3.5 Turbo"),
-          "openai/gpt-4-1106-preview" to Pair("OpenAI", "GPT-4 Turbo Preview"),
-          "fireworks/accounts/fireworks/models/mixtral-8x7b-instruct" to
-              Pair("Mistral", "Mixtral 8x7B"))
+          "Claude 2.0 by Anthropic" to Triple("anthropic/claude-2.0", "Anthropic", "Claude 2.0"),
+          "Claude 2.1 Preview by Anthropic" to
+              Triple("anthropic/claude-2.1", "Anthropic", "Claude 2.1 Preview"),
+          "Claude Instant by Anthropic" to
+              Triple("anthropic/claude-instant-1.2", "Anthropic", "Claude Instant"),
+          "ChatGPT 3.5 Turbo by OpenAI" to
+              Triple("openai/gpt-3.5-turbo", "OpenAI", "GPT-3.5 Turbo"),
+          "ChatGPT 4 Turbo Preview by OpenAI" to
+              Triple("openai/gpt-4-1106-preview", "OpenAI", "GPT-4 Turbo Preview"),
+          "Mixtral 8x7B by Mistral" to
+              Triple(
+                  "fireworks/accounts/fireworks/models/mixtral-8x7b-instruct",
+                  "Mistral",
+                  "Mixtral 8x7B"))
 
   private fun migrateDotcomAccount(
       project: Project,
