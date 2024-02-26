@@ -32,29 +32,4 @@ class ContextFileActionLink(
     }
     super.paintComponent(g)
   }
-
-  private fun ContextFileFile.getLinkActionText(projectPath: String?): String {
-    val theRange = if (isLocal()) range?.intellijRange() else range?.toSearchRange()
-    val path =
-        if (isLocal()) {
-          "@${uri.path.removePrefix(projectPath ?: "")}"
-        } else {
-          val repoCommitFile = uri.path.split("@", "/-/blob/")
-          if (repoCommitFile.size == 3) {
-            val repo = repoCommitFile[0].split("/").lastOrNull()
-            "$repo ${repoCommitFile[2]}"
-          } else uri.path
-        }
-
-    return buildString {
-      append(path)
-      if (theRange != null) {
-        if (theRange.first < theRange.second) {
-          append(":${theRange.first}-${theRange.second}")
-        } else {
-          append(":${theRange.first}")
-        }
-      }
-    }
-  }
 }
