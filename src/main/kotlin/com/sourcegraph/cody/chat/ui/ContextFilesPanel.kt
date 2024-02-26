@@ -72,7 +72,7 @@ class ContextFilesPanel(
         }
 
     val prefix = "✨ Context: "
-    val lineCount = contextFileFiles.sumOf { it.range?.numberOfLines() ?: 0 }
+    val lineCount = contextFileFiles.sumOf { it.range?.length() ?: 0 }
     val fileCount = filteredFiles.size
     val lines = "$lineCount line${if (lineCount > 1) "s" else ""}"
     val files = "$fileCount file${if (fileCount > 1) "s" else ""}"

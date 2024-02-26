@@ -11,5 +11,5 @@ data class Range(val start: Position, val end: Position) {
   // The link to Sourcegraph Search on the other hand looks like this:
   fun toSearchRange(): RangePair = RangePair(start.line.plus(1), end.line)
 
-  fun numberOfLines() = end.line - start.line + 1
+  fun length() = end.line - start.line + 1
 }
