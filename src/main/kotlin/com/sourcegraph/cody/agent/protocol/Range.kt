@@ -9,5 +9,5 @@ data class Range(val start: Position, val end: Position) {
   fun intellijRange(): RangePair = RangePair(start.line.plus(1), end.line.plus(1))
 
   // The link to Sourcegraph Search on the other hand looks like this:
-  fun toSearchRange(): Pair<Int, Int> = RangePair(start.line.plus(1), end.line)
+  fun toSearchRange(): RangePair = RangePair(start.line.plus(1), end.line)
 }

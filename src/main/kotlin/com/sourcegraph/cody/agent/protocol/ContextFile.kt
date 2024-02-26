@@ -18,6 +18,8 @@ data class ContextFileFile(
     val range: Range? = null,
 ) : ContextFile() {
   override val type: String = "file"
+
+  fun isLocal() = repoName == null
 }
 
 val contextFileDeserializer =

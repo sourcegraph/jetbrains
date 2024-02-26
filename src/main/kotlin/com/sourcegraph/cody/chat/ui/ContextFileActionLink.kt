@@ -14,7 +14,7 @@ class ContextFileActionLink(
     anAction: AnAction
 ) : AnActionLink("", anAction) {
   private val localFileBackground = JBColor(Color(182, 210, 242), Color(56, 85, 112))
-  private val isReferringToLocalFile = contextFileFile.repoName == null
+  private val isReferringToLocalFile = contextFileFile.isLocal()
 
   init {
     text = contextFileFile.getLinkActionText(project.basePath)
@@ -34,9 +34,9 @@ class ContextFileActionLink(
   }
 
   private fun ContextFileFile.getLinkActionText(projectPath: String?): String {
-    val theRange = if (repoName == null) range?.intellijRange() else range?.toSearchRange()
+    val theRange = if (isLocal()) range?.intellijRange() else range?.toSearchRange()
     val path =
-        if (repoName == null) {
+        if (isLocal()) {
           "@${uri.path.removePrefix(projectPath ?: "")}"
         } else {
           val repoCommitFile = uri.path.split("@", "/-/blob/")

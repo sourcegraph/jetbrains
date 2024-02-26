@@ -62,7 +62,7 @@ class ContextFilesPanel(
     val anAction =
         object : DumbAwareAction() {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
-            if (contextFileFile.repoName == null) {
+            if (contextFileFile.isLocal()) {
               openInEditor(contextFileFile)
             } else {
               openInBrowser(project, contextFileFile.uri)
