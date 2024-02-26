@@ -59,18 +59,7 @@ class ContextFilesPanel(
   }
 
   private fun deriveAccordionTitle(contextFileFiles: List<ContextFileFile>): String {
-    val uniqueFiles = mutableSetOf<String>()
-
-    val filteredFiles =
-        contextFileFiles.filter { file ->
-          if (uniqueFiles.contains(file.uri.toString())) {
-            false
-          } else {
-            uniqueFiles.add(file.uri.toString())
-            true
-          }
-        }
-
+    val filteredFiles = contextFileFiles.distinctBy { it.uri }
     val prefix = "✨ Context: "
     val lineCount = contextFileFiles.sumOf { it.range?.length() ?: 0 }
     val fileCount = filteredFiles.size
