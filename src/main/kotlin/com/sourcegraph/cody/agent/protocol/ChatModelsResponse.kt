@@ -8,8 +8,8 @@ data class ChatModelsResponse(val models: List<ChatModelProvider>) {
   data class ChatModelProvider(
       val default: Boolean,
       val codyProOnly: Boolean,
-      val provider: String,
-      val title: String,
+      val provider: String?,
+      val title: String?,
       val model: String
   ) {
     fun getIcon(): Icon? =
@@ -20,6 +20,9 @@ data class ChatModelsResponse(val models: List<ChatModelProvider>) {
           else -> null
         }
 
-    fun displayName(): String = "$title by $provider"
+    fun displayName(): String = buildString {
+      append(title ?: "Default")
+      provider?.let { append(" by $provider") }
+    }
   }
 }

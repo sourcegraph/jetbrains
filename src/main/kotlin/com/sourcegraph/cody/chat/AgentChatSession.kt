@@ -207,7 +207,7 @@ private constructor(
         }
       }
       else -> {
-        logger.debug(String.format("AgentChatSession: unknown message type: %s", message.type))
+        logger.debug(String.format("unknown message type: %s", message.type))
       }
     }
   }
