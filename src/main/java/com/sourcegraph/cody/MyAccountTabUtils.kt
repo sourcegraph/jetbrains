@@ -7,11 +7,7 @@ import com.sourcegraph.cody.agent.CodyAgentServer
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import java.util.concurrent.CompletableFuture
 
-data class MyAccountTabPanelData(
-    val isDotcomAccount: Boolean,
-    val codyProFeatureFlag: Boolean,
-    val isCurrentUserPro: Boolean?
-)
+data class MyAccountTabPanelData(val isDotcomAccount: Boolean, val isCurrentUserPro: Boolean?)
 
 @RequiresBackgroundThread
 fun fetchMyAccountPanelData(
@@ -29,16 +25,11 @@ fun fetchMyAccountPanelData(
         val isCurrentUserPro = getIsCurrentUserPro(server) ?: false
         result.complete(
             MyAccountTabPanelData(
-                activeAccountType.isDotcomAccount(),
-                codyProFeatureFlag = true,
-                isCurrentUserPro = isCurrentUserPro))
+                activeAccountType.isDotcomAccount(), isCurrentUserPro = isCurrentUserPro))
       }
     } else {
       result.complete(
-          MyAccountTabPanelData(
-              activeAccountType.isDotcomAccount(),
-              codyProFeatureFlag = false,
-              isCurrentUserPro = false))
+          MyAccountTabPanelData(activeAccountType.isDotcomAccount(), isCurrentUserPro = false))
     }
 
     return result
