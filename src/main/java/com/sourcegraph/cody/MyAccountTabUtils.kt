@@ -4,10 +4,8 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.sourcegraph.cody.agent.CodyAgentServer
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
 
 data class MyAccountTabPanelData(
     val isDotcomAccount: Boolean,
@@ -28,25 +26,12 @@ fun fetchMyAccountPanelData(
 
     if (activeAccountType.isDotcomAccount()) {
       ApplicationManager.getApplication().executeOnPooledThread {
-        val codyProFeatureFlag =
-            server
-                .evaluateFeatureFlag(GetFeatureFlag.CodyProJetBrains)
-                .completeOnTimeout(false, 4, TimeUnit.SECONDS)
-                .get() == true
-        if (codyProFeatureFlag) {
-          val isCurrentUserPro = getIsCurrentUserPro(server) ?: false
-          result.complete(
-              MyAccountTabPanelData(
-                  activeAccountType.isDotcomAccount(),
-                  codyProFeatureFlag = true,
-                  isCurrentUserPro = isCurrentUserPro))
-        } else {
-          result.complete(
-              MyAccountTabPanelData(
-                  activeAccountType.isDotcomAccount(),
-                  codyProFeatureFlag = false,
-                  isCurrentUserPro = null))
-        }
+        val isCurrentUserPro = getIsCurrentUserPro(server) ?: false
+        result.complete(
+            MyAccountTabPanelData(
+                activeAccountType.isDotcomAccount(),
+                codyProFeatureFlag = true,
+                isCurrentUserPro = isCurrentUserPro))
       }
     } else {
       result.complete(
