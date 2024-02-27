@@ -11,7 +11,6 @@ open class ContextToolbarButton(
     private val buttonAction: () -> Unit = {}
 ) : DumbAwareActionButton(name, icon) {
 
-  @Suppress("MissingRecentApi")
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
   override fun isDumbAware(): Boolean = true

@@ -87,7 +87,6 @@ private fun <A : Account, Cred, R> create(
             addCustomUpdater { isEnabled && model.activeAccount != accountsList.selectedValue }
           }
 
-          @Suppress("MissingRecentApi")
           override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
           override fun actionPerformed(e: AnActionEvent) {

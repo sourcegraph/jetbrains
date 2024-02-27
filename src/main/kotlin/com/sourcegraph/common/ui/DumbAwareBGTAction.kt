@@ -24,12 +24,5 @@ abstract class DumbAwareBGTAction : DumbAwareAction {
       icon: Icon?
   ) : super(text, description, icon)
 
-  /**
-   * 'ActionUpdateThread' is available only since 222.3345.118 but the module is targeted
-   * for221.5080.210+. It may lead to compatibility problems with IDEs prior to 222.3345.118, so we
-   * need to ensure everything works fine using manual QA. We can remove the suppression after we
-   * drop support for IJ versions older than 222.3345.118 *
-   */
-  @Suppress("MissingRecentApi")
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 }
