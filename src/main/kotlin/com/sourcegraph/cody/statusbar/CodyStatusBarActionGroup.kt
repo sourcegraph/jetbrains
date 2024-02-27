@@ -1,10 +1,10 @@
 package com.sourcegraph.cody.statusbar
 
 import com.intellij.ide.actions.AboutAction
-import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.project.Project
+import com.sourcegraph.cody.ui.BGTActionSetter
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification
@@ -13,7 +13,9 @@ import java.util.concurrent.TimeUnit
 
 class CodyStatusBarActionGroup : DefaultActionGroup() {
 
-  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+  init {
+    BGTActionSetter.runUpdateOnBackgroundThread(this)
+  }
 
   override fun update(e: AnActionEvent) {
     super.update(e)

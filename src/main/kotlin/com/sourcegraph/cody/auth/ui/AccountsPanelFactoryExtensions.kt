@@ -4,7 +4,6 @@ import com.intellij.collaboration.messages.CollaborationToolsBundle
 import com.intellij.collaboration.ui.util.JListHoveredRowMaterialiser
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.keymap.KeymapUtil
@@ -23,6 +22,7 @@ import com.sourcegraph.cody.auth.Account
 import com.sourcegraph.cody.auth.AccountManager
 import com.sourcegraph.cody.auth.AccountsListener
 import com.sourcegraph.cody.auth.PersistentActiveAccountHolder
+import com.sourcegraph.cody.ui.BGTActionSetter
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
@@ -84,10 +84,9 @@ private fun <A : Account, Cred, R> create(
     toolbar.addExtraAction(
         object : ToolbarDecorator.ElementActionButton("Set as Active", AllIcons.Actions.Checked) {
           init {
+            BGTActionSetter.runUpdateOnBackgroundThread(this)
             addCustomUpdater { isEnabled && model.activeAccount != accountsList.selectedValue }
           }
-
-          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
           override fun actionPerformed(e: AnActionEvent) {
             val selected = accountsList.selectedValue
