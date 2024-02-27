@@ -1,8 +1,8 @@
 package com.sourcegraph.cody.context.ui
 
-import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.ui.DumbAwareActionButton
+import com.sourcegraph.cody.ui.BGTActionSetter
 import javax.swing.Icon
 
 open class ContextToolbarButton(
@@ -11,7 +11,9 @@ open class ContextToolbarButton(
     private val buttonAction: () -> Unit = {}
 ) : DumbAwareActionButton(name, icon) {
 
-  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+  init {
+    BGTActionSetter.runUpdateOnBackgroundThread(this)
+  }
 
   override fun isDumbAware(): Boolean = true
 

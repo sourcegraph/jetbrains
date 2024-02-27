@@ -1,18 +1,15 @@
 package com.sourcegraph.common.ui
 
-import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.NlsActions
+import com.sourcegraph.cody.ui.BGTActionSetter
 import javax.swing.Icon
 
-/**
- * Since IJ 2024 every action which overrides `update` method needs to explicitly declare the thread
- * update runs on. This class extends overrides `getActionUpdateThread` to declare it runs on BGT
- * thread. For the details please refer to the `ActionUpdateThread` class.
- */
 abstract class DumbAwareBGTAction : DumbAwareAction {
 
-  constructor() : super()
+  constructor() : super() {
+    BGTActionSetter.runUpdateOnBackgroundThread(this)
+  }
 
   constructor(icon: Icon?) : super(icon)
 
@@ -23,6 +20,4 @@ abstract class DumbAwareBGTAction : DumbAwareAction {
       description: @NlsActions.ActionDescription String?,
       icon: Icon?
   ) : super(text, description, icon)
-
-  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 }
