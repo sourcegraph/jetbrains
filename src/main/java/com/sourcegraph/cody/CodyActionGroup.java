@@ -1,11 +1,18 @@
 package com.sourcegraph.cody;
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.sourcegraph.config.ConfigUtil;
 import org.jetbrains.annotations.NotNull;
 
 public class CodyActionGroup extends DefaultActionGroup {
+
+  @SuppressWarnings("MissingRecentApi")
+  @Override
+  public @NotNull ActionUpdateThread getActionUpdateThread() {
+    return ActionUpdateThread.BGT;
+  }
 
   @Override
   public boolean isDumbAware() {

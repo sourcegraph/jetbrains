@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.statusbar
 
 import com.intellij.ide.actions.AboutAction
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.project.Project
@@ -11,6 +12,10 @@ import com.sourcegraph.config.ConfigUtil
 import java.util.concurrent.TimeUnit
 
 class CodyStatusBarActionGroup : DefaultActionGroup() {
+
+  @Suppress("MissingRecentApi")
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
   override fun update(e: AnActionEvent) {
     super.update(e)
     e.presentation.isVisible = ConfigUtil.isCodyEnabled()

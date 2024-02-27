@@ -4,6 +4,7 @@ import com.intellij.collaboration.messages.CollaborationToolsBundle
 import com.intellij.collaboration.ui.util.JListHoveredRowMaterialiser
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.keymap.KeymapUtil
@@ -85,6 +86,9 @@ private fun <A : Account, Cred, R> create(
           init {
             addCustomUpdater { isEnabled && model.activeAccount != accountsList.selectedValue }
           }
+
+          @Suppress("MissingRecentApi")
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
           override fun actionPerformed(e: AnActionEvent) {
             val selected = accountsList.selectedValue
