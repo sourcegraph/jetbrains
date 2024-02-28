@@ -14,7 +14,7 @@ private constructor(
 
     @JvmStatic
     @JvmOverloads
-    fun fromPath(
+    fun fromVirtualFile(
         file: VirtualFile,
         content: String? = null,
         selection: Range? = null
