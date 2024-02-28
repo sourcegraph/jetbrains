@@ -36,7 +36,7 @@ class SingleMessagePanel(
   }
 
   fun updateContentWith(text: String) {
-    val trimmedText = text.removeBlockSuffixAndTrim()
+    val trimmedText = text.trimEnd { c -> c == '`' || c.isWhitespace() }
     val isGrowing =
         trimmedText.contains(lastTrimmedText) && trimmedText.length > lastTrimmedText.length
     if (isGrowing) {
@@ -52,14 +52,6 @@ class SingleMessagePanel(
         addOrUpdateText(renderedHtml)
       }
     }
-  }
-
-  private fun String.removeBlockSuffixAndTrim(): String {
-    var lastIndex = this.length - 1
-    while (lastIndex >= 0 && (this[lastIndex] == '`' || this[lastIndex].isWhitespace())) {
-      lastIndex--
-    }
-    return this.substring(0, lastIndex + 1)
   }
 
   fun addOrUpdateCode(code: String, language: String?) {
