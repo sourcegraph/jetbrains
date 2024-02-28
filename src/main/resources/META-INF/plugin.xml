@@ -69,7 +69,7 @@
 
         <!-- autocomplete -->
         <editorFactoryListener implementation="com.sourcegraph.cody.autocomplete.CodyEditorFactoryListener"/>
-        
+
         <errorHandler implementation="com.sourcegraph.cody.error.CodyErrorSubmitter"/>
 
         <!-- status bar -->
@@ -145,7 +145,8 @@
 
         <!-- autocomplete -->
         <action id="cody.acceptAutocompleteAction"
-                class="com.sourcegraph.cody.autocomplete.action.AcceptCodyAutocompleteAction">
+                class="com.sourcegraph.cody.autocomplete.action.AcceptCodyAutocompleteAction"
+                text="Accept Autocomplete Suggestion">
             <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
         </action>
         <action id="cody.cycleForwardAutocompleteAction"
@@ -212,17 +213,16 @@
                 id="cody.restartAgent"
                 class="com.sourcegraph.cody.agent.action.CodyAgentRestartAction"
                 text="Restart Cody Agent"/>
-        
+
         <!-- Inline editor actions -->
         <action
             id="cody.editCodeAction"
             class="com.sourcegraph.cody.edit.EditCodeAction"
             text="Edit Code"/>
 
-        <action
-            id="cody.newChatAction"
-            class="com.sourcegraph.cody.edit.NewChatAction"
-            text="New Chat"/>
+        <group id="CodyChatActionsGroup">
+            <reference ref="cody.newChat"/>
+        </group>
 
         <action
             id="cody.documentCodeAction"
@@ -250,20 +250,13 @@
         <group id="CodyEditorActions" popup="true" text="Cody"
                icon="/icons/codyLogoSm.svg" searchable="false"
                class="com.sourcegraph.cody.CodyActionGroup">
+            <add-to-group anchor="last" group-id="EditorPopupMenu"/>
             <reference ref="cody.editCodeAction"/>
-            <!-- <reference ref="cody.newChatAction"/> -->
-            <separator/>
             <reference ref="cody.documentCodeAction"/>
             <reference ref="cody.explainCodeAction"/>
             <reference ref="cody.codeSmellsAction"/>
             <reference ref="cody.generateUnitTestsAction"/>
             <separator/>
-            <reference ref="cody.downloadAndInstallCodyAction"/>
-            <reference ref="cody.runCodyAppAction"/>
-            <add-to-group anchor="last" group-id="EditorPopupMenu"/>
-            <reference ref="cody.command.Explain"/>
-            <reference ref="cody.command.Smell"/>
-            <reference ref="cody.command.Test"/>
         </group>
 
         <group id="SourcegraphEditor" popup="true" text="Sourcegraph"
