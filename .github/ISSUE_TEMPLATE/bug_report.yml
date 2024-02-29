@@ -3,6 +3,7 @@
 
 name: JetBrains Bug report ፨
 description: "File a bug report for any of the JetBrains IDEs: IntelliJ, Goland, WebStorm, etc."
+title: "bug: "
 labels:
   - bug
   - team/jetbrains
