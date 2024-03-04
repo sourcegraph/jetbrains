@@ -68,6 +68,8 @@ class CodyAutocompleteStatusService : CodyAutocompleteStatusListener, Disposable
           } else if (UpgradeToCodyProNotification.autocompleteRateLimitError.get() != null ||
               UpgradeToCodyProNotification.chatRateLimitError.get() != null) {
             CodyAutocompleteStatus.RateLimitError
+          } else if (CodyAgentService.agentError.get() != null) {
+            CodyAutocompleteStatus.AgentError
           } else {
             CodyAutocompleteStatus.Ready
           }

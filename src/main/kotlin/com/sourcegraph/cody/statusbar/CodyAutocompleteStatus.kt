@@ -2,6 +2,7 @@ package com.sourcegraph.cody.statusbar
 
 import com.intellij.util.ui.PresentableEnum
 import com.sourcegraph.cody.Icons
+import com.sourcegraph.cody.agent.CodyAgentService
 import javax.swing.Icon
 
 interface WithIcon {
@@ -31,6 +32,12 @@ enum class CodyAutocompleteStatus : PresentableEnum, WithIcon {
   },
   CodyAgentNotRunning {
     override fun getPresentableText(): String = "Cody encountered an unexpected error"
+
+    override val icon: Icon = Icons.StatusBar.CodyAutocompleteUnavailable
+  },
+  AgentError {
+    override fun getPresentableText(): String =
+        "Cody encountered an error: ${CodyAgentService.agentError.get()}"
 
     override val icon: Icon = Icons.StatusBar.CodyAutocompleteUnavailable
   },

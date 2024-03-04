@@ -16,6 +16,7 @@ import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.MessageState
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -150,7 +151,9 @@ private constructor(
 
           addErrorMessageAsAssistantMessage(text, index = extensionMessage.messages.count() - 1)
         } else {
-          // Currently we ignore other kind of errors like context window limit reached
+          val message = CodyBundle.getString("chat.general-error").fmt(lastMessage.error.message)
+          CodyAgentService.setAgentError(project, lastMessage.error.message)
+          addErrorMessageAsAssistantMessage(message, index = extensionMessage.messages.count() - 1)
         }
       } else {
         RateLimitStateManager.invalidateForChat(project)
