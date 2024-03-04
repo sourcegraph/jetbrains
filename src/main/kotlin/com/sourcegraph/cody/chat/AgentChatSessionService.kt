@@ -30,8 +30,8 @@ class AgentChatSessionService(private val project: Project) {
     return session ?: AgentChatSession.createFromState(project, state)
   }
 
-  fun getSession(sessionId: SessionId): AgentChatSession? =
-      chatSessions.find { it.hasSessionId(sessionId) }
+  fun getSession(connectionId: ConnectionId): AgentChatSession? =
+      chatSessions.find { it.hasConnectionId(connectionId) }
 
   companion object {
     @JvmStatic
