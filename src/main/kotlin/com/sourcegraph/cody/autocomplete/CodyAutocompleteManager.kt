@@ -26,9 +26,9 @@ import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteSingleLineRenderer
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil.getAllInlaysForEditor
 import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.statusbar.CodyAutocompleteStatus
-import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService.Companion.notifyApplication
-import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService.Companion.resetApplication
+import com.sourcegraph.cody.statusbar.CodyStatus
+import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.notifyApplication
+import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.resetApplication
 import com.sourcegraph.cody.vscode.*
 import com.sourcegraph.cody.vscode.Range
 import com.sourcegraph.cody.vscode.TextDocument
@@ -45,6 +45,7 @@ import com.sourcegraph.utils.CodyFormatter
 import difflib.Delta
 import difflib.DiffUtils
 import difflib.Patch
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 import java.nio.file.Paths
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
@@ -52,7 +53,6 @@ import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
-import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 
 /** Responsible for triggering and clearing inline code completions (the autocomplete feature). */
 @Service
@@ -220,7 +220,7 @@ class CodyAutocompleteManager {
                         Range(
                             com.sourcegraph.cody.vscode.Position(lineNumber, startPosition),
                             position)))
-    notifyApplication(CodyAutocompleteStatus.AutocompleteInProgress)
+    notifyApplication(CodyStatus.AutocompleteInProgress)
 
     val resultOuter = CompletableFuture<Void?>()
     CodyAgentService.withAgent(project) { agent ->

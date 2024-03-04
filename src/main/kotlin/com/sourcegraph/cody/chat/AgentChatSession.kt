@@ -18,11 +18,11 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
+import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
-import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
@@ -115,15 +115,21 @@ private constructor(
               addEnhancedContext = chatPanel.isEnhancedContextEnabled(),
               contextFiles = contextFiles)
 
-      val request =
-          agent.server.chatSubmitMessage(ChatSubmitMessageParams(sessionId.get().get(), message))
+      try {
+        val request =
+            agent.server.chatSubmitMessage(ChatSubmitMessageParams(sessionId.get().get(), message))
 
-      GraphQlLogger.logCodyEvent(project, "chat-question", "submitted")
+        GraphQlLogger.logCodyEvent(project, "chat-question", "submitted")
 
-      ApplicationManager.getApplication().invokeLater {
-        createCancellationToken(
-            onCancel = { request.cancel(true) },
-            onFinish = { GraphQlLogger.logCodyEvent(project, "chat-question", "executed") })
+        ApplicationManager.getApplication().invokeLater {
+          createCancellationToken(
+              onCancel = { request.cancel(true) },
+              onFinish = { GraphQlLogger.logCodyEvent(project, "chat-question", "executed") })
+        }
+      } catch (e: Exception) {
+        createCancellationToken(onCancel = {}, onFinish = {})
+        getCancellationToken().abort()
+        throw e
       }
     }
   }
@@ -344,15 +350,8 @@ private constructor(
     ): CompletableFuture<SessionId> {
       val result = CompletableFuture<SessionId>()
       CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
-        try {
-          newPanelAction(agent).thenAccept(result::complete)
-        } catch (e: ExecutionException) {
-          // Agent cannot gracefully recover when connection is lost, we need to restart it
-          // TODO https://github.com/sourcegraph/jetbrains/issues/306
-          logger.warn("Failed to load new chat, restarting agent", e)
-          CodyAgentService.getInstance(project).restartAgent(project)
-          Thread.sleep(5000)
-          createNewPanel(project, newPanelAction).thenAccept(result::complete)
+        newPanelAction(agent).whenComplete { value, throwable ->
+          if (throwable != null) result.completeExceptionally(throwable) else result.complete(value)
         }
       }
       return result
