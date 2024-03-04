@@ -21,4 +21,6 @@ interface ChatSession {
   fun getCancellationToken(): CancellationToken
 
   fun getInternalId(): String
+
+  fun sendExtensionMessage(message: ExtensionMessage)
 }

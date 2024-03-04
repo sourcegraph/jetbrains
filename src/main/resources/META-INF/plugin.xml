@@ -179,6 +179,11 @@
             <keyboard-shortcut first-keystroke="alt EQUALS" keymap="$default"/>
         </action>
 
+        <action id="cody.exportChats"
+                icon="/icons/chat/download.svg"
+                class="com.sourcegraph.cody.chat.actions.ExportChatsAction">
+        </action>
+
         <action id="cody.openChat"
                 text="Open Chat"
                 class="com.sourcegraph.cody.chat.OpenChatAction">
@@ -215,6 +220,7 @@
                 text="Restart Cody Agent"/>
 
         <group id="CodyChatActionsGroup">
+            <reference ref="cody.exportChats"/>
             <reference ref="cody.newChat"/>
         </group>
 

@@ -12,6 +12,7 @@ import com.sourcegraph.cody.agent.CodyAgentException
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
+import com.sourcegraph.cody.agent.WebviewPostMessageParams
 import com.sourcegraph.cody.agent.WebviewReceiveMessageParams
 import com.sourcegraph.cody.agent.protocol.ChatError
 import com.sourcegraph.cody.agent.protocol.ChatMessage
@@ -32,11 +33,11 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
+import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
-import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
@@ -72,8 +73,6 @@ private constructor(
   override fun getInternalId(): String = internalId
 
   override fun getCancellationToken(): CancellationToken = cancellationToken.get()
-
-  private val logger = LoggerFactory.getLogger(ChatSession::class.java)
 
   @RequiresEdt
   override fun sendMessage(text: String, contextItems: List<ContextItem>) {
@@ -208,12 +207,23 @@ private constructor(
     }
   }
 
+  override fun sendExtensionMessage(message: ExtensionMessage) {
+    CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
+      agent.client.webviewPostMessage(
+          WebviewPostMessageParams(this.connectionId.get().get(), message))
+    }
+  }
+
   fun receiveWebviewExtensionMessage(message: ExtensionMessage) {
     when (message.type) {
       ExtensionMessage.Type.USER_CONTEXT_FILES -> {
         if (message.userContextFiles is List<*>) {
           this.chatPanel.promptPanel.setContextFilesSelector(message.userContextFiles)
         }
+      }
+      ExtensionMessage.Type.HISTORY -> {
+        ExportChatsService.getInstance(project)
+            .setLocalHistory(internalId, message.localHistory)
       }
       else -> {
         logger.debug(String.format("unknown message type: %s", message.type))
