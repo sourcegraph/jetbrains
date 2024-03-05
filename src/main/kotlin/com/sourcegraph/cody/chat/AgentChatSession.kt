@@ -30,11 +30,11 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
-import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
@@ -130,7 +130,8 @@ private constructor(
 
       try {
         val request =
-            agent.server.chatSubmitMessage(ChatSubmitMessageParams(connectionId.get().get(), message))
+            agent.server.chatSubmitMessage(
+                ChatSubmitMessageParams(connectionId.get().get(), message))
 
         GraphQlLogger.logCodyEvent(project, "chat-question", "submitted")
 
