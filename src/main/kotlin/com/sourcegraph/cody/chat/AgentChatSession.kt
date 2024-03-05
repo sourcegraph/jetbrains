@@ -261,7 +261,7 @@ private constructor(
     chatPanel.registerCancellationToken(newCancellationToken)
   }
 
-  fun fetchLlms() {
+  private fun fetchLlms() {
     if (chatModelProviderFromState != null) {
       return
     }
@@ -342,8 +342,8 @@ private constructor(
               ChatModelsResponse.ChatModelProvider(
                   default = it.model == null,
                   codyProOnly = false,
-                  provider = it.provider ?: "Unknown",
-                  title = it.title ?: "Unknown",
+                  provider = it.provider ?: "Default",
+                  title = it.title ?: "Default",
                   model = it.model ?: "")
             }
 

@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.chat.ui
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.util.IconUtil
@@ -109,7 +110,7 @@ class ChatPanel(
   }
 
   fun updateLlmDropdownModels(llmDropdownData: LlmDropdownData) {
-    llmDropdown.updateModels(llmDropdownData)
+    ApplicationManager.getApplication().invokeLater { llmDropdown.updateModels(llmDropdownData) }
   }
 
   private fun setLlmForAgentSession(chatModelProvider: ChatModelsResponse.ChatModelProvider) {
