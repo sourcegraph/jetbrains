@@ -18,11 +18,11 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
-import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
@@ -31,7 +31,6 @@ private constructor(
     private val internalId: String = UUID.randomUUID().toString(),
     chatModelProviderFromState: ChatModelsResponse.ChatModelProvider? = null,
 ) : ChatSession {
-
   /**
    * There are situations (like startup of the chat) when we want to show UI immediately, but we
    * have not established connection with the agent yet. This is why we use CompletableFuture to

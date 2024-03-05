@@ -45,7 +45,6 @@ import com.sourcegraph.utils.CodyFormatter
 import difflib.Delta
 import difflib.DiffUtils
 import difflib.Patch
-import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 import java.nio.file.Paths
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
@@ -53,6 +52,7 @@ import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 
 /** Responsible for triggering and clearing inline code completions (the autocomplete feature). */
 @Service
