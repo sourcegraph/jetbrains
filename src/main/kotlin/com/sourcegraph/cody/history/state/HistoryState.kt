@@ -9,4 +9,6 @@ class HistoryState : BaseState() {
 
   @get:OptionTag(tag = "defaultEnhancedContext", nameAttribute = "")
   var defaultEnhancedContext: EnhancedContextState? by property()
+
+  fun doIncrementModificationCount() = super.incrementModificationCount()
 }

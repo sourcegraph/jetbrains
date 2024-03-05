@@ -1,6 +1,10 @@
 package com.sourcegraph.cody.history
 
-import com.intellij.openapi.components.*
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.SimplePersistentStateComponent
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
@@ -36,6 +40,7 @@ class HistoryService(private val project: Project) :
           it.title = chatModelProvider.title
           it.provider = chatModelProvider.provider
         }
+    state.doIncrementModificationCount()
   }
 
   @Synchronized
@@ -45,6 +50,7 @@ class HistoryService(private val project: Project) :
     if (chatMessages.lastOrNull()?.speaker == Speaker.HUMAN) {
       found.setUpdatedTimeAt(LocalDateTime.now())
     }
+    state.doIncrementModificationCount()
     synchronized(listeners) { listeners.forEach { it(found) } }
   }
 
@@ -52,15 +58,17 @@ class HistoryService(private val project: Project) :
   fun updateContextState(internalId: String, contextState: EnhancedContextState?) {
     if (contextState != null) {
       val found = getOrCreateChat(internalId)
-      found.enhancedContext = EnhancedContextState()
-      found.enhancedContext?.copyFrom(contextState)
+      val enhancedContextState = EnhancedContextState().also { it.copyFrom(contextState) }
+      found.enhancedContext = enhancedContextState
+      state.doIncrementModificationCount()
     }
   }
 
   @Synchronized
   fun updateDefaultContextState(contextState: EnhancedContextState) {
-    state.defaultEnhancedContext = EnhancedContextState()
-    state.defaultEnhancedContext?.copyFrom(contextState)
+    val enhancedContextState = EnhancedContextState().also { it.copyFrom(contextState) }
+    state.defaultEnhancedContext = enhancedContextState
+    state.doIncrementModificationCount()
   }
 
   @Synchronized
@@ -77,11 +85,13 @@ class HistoryService(private val project: Project) :
   @Synchronized
   fun remove(internalId: String?) {
     state.chats.removeIf { it.internalId == internalId }
+    state.doIncrementModificationCount()
   }
 
   @Synchronized
   fun removeAll() {
-    state.chats = mutableListOf()
+    state.chats.clear()
+    state.doIncrementModificationCount()
   }
 
   private fun copyEnhancedContextState(context: EnhancedContextState?): EnhancedContextState? {
@@ -110,7 +120,8 @@ class HistoryService(private val project: Project) :
     if (found != null) return found
     val activeAccountId = CodyAuthenticationManager.instance.getActiveAccount(project)?.id
     val newChat = ChatState.create(activeAccountId, internalId)
-    state.chats += newChat
+    state.chats.add(newChat)
+    state.doIncrementModificationCount()
     return newChat
   }
 
