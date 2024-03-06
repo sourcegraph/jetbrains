@@ -23,6 +23,7 @@ import com.sourcegraph.config.CodyApplicationService
 import com.sourcegraph.config.CodyProjectService
 import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.config.UserLevelConfig
+import com.sourcegraph.vcs.convertGitCloneURLToCodebaseNameOrError
 import java.util.concurrent.CompletableFuture
 
 class SettingsMigration : Activity {
@@ -35,6 +36,9 @@ class SettingsMigration : Activity {
       migrateAccounts(project)
     }
     RunOnceUtil.runOnceForProject(project, "CodyHistoryLlmMigration") { migrateLlms(project) }
+    RunOnceUtil.runOnceForProject(project, "CodyConvertUrlToCodebaseName") {
+      migrateUrlsToCodebaseNames(project)
+    }
     RunOnceUtil.runOnceForApp("CodyApplicationSettingsMigration") { migrateApplicationSettings() }
     RunOnceUtil.runOnceForApp("ToggleCodyToolWindowAfterMigration") {
       toggleCodyToolbarWindow(project)
@@ -103,6 +107,20 @@ class SettingsMigration : Activity {
           llmState.provider = provider
           it.llm = llmState
         }
+  }
+
+  private fun migrateUrlsToCodebaseNames(project: Project) {
+    HistoryService.getInstance(project).state.defaultEnhancedContext?.let { enhancedContextState ->
+      enhancedContextState.remoteRepositories.forEach { remoteRepositoryState ->
+        runCatching {
+              remoteRepositoryState.codebaseName?.let { codebaseName ->
+                convertGitCloneURLToCodebaseNameOrError(codebaseName)
+              }
+            }
+            .getOrNull()
+            ?.let { remoteRepositoryState.codebaseName = it.value }
+      }
+    }
   }
 
   private val modelToProviderAndTitle =
