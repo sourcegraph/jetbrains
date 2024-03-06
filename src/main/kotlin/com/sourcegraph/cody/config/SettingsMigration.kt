@@ -96,13 +96,12 @@ class SettingsMigration : Activity {
         .filter { it.llm == null }
         .forEach {
           val (model, provider, title) =
-              modelToProviderAndTitle.getOrDefault(it.model, Triple("", "Default", "Default"))
+              modelToProviderAndTitle.getOrDefault(it.model, Triple(it.model, null, null))
           val llmState = LLMState()
-          llmState.provider = provider
-          llmState.title = title
           llmState.model = model
+          llmState.title = title
+          llmState.provider = provider
           it.llm = llmState
-          it.model = null
         }
   }
 
