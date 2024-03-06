@@ -17,11 +17,11 @@ import com.sourcegraph.cody.history.state.MessageState
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.telemetry.GraphQlLogger
+import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
-import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
@@ -299,8 +299,8 @@ private constructor(
               ChatModelsResponse.ChatModelProvider(
                   default = it.model == null,
                   codyProOnly = false,
-                  provider = it.provider ?: "Unknown",
-                  title = it.title ?: "Unknown",
+                  provider = it.provider,
+                  title = it.title,
                   model = it.model ?: "")
             }
 
