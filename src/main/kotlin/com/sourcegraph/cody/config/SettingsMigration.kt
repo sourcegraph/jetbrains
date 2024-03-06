@@ -107,6 +107,7 @@ class SettingsMigration : Activity {
 
   private val modelToProviderAndTitle =
       mapOf(
+          "Claude 2 by Anthropic" to Triple("anthropic/claude-2", "Anthropic", "claude 2"),
           "Claude 2.0 by Anthropic" to Triple("anthropic/claude-2.0", "Anthropic", "Claude 2.0"),
           "Claude 2.1 Preview by Anthropic" to
               Triple("anthropic/claude-2.1", "Anthropic", "Claude 2.1 Preview"),
