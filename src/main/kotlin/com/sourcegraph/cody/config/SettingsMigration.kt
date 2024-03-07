@@ -16,6 +16,7 @@ import com.sourcegraph.cody.CodyToolWindowFactory
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
 import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.initialization.Activity
 import com.sourcegraph.config.AccessTokenStorage
@@ -110,17 +111,9 @@ class SettingsMigration : Activity {
   }
 
   private fun migrateUrlsToCodebaseNames(project: Project) {
-    HistoryService.getInstance(project).state.defaultEnhancedContext?.let { enhancedContextState ->
-      enhancedContextState.remoteRepositories.forEach { remoteRepositoryState ->
-        runCatching {
-              remoteRepositoryState.codebaseName?.let { codebaseName ->
-                convertGitCloneURLToCodebaseNameOrError(codebaseName)
-              }
-            }
-            .getOrNull()
-            ?.let { remoteRepositoryState.codebaseName = it.value }
-      }
-    }
+    val enhancedContextState =
+        HistoryService.getInstance(project).state.defaultEnhancedContext ?: return
+    migrateUrlsToCodebaseNames(enhancedContextState)
   }
 
   private val modelToProviderAndTitle =
@@ -409,5 +402,22 @@ class SettingsMigration : Activity {
 
   companion object {
     private val LOG = logger<SettingsMigration>()
+
+    fun migrateUrlsToCodebaseNames(enhancedContextState: EnhancedContextState) {
+      val remoteRepositories =
+          enhancedContextState.remoteRepositories
+              .onEach { remoteRepositoryState ->
+                runCatching {
+                      remoteRepositoryState.remoteUrl?.let { remoteUrl ->
+                        convertGitCloneURLToCodebaseNameOrError(remoteUrl)
+                      }
+                    }
+                    .getOrNull()
+                    ?.let { remoteRepositoryState.codebaseName = it.value }
+              }
+              .filter { it.codebaseName != null }
+              .toMutableList()
+      enhancedContextState.remoteRepositories = remoteRepositories
+    }
   }
 }
