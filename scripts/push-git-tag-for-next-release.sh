@@ -3,6 +3,18 @@
 # No arguments needed, the version is automatically computed.
 set -eux
 
+# Check if the current branch is 'main'
+if [ "$(git symbolic-ref --short HEAD)" != "main" ]; then
+  echo "Error: You must be on the 'main' branch to cut a release."
+  exit 1
+fi
+
+# Check if the working tree is clean
+if ! git diff-index --quiet HEAD --; then
+  echo "Error: Your working tree is not clean. Please commit or stash your changes."
+  exit 1
+fi
+
 # Check the number of arguments
 if [ "$#" -ne 1 ]; then
   echo "Usage: $0 [--major | --minor | --path]"
