@@ -113,6 +113,7 @@ class SettingsMigration : Activity {
   private fun migrateUrlsToCodebaseNames(project: Project) {
     val enhancedContextState =
         HistoryService.getInstance(project).state.defaultEnhancedContext ?: return
+
     migrateUrlsToCodebaseNames(enhancedContextState)
   }
 
