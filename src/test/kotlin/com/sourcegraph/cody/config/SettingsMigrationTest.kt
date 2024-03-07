@@ -13,19 +13,27 @@ class SettingsMigrationTest : TestCase() {
           it.remoteRepositories =
               mutableListOf(
                   RemoteRepositoryState().also {
-                    it.remoteUrl = "https://github.com/sourcegraph/about1"
+                    it.remoteUrl = "HTTPS://GITHUB.COM/SOURCEGRAPH/ABOUT1"
+                    it.isEnabled = true
                   },
                   RemoteRepositoryState().also {
-                    it.remoteUrl = "http://github.com/sourcegraph/about2"
+                    it.remoteUrl = "hTtP://GiThUb.cOm/sOuRcEgRaPh/aBoUt2"
+                    it.isEnabled = false
+                  },
+                  RemoteRepositoryState().also {
+                    it.remoteUrl = "https://github.com/sourcegraph/about3"
+                  },
+                  RemoteRepositoryState().also {
+                    it.remoteUrl = "http://github.com/sourcegraph/about4"
                   },
                   RemoteRepositoryState().also { // desired value but deprecated field
-                    it.remoteUrl = "github.com/sourcegraph/about3"
+                    it.remoteUrl = "github.com/sourcegraph/about5"
                   },
                   RemoteRepositoryState().also { // no remoteUrl/codebaseName value
                     it.isEnabled = true
                   },
                   RemoteRepositoryState().also { // desired value in place
-                    it.codebaseName = "github.com/sourcegraph/about5"
+                    it.codebaseName = "github.com/sourcegraph/about7"
                   },
               )
         }
@@ -36,19 +44,29 @@ class SettingsMigrationTest : TestCase() {
           it.remoteRepositories =
               mutableListOf(
                   RemoteRepositoryState().also {
-                    it.remoteUrl = "https://github.com/sourcegraph/about1"
+                    it.remoteUrl = "HTTPS://GITHUB.COM/SOURCEGRAPH/ABOUT1"
                     it.codebaseName = "github.com/sourcegraph/about1"
+                    it.isEnabled = true
                   },
                   RemoteRepositoryState().also {
-                    it.remoteUrl = "http://github.com/sourcegraph/about2"
+                    it.remoteUrl = "hTtP://GiThUb.cOm/sOuRcEgRaPh/aBoUt2"
                     it.codebaseName = "github.com/sourcegraph/about2"
+                    it.isEnabled = false
                   },
                   RemoteRepositoryState().also {
-                    it.remoteUrl = "github.com/sourcegraph/about3"
+                    it.remoteUrl = "https://github.com/sourcegraph/about3"
                     it.codebaseName = "github.com/sourcegraph/about3"
                   },
                   RemoteRepositoryState().also {
+                    it.remoteUrl = "http://github.com/sourcegraph/about4"
+                    it.codebaseName = "github.com/sourcegraph/about4"
+                  },
+                  RemoteRepositoryState().also {
+                    it.remoteUrl = "github.com/sourcegraph/about5"
                     it.codebaseName = "github.com/sourcegraph/about5"
+                  },
+                  RemoteRepositoryState().also {
+                    it.codebaseName = "github.com/sourcegraph/about7"
                   },
               )
         }
