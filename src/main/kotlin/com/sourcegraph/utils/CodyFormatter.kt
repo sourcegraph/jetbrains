@@ -28,20 +28,11 @@ class CodyFormatter {
           PsiFileFactory.getInstance(project)
               .createFileFromText("TEMP", file.fileType, appendedString)
 
+      fun endOffset() = offset + psiFile.endOffset - document.textLength
       val codeStyleManager = CodeStyleManager.getInstance(project)
+      codeStyleManager.reformatText(psiFile, offset + 1, endOffset())
 
-      var i = offset
-      var startRefactoringPosition = offset
-      while ((document.text.elementAt(i - 1) == ' ' ||
-          document.text.elementAt(i - 1) == '\n' ||
-          document.text.elementAt(i - 1) == '\t') && i > 0) {
-        startRefactoringPosition = i
-        i--
-      }
-      var endOffset = offset + psiFile.endOffset - document.textLength
-      codeStyleManager.reformatText(psiFile, startRefactoringPosition, endOffset)
-      endOffset = offset + psiFile.endOffset - document.textLength
-      return psiFile.text.substring(startRefactoringPosition, endOffset)
+      return psiFile.text.substring(offset, endOffset())
     }
   }
 }

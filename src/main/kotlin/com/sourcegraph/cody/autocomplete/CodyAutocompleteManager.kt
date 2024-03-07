@@ -329,32 +329,15 @@ class CodyAutocompleteManager {
       triggerKind: InlineCompletionTriggerKind,
   ) {
     val project = editor.project
-    if (project != null && System.getProperty("cody.autocomplete.enableFormatting") != "false") {
-      items.map { item ->
-        if (item.insertText.lines().size > 1) {
-          item.insertText =
-              item.insertText.lines()[0] +
-                  CodyFormatter.formatStringBasedOnDocument(
-                      item.insertText.lines().drop(1).joinToString(separator = "\n"),
-                      project,
-                      editor.document,
-                      offset)
-        }
-      }
-    }
-
     val defaultItem = items.firstOrNull() ?: return
     val range = getTextRange(editor.document, defaultItem.range)
     val originalText = editor.document.getText(range)
-    val lines = defaultItem.insertText.lines()
-    val insertTextFirstLine: String = lines.firstOrNull() ?: ""
-    val multilineInsertText: String = lines.drop(1).joinToString(separator = "\n")
 
-    // Run Myers diff between the existing text in the document and the first line of the
-    // `insertText` that is returned from the agent.
+    // Run Myers diff between the existing text in the document and the `insertText` that is
+    // returned from the agent.
     // The diff algorithm returns a list of "deltas" that give us the minimal number of additions we
     // need to make to the document.
-    val patch = diff(originalText, insertTextFirstLine)
+    val patch = diff(originalText, defaultItem.insertText)
     if (!patch.deltas.all { delta -> delta.type == Delta.TYPE.INSERT }) {
       if (triggerKind == InlineCompletionTriggerKind.INVOKE ||
           UserLevelConfig.isVerboseLoggingEnabled()) {
@@ -371,26 +354,31 @@ class CodyAutocompleteManager {
       }
     }
 
-    // Insert one inlay hint per delta in the first line.
-    for (delta in patch.deltas) {
-      val text = delta.revised.lines.joinToString("")
-      inlayModel.addInlineElement(
-          range.startOffset + delta.original.position,
-          true,
-          CodyAutocompleteSingleLineRenderer(text, items, editor, AutocompleteRendererType.INLINE))
-    }
+    val deltas = patch.deltas.sortedBy { it.original.position }
+    val rawCompletionText = deltas.joinToString("") { it.revised.lines.joinToString("") }
 
-    // Insert remaining lines of multiline completions as a single block element under the
-    // (potentially false?) assumption that we don't need to compute diffs for them. My
-    // understanding of multiline completions is that they are only supposed to be triggered in
-    // situations where we insert a large block of code in an empty block.
-    if (multilineInsertText.isNotEmpty()) {
+    val completionText =
+        if (project == null ||
+            System.getProperty("cody.autocomplete.enableFormatting") == "false") {
+          rawCompletionText
+        } else {
+          CodyFormatter.formatStringBasedOnDocument(
+              rawCompletionText, project, editor.document, offset)
+        }
+
+    if (completionText.lines().count() > 1) {
       inlayModel.addBlockElement(
           offset,
           true,
           false,
           Int.MAX_VALUE,
-          CodyAutocompleteBlockElementRenderer(multilineInsertText, items, editor))
+          CodyAutocompleteBlockElementRenderer(completionText, items, editor))
+    } else {
+      inlayModel.addInlineElement(
+          offset,
+          true,
+          CodyAutocompleteSingleLineRenderer(
+              completionText, items, editor, AutocompleteRendererType.INLINE))
     }
   }
 
