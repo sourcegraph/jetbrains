@@ -24,7 +24,8 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
 
     when (node) {
       is ContextTreeRemoteRepoNode -> {
-        val repoName = node.codebaseName.split(File.separator).lastOrNull() ?: node.codebaseName
+        val repoName =
+            node.codebaseName.value.split(File.separator).lastOrNull() ?: node.codebaseName
         textRenderer.appendHTML(
             "<b>${repoName}</b> <i ${style}>${node.codebaseName}</i>",
             SimpleTextAttributes.REGULAR_ATTRIBUTES)
