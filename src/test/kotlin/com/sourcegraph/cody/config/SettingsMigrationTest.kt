@@ -23,6 +23,9 @@ class SettingsMigrationTest : TestCase() {
                   RemoteRepositoryState().also {
                     it.remoteUrl = "https://github.com/sourcegraph/about3"
                   },
+                  RemoteRepositoryState().also { // duplicate
+                    it.remoteUrl = "https://github.com/sourcegraph/about3"
+                  },
                   RemoteRepositoryState().also {
                     it.remoteUrl = "http://github.com/sourcegraph/about4"
                   },
@@ -33,6 +36,9 @@ class SettingsMigrationTest : TestCase() {
                     it.isEnabled = true
                   },
                   RemoteRepositoryState().also { // desired value in place
+                    it.codebaseName = "github.com/sourcegraph/about7"
+                  },
+                  RemoteRepositoryState().also { // desired value in place; duplicate
                     it.codebaseName = "github.com/sourcegraph/about7"
                   },
               )

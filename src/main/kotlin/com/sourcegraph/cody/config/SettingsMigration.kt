@@ -424,6 +424,7 @@ class SettingsMigration : Activity {
                     ?.let { remoteRepositoryState.codebaseName = it.value }
               }
               .filter { it.codebaseName != null }
+              .distinctBy { it.codebaseName }
               .toMutableList()
       enhancedContextState.remoteRepositories = remoteRepositories
     }
