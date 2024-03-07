@@ -16,6 +16,7 @@ import com.sourcegraph.cody.CodyToolWindowFactory
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
 import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.initialization.Activity
@@ -115,6 +116,12 @@ class SettingsMigration : Activity {
         HistoryService.getInstance(project).state.defaultEnhancedContext ?: return
 
     migrateUrlsToCodebaseNames(enhancedContextState)
+
+    HistoryService.getInstance(project)
+        .state
+        .chats
+        .mapNotNull(ChatState::enhancedContext)
+        .forEach(Companion::migrateUrlsToCodebaseNames)
   }
 
   private val modelToProviderAndTitle =
