@@ -4,7 +4,8 @@ import java.net.URI
 
 data class CodebaseName(val value: String)
 
-fun convertGitCloneURLToCodebaseNameOrError(cloneURL: String): CodebaseName {
+fun convertGitCloneURLToCodebaseNameOrError(theCloneURL: String): CodebaseName {
+  val cloneURL = theCloneURL.lowercase()
 
   // Handle common Git SSH URL format
   val sshUrlRegexMatchResult = Regex("""^[\w-]+@([^:]+):([\w-]+)/([\w-.]+)$""").find(cloneURL)
