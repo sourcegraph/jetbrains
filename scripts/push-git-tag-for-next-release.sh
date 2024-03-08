@@ -4,9 +4,15 @@
 set -eux
 
 # Check if the current branch is 'main'
-if [ "$(git symbolic-ref --short HEAD)" != "main" ]; then
-  echo "Error: You must be on the 'main' branch to cut a release."
-  exit 1
+CURRENT_BRANCH=$(git symbolic-ref --short HEAD)
+if [ "$CURRENT_BRANCH" != "main" ]; then
+  echo "Warning: You are not on the 'main' branch. You are on '$CURRENT_BRANCH'."
+  # shellcheck disable=SC2162
+  read -p "Are you sure you want to proceed? (y/n): " proceed
+  if [ "$proceed" != "y" ]; then
+    echo "Aborted."
+    exit 1
+  fi
 fi
 
 # Check if the working tree is clean
