@@ -34,7 +34,7 @@ public class CodyFileEditorListener implements FileEditorManagerListener {
 
     CodyAgentService.withAgent(
       source.getProject(),
-      agent -> agent.getServer().textDocumentDidClose(ProtocolTextDocument.fromVirtualFile(file));
+      agent -> agent.getServer().textDocumentDidClose(ProtocolTextDocument.fromVirtualFile(file)));
     }
 
   public static void fileOpened(Project project, CodyAgent codyAgent, @NotNull VirtualFile file) {
