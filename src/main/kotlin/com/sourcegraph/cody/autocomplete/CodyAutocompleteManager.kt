@@ -45,13 +45,13 @@ import com.sourcegraph.utils.CodyFormatter
 import difflib.Delta
 import difflib.DiffUtils
 import difflib.Patch
-import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 
 /** Responsible for triggering and clearing inline code completions (the autocomplete feature). */
 @Service
@@ -373,14 +373,19 @@ class CodyAutocompleteManager {
       val renderer =
           CodyAutocompleteSingleLineRenderer(
               completionText.lines().first(), items, editor, AutocompleteRendererType.INLINE)
-      inlayModel.addInlineElement(offset, true, renderer)
+      inlayModel.addInlineElement(offset, /* relatesToPrecedingText = */ true, renderer)
     }
     val lines = completionText.lines()
     if (lines.size > 1) {
       val text =
           (if (startsInline) lines.drop(1) else lines).dropWhile { it.isBlank() }.joinToString("\n")
       val renderer = CodyAutocompleteBlockElementRenderer(text, items, editor)
-      inlayModel.addBlockElement(offset, true, false, Int.MAX_VALUE, renderer)
+      inlayModel.addBlockElement(
+          /* offset = */ offset,
+          /* relatesToPrecedingText = */ true,
+          /* showAbove = */ false,
+          /* priority = */ Int.MAX_VALUE,
+          /* renderer = */ renderer)
     }
   }
 
