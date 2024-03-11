@@ -1,15 +1,18 @@
 package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
+import com.intellij.openapi.util.TextRange
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.withAgent
 import com.sourcegraph.cody.agent.CommandExecuteParams
+import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.edit.FixupService.Companion.backgroundThread
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import java.util.concurrent.CancellationException
@@ -172,6 +175,51 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
     }
     undoEdits()
     finish()
+  }
+
+  // The Agent's doc string is not indented, so fix it up.
+  // TODO: Maybe just reformat the range we modified, but it needs to be atomically undoable.
+  override fun performInsert(doc: Document, edit: TextEdit) {
+    super.performInsert(doc, indentDocString(doc, edit))
+  }
+
+  private fun indentDocString(doc: Document, edit: TextEdit): TextEdit {
+    val text = edit.value ?: return edit
+    val insertLine = edit.position?.line ?: return edit
+    val needsNewline: Boolean
+    // Get indentation from the first non-blank line following the doc string insert point.
+    val startLine = if (doc.getLineStartOffset(insertLine) == doc.getLineEndOffset(insertLine)) {
+      val lastLine = doc.getLineNumber(doc.textLength)
+      val nonBlank = (insertLine + 1..lastLine).firstOrNull { line ->
+        doc.getLineStartOffset(line) != doc.getLineEndOffset(line)
+      } ?: return edit
+      needsNewline = (nonBlank == insertLine)
+      nonBlank
+    } else {
+      needsNewline = true
+      insertLine
+    }
+    val startOffset = doc.getLineStartOffset(startLine)
+    var indentEnd = startOffset
+    while (indentEnd < doc.getLineEndOffset(startLine)) {
+      val c = doc.getText(TextRange(indentEnd, indentEnd + 1))[0]
+      if (c != ' ' && c != '\t') {
+        break
+      }
+      indentEnd++
+    }
+    val indent = doc.getText(TextRange(startOffset, indentEnd))
+
+    val lines = text.split("\n")
+    val indentedLines = lines.map { indent + it }
+    val newText = indentedLines.joinToString("\n") + if (needsNewline) "\n" else ""
+
+    return TextEdit(
+            type = edit.type,
+            range = edit.range,
+            position = edit.position,
+            value = newText
+    )
   }
 
   companion object {

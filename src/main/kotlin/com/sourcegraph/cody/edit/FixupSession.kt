@@ -83,7 +83,7 @@ abstract class FixupSession(val editor: Editor) : Disposable {
     doc.replaceString(start, end, edit.value ?: return)
   }
 
-  private fun performInsert(doc: Document, edit: TextEdit) {
+  protected open fun performInsert(doc: Document, edit: TextEdit) {
     val start = edit.position?.toOffset(doc) ?: edit.range?.start?.toOffset(doc)
     val text = edit.value
     if (start == null || text == null) {
