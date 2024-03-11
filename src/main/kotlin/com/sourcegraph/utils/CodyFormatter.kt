@@ -3,9 +3,9 @@ package com.sourcegraph.utils
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.codeStyle.CodeStyleManager
-import com.intellij.refactoring.suggested.endOffset
 
 class CodyFormatter {
   companion object {
@@ -14,25 +14,37 @@ class CodyFormatter {
      * the document.
      */
     fun formatStringBasedOnDocument(
-        originalText: String,
+        completionText: String,
         project: Project,
         document: Document,
-        offset: Int
+        range: TextRange,
+        cursor: Int
     ): String {
 
-      val appendedString =
-          document.text.substring(0, offset) + originalText + document.text.substring(offset)
+      val beforeCompletion = document.text.substring(0, range.startOffset)
+      val afterCompletion = document.text.substring(range.endOffset)
+      val appendedString = beforeCompletion + completionText + afterCompletion
 
-      val file = FileDocumentManager.getInstance().getFile(document) ?: return originalText
+      val file = FileDocumentManager.getInstance().getFile(document) ?: return completionText
       val psiFile =
           PsiFileFactory.getInstance(project)
               .createFileFromText("TEMP", file.fileType, appendedString)
 
-      fun endOffset() = offset + psiFile.endOffset - document.textLength
       val codeStyleManager = CodeStyleManager.getInstance(project)
-      codeStyleManager.reformatText(psiFile, offset + 1, endOffset())
+      codeStyleManager.reformatText(psiFile, cursor, range.startOffset + completionText.length)
 
-      return psiFile.text.substring(offset, endOffset())
+      // Fix for the IJ formatting bug which removes spaces even before the given formatting range.
+      val existingStart = appendedString.substring(0, cursor)
+      val formattedStart = psiFile.text.substring(0, cursor)
+      val startOfDiff = existingStart.zip(formattedStart).indexOfFirst { (e, f) -> e != f }
+
+      val formattedText =
+          if (startOfDiff != -1) {
+            val addition = formattedStart.substring(startOfDiff)
+            existingStart + addition + psiFile.text.substring(cursor)
+          } else psiFile.text
+      return formattedText.substring(
+          range.startOffset, cursor + formattedText.length - document.textLength)
     }
   }
 }

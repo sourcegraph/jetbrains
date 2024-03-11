@@ -45,13 +45,13 @@ import com.sourcegraph.utils.CodyFormatter
 import difflib.Delta
 import difflib.DiffUtils
 import difflib.Patch
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
-import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 
 /** Responsible for triggering and clearing inline code completions (the autocomplete feature). */
 @Service
@@ -333,6 +333,15 @@ class CodyAutocompleteManager {
     val range = getTextRange(editor.document, defaultItem.range)
     val originalText = editor.document.getText(range)
 
+    val formattedInsertText =
+        if (project == null ||
+            System.getProperty("cody.autocomplete.enableFormatting") == "false") {
+          defaultItem.insertText
+        } else {
+          CodyFormatter.formatStringBasedOnDocument(
+              defaultItem.insertText, project, editor.document, range, offset)
+        }
+
     // Run Myers diff between the existing text in the document and the `insertText` that is
     // returned from the agent.
     // The diff algorithm returns a list of "deltas" that give us the minimal number of additions we
@@ -354,31 +363,24 @@ class CodyAutocompleteManager {
       }
     }
 
-    val deltas = patch.deltas.sortedBy { it.original.position }
-    val rawCompletionText = deltas.joinToString("") { it.revised.lines.joinToString("") }
+    defaultItem.insertText = formattedInsertText
+    val completionText = formattedInsertText.removePrefix(originalText)
 
-    val completionText =
-        if (project == null ||
-            System.getProperty("cody.autocomplete.enableFormatting") == "false") {
-          rawCompletionText
-        } else {
-          CodyFormatter.formatStringBasedOnDocument(
-              rawCompletionText, project, editor.document, offset)
-        }
+    val lineBreaks = listOf("\r\n", "\n", "\r")
+    val startsInline = lineBreaks.none { separator -> completionText.startsWith(separator) }
 
-    if (completionText.lines().count() > 1) {
-      inlayModel.addBlockElement(
-          offset,
-          true,
-          false,
-          Int.MAX_VALUE,
-          CodyAutocompleteBlockElementRenderer(completionText, items, editor))
-    } else {
-      inlayModel.addInlineElement(
-          offset,
-          true,
+    if (startsInline) {
+      val renderer =
           CodyAutocompleteSingleLineRenderer(
-              completionText, items, editor, AutocompleteRendererType.INLINE))
+              completionText.lines().first(), items, editor, AutocompleteRendererType.INLINE)
+      inlayModel.addInlineElement(offset, true, renderer)
+    }
+    val lines = completionText.lines()
+    if (lines.size > 1) {
+      val text =
+          (if (startsInline) lines.drop(1) else lines).dropWhile { it.isBlank() }.joinToString("\n")
+      val renderer = CodyAutocompleteBlockElementRenderer(text, items, editor)
+      inlayModel.addBlockElement(offset, true, false, Int.MAX_VALUE, renderer)
     }
   }
 
