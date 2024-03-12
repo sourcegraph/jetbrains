@@ -35,7 +35,7 @@ sealed class ContextItem {
 }
 
 data class ContextItemFile(
-    override val type: String,
+    override val type: String = "file",
     override val uri: URI,
     val range: Range? = null,
     val repoName: String? = null,
@@ -80,7 +80,7 @@ data class ContextItemFile(
 }
 
 data class ContextItemSymbol(
-    override val type: String,
+    override val type: String = "symbol",
     override val uri: URI,
     val range: Range? = null,
     val repoName: String? = null,
