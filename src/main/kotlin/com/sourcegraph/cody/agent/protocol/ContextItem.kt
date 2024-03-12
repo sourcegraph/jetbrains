@@ -11,21 +11,41 @@ import java.net.URI
 import java.nio.file.Path
 import java.nio.file.Paths
 
+typealias ContextFileSource =
+    String // One of: embeddings, user, keyword, editor, filename, search, unified, selection,
+// terminal
+
+typealias SymbolKind = String // One of: class, function, method
+
 sealed class ContextItem {
-  abstract val type: String
+  abstract val type: String // Oneof: file, symbol
   abstract val uri: URI
-  abstract val repoName: String?
-  abstract val revision: String?
+
+  companion object {
+    val deserializer: JsonDeserializer<ContextItem> =
+        JsonDeserializer { element: JsonElement, _: Type, context: JsonDeserializationContext ->
+          when (element.asJsonObject.get("type").asString) {
+            "file" -> context.deserialize<ContextItemFile>(element, ContextItemFile::class.java)
+            "symbol" ->
+                context.deserialize<ContextItemSymbol>(element, ContextItemSymbol::class.java)
+            else -> throw Exception("Unknown discriminator ${element}")
+          }
+        }
+  }
 }
 
 data class ContextItemFile(
+    override val type: String,
     override val uri: URI,
-    override val repoName: String?,
-    override val revision: String?,
-    val isTooLarge: Boolean? = null,
     val range: Range? = null,
+    val repoName: String? = null,
+    val revision: String? = null,
+    val title: String? = null,
+    val source: ContextFileSource? =
+        null, // Oneof: embeddings, user, keyword, editor, filename, search, unified, selection,
+    // terminal
+    val content: String? = null
 ) : ContextItem() {
-  override val type: String = "file"
 
   fun isLocal() = repoName == null
 
@@ -59,14 +79,20 @@ data class ContextItemFile(
   }
 }
 
-val contextFileDeserializer: JsonDeserializer<ContextItem> =
-    JsonDeserializer { element: JsonElement, _: Type, context: JsonDeserializationContext ->
-      when (element.asJsonObject.get("type").asString) {
-        "file" -> context.deserialize<ContextItemFile>(element, ContextItemFile::class.java)
-        "symbol" -> null
-        else -> throw Exception("Unknown discriminator ${element}")
-      }
-    }
+data class ContextItemSymbol(
+    override val type: String,
+    override val uri: URI,
+    val range: Range? = null,
+    val repoName: String? = null,
+    val revision: String? = null,
+    val title: String? = null,
+    val source: ContextFileSource? =
+        null, // Oneof: embeddings, user, keyword, editor, filename, search, unified, selection,
+    // terminal
+    val content: String? = null,
+    val symbolName: String? = null,
+    val kind: SymbolKind? = null, // Oneof: class, function, method
+) : ContextItem()
 
 val uriDeserializer =
     JsonDeserializer { jsonElement: JsonElement?, _: Type, _: JsonDeserializationContext ->
