@@ -1,24 +1,30 @@
 package com.sourcegraph.cody.agent.protocol
 
-import com.google.gson.*
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.JsonNull
+import com.google.gson.JsonObject
+import com.google.gson.JsonSerializer
 import java.lang.reflect.Type
 import java.net.URI
 import java.nio.file.Path
 import java.nio.file.Paths
 
-sealed class ContextFile {
+sealed class ContextItem {
   abstract val type: String
   abstract val uri: URI
   abstract val repoName: String?
   abstract val revision: String?
 }
 
-data class ContextFileFile(
+data class ContextItemFile(
     override val uri: URI,
     override val repoName: String?,
     override val revision: String?,
+    val isTooLarge: Boolean? = null,
     val range: Range? = null,
-) : ContextFile() {
+) : ContextItem() {
   override val type: String = "file"
 
   fun isLocal() = repoName == null
@@ -53,25 +59,14 @@ data class ContextFileFile(
   }
 }
 
-val contextFileDeserializer =
-    JsonDeserializer { jsonElement: JsonElement, _: Type, context: JsonDeserializationContext ->
-      val jsonObject = jsonElement.asJsonObject
-      when (jsonObject["type"]?.asString) {
-        "file" -> {
-          val uri = context.deserialize<URI>(jsonObject["uri"], URI::class.java)
-          val repoName = jsonObject["repoName"]?.asString
-          val revision = jsonObject["revision"]?.asString
-          val range = gsonMapper.fromJson(jsonObject["range"], Range::class.java)
-          ContextFileFile(uri, repoName, revision, range)
-        }
-
-        // TODO(beyang): should throw an exception here, but we don't because the context field is
-        // overloaded in the protocol
-        else -> null
+val contextFileDeserializer: JsonDeserializer<ContextItem> =
+    JsonDeserializer { element: JsonElement, _: Type, context: JsonDeserializationContext ->
+      when (element.asJsonObject.get("type").asString) {
+        "file" -> context.deserialize<ContextItemFile>(element, ContextItemFile::class.java)
+        "symbol" -> null
+        else -> throw Exception("Unknown discriminator ${element}")
       }
     }
-
-private val gsonMapper = GsonBuilder().create()
 
 val uriDeserializer =
     JsonDeserializer { jsonElement: JsonElement?, _: Type, _: JsonDeserializationContext ->
