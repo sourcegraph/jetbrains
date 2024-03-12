@@ -162,7 +162,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
       controller.setCurrentModel(model)
       if (text.isNotBlank()) {
         addToHistory(text)
-        controller.addSession(EditSession(controller, editor, text))
+        controller.addSession(EditSession(controller, editor, text, model))
       }
     }
 

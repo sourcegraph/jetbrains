@@ -106,7 +106,7 @@ class FixupService(val project: Project) : Disposable {
   fun getLastPrompt(): String = lastPrompt
 
   fun addSession(session: FixupSession) {
-      activeSessions[session.taskId!!] = session
+    activeSessions[session.taskId!!] = session
   }
 
   fun removeSession(session: FixupSession) {

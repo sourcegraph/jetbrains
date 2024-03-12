@@ -66,23 +66,23 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
       CodyAgentService.withAgent(project) { agent ->
         workAroundUninitializedCodebase(editor)
         makeEditingRequest(agent)
-                .handle { result, error ->
-                  if (error != null || result == null) {
-                    // TODO: Adapt logic from CodyCompletionsManager.handleError
-                    logger.warn("Error while generating doc string: $error")
-                  } else {
-                    taskId = result.id
-                    FixupService.getInstance(project).addSession(this)
-                  }
-                  null
-                }
-                .exceptionally { error: Throwable? ->
-                  if (!(error is CancellationException || error is CompletionException)) {
-                    logger.warn("Error while generating doc string: $error")
-                  }
-                  null
-                }
-                .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+            .handle { result, error ->
+              if (error != null || result == null) {
+                // TODO: Adapt logic from CodyCompletionsManager.handleError
+                logger.warn("Error while generating doc string: $error")
+              } else {
+                taskId = result.id
+                FixupService.getInstance(project).addSession(this)
+              }
+              null
+            }
+            .exceptionally { error: Throwable? ->
+              if (!(error is CancellationException || error is CompletionException)) {
+                logger.warn("Error while generating doc string: $error")
+              }
+              null
+            }
+            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
       }
     }
   }
@@ -133,9 +133,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
     Disposer.dispose(this)
   }
 
-  /**
-   * Subclass sends a fixup command to the agent, and returns the initial task.
-   */
+  /** Subclass sends a fixup command to the agent, and returns the initial task. */
   abstract fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask>
 
   abstract fun accept()
@@ -178,7 +176,13 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
 
   private fun performReplace(doc: Document, edit: TextEdit) {
     val (start, end) = edit.range?.toOffsets(doc) ?: return
-    doc.replaceString(start, end, edit.value ?: return)
+    val text = edit.value
+    if (text == null) {
+      logger.warn("Invalid edit operation params: $edit")
+      return
+    }
+    performedEdits = true
+    doc.replaceString(start, end, text)
   }
 
   protected open fun performInsert(doc: Document, edit: TextEdit) {

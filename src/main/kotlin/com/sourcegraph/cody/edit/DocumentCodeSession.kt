@@ -3,18 +3,12 @@ package com.sourcegraph.cody.edit
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.sourcegraph.cody.agent.CodyAgent
-import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.withAgent
 import com.sourcegraph.cody.agent.CommandExecuteParams
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.TextEdit
-import com.sourcegraph.cody.edit.FixupService.Companion.backgroundThread
-import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.CompletionException
-import java.util.concurrent.TimeUnit
 
 class DocumentCodeSession(controller: FixupService, editor: Editor) :
     FixupSession(controller, editor) {
