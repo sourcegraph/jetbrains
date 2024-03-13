@@ -61,11 +61,10 @@ class AddRepositoryDialog(
               val codebaseName =
                   runCatching { convertGitCloneURLToCodebaseNameOrError(text) }.getOrNull()
               codebaseName ?: return@custom false
-              val repo =
-                  RemoteRepoUtils.getRepository(project, codebaseName)
-                      .completeOnTimeout(null, 2, TimeUnit.SECONDS)
-                      .get()
-              repo != null
+              RemoteRepoUtils.getRepositories(project, listOf(codebaseName))
+                  .completeOnTimeout(null, 2, TimeUnit.SECONDS)
+                  .get()
+                  .isNotEmpty()
             }
 
     fun validateRepoNotAddedYet() =
