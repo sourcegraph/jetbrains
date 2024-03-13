@@ -12,16 +12,15 @@ import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.withAgent
 import com.sourcegraph.cody.agent.CommandExecuteParams
-import com.sourcegraph.cody.agent.protocol.CodyTaskState
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.edit.FixupService.Companion.backgroundThread
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import java.util.concurrent.CancellationException
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
 
-class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
+class DocumentCodeSession(controller: FixupService, editor: Editor) :
+    FixupSession(controller, editor) {
   private val logger = Logger.getInstance(DocumentCodeSession::class.java)
   private val project = editor.project!!
 
@@ -42,15 +41,11 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
 
   override fun getLogger() = logger
 
-  private fun triggerDocumentCodeAsync(): CompletableFuture<Void?> {
-    val resultOuter = CompletableFuture<Void?>()
-    currentJob.get().onCancellationRequested { resultOuter.cancel(true) }
-
+  private fun triggerDocumentCodeAsync() {
     withAgent(project) { agent ->
       workAroundUninitializedCodebase(editor)
       addClientListeners(agent)
       val response = agent.server.commandsDocument()
-      currentJob.get().onCancellationRequested { response.cancel(true) }
 
       backgroundThread {
         response
@@ -70,10 +65,8 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
               null
             }
             .completeOnTimeout(null, 3, TimeUnit.SECONDS)
-            .thenRun { resultOuter.complete(null) }
       }
     }
-    return resultOuter
   }
 
   // We're consistently triggering the 'retrieved codebase context before initialization' error
@@ -100,19 +93,7 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
       }
     }
 
-    // TODO: Multiple edit tasks can run concurrently. `setOnEditTaskDidUpdate/Delete` clobbers other listeners. This
-    // needs to dispatch to multiple listeners.
-    agent.client.setOnEditTaskDidUpdate { task ->
-      if (task.id != taskId) {
-        logger.warn("onEditTaskStateDidUpdate: $this got wrong task id for task $task")
-      }
-      // TODO: Just to demo that callbacks work. This call is a no-op unless in the "applied" state, but we can hit the
-      // breakpoint in extension code to see the callback in action. Note, obvious raciness here.
-      if (task.state !== CodyTaskState.Applied) {
-        agent.server.editTaskUndo(task.id)
-      }
-    }
-
+    // TODO: When and why is this called?
     agent.client.setOnEditTaskDidDelete { task ->
       if (task.id != taskId) {
         logger.warn("onEditTaskDidDelete: $this got wrong task id for task $task")
@@ -169,7 +150,7 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
     // TODO: The actual prompt is displayed as ghost text in the text input field.
     // E.g. "Write a brief documentation comment for the selected code <etc.>"
     // We need to send the prompt along with the lenses, so that the client can display it.
-    EditCommandPrompt(editor, "Edit instructions and Retry").displayPromptUI()
+    EditCommandPrompt(controller, editor, "Edit instructions and Retry").displayPromptUI()
   }
 
   // Brings up a diff view showing the changes the AI made.
@@ -194,22 +175,26 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
     super.performInsert(doc, indentDocString(doc, edit))
   }
 
+  override fun dispose() {}
+
   private fun indentDocString(doc: Document, edit: TextEdit): TextEdit {
     val text = edit.value ?: return edit
     val insertLine = edit.position?.line ?: return edit
     val needsNewline: Boolean
     // Get indentation from the first non-blank line following the doc string insert point.
-    val startLine = if (doc.getLineStartOffset(insertLine) == doc.getLineEndOffset(insertLine)) {
-      val lastLine = doc.getLineNumber(doc.textLength)
-      val nonBlank = (insertLine + 1..lastLine).firstOrNull { line ->
-        doc.getLineStartOffset(line) != doc.getLineEndOffset(line)
-      } ?: return edit
-      needsNewline = (nonBlank == insertLine)
-      nonBlank
-    } else {
-      needsNewline = true
-      insertLine
-    }
+    val startLine =
+        if (doc.getLineStartOffset(insertLine) == doc.getLineEndOffset(insertLine)) {
+          val lastLine = doc.getLineNumber(doc.textLength)
+          val nonBlank =
+              (insertLine + 1..lastLine).firstOrNull { line ->
+                doc.getLineStartOffset(line) != doc.getLineEndOffset(line)
+              } ?: return edit
+          needsNewline = (nonBlank == insertLine)
+          nonBlank
+        } else {
+          needsNewline = true
+          insertLine
+        }
     val startOffset = doc.getLineStartOffset(startLine)
     var indentEnd = startOffset
     while (indentEnd < doc.getLineEndOffset(startLine)) {
@@ -225,12 +210,7 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
     val indentedLines = lines.map { indent + it }
     val newText = indentedLines.joinToString("\n") + if (needsNewline) "\n" else ""
 
-    return TextEdit(
-            type = edit.type,
-            range = edit.range,
-            position = edit.position,
-            value = newText
-    )
+    return TextEdit(type = edit.type, range = edit.range, position = edit.position, value = newText)
   }
 
   companion object {

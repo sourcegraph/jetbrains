@@ -6,31 +6,54 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
+import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.protocol.CodyTaskState
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
 
-/** Controller for commands that allow the LLM to edit the code directly. */
-@Service
-class FixupService : Disposable {
+/**
+ * Controller for commands that allow the LLM to edit the code directly.
+ */
+@Service(Service.Level.PROJECT)
+class FixupService(val project: Project) : Disposable {
   private val logger = Logger.getInstance(FixupService::class.java)
+
   private var activeSessions: MutableMap<String, FixupSession> = mutableMapOf()
-  private var currentModel = "GPT-3.5" // last selected from dropdown
+
+  private var lastSelectedModel = "GPT-3.5"
 
   // The last text the user typed in without saving it, for continuity.
   private var lastPrompt: String = ""
 
-  // Prompt user for instructions for editing selected code.
-  fun startCodeEdit(editor: Editor) {
-    if (!isEligibleForInlineEdit(editor)) return
-
-    EditCommandPrompt(editor, "Edit Code with Cody").displayPromptUI()
+  init {
+    // JetBrains docs say avoid heavy lifting in the constructor, so pass to another thread.
+    // TODO: Ensure the listener is added before the user can perform any actions in an Editor.
+    backgroundThread {
+      CodyAgentService.withAgent(project) { agent ->
+        agent.client.setOnEditTaskDidUpdate { task ->
+          val session = activeSessions[task.id] ?: return@setOnEditTaskDidUpdate
+          session.update(task)
+        }
+      }
+    }
   }
 
-  // Generate and insert a doc string for the current code.
-  fun documentCode(editor: Editor) {
-    // Check eligibility before we send the request, and also when we get the response.
+  /**
+   * Entry point for the inline edit command, called by the action handler.
+   */
+  fun startCodeEdit(editor: Editor) {
     if (isEligibleForInlineEdit(editor)) {
-      addSession(DocumentCodeSession(editor))
+      EditCommandPrompt(this, editor, "Edit Code with Cody").displayPromptUI()
+    }
+  }
+
+  /**
+   * Entry point for the document code command, called by the action handler.
+   */
+  fun startDocumentCode(editor: Editor) {
+    if (isEligibleForInlineEdit(editor)) {
+      addSession(DocumentCodeSession(this, editor))
     }
   }
 
@@ -49,22 +72,23 @@ class FixupService : Disposable {
   // TODO: get model list from protocol
   fun getModels(): List<String> = listOf("GPT-4", "GPT-3.5")
 
-  fun getCurrentModel(): String = currentModel
+  fun getCurrentModel(): String = lastSelectedModel
 
   fun setCurrentModel(model: String) {
-    currentModel = model
+    lastSelectedModel = model
   }
 
   fun getLastPrompt(): String = lastPrompt
 
-  private fun addSession(session: FixupSession) {
+  fun addSession(session: FixupSession) {
     //activeSessions[session.id] = session
   }
 
+  fun removeSession(session: FixupSession) {
+
+  }
+
   companion object {
-    @JvmStatic
-    val instance: FixupService
-      get() = service()
 
     fun backgroundThread(code: Runnable) {
       ApplicationManager.getApplication().executeOnPooledThread(code)
@@ -72,6 +96,6 @@ class FixupService : Disposable {
   }
 
   override fun dispose() {
-    //addSession(null)
+    // Nothing to dispose.
   }
 }

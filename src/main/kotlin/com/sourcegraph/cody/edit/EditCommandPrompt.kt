@@ -20,10 +20,9 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
 /** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
-class EditCommandPrompt(val editor: Editor, val dialogTitle: String) {
+class EditCommandPrompt(val controller: FixupService, val editor: Editor, val dialogTitle: String) {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
   private val offset = editor.caretModel.primaryCaret.offset
-  private val controller = FixupService.instance
   private val promptHistory = mutableListOf<String>()
 
   private var dialog: EditCommandPrompt.InstructionsDialog? = null
@@ -144,7 +143,6 @@ class EditCommandPrompt(val editor: Editor, val dialogTitle: String) {
     init {
       init()
       title = dialogTitle
-
       instructionsField.text = controller.getLastPrompt()
       updateOkButtonState()
     }
@@ -164,7 +162,7 @@ class EditCommandPrompt(val editor: Editor, val dialogTitle: String) {
       controller.setCurrentModel(model)
       if (text.isNotBlank()) {
         addToHistory(text)
-        EditSession(editor, text)
+        EditSession(controller, editor, text)
       }
     }
 

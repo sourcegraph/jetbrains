@@ -12,19 +12,18 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
+import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.vscode.CancellationToken
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Common functionality for commands that let the agent edit the code inline, such as adding a doc
- * string, or fixing up a region according to user instructions.
+ * Common functionality for commands that let the agent edit the code inline, 
+ * such as adding a doc string, or fixing up a region according to user instructions.
  */
-abstract class FixupSession(val editor: Editor) : Disposable {
+abstract class FixupSession(val controller: FixupService, val editor: Editor) : Disposable {
   private val logger = Logger.getInstance(FixupSession::class.java)
-  protected val controller = FixupService.instance
 
-  protected val currentJob = AtomicReference(CancellationToken())
   protected var taskId: String? = null
 
   var performedEdits = false
@@ -32,19 +31,13 @@ abstract class FixupSession(val editor: Editor) : Disposable {
 
   abstract fun getLogger(): Logger
 
+  fun update(task: EditTask) {
+
+  }
+
   fun finish() {
+    controller.removeSession(this)
     Disposer.dispose(this)
-  }
-
-  override fun dispose() {
-    cancelCurrentJob()
-  }
-
-  fun cancelCurrentJob() {
-    if (!currentJob.get().isCancelled) {
-      currentJob.get().abort()
-      currentJob.set(CancellationToken())
-    }
   }
 
   abstract fun accept()

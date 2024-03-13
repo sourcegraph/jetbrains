@@ -9,9 +9,10 @@ import com.intellij.openapi.editor.Editor
  * @param instructions The user's instructions for fixing up the code.
  */
 class EditSession(
+    controller: FixupService,
     editor: Editor,
     val instructions: String,
-) : FixupSession(editor) {
+) : FixupSession(controller, editor) {
   private val logger = Logger.getInstance(EditSession::class.java)
 
   override fun getLogger() = logger
