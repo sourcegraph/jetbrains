@@ -30,11 +30,11 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
+import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
-import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
@@ -184,7 +184,8 @@ private constructor(
 
           if (extensionMessage.chatID != null) {
             if (prevLastMessage != null) {
-              if (lastMessage?.contextFiles != messages.lastOrNull()?.contextFiles) {
+              val message = messages.getOrNull(messages.count() - 2)
+              if (message != null && message.contextFiles == null) {
                 val index = extensionMessage.messages.count() - 2
                 ApplicationManager.getApplication().invokeLater {
                   addMessageAtIndex(prevLastMessage, index)
