@@ -33,11 +33,11 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
-import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
@@ -57,6 +57,8 @@ private constructor(
       ChatPanel(project, chatSession = this, chatModelProviderFromState)
   private val cancellationToken = AtomicReference(CancellationToken())
   private val messages = mutableListOf<ChatMessage>()
+
+  private val logger = LoggerFactory.getLogger(ChatSession::class.java)
 
   init {
     cancellationToken.get().dispose()
@@ -223,7 +225,7 @@ private constructor(
       }
       ExtensionMessage.Type.HISTORY -> {
         ExportChatsService.getInstance(project)
-            .setLocalHistory(internalId, message.localHistory)
+            .setLocalHistory(connectionId.get().get(), message.localHistory)
       }
       else -> {
         logger.debug(String.format("unknown message type: %s", message.type))

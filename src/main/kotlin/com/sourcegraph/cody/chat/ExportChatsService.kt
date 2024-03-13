@@ -4,32 +4,40 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.jetbrains.rd.util.AtomicReference
+import com.jetbrains.rd.util.string.printToString
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 
 @Service(Service.Level.PROJECT)
 class ExportChatsService {
 
   private val localHistory: AtomicReference<CompletableFuture<Any>> =
       AtomicReference(CompletableFuture())
-  private val chatInternalId: AtomicReference<String> = AtomicReference("empty")
+  private val connectionId: AtomicReference<String> = AtomicReference("empty")
 
   @Synchronized
-  fun setLocalHistory(chatInternalId: String, localHistory: Any?) {
-    if (this.chatInternalId.get() == chatInternalId) {
+  fun setLocalHistory(connectionId: String, localHistory: Any?) {
+    val str = localHistory.printToString()
+    println("setLocalHistory($connectionId, ${str.substring(0, str.length)})")
+    if (this.connectionId.get() == connectionId) {
+      println("setLocalHistory-complete")
       this.localHistory.get().complete(localHistory)
     }
+    println("setLocalHistory-exit")
   }
 
   @Synchronized
-  fun reset(chatInternalId: String) {
-    this.chatInternalId.getAndSet(chatInternalId)
+  fun reset(connectionId: String) {
+    println("reset($connectionId)")
+    this.connectionId.getAndSet(connectionId)
     this.localHistory.getAndSet(CompletableFuture())
+    println("reset-exit")
   }
 
   @Synchronized
   fun getChats(): Any? {
-    chatInternalId.getAndSet("empty")
-    return localHistory.get().get()
+    println("getChats")
+    return localHistory.get().completeOnTimeout(null, 8, TimeUnit.SECONDS)
   }
 
   companion object {
