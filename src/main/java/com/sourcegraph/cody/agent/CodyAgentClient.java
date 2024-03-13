@@ -33,8 +33,11 @@ public class CodyAgentClient {
   // onSetConfigFeatures
   @Nullable public Consumer<WebviewPostMessageParams> onReceivedWebviewMessage;
 
-  // Callback for the "editTaskState/didChange" notification from the agent.
-  @Nullable private Consumer<EditTask> onEditTaskStateDidChange;
+  // Callback for the "editTask/didUpdate" notification from the agent.
+  @Nullable private Consumer<EditTask> onEditTaskDidUpdate;
+
+  // Callback for the "editTask/didDelete" notification from the agent.
+  @Nullable private Consumer<EditTask> onEditTaskDidDelete;
 
   // Callback for the "textDocument/edit" request from the agent.
   @Nullable private Consumer<TextDocumentEditParams> onTextDocumentEdit;
@@ -45,22 +48,39 @@ public class CodyAgentClient {
   // Callback for the "workspace/edit" request from the agent.
   @Nullable private Consumer<WorkspaceEditParams> onWorkspaceEdit;
 
-  public void setOnEditTaskStateDidChange(@Nullable Consumer<EditTask> callback) {
-    onEditTaskStateDidChange = callback;
+  public void setOnEditTaskDidUpdate(@Nullable Consumer<EditTask> callback) {
+    onEditTaskDidUpdate = callback;
   }
 
-  @JsonNotification("editTaskState/didChange")
-  public void editTaskStateDidChange(EditTask params) {
+  public void setOnEditTaskDidDelete(@Nullable Consumer<EditTask> callback) {
+    onEditTaskDidDelete = callback;
+  }
+
+  @JsonNotification("editTask/didUpdate")
+  public void editTaskDidUpdate(EditTask params) {
     onEventThread(
         () -> {
-          if (onEditTaskStateDidChange != null) {
-            onEditTaskStateDidChange.accept(params);
+          if (onEditTaskDidUpdate != null) {
+            onEditTaskDidUpdate.accept(params);
           } else {
-            logger.warn("No callback registered for editTaskState/didChange");
+            logger.warn("No callback registered for editTask/didUpdate");
           }
           return null;
         });
   }
+
+    @JsonNotification("editTask/didDelete")
+    public void editTaskDidDelete(EditTask params) {
+        onEventThread(
+                () -> {
+                    if (onEditTaskDidDelete != null) {
+                        onEditTaskDidDelete.accept(params);
+                    } else {
+                        logger.warn("No callback registered for editTask/didDelete");
+                    }
+                    return null;
+                });
+    }
 
   public void setOnTextDocumentEdit(@Nullable Consumer<TextDocumentEditParams> callback) {
     onTextDocumentEdit = callback;

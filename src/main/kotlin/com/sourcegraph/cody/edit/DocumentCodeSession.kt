@@ -12,6 +12,7 @@ import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.withAgent
 import com.sourcegraph.cody.agent.CommandExecuteParams
+import com.sourcegraph.cody.agent.protocol.CodyTaskState
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.edit.FixupService.Companion.backgroundThread
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
@@ -99,13 +100,22 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
       }
     }
 
-    agent.client.setOnEditTaskStateDidChange { task ->
-      // These notifications aren't super reliable at the moment, as we do not receive
-      // them all, including not being notified of the terminal state.
+    // TODO: Multiple edit tasks can run concurrently. `setOnEditTaskDidUpdate/Delete` clobbers other listeners. This
+    // needs to dispatch to multiple listeners.
+    agent.client.setOnEditTaskDidUpdate { task ->
       if (task.id != taskId) {
-        logger.warn("onEditTaskStateDidChange: $this got wrong task id for task $task")
-      } else {
-        logger.warn("onEditTaskStateDidChange: $this got task state $task")
+        logger.warn("onEditTaskStateDidUpdate: $this got wrong task id for task $task")
+      }
+      // TODO: Just to demo that callbacks work. This call is a no-op unless in the "applied" state, but we can hit the
+      // breakpoint in extension code to see the callback in action. Note, obvious raciness here.
+      if (task.state !== CodyTaskState.Applied) {
+        agent.server.editTaskUndo(task.id)
+      }
+    }
+
+    agent.client.setOnEditTaskDidDelete { task ->
+      if (task.id != taskId) {
+        logger.warn("onEditTaskDidDelete: $this got wrong task id for task $task")
       }
     }
 
@@ -120,7 +130,8 @@ class DocumentCodeSession(editor: Editor) : FixupSession(editor) {
             if (op.edits == null) {
               logger.warn("Workspace edit operation has no edits")
             } else {
-              lensGroup!!.withListenersMuted { performInlineEdits(op.edits) }
+              // TODO: Bring this back when there is a lens group again.
+              // lensGroup!!.withListenersMuted { performInlineEdits(op.edits) }
             }
           }
           else ->

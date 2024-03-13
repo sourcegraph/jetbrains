@@ -8,4 +8,6 @@ data class ClientCapabilities(
     var edit: String? = null,
     var editWorkspace: String? = null,
     var codeLenses: String? = null,
+    // 'lenses' for code lenses, must have codeLenses = 'enabled'
+    var fixupControls: String? = null,
 )

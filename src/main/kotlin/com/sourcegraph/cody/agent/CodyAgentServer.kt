@@ -64,6 +64,13 @@ interface CodyAgentServer {
   @JsonRequest("webview/receiveMessage")
   fun webviewReceiveMessage(params: WebviewReceiveMessageParams): CompletableFuture<Any?>
 
+  @JsonRequest("editTask/accept")
+  fun editTaskAccept(id: String): CompletableFuture<Any?>
+  @JsonRequest("editTask/undo")
+  fun editTaskUndo(id: String): CompletableFuture<Any?>
+  @JsonRequest("editTask/cancel")
+  fun editTaskCancel(id: String): CompletableFuture<Any?>
+
   @JsonRequest("command/execute")
   fun commandExecute(params: CommandExecuteParams): CompletableFuture<Any?>
 
