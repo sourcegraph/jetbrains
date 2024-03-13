@@ -95,7 +95,7 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
           RemoteRepoUtils.getRepositories(project, listOf(codebaseName))
               .completeOnTimeout(null, 15, TimeUnit.SECONDS)
               .thenApply { repos ->
-                if (repos.size == 1) {
+                if (repos?.size == 1) {
                   ApplicationManager.getApplication().invokeLater {
                     addRemoteRepository(codebaseName)
                   }
