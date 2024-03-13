@@ -30,11 +30,11 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
+import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
-import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
@@ -153,7 +153,6 @@ private constructor(
 
     try {
       val lastMessage = extensionMessage.messages?.lastOrNull()
-      val prevLastMessage = extensionMessage.messages?.dropLast(1)?.lastOrNull()
 
       if (lastMessage?.error != null && extensionMessage.isMessageInProgress == false) {
 
@@ -182,20 +181,13 @@ private constructor(
           getCancellationToken().dispose()
         } else {
 
-          if (extensionMessage.chatID != null) {
-            if (prevLastMessage != null) {
-              if (lastMessage?.contextFiles != messages.lastOrNull()?.contextFiles) {
-                val index = extensionMessage.messages.count() - 2
+          if (extensionMessage.chatID != null && extensionMessage.messages != null) {
+            messages.zip(extensionMessage.messages).forEachIndexed { index, messages ->
+              val (sessionMessage, responseMessage) = messages
+              if (sessionMessage != responseMessage) {
                 ApplicationManager.getApplication().invokeLater {
-                  addMessageAtIndex(prevLastMessage, index)
+                  addMessageAtIndex(responseMessage, index)
                 }
-              }
-            }
-
-            if (lastMessage?.text != null) {
-              val index = extensionMessage.messages.count() - 1
-              ApplicationManager.getApplication().invokeLater {
-                addMessageAtIndex(lastMessage, index)
               }
             }
           }
