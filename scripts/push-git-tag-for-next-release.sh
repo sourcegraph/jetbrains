@@ -42,7 +42,7 @@ if [ "$NEXT_RELEASE_ARG" == "--major" ]; then
 fi
 
 # shellcheck disable=SC2162
-read -p "Confirm that you want to run the release v.$NEXT_VERSION (y/n): " choice
+read -p "Confirm that you want to run the release v$NEXT_VERSION (y/n): " choice
 if [ "$choice" == "y" ]; then
   echo "Running release..."
 else
