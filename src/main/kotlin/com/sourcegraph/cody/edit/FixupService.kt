@@ -8,7 +8,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.CodyTaskState
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
 
@@ -19,6 +18,8 @@ import com.sourcegraph.utils.CodyEditorUtil
 class FixupService(val project: Project) : Disposable {
   private val logger = Logger.getInstance(FixupService::class.java)
 
+  // We only use this for multiplexing task updates from the Agent to concurrent sessions.
+  // TODO: Consider doing the multiplexing in CodyAgentClient instead.
   private var activeSessions: MutableMap<String, FixupSession> = mutableMapOf()
 
   private var lastSelectedModel = "GPT-3.5"
@@ -32,8 +33,7 @@ class FixupService(val project: Project) : Disposable {
     backgroundThread {
       CodyAgentService.withAgent(project) { agent ->
         agent.client.setOnEditTaskDidUpdate { task ->
-          val session = activeSessions[task.id] ?: return@setOnEditTaskDidUpdate
-          session.update(task)
+          activeSessions[task.id]?.update(task)
         }
       }
     }
@@ -81,14 +81,23 @@ class FixupService(val project: Project) : Disposable {
   fun getLastPrompt(): String = lastPrompt
 
   fun addSession(session: FixupSession) {
-    //activeSessions[session.id] = session
+    val id = session.taskId
+    if (id == null) {
+      logger.warn("Session has no ID")
+    } else {
+      activeSessions[id] = session
+    }
   }
 
   fun removeSession(session: FixupSession) {
-
+    activeSessions.remove(session.taskId)
   }
 
   companion object {
+    @JvmStatic
+    fun getInstance(project: Project): FixupService {
+      return project.service<FixupService>()
+    }
 
     fun backgroundThread(code: Runnable) {
       ApplicationManager.getApplication().executeOnPooledThread(code)
@@ -96,6 +105,6 @@ class FixupService(val project: Project) : Disposable {
   }
 
   override fun dispose() {
-    // Nothing to dispose.
+    activeSessions.values.forEach { it.dispose() }
   }
 }

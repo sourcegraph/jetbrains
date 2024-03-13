@@ -14,17 +14,16 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.TextEdit
-import com.sourcegraph.cody.vscode.CancellationToken
-import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Common functionality for commands that let the agent edit the code inline, 
- * such as adding a doc string, or fixing up a region according to user instructions.
+ * Common functionality for commands that let the agent edit the code inline, such as adding a doc
+ * string, or fixing up a region according to user instructions.
  */
 abstract class FixupSession(val controller: FixupService, val editor: Editor) : Disposable {
   private val logger = Logger.getInstance(FixupSession::class.java)
 
-  protected var taskId: String? = null
+  // This is passed back by the Agent when we initiate the editing task.
+  var taskId: String? = null
 
   var performedEdits = false
     private set
@@ -32,7 +31,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   abstract fun getLogger(): Logger
 
   fun update(task: EditTask) {
-
+    TODO("Task State changed")
   }
 
   fun finish() {
