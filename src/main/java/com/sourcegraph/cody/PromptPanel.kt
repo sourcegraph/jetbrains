@@ -165,8 +165,9 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
       revalidate()
       return
     }
+    val expTrimmed = exp.value.removePrefix("...")
     this.chatSession.sendWebviewMessage(
-        WebviewMessage(command = "getUserContext", submitType = "user", query = exp.value))
+        WebviewMessage(command = "getUserContext", submitType = "user", query = expTrimmed))
   }
 
   /** State updaters */
