@@ -1,15 +1,15 @@
 package com.sourcegraph.cody.agent.protocol
 
-enum class CodyTaskState(val value: Int) {
-  idle(1),
-  working(2),
-  inserting(3),
-  applying(4),
-  formatting(5),
-  applied(6),
-  finished(7),
-  error(8),
-  pending(9)
+enum class CodyTaskState(val value: String) {
+  idle("idle"),
+  working("working"),
+  inserting("inserting"),
+  applying("applying"),
+  formatting("formatting"),
+  applied("applied"),
+  finished("finished"),
+  error("error"),
+  pending("pending")
 }
 
 val CodyTaskState.isTerminal

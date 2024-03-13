@@ -292,7 +292,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private fun handleDocumentChanged(@Suppress("UNUSED_PARAMETER") e: DocumentEvent) {
     // We let them edit up until we show the Accept lens, and then editing auto-accepts.
     if (receivedAcceptLens) {
-      session.accept()
+      //session.accept()
     }
   }
 

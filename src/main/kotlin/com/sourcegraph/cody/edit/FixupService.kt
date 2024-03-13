@@ -13,7 +13,7 @@ import com.sourcegraph.utils.CodyEditorUtil
 @Service
 class FixupService : Disposable {
   private val logger = Logger.getInstance(FixupService::class.java)
-  private var activeSession: FixupSession? = null
+  private var activeSessions: MutableMap<String, FixupSession> = mutableMapOf()
   private var currentModel = "GPT-3.5" // last selected from dropdown
 
   // The last text the user typed in without saving it, for continuity.
@@ -30,7 +30,7 @@ class FixupService : Disposable {
   fun documentCode(editor: Editor) {
     // Check eligibility before we send the request, and also when we get the response.
     if (isEligibleForInlineEdit(editor)) {
-      setSession(DocumentCodeSession(editor))
+      addSession(DocumentCodeSession(editor))
     }
   }
 
@@ -57,9 +57,8 @@ class FixupService : Disposable {
 
   fun getLastPrompt(): String = lastPrompt
 
-  private fun setSession(session: FixupSession?) {
-    activeSession?.cancelCurrentJob()
-    activeSession = session
+  private fun addSession(session: FixupSession) {
+    //activeSessions[session.id] = session
   }
 
   companion object {
@@ -73,6 +72,6 @@ class FixupService : Disposable {
   }
 
   override fun dispose() {
-    setSession(null)
+    //addSession(null)
   }
 }
