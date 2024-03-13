@@ -19,7 +19,7 @@ object RemoteRepoUtils {
         val repos = agent.server.getRepoIds(param).get()
         result.complete(repos?.repos ?: emptyList())
       } catch (e: Exception) {
-        result.complete(null)
+        result.complete(emptyList())
       }
     }
     return result
