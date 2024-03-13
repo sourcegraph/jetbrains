@@ -30,11 +30,11 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
-import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
@@ -182,8 +182,8 @@ private constructor(
         } else {
 
           if (extensionMessage.chatID != null && extensionMessage.messages != null) {
-            messages.zip(extensionMessage.messages).forEachIndexed { index, messages ->
-              val (sessionMessage, responseMessage) = messages
+            messages.zip(extensionMessage.messages).forEachIndexed { index, messagesPair ->
+              val (sessionMessage, responseMessage) = messagesPair
               if (sessionMessage != responseMessage) {
                 ApplicationManager.getApplication().invokeLater {
                   addMessageAtIndex(responseMessage, index)
@@ -274,8 +274,6 @@ private constructor(
   }
 
   companion object {
-    private val logger = LoggerFactory.getLogger(AgentChatSession::class.java)
-
     @RequiresEdt
     fun createNew(project: Project): AgentChatSession {
       val connectionId = createNewPanel(project) { it.server.chatNew() }
