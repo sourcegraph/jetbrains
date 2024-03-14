@@ -78,7 +78,7 @@ class FixupService(val project: Project) : Disposable {
   /** Entry point for the document code command, called by the action handler. */
   fun startDocumentCode(editor: Editor) {
     if (isEligibleForInlineEdit(editor)) {
-      addSession(DocumentCodeSession(this, editor))
+      DocumentCodeSession(this, editor)
     }
   }
 
@@ -106,12 +106,7 @@ class FixupService(val project: Project) : Disposable {
   fun getLastPrompt(): String = lastPrompt
 
   fun addSession(session: FixupSession) {
-    val id = session.taskId
-    if (id == null) {
-      logger.warn("Session has no ID")
-    } else {
-      activeSessions[id] = session
-    }
+      activeSessions[session.taskId!!] = session
   }
 
   fun removeSession(session: FixupSession) {

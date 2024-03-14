@@ -2,6 +2,9 @@ package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
+import com.sourcegraph.cody.agent.CodyAgent
+import com.sourcegraph.cody.agent.protocol.EditTask
+import java.util.concurrent.CompletableFuture
 
 /**
  * Manages the state machine for inline-edit requests.
@@ -15,7 +18,10 @@ class EditSession(
 ) : FixupSession(controller, editor) {
   private val logger = Logger.getInstance(EditSession::class.java)
 
-  override fun getLogger() = logger
+  override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
+    // TODO: Make the method for editing requests; I think it's defined in bee/
+    return agent.server.commandsDocument()
+  }
 
   override fun dispose() {
     // No resources to dispose until we implement this class.

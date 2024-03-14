@@ -82,6 +82,9 @@ interface CodyAgentServer {
 
   @JsonRequest("commands/document") fun commandsDocument(): CompletableFuture<EditTask>
 
+  @JsonRequest("editCommands/code")
+  fun commandsEdit(params: InlineEditParams): CompletableFuture<EditTask>
+
   @JsonRequest("chat/new") fun chatNew(): CompletableFuture<String>
 
   @JsonRequest("chat/submitMessage")

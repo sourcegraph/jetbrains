@@ -13,10 +13,7 @@ import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
-import com.sourcegraph.cody.Icons
-import com.sourcegraph.cody.agent.protocol.DisplayCodeLensParams
-import com.sourcegraph.cody.agent.protocol.ProtocolCodeLens
-import com.sourcegraph.cody.edit.FixupService.Companion.backgroundThread
+import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.FixupSession
 import java.awt.*
 import java.awt.geom.Rectangle2D
@@ -37,7 +34,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   val isDisposed = AtomicBoolean(false)
 
-  private val widgets = mutableListOf<LensWidget>()
+  val widgets = mutableListOf<LensWidget>()
 
   private lateinit var commandCallbacks: Map<String, () -> Unit>
 
@@ -90,7 +87,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
    * This bears some explanation. The protocol doesn't tell us when the "last" lens is sent. This is
    * a heuristic; we flag what looks like the final lens as soon as we see it arrive.
    */
-  private var receivedAcceptLens = false
+  private var displayedAcceptLens = false
 
   var inlay: Inlay<EditorCustomElementRenderer>? = null
 
@@ -112,28 +109,13 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     }
   }
 
-  fun display(params: DisplayCodeLensParams, callbacks: Map<String, () -> Unit>) {
-    backgroundThread {
-      try {
-        commandCallbacks = callbacks
-        //parse(params.codeLenses)
-      } catch (x: Exception) {
-        logger.error("Error building CodeLens widgets", x)
-        return@backgroundThread
-      }
-      val lens = params.codeLenses.first()
-      val offset =
-          editor.document.getLineStartOffset(
-              if (!lens.range.isZero()) {
-                (lens.range.start.line - 1).coerceAtLeast(0)
-              } else {
-                editor.caretModel.currentCaret.logicalPosition.line
-              })
-      ApplicationManager.getApplication().invokeLater {
-        if (!isDisposed.get()) {
-          inlay = editor.inlayModel.addBlockElement(offset, true, false, 0, this)
-          Disposer.register(this, inlay!!)
-        }
+  fun show(range: Range) {
+    commandCallbacks = session.commandCallbacks()
+    val offset = range.start.toOffset(editor.document)
+    ApplicationManager.getApplication().invokeLater {
+      if (!isDisposed.get()) {
+        inlay = editor.inlayModel.addBlockElement(offset, true, false, 0, this)
+        Disposer.register(this, inlay!!)
       }
     }
   }
@@ -213,53 +195,10 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   fun addWidget(widget: LensWidget) {
     widgets.add(widget)
   }
-//
-//  /* Parse the RPC data and create widgets. */
-//  private fun parse(lenses: List<ProtocolCodeLens>) {
-//    var separator = false
-//    lenses.forEachIndexed { i, lens ->
-//      val title = lens.command?.title ?: return@forEachIndexed
-//      val command = lens.command.command
-//      if (command == "cody.fixup.codelens.accept") {
-//        receivedAcceptLens = true
-//      }
-//      // Add any icons sent along. Currently, always left-aligned and one at a time.
-//      title.icons?.forEach { icon ->
-//        when (icon.value) {
-//          SPINNER_MARKER -> {
-//            widgets.add(LensSpinner(this, Icons.StatusBar.CompletionInProgress))
-//            widgets.add(LensLabel(this, ICON_SPACER))
-//          }
-//          LOGO_MARKER -> {
-//            widgets.add(LensIcon(this, Icons.CodyLogo))
-//            widgets.add(LensLabel(this, ICON_SPACER))
-//          }
-//        }
-//      }
-//      // All remaining widget types have title text.
-//      val text = title.text?.trim()
-//      if (text == null) {
-//        logger.warn("Missing title text in CodeLens: $lens")
-//        return@forEachIndexed
-//      }
-//      val callback = commandCallbacks[command]
-//      if (callback == null) { // Label
-//        widgets.add(LensLabel(this, text))
-//        if (text.isNotEmpty()) separator = true
-//      } else if (command != null) { // Action
-//        // This is a hack, but works for the lenses we've seen so far.
-//        // We only start adding separators after the first action or nonempty label.
-//        if (i < lenses.size && separator) {
-//          widgets.add(LensLabel(this, SEPARATOR))
-//        }
-//        widgets.add(LensAction(this, text, command, callback))
-//        separator = true
-//      } else {
-//        logger.warn("Skipping malformed widget: $lens")
-//      }
-//    }
-//    widgets.forEach { Disposer.register(this, it) }
-//  }
+
+  fun registerWidgets() {
+    widgets.forEach { Disposer.register(this, it) }
+  }
 
   // Dispatch mouse click events to the appropriate widget.
   private fun handleMouseClick(e: EditorMouseEvent) {
@@ -295,8 +234,9 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private fun handleDocumentChanged(@Suppress("UNUSED_PARAMETER") e: DocumentEvent) {
     // We let them edit up until we show the Accept lens, and then editing auto-accepts.
-    if (receivedAcceptLens) {
-      //session.accept()
+    // TODO: What is the vscode behavior?
+    if (displayedAcceptLens) {
+      // session.accept()
     }
   }
 

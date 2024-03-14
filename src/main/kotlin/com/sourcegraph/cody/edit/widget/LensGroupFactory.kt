@@ -15,6 +15,7 @@ class LensGroupFactory(val session: FixupSession) {
       addLabel(this, "Cody is working...")
       addSeparator(this)
       addAction(this, "Cancel", FixupSession.COMMAND_CANCEL)
+      registerWidgets()
     }
   }
 
@@ -29,6 +30,7 @@ class LensGroupFactory(val session: FixupSession) {
       addAction(this, "Undo", FixupSession.COMMAND_UNDO)
       addSeparator(this)
       addAction(this, "Show Diff", FixupSession.COMMAND_DIFF)
+      registerWidgets()
     }
   }
 

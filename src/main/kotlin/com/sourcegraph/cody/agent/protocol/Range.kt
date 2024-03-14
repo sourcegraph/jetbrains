@@ -21,4 +21,8 @@ data class Range(val start: Position, val end: Position) {
 
   // Return true if the agent gave us all zeroes for the range.
   fun isZero() = start.isZero() && end.isZero()
+
+  companion object {
+    fun nullRange() = Range(Position(0, 0), Position(0, 0))
+  }
 }

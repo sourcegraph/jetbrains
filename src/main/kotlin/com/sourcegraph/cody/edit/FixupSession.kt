@@ -13,11 +13,19 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.vfs.VirtualFile
+import com.sourcegraph.cody.agent.CodyAgent
+import com.sourcegraph.cody.agent.CodyAgentCodebase
+import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.CodyTaskState
 import com.sourcegraph.cody.agent.protocol.EditTask
+import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
+import java.util.concurrent.CancellationException
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionException
+import java.util.concurrent.TimeUnit
 
 /**
  * Common functionality for commands that let the agent edit the code inline, such as adding a doc
@@ -34,6 +42,8 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
 
   private var lensGroup: LensWidgetGroup? = null
 
+  private var selectionRange: Range? = null
+
   private val lensActionCallbacks =
       mapOf(
           COMMAND_ACCEPT to { accept() },
@@ -43,34 +53,90 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
           COMMAND_UNDO to { undo() },
       )
 
-  abstract fun getLogger(): Logger
+  init {
+    triggerDocumentCodeAsync()
+  }
 
   fun commandCallbacks(): Map<String, () -> Unit> = lensActionCallbacks
 
+  private fun triggerDocumentCodeAsync() {
+    // This is called on the EDT, so switch to a background thread.
+    FixupService.backgroundThread {
+      val project = editor.project!!
+      CodyAgentService.withAgent(project) { agent ->
+        workAroundUninitializedCodebase(editor)
+        makeEditingRequest(agent)
+                .handle { result, error ->
+                  if (error != null || result == null) {
+                    // TODO: Adapt logic from CodyCompletionsManager.handleError
+                    logger.warn("Error while generating doc string: $error")
+                  } else {
+                    taskId = result.id
+                    FixupService.getInstance(project).addSession(this)
+                  }
+                  null
+                }
+                .exceptionally { error: Throwable? ->
+                  if (!(error is CancellationException || error is CompletionException)) {
+                    logger.warn("Error while generating doc string: $error")
+                  }
+                  null
+                }
+                .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+      }
+    }
+  }
+
+  // We're consistently triggering the 'retrieved codebase context before initialization' error
+  // in ContextProvider.ts. It's a different initialization path from completions & chat.
+  // Calling onFileOpened forces the right initialization path.
+  private fun workAroundUninitializedCodebase(editor: Editor) {
+    val file = FileDocumentManager.getInstance().getFile(editor.document)!!
+    val project = editor.project!!
+    CodyAgentCodebase.getInstance(project).onFileOpened(project, file)
+  }
+
   fun update(task: EditTask) {
-    lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
+    selectionRange = task.selectionRange
     logger.warn("Task updated: $task")
     when (task.state) {
-        CodyTaskState.Idle -> {}
-        CodyTaskState.Working -> {
-            lensGroup = LensGroupFactory(this).createTaskWorkingGroup()
+      CodyTaskState.Idle -> {}
+      CodyTaskState.Working,
+      CodyTaskState.Inserting,
+      CodyTaskState.Applying,
+      CodyTaskState.Formatting -> {
+        if (lensGroup == null) {
+          showLensGroup(LensGroupFactory(this).createTaskWorkingGroup())
         }
-        CodyTaskState.Inserting -> {}
-        CodyTaskState.Applying -> {}
-        CodyTaskState.Formatting -> {}
-        CodyTaskState.Applied -> {
-            lensGroup = LensGroupFactory(this).createAcceptGroup()
+      }
+      // Tasks remain in this state until explicit accept/undo/cancel.
+      CodyTaskState.Applied -> {
+        if (lensGroup == null) {
+          showLensGroup(LensGroupFactory(this).createAcceptGroup())
         }
-        CodyTaskState.Finished -> {}
-        CodyTaskState.Error -> {}
-        CodyTaskState.Pending -> {}
+      }
+      // Then they transition to finished.
+      CodyTaskState.Finished -> {}
+      CodyTaskState.Error -> {}
+      CodyTaskState.Pending -> {}
     }
+  }
+
+  private fun showLensGroup(group: LensWidgetGroup) {
+    lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
+    lensGroup = group
+    group.show(selectionRange ?: Range.nullRange())
   }
 
   fun finish() {
     controller.removeSession(this)
     Disposer.dispose(this)
   }
+
+  /**
+   * Subclass sends a fixup command to the agent, and returns the initial task.
+   */
+  abstract fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask>
 
   abstract fun accept()
 
@@ -85,9 +151,10 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   fun performInlineEdits(edits: List<TextEdit>) {
     // TODO: This is an artifact of the update to concurrent editing tasks.
     // We do need to mute any LensGroup listeners, but this is an ugly way to do it.
+    // We may need a Document-level list of listeners to mute.
     lensGroup?.withListenersMuted {
       if (!controller.isEligibleForInlineEdit(editor)) {
-        return@withListenersMuted getLogger().warn("Inline edit not eligible")
+        return@withListenersMuted logger.warn("Inline edit not eligible")
       }
       WriteCommandAction.runWriteCommandAction(editor.project ?: return@withListenersMuted) {
         val doc: Document = editor.document
@@ -99,11 +166,11 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
             "replace" -> performReplace(doc, edit)
             "insert" -> performInsert(doc, edit)
             "delete" -> performDelete(doc, edit)
-            else -> getLogger().warn("Unknown edit type: ${edit.type}")
+            else -> logger.warn("Unknown edit type: ${edit.type}")
           }
           // TODO: Group all the edits into a single UndoableAction.
           UndoManager.getInstance(project)
-                  .undoableActionPerformed(FixupUndoableAction.from(editor, edit))
+              .undoableActionPerformed(FixupUndoableAction.from(editor, edit))
         }
       }
     }
@@ -157,7 +224,6 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
     const val COMMAND_RETRY = "cody.fixup.codelens.retry"
     const val COMMAND_DIFF = "cody.fixup.codelens.diff"
     const val COMMAND_UNDO = "cody.fixup.codelens.undo"
-
 
     // TODO: Register the hotkeys now that we are displaying them.
     fun getHotKey(command: String): String {

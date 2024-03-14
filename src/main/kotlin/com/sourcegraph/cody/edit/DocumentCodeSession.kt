@@ -4,12 +4,15 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.withAgent
 import com.sourcegraph.cody.agent.CommandExecuteParams
+import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.edit.FixupService.Companion.backgroundThread
 import java.util.concurrent.CancellationException
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
 
@@ -18,45 +21,8 @@ class DocumentCodeSession(controller: FixupService, editor: Editor) :
   private val logger = Logger.getInstance(DocumentCodeSession::class.java)
   private val project = editor.project!!
 
-  init {
-    triggerDocumentCodeAsync()
-  }
-
-  override fun getLogger() = logger
-
-  private fun triggerDocumentCodeAsync() {
-    // This is called on the EDT, so switch to a background thread.
-    backgroundThread {
-      withAgent(project) { agent ->
-        workAroundUninitializedCodebase(editor)
-        val response = agent.server.commandsDocument()
-        response
-            .handle { result, error ->
-              if (error != null || result == null) {
-                // TODO: Adapt logic from CodyCompletionsManager.handleError
-                logger.warn("Error while generating doc string: $error")
-              } else {
-                taskId = result.id
-              }
-              null
-            }
-            .exceptionally { error: Throwable? ->
-              if (!(error is CancellationException || error is CompletionException)) {
-                logger.warn("Error while generating doc string: $error")
-              }
-              null
-            }
-            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
-      }
-    }
-  }
-
-  // We're consistently triggering the 'retrieved codebase context before initialization' error
-  // in ContextProvider.ts. It's a different initialization path from completions & chat.
-  // Calling onFileOpened forces the right initialization path.
-  private fun workAroundUninitializedCodebase(editor: Editor) {
-    val file = FileDocumentManager.getInstance().getFile(editor.document)!!
-    CodyAgentCodebase.getInstance(project).onFileOpened(project, file)
+  override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
+    return agent.server.commandsDocument()
   }
 
   override fun accept() {
