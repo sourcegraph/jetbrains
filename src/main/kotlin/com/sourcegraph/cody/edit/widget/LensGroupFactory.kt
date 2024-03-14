@@ -61,8 +61,7 @@ class LensGroupFactory(val session: FixupSession) {
 
     val hotkey = FixupSession.getHotKey(command)
     if (hotkey.isNotEmpty()) {
-      addSeparator(group)
-      addLabel(group, "($hotkey)")
+      addLabel(group, " ($hotkey)")
     }
   }
 

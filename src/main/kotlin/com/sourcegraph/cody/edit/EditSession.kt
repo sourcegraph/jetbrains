@@ -24,14 +24,13 @@ class EditSession(
   private val project = editor.project!!
 
   override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
-    // TODO: Make the method for editing requests; I think it's defined in bee/
     val params = InlineEditParams(instructions, model)
     return agent.server.commandsEdit(params)
   }
 
   override fun dispose() {
     // No resources to dispose until we implement this class.
-    logger.info("Disposing edit session")
+    logger.info("Disposing edit session: $taskId")
   }
 
   override fun accept() {

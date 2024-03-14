@@ -16,10 +16,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.CodyTaskState
-import com.sourcegraph.cody.agent.protocol.EditTask
-import com.sourcegraph.cody.agent.protocol.Range
-import com.sourcegraph.cody.agent.protocol.TextEdit
+import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import java.util.concurrent.CancellationException
@@ -65,6 +62,8 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
       val project = editor.project!!
       CodyAgentService.withAgent(project) { agent ->
         workAroundUninitializedCodebase(editor)
+        ensureSelectionRange(agent, editor)
+        showWorkingGroup()
         makeEditingRequest(agent)
             .handle { result, error ->
               if (error != null || result == null) {
@@ -72,6 +71,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
                 logger.warn("Error while generating doc string: $error")
               } else {
                 taskId = result.id
+                selectionRange = result.selectionRange
                 FixupService.getInstance(project).addSession(this)
               }
               null
@@ -96,25 +96,54 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
     CodyAgentCodebase.getInstance(project).onFileOpened(project, file)
   }
 
+  private fun ensureSelectionRange(agent: CodyAgent, editor: Editor) {
+    val caret = editor.caretModel.primaryCaret.offset
+    val url = getDocumentUrl(editor)
+    if (url != null) {
+      agent.server.getFoldingRanges(GetFoldingRangeParams(uri = url)).handle { result, error ->
+        if (result != null && error == null) {
+          selectionRange = findRangeEnclosing(result.ranges, caret)
+        }
+        // Make sure we have SOME selection range near the caret.
+        // Otherwise, we wind up with the lenses and insertion at top of file.
+        if (selectionRange == null) {
+          logger.warn("Unable to find enclosing folding range at $caret in $url")
+          selectionRange =
+              Range(
+                  Position.fromOffset(editor.document, caret),
+                  Position.fromOffset(editor.document, caret))
+        }
+      }
+    }
+  }
+
+  private fun getDocumentUrl(editor: Editor): String? {
+    val document = editor.document
+    val virtualFile = FileDocumentManager.getInstance().getFile(document)
+    if (virtualFile == null) {
+      logger.warn("No URI for document: $document")
+      return null
+    }
+    return virtualFile.url
+  }
+
+  private fun findRangeEnclosing(ranges: List<Range>, offset: Int): Range? {
+    return ranges.firstOrNull { range ->
+      range.start.toOffset(editor.document) <= offset &&
+          range.end.toOffset(editor.document) >= offset
+    }
+  }
+
   fun update(task: EditTask) {
-    selectionRange = task.selectionRange
     logger.warn("Task updated: $task")
     when (task.state) {
       CodyTaskState.Idle -> {}
       CodyTaskState.Working,
       CodyTaskState.Inserting,
       CodyTaskState.Applying,
-      CodyTaskState.Formatting -> {
-        if (lensGroup == null) {
-          showLensGroup(LensGroupFactory(this).createTaskWorkingGroup())
-        }
-      }
+      CodyTaskState.Formatting -> {}
       // Tasks remain in this state until explicit accept/undo/cancel.
-      CodyTaskState.Applied -> {
-        if (lensGroup == null) {
-          showLensGroup(LensGroupFactory(this).createAcceptGroup())
-        }
-      }
+      CodyTaskState.Applied -> showAcceptGroup()
       // Then they transition to finished.
       CodyTaskState.Finished -> {}
       CodyTaskState.Error -> {}
@@ -122,10 +151,23 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
     }
   }
 
+  /** Notification that the Agent has deleted the task. Clean up if we haven't yet. */
+  fun taskDeleted() {
+    finish()
+  }
+
   private fun showLensGroup(group: LensWidgetGroup) {
     lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
     lensGroup = group
     group.show(selectionRange ?: Range.nullRange())
+  }
+
+  private fun showWorkingGroup() {
+    showLensGroup(LensGroupFactory(this).createTaskWorkingGroup())
+  }
+
+  private fun showAcceptGroup() {
+    showLensGroup(LensGroupFactory(this).createAcceptGroup())
   }
 
   fun finish() {

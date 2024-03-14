@@ -71,6 +71,9 @@ interface CodyAgentServer {
   @JsonRequest("editTask/cancel")
   fun editTaskCancel(id: String): CompletableFuture<Any?>
 
+  @JsonRequest("editTask/getFoldingRanges")
+  fun getFoldingRanges(params: GetFoldingRangeParams): CompletableFuture<GetFoldingRangeResult>
+
   @JsonRequest("command/execute")
   fun commandExecute(params: CommandExecuteParams): CompletableFuture<Any?>
 

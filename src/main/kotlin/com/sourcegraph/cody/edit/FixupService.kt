@@ -33,7 +33,7 @@ class FixupService(val project: Project) : Disposable {
         ApplicationManager.getApplication().invokeLater {
           agent.client.setOnEditTaskDidUpdate { task -> activeSessions[task.id]?.update(task) }
 
-          agent.client.setOnEditTaskDidDelete { task -> TODO("What is this for again? $task") }
+          agent.client.setOnEditTaskDidDelete { task -> activeSessions[task.id]?.taskDeleted() }
 
           agent.client.setOnWorkspaceEdit { params ->
             for (op in params.operations) {
