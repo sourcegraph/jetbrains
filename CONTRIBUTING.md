@@ -95,7 +95,7 @@ Take the steps below _before_ [running JetBrains plugin with agent](#developing-
 To upgrade Cody to the newer version you need to update the `cody.commit` hash in `gradle.properties`.
 After doing that:
 
-1. Run `git diff --name-status OLD_HASH..NEW_HASH -- agent`  
+1. Run on the `sourcegraph/cody` repo: `git diff --name-status OLD_HASH..NEW_HASH -- agent`  
    It will print you a list of files changed between updates.  
    Changes in tests or bindings might require adjustments in the jetbrains codebase, so please inspect those carefully.
 2. Check if the main features are working before sending it for the full QA.  
