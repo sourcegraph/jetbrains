@@ -23,15 +23,23 @@ class EditSession(
   }
 
   override fun accept() {
-    TODO("Not yet implemented")
+    logger.warn("Accept: Not yet implemented")
   }
 
   override fun retry() {
-    logger.warn("retrying EditSession")
+    logger.warn("Retry: Not yet implemented")
   }
 
   override fun cancel() {
-    logger.warn("cancelling EditSession")
+    logger.warn("Cancel: Not yet implemented")
+  }
+
+  override fun diff() {
+    logger.warn("Diff: Not yet implemented")
+  }
+
+  override fun undo() {
+    logger.warn("Undo: Not yet implemented")
   }
 
   @Suppress("unused")

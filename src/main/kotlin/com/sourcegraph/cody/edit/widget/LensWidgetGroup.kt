@@ -116,7 +116,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     backgroundThread {
       try {
         commandCallbacks = callbacks
-        parse(params.codeLenses)
+        //parse(params.codeLenses)
       } catch (x: Exception) {
         logger.error("Error building CodeLens widgets", x)
         return@backgroundThread
@@ -210,52 +210,56 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     return null
   }
 
-  /* Parse the RPC data and create widgets. */
-  private fun parse(lenses: List<ProtocolCodeLens>) {
-    var separator = false
-    lenses.forEachIndexed { i, lens ->
-      val title = lens.command?.title ?: return@forEachIndexed
-      val command = lens.command.command
-      if (command == "cody.fixup.codelens.accept") {
-        receivedAcceptLens = true
-      }
-      // Add any icons sent along. Currently, always left-aligned and one at a time.
-      title.icons?.forEach { icon ->
-        when (icon.value) {
-          SPINNER_MARKER -> {
-            widgets.add(LensSpinner(this, Icons.StatusBar.CompletionInProgress))
-            widgets.add(LensLabel(this, ICON_SPACER))
-          }
-          LOGO_MARKER -> {
-            widgets.add(LensIcon(this, Icons.CodyLogo))
-            widgets.add(LensLabel(this, ICON_SPACER))
-          }
-        }
-      }
-      // All remaining widget types have title text.
-      val text = title.text?.trim()
-      if (text == null) {
-        logger.warn("Missing title text in CodeLens: $lens")
-        return@forEachIndexed
-      }
-      val callback = commandCallbacks[command]
-      if (callback == null) { // Label
-        widgets.add(LensLabel(this, text))
-        if (text.isNotEmpty()) separator = true
-      } else if (command != null) { // Action
-        // This is a hack, but works for the lenses we've seen so far.
-        // We only start adding separators after the first action or nonempty label.
-        if (i < lenses.size && separator) {
-          widgets.add(LensLabel(this, SEPARATOR))
-        }
-        widgets.add(LensAction(this, text, command, callback))
-        separator = true
-      } else {
-        logger.warn("Skipping malformed widget: $lens")
-      }
-    }
-    widgets.forEach { Disposer.register(this, it) }
+  fun addWidget(widget: LensWidget) {
+    widgets.add(widget)
   }
+//
+//  /* Parse the RPC data and create widgets. */
+//  private fun parse(lenses: List<ProtocolCodeLens>) {
+//    var separator = false
+//    lenses.forEachIndexed { i, lens ->
+//      val title = lens.command?.title ?: return@forEachIndexed
+//      val command = lens.command.command
+//      if (command == "cody.fixup.codelens.accept") {
+//        receivedAcceptLens = true
+//      }
+//      // Add any icons sent along. Currently, always left-aligned and one at a time.
+//      title.icons?.forEach { icon ->
+//        when (icon.value) {
+//          SPINNER_MARKER -> {
+//            widgets.add(LensSpinner(this, Icons.StatusBar.CompletionInProgress))
+//            widgets.add(LensLabel(this, ICON_SPACER))
+//          }
+//          LOGO_MARKER -> {
+//            widgets.add(LensIcon(this, Icons.CodyLogo))
+//            widgets.add(LensLabel(this, ICON_SPACER))
+//          }
+//        }
+//      }
+//      // All remaining widget types have title text.
+//      val text = title.text?.trim()
+//      if (text == null) {
+//        logger.warn("Missing title text in CodeLens: $lens")
+//        return@forEachIndexed
+//      }
+//      val callback = commandCallbacks[command]
+//      if (callback == null) { // Label
+//        widgets.add(LensLabel(this, text))
+//        if (text.isNotEmpty()) separator = true
+//      } else if (command != null) { // Action
+//        // This is a hack, but works for the lenses we've seen so far.
+//        // We only start adding separators after the first action or nonempty label.
+//        if (i < lenses.size && separator) {
+//          widgets.add(LensLabel(this, SEPARATOR))
+//        }
+//        widgets.add(LensAction(this, text, command, callback))
+//        separator = true
+//      } else {
+//        logger.warn("Skipping malformed widget: $lens")
+//      }
+//    }
+//    widgets.forEach { Disposer.register(this, it) }
+//  }
 
   // Dispatch mouse click events to the appropriate widget.
   private fun handleMouseClick(e: EditorMouseEvent) {
@@ -316,10 +320,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   }
 
   companion object {
-    const val LOGO_MARKER = "$(cody-logo)"
-    const val SPINNER_MARKER = "$(sync~spin)"
-    const val ICON_SPACER = " "
-    const val SEPARATOR = " | "
     private val lensColor = Gray._150
   }
 }

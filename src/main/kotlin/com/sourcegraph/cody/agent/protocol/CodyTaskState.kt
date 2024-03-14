@@ -12,7 +12,7 @@ enum class CodyTaskState(val id: Int) {
   Pending(8)
 }
 
-
+@Suppress("unused")
 val CodyTaskState.isTerminal
   get() =
       when (this) {

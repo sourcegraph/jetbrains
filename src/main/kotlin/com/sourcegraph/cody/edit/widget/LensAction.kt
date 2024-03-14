@@ -3,6 +3,7 @@ package com.sourcegraph.cody.edit.widget
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.ui.JBColor
 import com.sourcegraph.cody.edit.DocumentCodeSession
+import com.sourcegraph.cody.edit.FixupSession
 import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics2D
@@ -53,7 +54,7 @@ class LensAction(
 
   override fun onMouseEnter(e: EditorMouseEvent) {
     mouseInBounds = true
-    showTooltip(DocumentCodeSession.getHotkey(command), e.mouseEvent)
+    showTooltip(FixupSession.getHotKey(command), e.mouseEvent)
   }
 
   override fun toString(): String {

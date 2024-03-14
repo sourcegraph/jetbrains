@@ -11,9 +11,7 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
 
-/**
- * Controller for commands that allow the LLM to edit the code directly.
- */
+/** Controller for commands that allow the LLM to edit the code directly. */
 @Service(Service.Level.PROJECT)
 class FixupService(val project: Project) : Disposable {
   private val logger = Logger.getInstance(FixupService::class.java)
@@ -29,28 +27,55 @@ class FixupService(val project: Project) : Disposable {
 
   init {
     // JetBrains docs say avoid heavy lifting in the constructor, so pass to another thread.
-    // TODO: Ensure the listener is added before the user can perform any actions in an Editor.
+    // TODO: Ensure the listeners are added before the user can perform any actions in an Editor.
     backgroundThread {
       CodyAgentService.withAgent(project) { agent ->
-        agent.client.setOnEditTaskDidUpdate { task ->
-          activeSessions[task.id]?.update(task)
+        ApplicationManager.getApplication().invokeLater {
+          agent.client.setOnEditTaskDidUpdate { task -> activeSessions[task.id]?.update(task) }
+
+          agent.client.setOnEditTaskDidDelete { task -> TODO("What is this for again? $task") }
+
+          agent.client.setOnWorkspaceEdit { params ->
+            for (op in params.operations) {
+              when (op.type) {
+                "create-file" -> {
+                  logger.warn("Workspace edit operation created a file: ${op.uri}")
+                }
+                "rename-file" -> {
+                  logger.warn(
+                      "Workspace edit operation renamed a file: ${op.oldUri} -> ${op.newUri}")
+                }
+                "delete-file" -> {
+                  logger.warn("Workspace edit operation deleted a file: ${op.uri}")
+                }
+                "edit-file" -> {
+                  if (op.edits == null) {
+                    logger.warn("Workspace edit operation has no edits")
+                  } else {
+                    // TODO: Associate task ID with a workspace edit.
+                    // Right now we're just using the first active inline-edit session we find.
+                    activeSessions.values.firstOrNull()?.performInlineEdits(op.edits)
+                  }
+                }
+                else ->
+                    logger.warn(
+                        "DocumentCommand session received unknown workspace edit operation: ${op.type}")
+              }
+            }
+          }
         }
       }
     }
   }
 
-  /**
-   * Entry point for the inline edit command, called by the action handler.
-   */
+  /** Entry point for the inline edit command, called by the action handler. */
   fun startCodeEdit(editor: Editor) {
     if (isEligibleForInlineEdit(editor)) {
       EditCommandPrompt(this, editor, "Edit Code with Cody").displayPromptUI()
     }
   }
 
-  /**
-   * Entry point for the document code command, called by the action handler.
-   */
+  /** Entry point for the document code command, called by the action handler. */
   fun startDocumentCode(editor: Editor) {
     if (isEligibleForInlineEdit(editor)) {
       addSession(DocumentCodeSession(this, editor))
@@ -93,6 +118,10 @@ class FixupService(val project: Project) : Disposable {
     activeSessions.remove(session.taskId)
   }
 
+  override fun dispose() {
+    activeSessions.values.forEach { it.dispose() }
+  }
+
   companion object {
     @JvmStatic
     fun getInstance(project: Project): FixupService {
@@ -102,9 +131,5 @@ class FixupService(val project: Project) : Disposable {
     fun backgroundThread(code: Runnable) {
       ApplicationManager.getApplication().executeOnPooledThread(code)
     }
-  }
-
-  override fun dispose() {
-    activeSessions.values.forEach { it.dispose() }
   }
 }
