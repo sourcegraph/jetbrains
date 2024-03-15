@@ -102,7 +102,6 @@ private constructor(
         val launcher = startAgentLauncher(conn, client)
         val server = launcher.remoteProxy
         val listeningToJsonRpc = launcher.startListening()
-
         try {
           return server
               .initialize(
