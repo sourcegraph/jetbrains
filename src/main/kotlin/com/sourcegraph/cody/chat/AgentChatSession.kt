@@ -188,32 +188,38 @@ private constructor(
   }
 
   private fun handleChatError(chatError: ChatError) {
-    getCancellationToken().abort()
-    CodyAgentService.setAgentError(project, chatError.message)
+    try {
+      CodyAgentService.setAgentError(project, chatError.message)
 
-    val rateLimitError = chatError.toRateLimitError()
-    val errorMessage =
-        if (rateLimitError != null) {
-          RateLimitStateManager.reportForChat(project, rateLimitError)
-          when {
-            rateLimitError.upgradeIsAvailable ->
-                CodyBundle.getString("chat.rate-limit-error.upgrade")
-            else -> CodyBundle.getString("chat.rate-limit-error.explain")
-          }
-        } else CodyBundle.getString("chat.general-error").fmt(chatError.message, "")
+      val rateLimitError = chatError.toRateLimitError()
+      val errorMessage =
+          if (rateLimitError != null) {
+            RateLimitStateManager.reportForChat(project, rateLimitError)
+            when {
+              rateLimitError.upgradeIsAvailable ->
+                  CodyBundle.getString("chat.rate-limit-error.upgrade")
+              else -> CodyBundle.getString("chat.rate-limit-error.explain")
+            }
+          } else CodyBundle.getString("chat.general-error").fmt(chatError.message, "")
 
-    addErrorMessageAsAssistantMessage(errorMessage)
+      addErrorMessageAsAssistantMessage(errorMessage)
+    } finally {
+      getCancellationToken().abort()
+    }
   }
 
   private fun handleException(e: Exception) {
-    getCancellationToken().abort()
-    CodyAgentService.setAgentError(project, e)
+    try {
+      CodyAgentService.setAgentError(project, e)
 
-    val message = ((e.cause as? CodyAgentException) ?: e).message ?: e.toString()
-    val errorReportLink = CodyErrorSubmitter().getEncodedUrl(e.getThrowableText(), message)
-    val errorReportMsg = CodyBundle.getString("chat.general-error.report").fmt(errorReportLink)
-    addErrorMessageAsAssistantMessage(
-        CodyBundle.getString("chat.general-error").fmt(message, errorReportMsg))
+      val message = ((e.cause as? CodyAgentException) ?: e).message ?: e.toString()
+      val errorReportLink = CodyErrorSubmitter().getEncodedUrl(e.getThrowableText(), message)
+      val errorReportMsg = CodyBundle.getString("chat.general-error.report").fmt(errorReportLink)
+      addErrorMessageAsAssistantMessage(
+          CodyBundle.getString("chat.general-error").fmt(message, errorReportMsg))
+    } finally {
+      getCancellationToken().abort()
+    }
   }
 
   private fun addErrorMessageAsAssistantMessage(chatMessage: String) {
