@@ -59,7 +59,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
 
   @RequiresEdt
   private fun triggerDocumentCodeAsync() {
-      // This caret lookup requires us to be on the EDT.
+    // This caret lookup requires us to be on the EDT.
     val caret = editor.caretModel.primaryCaret.offset
 
     FixupService.backgroundThread {
@@ -168,7 +168,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
     lensGroup = group
     var range = selectionRange
     if (range == null) {
-        // Be defensive, as the protocol has been fragile with respect to selection ranges.
+      // Be defensive, as the protocol has been fragile with respect to selection ranges.
       logger.warn("No selection range for session: $this")
       // Last-ditch effort to show it somewhere other than top of file.
       val position = Position(editor.caretModel.currentCaret.logicalPosition.line, 0)

@@ -176,7 +176,8 @@ class CodyEditorFactoryListener : EditorFactoryListener {
     ) {
       val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return
 
-      val document = ProtocolTextDocument.fromVirtualFile(file, editor.document.text, getSelection(editor))
+      val document =
+          ProtocolTextDocument.fromVirtualFile(file, editor.document.text, getSelection(editor))
 
       val project = editor.project ?: return
 

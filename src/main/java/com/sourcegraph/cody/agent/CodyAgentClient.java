@@ -69,18 +69,18 @@ public class CodyAgentClient {
         });
   }
 
-    @JsonNotification("editTask/didDelete")
-    public void editTaskDidDelete(EditTask params) {
-        onEventThread(
-                () -> {
-                    if (onEditTaskDidDelete != null) {
-                        onEditTaskDidDelete.accept(params);
-                    } else {
-                        logger.warn("No callback registered for editTask/didDelete");
-                    }
-                    return null;
-                });
-    }
+  @JsonNotification("editTask/didDelete")
+  public void editTaskDidDelete(EditTask params) {
+    onEventThread(
+        () -> {
+          if (onEditTaskDidDelete != null) {
+            onEditTaskDidDelete.accept(params);
+          } else {
+            logger.warn("No callback registered for editTask/didDelete");
+          }
+          return null;
+        });
+  }
 
   public void setOnTextDocumentEdit(@Nullable Consumer<TextDocumentEditParams> callback) {
     onTextDocumentEdit = callback;

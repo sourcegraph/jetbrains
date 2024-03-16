@@ -33,9 +33,10 @@ public class CodyFileEditorListener implements FileEditorManagerListener {
     }
 
     CodyAgentService.withAgent(
-      source.getProject(),
-      agent -> agent.getServer().textDocumentDidClose(ProtocolTextDocument.fromVirtualFile(file)));
-    }
+        source.getProject(),
+        agent ->
+            agent.getServer().textDocumentDidClose(ProtocolTextDocument.fromVirtualFile(file)));
+  }
 
   public static void fileOpened(Project project, CodyAgent codyAgent, @NotNull VirtualFile file) {
     Document document =
@@ -43,7 +44,8 @@ public class CodyFileEditorListener implements FileEditorManagerListener {
             .runReadAction(
                 (Computable<Document>) () -> FileDocumentManager.getInstance().getDocument(file));
     if (document != null) {
-      ProtocolTextDocument textDocument = ProtocolTextDocument.fromVirtualFile(file, document.getText());
+      ProtocolTextDocument textDocument =
+          ProtocolTextDocument.fromVirtualFile(file, document.getText());
       codyAgent.getServer().textDocumentDidOpen(textDocument);
     }
 

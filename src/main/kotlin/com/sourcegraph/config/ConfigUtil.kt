@@ -16,9 +16,9 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.ServerAuthLoader
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
-import org.jetbrains.annotations.Contract
 import java.nio.file.Path
 import java.nio.file.Paths
+import org.jetbrains.annotations.Contract
 
 object ConfigUtil {
   const val DOTCOM_URL = "https://sourcegraph.com/"

@@ -68,15 +68,17 @@ class FixupService(val project: Project) : Disposable {
                   if (op.edits == null) {
                     logger.warn("Workspace edit operation has no edits")
                   } else {
-                    // If there is a pending session, assume that it is the one that caused the edit.
-                    val session: FixupSession?
-                    if (pendingSessions.isNotEmpty()) {
-                      session = pendingSessions.first()
-                    } else {
-                      // TODO: This is what I'd like to be able to do, but it requires a protocol change:
-                      //session = activeSessions[op.id]
-                      session = activeSessions.values.firstOrNull()
-                    }
+                    // If there is a pending session, assume that it is the one that caused the
+                    // edit.
+                    val session: FixupSession? =
+                        if (pendingSessions.isNotEmpty()) {
+                          pendingSessions.first()
+                        } else {
+                          // TODO: This is what I'd like to be able to do, but it requires a
+                          // protocol change:
+                          // session = activeSessions[op.id]
+                          activeSessions.values.firstOrNull()
+                        }
                     if (session == null) {
                       logger.warn("No sessions found for performing inline edits")
                     } else {

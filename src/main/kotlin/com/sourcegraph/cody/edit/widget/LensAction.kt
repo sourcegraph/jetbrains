@@ -2,7 +2,6 @@ package com.sourcegraph.cody.edit.widget
 
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.ui.JBColor
-import com.sourcegraph.cody.edit.DocumentCodeSession
 import com.sourcegraph.cody.edit.FixupSession
 import java.awt.Font
 import java.awt.FontMetrics

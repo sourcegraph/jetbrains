@@ -57,7 +57,6 @@ public final class CodyFocusChangeListener implements FocusChangeListener, Start
           agent.getServer().textDocumentDidFocus(ProtocolTextDocument.fromVirtualFile(file));
         });
 
-
     CodyAgentCodebase.getInstance(project).onFileOpened(project, file);
   }
 }

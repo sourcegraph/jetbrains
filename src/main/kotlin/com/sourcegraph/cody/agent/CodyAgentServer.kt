@@ -43,13 +43,16 @@ interface CodyAgentServer {
   @JsonNotification("extensionConfiguration/didChange")
   fun configurationDidChange(document: ExtensionConfiguration)
 
-  @JsonNotification("textDocument/didFocus") fun textDocumentDidFocus(document: ProtocolTextDocument)
+  @JsonNotification("textDocument/didFocus")
+  fun textDocumentDidFocus(document: ProtocolTextDocument)
 
   @JsonNotification("textDocument/didOpen") fun textDocumentDidOpen(document: ProtocolTextDocument)
 
-  @JsonNotification("textDocument/didChange") fun textDocumentDidChange(document: ProtocolTextDocument)
+  @JsonNotification("textDocument/didChange")
+  fun textDocumentDidChange(document: ProtocolTextDocument)
 
-  @JsonNotification("textDocument/didClose") fun textDocumentDidClose(document: ProtocolTextDocument)
+  @JsonNotification("textDocument/didClose")
+  fun textDocumentDidClose(document: ProtocolTextDocument)
 
   @JsonNotification("textDocument/didSave") fun textDocumentDidSave(document: ProtocolTextDocument)
 
@@ -64,12 +67,11 @@ interface CodyAgentServer {
   @JsonRequest("webview/receiveMessage")
   fun webviewReceiveMessage(params: WebviewReceiveMessageParams): CompletableFuture<Any?>
 
-  @JsonRequest("editTask/accept")
-  fun editTaskAccept(id: String): CompletableFuture<Any?>
-  @JsonRequest("editTask/undo")
-  fun editTaskUndo(id: String): CompletableFuture<Any?>
-  @JsonRequest("editTask/cancel")
-  fun editTaskCancel(id: String): CompletableFuture<Any?>
+  @JsonRequest("editTask/accept") fun editTaskAccept(id: String): CompletableFuture<Any?>
+
+  @JsonRequest("editTask/undo") fun editTaskUndo(id: String): CompletableFuture<Any?>
+
+  @JsonRequest("editTask/cancel") fun editTaskCancel(id: String): CompletableFuture<Any?>
 
   @JsonRequest("editTask/getFoldingRanges")
   fun getFoldingRanges(params: GetFoldingRangeParams): CompletableFuture<GetFoldingRangeResult>
