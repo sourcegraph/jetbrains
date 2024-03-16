@@ -59,7 +59,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
 
   @RequiresEdt
   private fun triggerDocumentCodeAsync() {
-      // This call requires us to be on the EDT.
+      // This caret lookup requires us to be on the EDT.
     val caret = editor.caretModel.primaryCaret.offset
 
     FixupService.backgroundThread {
@@ -68,11 +68,14 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
         workAroundUninitializedCodebase(editor)
         ensureSelectionRange(agent, editor, caret)
         showWorkingGroup()
+        // All this because we can get the workspace/edit before the request returns!
+        FixupService.getInstance(project).addSession(this) // puts in Pending
         makeEditingRequest(agent)
             .handle { result, error ->
               if (error != null || result == null) {
                 // TODO: Adapt logic from CodyCompletionsManager.handleError
                 logger.warn("Error while generating doc string: $error")
+                FixupService.getInstance(project).removeSession(this)
               } else {
                 taskId = result.id
                 selectionRange = result.selectionRange
@@ -84,6 +87,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
               if (!(error is CancellationException || error is CompletionException)) {
                 logger.warn("Error while generating doc string: $error")
               }
+              FixupService.getInstance(project).removeSession(this)
               null
             }
             .completeOnTimeout(null, 3, TimeUnit.SECONDS)

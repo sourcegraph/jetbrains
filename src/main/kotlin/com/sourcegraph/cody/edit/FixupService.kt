@@ -22,18 +22,34 @@ class FixupService(val project: Project) : Disposable {
 
   private var lastSelectedModel = "GPT-3.5"
 
+  // Sessions for which we have not yet received a task ID, but may receive an edit anyway.
+  private var pendingSessions: MutableSet<FixupSession> = mutableSetOf()
+
   // The last text the user typed in without saving it, for continuity.
   private var lastPrompt: String = ""
 
   init {
     // JetBrains docs say avoid heavy lifting in the constructor, so pass to another thread.
-    // TODO: Ensure the listeners are added before the user can perform any actions in an Editor.
     backgroundThread {
       CodyAgentService.withAgent(project) { agent ->
         ApplicationManager.getApplication().invokeLater {
-          agent.client.setOnEditTaskDidUpdate { task -> activeSessions[task.id]?.update(task) }
+          agent.client.setOnEditTaskDidUpdate { task ->
+            val session = activeSessions[task.id]
+            if (session == null) {
+              logger.warn("No session found for task ${task.id}")
+            } else {
+              session.update(task)
+            }
+          }
 
-          agent.client.setOnEditTaskDidDelete { task -> activeSessions[task.id]?.taskDeleted() }
+          agent.client.setOnEditTaskDidDelete { task ->
+            val session = activeSessions[task.id]
+            if (session == null) {
+              logger.warn("No session found for task ${task.id}")
+            } else {
+              session.taskDeleted()
+            }
+          }
 
           agent.client.setOnWorkspaceEdit { params ->
             for (op in params.operations) {
@@ -52,9 +68,20 @@ class FixupService(val project: Project) : Disposable {
                   if (op.edits == null) {
                     logger.warn("Workspace edit operation has no edits")
                   } else {
-                    // TODO: Associate task ID with a workspace edit.
-                    // Right now we're just using the first active inline-edit session we find.
-                    activeSessions.values.firstOrNull()?.performInlineEdits(op.edits)
+                    // If there is a pending session, assume that it is the one that caused the edit.
+                    val session: FixupSession?
+                    if (pendingSessions.isNotEmpty()) {
+                      session = pendingSessions.first()
+                    } else {
+                      // TODO: This is what I'd like to be able to do, but it requires a protocol change:
+                      //session = activeSessions[op.id]
+                      session = activeSessions.values.firstOrNull()
+                    }
+                    if (session == null) {
+                      logger.warn("No sessions found for performing inline edits")
+                    } else {
+                      session.performInlineEdits(op.edits)
+                    }
                   }
                 }
                 else ->
@@ -106,10 +133,17 @@ class FixupService(val project: Project) : Disposable {
   fun getLastPrompt(): String = lastPrompt
 
   fun addSession(session: FixupSession) {
-    activeSessions[session.taskId!!] = session
+    val taskId = session.taskId
+    if (taskId == null) {
+      pendingSessions.add(session)
+    } else {
+      pendingSessions.remove(session)
+      activeSessions[session.taskId!!] = session
+    }
   }
 
   fun removeSession(session: FixupSession) {
+    pendingSessions.remove(session)
     activeSessions.remove(session.taskId)
   }
 
