@@ -12,6 +12,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
@@ -66,6 +67,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
       val project = editor.project!!
       CodyAgentService.withAgent(project) { agent ->
         workAroundUninitializedCodebase(editor)
+        // Force a round-trip to get folding ranges before showing lenses.
         ensureSelectionRange(agent, editor, caret)
         showWorkingGroup()
         // All this because we can get the workspace/edit before the request returns!
@@ -107,6 +109,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   private fun ensureSelectionRange(agent: CodyAgent, editor: Editor, caret: Int) {
     val url = getDocumentUrl(editor)
     if (url != null) {
+      val future = CompletableFuture<Unit>()
       agent.server.getFoldingRanges(GetFoldingRangeParams(uri = url)).handle { result, error ->
         if (result != null && error == null) {
           selectionRange = findRangeEnclosing(result.ranges, caret)
@@ -120,7 +123,10 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
                   Position.fromOffset(editor.document, caret),
                   Position.fromOffset(editor.document, caret))
         }
+        future.complete(null)
       }
+      // Block until we get the folding ranges.
+      future.get()
     }
   }
 
@@ -247,15 +253,24 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   }
 
   protected open fun performInsert(doc: Document, edit: TextEdit) {
-    val start = edit.position?.toOffset(doc) ?: edit.range?.start?.toOffset(doc)
+    val insertLine = edit.position?.line
+    if (insertLine == null) {
+      logger.warn("Invalid edit position: ${edit.position}")
+      return
+    }
     val text = edit.value
-    if (start == null || text == null) {
+    if (text == null) {
       logger.warn("Invalid edit operation params: $edit")
       return
     }
+    // Bump the insert line up unless it's blank; seems to be an artifact of the folding ranges.
+    val lineText =
+        doc.getText(TextRange(doc.getLineStartOffset(insertLine), doc.getLineEndOffset(insertLine)))
+    val line = if (lineText.isNotEmpty()) (insertLine - 1).coerceAtLeast(0) else insertLine
+    val offset = doc.getLineStartOffset(line)
     // Set this flag before we make the edit, since callbacks are called synchronously.
     performedEdits = true
-    doc.insertString(start, text)
+    doc.insertString(offset, text)
   }
 
   private fun performDelete(doc: Document, edit: TextEdit) {
