@@ -13,6 +13,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService
@@ -56,13 +57,16 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
 
   fun commandCallbacks(): Map<String, () -> Unit> = lensActionCallbacks
 
+  @RequiresEdt
   private fun triggerDocumentCodeAsync() {
-    // This is called on the EDT, so switch to a background thread.
+      // This call requires us to be on the EDT.
+    val caret = editor.caretModel.primaryCaret.offset
+
     FixupService.backgroundThread {
       val project = editor.project!!
       CodyAgentService.withAgent(project) { agent ->
         workAroundUninitializedCodebase(editor)
-        ensureSelectionRange(agent, editor)
+        ensureSelectionRange(agent, editor, caret)
         showWorkingGroup()
         makeEditingRequest(agent)
             .handle { result, error ->
@@ -96,8 +100,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
     CodyAgentCodebase.getInstance(project).onFileOpened(project, file)
   }
 
-  private fun ensureSelectionRange(agent: CodyAgent, editor: Editor) {
-    val caret = editor.caretModel.primaryCaret.offset
+  private fun ensureSelectionRange(agent: CodyAgent, editor: Editor, caret: Int) {
     val url = getDocumentUrl(editor)
     if (url != null) {
       agent.server.getFoldingRanges(GetFoldingRangeParams(uri = url)).handle { result, error ->
