@@ -175,4 +175,12 @@ object CodyEditorUtil {
   @JvmStatic
   fun getVirtualFile(editor: Editor): VirtualFile? =
       FileDocumentManager.getInstance().getFile(editor.document)
+
+  fun getDocumentUrl(editor: Editor): String? {
+    return FileDocumentManager.getInstance().getFile(editor.document)?.url
+  }
+
+  fun getEditorForUri(uri: String): Editor? {
+    return getAllOpenEditors().firstOrNull { editor -> getDocumentUrl(editor) == uri }
+  }
 }
