@@ -114,7 +114,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     val offset = range.start.toOffset(editor.document)
     ApplicationManager.getApplication().invokeLater {
       if (!isDisposed.get()) {
-        inlay = editor.inlayModel.addBlockElement(offset, true, false, 0, this)
+        inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
         Disposer.register(this, inlay!!)
       }
     }

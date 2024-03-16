@@ -162,7 +162,19 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   private fun showLensGroup(group: LensWidgetGroup) {
     lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
     lensGroup = group
-    group.show(selectionRange ?: Range.nullRange())
+    var range = selectionRange
+    if (range == null) {
+        // Be defensive, as the protocol has been fragile with respect to selection ranges.
+      logger.warn("No selection range for session: $this")
+      // Last-ditch effort to show it somewhere other than top of file.
+      val position = Position(editor.caretModel.currentCaret.logicalPosition.line, 0)
+      range = Range(start = position, end = position)
+    } else {
+      // The actual insertion point is on the line above.
+      val position = Position(range.start.line - 1, 0)
+      range = Range(start = position, end = position)
+    }
+    group.show(range)
   }
 
   private fun showWorkingGroup() {
