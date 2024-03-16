@@ -1,11 +1,14 @@
 package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.LogicalPosition
+import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -185,6 +188,11 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
       range = Range(start = position, end = position)
     }
     group.show(range)
+    // Make sure the lens is visible.
+    ApplicationManager.getApplication().invokeLater {
+      val logicalPosition = LogicalPosition(range.start.line, range.start.character)
+      editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+    }
   }
 
   private fun showWorkingGroup() {
