@@ -5,17 +5,13 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.LogicalPosition
-import com.intellij.openapi.editor.ScrollType
+import com.intellij.openapi.editor.*
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
-import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
@@ -222,6 +218,9 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   abstract fun undo()
 
   fun performInlineEdits(edits: List<TextEdit>) {
+    val project = editor.project ?: return
+    val doc: Document = editor.document
+
     // TODO: This is an artifact of the update to concurrent editing tasks.
     // We do need to mute any LensGroup listeners, but this is an ugly way to do it.
     // We may need a Document-level list of listeners to mute.
@@ -229,62 +228,56 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
       if (!controller.isEligibleForInlineEdit(editor)) {
         return@withListenersMuted logger.warn("Inline edit not eligible")
       }
-      WriteCommandAction.runWriteCommandAction(editor.project ?: return@withListenersMuted) {
-        val doc: Document = editor.document
-        val project = editor.project ?: return@runWriteCommandAction
-        // TODO: For all 3 of these, we should use a marked range to track it over edits.
-        for (edit in edits) {
-          // TODO: handle options if present (currently just undo bounds)
-          when (edit.type) {
-            "replace" -> performReplace(doc, edit)
-            "insert" -> performInsert(doc, edit)
-            "delete" -> performDelete(doc, edit)
-            else -> logger.warn("Unknown edit type: ${edit.type}")
-          }
-          // TODO: Group all the edits into a single UndoableAction.
-          UndoManager.getInstance(project)
-              .undoableActionPerformed(FixupUndoableAction.from(editor, edit))
+      // First pass: Create markers for each edit using the mapping function
+      val markers = edits.mapNotNull { createMarkerForEdit(doc, it) }
+
+      // Sort edits in reverse order by start position
+      val sortedEdits = edits.zip(markers).sortedByDescending { it.second.startOffset }
+
+      // Apply edits using markers
+      WriteCommandAction.runWriteCommandAction(project) {
+        for ((edit, marker) in sortedEdits) {
+          applyEdit(doc, edit, marker)
+          marker.dispose() // Remove the marker after applying the edit
         }
       }
     }
   }
 
-  private fun performReplace(doc: Document, edit: TextEdit) {
-    val (start, end) = edit.range?.toOffsets(doc) ?: return
-    val text = edit.value
-    if (text == null) {
-      logger.warn("Invalid edit operation params: $edit")
-      return
+  private fun createMarkerForEdit(doc: Document, edit: TextEdit): RangeMarker? {
+    val startOffset: Int
+    val endOffset: Int
+
+    when (edit.type) {
+      "replace",
+      "delete" -> {
+        val range = edit.range ?: return null
+        startOffset = doc.getLineStartOffset(range.start.line) + range.start.character
+        endOffset = doc.getLineStartOffset(range.end.line) + range.end.character
+      }
+      "insert" -> {
+        val position = edit.position ?: return null
+        startOffset = doc.getLineStartOffset(position.line) + position.character
+        endOffset = startOffset
+      }
+      else -> return null
     }
-    performedEdits = true
-    doc.replaceString(start, end, text)
+
+    return doc.createRangeMarker(startOffset, endOffset)
   }
 
-  protected open fun performInsert(doc: Document, edit: TextEdit) {
-    val insertLine = edit.position?.line
-    if (insertLine == null) {
-      logger.warn("Invalid edit position: ${edit.position}")
-      return
+  fun applyEdit(doc: Document, edit: TextEdit, marker: RangeMarker) {
+    when (edit.type) {
+      "replace" -> doc.replaceString(marker.startOffset, marker.endOffset, edit.value ?: "")
+      "insert" -> doc.insertString(marker.startOffset, edit.value ?: "")
+      "delete" ->
+          if (marker.startOffset != marker.endOffset) {
+            doc.deleteString(marker.startOffset, marker.endOffset)
+          }
     }
-    val text = edit.value
-    if (text == null) {
-      logger.warn("Invalid edit operation params: $edit")
-      return
-    }
-    // Bump the insert line up unless it's blank; seems to be an artifact of the folding ranges.
-    val lineText =
-        doc.getText(TextRange(doc.getLineStartOffset(insertLine), doc.getLineEndOffset(insertLine)))
-    val line = if (lineText.isNotEmpty()) (insertLine - 1).coerceAtLeast(0) else insertLine
-    val offset = doc.getLineStartOffset(line)
-    // Set this flag before we make the edit, since callbacks are called synchronously.
-    performedEdits = true
-    doc.insertString(offset, text)
-  }
-
-  private fun performDelete(doc: Document, edit: TextEdit) {
-    val (start, end) = edit.range?.toOffsets(doc) ?: return
-    performedEdits = true
-    doc.deleteString(start, end)
+    // Record the edit as an undoable action
+    val project = editor.project ?: return
+    UndoManager.getInstance(project).undoableActionPerformed(FixupUndoableAction.from(editor, edit))
   }
 
   protected fun undoEdits() {

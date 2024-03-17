@@ -1,13 +1,11 @@
 package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.withAgent
 import com.sourcegraph.cody.agent.CommandExecuteParams
 import com.sourcegraph.cody.agent.protocol.EditTask
-import com.sourcegraph.cody.agent.protocol.TextEdit
 import java.util.concurrent.CompletableFuture
 
 class DocumentCodeSession(controller: FixupService, editor: Editor) :
@@ -58,11 +56,6 @@ class DocumentCodeSession(controller: FixupService, editor: Editor) :
     }
     undoEdits()
     finish()
-  }
-
-  override fun performInsert(doc: Document, edit: TextEdit) {
-    // TODO: Call JetBrains to indent the doc string before inserting.
-    super.performInsert(doc, edit)
   }
 
   override fun dispose() {}

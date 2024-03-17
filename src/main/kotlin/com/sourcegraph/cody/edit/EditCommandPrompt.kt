@@ -19,9 +19,7 @@ import javax.swing.SwingUtilities
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
-/**
- * Pop up a user interface for giving Cody instructions to fix up code at the cursor.
- */
+/** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
 class EditCommandPrompt(val controller: FixupService, val editor: Editor, val dialogTitle: String) {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
   private val offset = editor.caretModel.primaryCaret.offset
@@ -208,19 +206,24 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
         }
     southRow.add(historyLabel, BorderLayout.CENTER)
 
-    modelComboBox = ComboBox(controller.getModels().toTypedArray()).apply {
-      selectedItem = controller.getCurrentModel()
-      addKeyListener(object : KeyAdapter() {
-        override fun keyPressed(e: KeyEvent) {
-          if (e.isActionKey() || e.keyCode == KeyEvent.VK_TAB || e.isControlDown || e.isMetaDown) {
-            return
-          }
-          if (!instructionsField.hasFocus()) {
-            instructionsField.requestFocusInWindow();
-          }
+    modelComboBox =
+        ComboBox(controller.getModels().toTypedArray()).apply {
+          selectedItem = controller.getCurrentModel()
+          addKeyListener(
+              object : KeyAdapter() {
+                override fun keyPressed(e: KeyEvent) {
+                  if (e.isActionKey() ||
+                      e.keyCode == KeyEvent.VK_TAB ||
+                      e.isControlDown ||
+                      e.isMetaDown) {
+                    return
+                  }
+                  if (!instructionsField.hasFocus()) {
+                    instructionsField.requestFocusInWindow()
+                  }
+                }
+              })
         }
-      })
-    }
     southRow.add(modelComboBox, BorderLayout.EAST)
 
     root.add(topRow, BorderLayout.NORTH)
