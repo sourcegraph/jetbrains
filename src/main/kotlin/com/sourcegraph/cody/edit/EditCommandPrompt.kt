@@ -19,7 +19,9 @@ import javax.swing.SwingUtilities
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
-/** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
+/**
+ * Pop up a user interface for giving Cody instructions to fix up code at the cursor.
+ */
 class EditCommandPrompt(val controller: FixupService, val editor: Editor, val dialogTitle: String) {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
   private val offset = editor.caretModel.primaryCaret.offset
@@ -33,7 +35,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
         val preferredWidth = minOf(screenWidth / 2, DEFAULT_TEXT_FIELD_WIDTH)
         preferredSize = Dimension(preferredWidth, preferredSize.height)
         minimumSize = Dimension(preferredWidth, minimumSize.height)
-        emptyText.text = "Instructions (@ to include code)"
+        emptyText.text = EMPTY_TEXT
       }
 
   lateinit var modelComboBox: ComboBox<String>
@@ -144,10 +146,11 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
       init()
       title = dialogTitle
       instructionsField.text = controller.getLastPrompt()
+      dialog = this
       updateOkButtonState()
     }
 
-    override fun getPreferredFocusedComponent() = instructionsField
+    override fun getPreferredFocusedComponent() = modelComboBox // instructionsField
 
     override fun createCenterPanel(): JComponent {
       val result = generatePromptUI(offset)
@@ -205,8 +208,19 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
         }
     southRow.add(historyLabel, BorderLayout.CENTER)
 
-    modelComboBox = ComboBox(controller.getModels().toTypedArray())
-    modelComboBox.selectedItem = controller.getCurrentModel()
+    modelComboBox = ComboBox(controller.getModels().toTypedArray()).apply {
+      selectedItem = controller.getCurrentModel()
+      addKeyListener(object : KeyAdapter() {
+        override fun keyPressed(e: KeyEvent) {
+          if (e.isActionKey() || e.keyCode == KeyEvent.VK_TAB || e.isControlDown || e.isMetaDown) {
+            return
+          }
+          if (!instructionsField.hasFocus()) {
+            instructionsField.requestFocusInWindow();
+          }
+        }
+      })
+    }
     southRow.add(modelComboBox, BorderLayout.EAST)
 
     root.add(topRow, BorderLayout.NORTH)
@@ -225,5 +239,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
   companion object {
     // TODO: make this smarter
     const val DEFAULT_TEXT_FIELD_WIDTH: Int = 620
+
+    const val EMPTY_TEXT = "Instructions (@ to include code)"
   }
 }
