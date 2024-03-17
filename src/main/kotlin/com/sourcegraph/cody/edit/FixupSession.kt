@@ -223,22 +223,19 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
 
     // TODO: This is an artifact of the update to concurrent editing tasks.
     // We do need to mute any LensGroup listeners, but this is an ugly way to do it.
-    // We may need a Document-level list of listeners to mute.
+    // There are multiple Lens groups; we need a Document-level listener list.
     lensGroup?.withListenersMuted {
       if (!controller.isEligibleForInlineEdit(editor)) {
         return@withListenersMuted logger.warn("Inline edit not eligible")
       }
-      // First pass: Create markers for each edit using the mapping function
+      // Mark all the edit locations so the markers will move as we edit the document,
+      // preserving the original positions of the edits.
       val markers = edits.mapNotNull { createMarkerForEdit(doc, it) }
-
-      // Sort edits in reverse order by start position
       val sortedEdits = edits.zip(markers).sortedByDescending { it.second.startOffset }
-
-      // Apply edits using markers
       WriteCommandAction.runWriteCommandAction(project) {
         for ((edit, marker) in sortedEdits) {
           applyEdit(doc, edit, marker)
-          marker.dispose() // Remove the marker after applying the edit
+          marker.dispose()
         }
       }
     }
