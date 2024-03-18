@@ -229,21 +229,6 @@
             class="com.sourcegraph.cody.edit.DocumentCodeAction"
             text="Document Code"/>
 
-        <action
-            id="cody.explainCodeAction"
-            class="com.sourcegraph.cody.edit.ExplainCodeAction"
-            text="Explain Code"/>
-
-        <action
-            id="cody.codeSmellsAction"
-            class="com.sourcegraph.cody.edit.CodeSmellsAction"
-            text="Find Code Smells"/>
-
-        <action
-            id="cody.generateUnitTestsAction"
-            class="com.sourcegraph.cody.edit.GenerateUnitTestsAction"
-            text="Generate Unit Test"/>
-
         <!-- TODO: Custom commands -->
 
 
@@ -253,9 +238,9 @@
             <add-to-group anchor="last" group-id="EditorPopupMenu"/>
             <reference ref="cody.editCodeAction"/>
             <reference ref="cody.documentCodeAction"/>
-            <reference ref="cody.explainCodeAction"/>
-            <reference ref="cody.codeSmellsAction"/>
-            <reference ref="cody.generateUnitTestsAction"/>
+            <reference ref="cody.command.Explain"/>
+            <reference ref="cody.command.Smell"/>
+            <reference ref="cody.command.Test"/>
             <separator/>
         </group>
 

@@ -3,8 +3,6 @@ package com.sourcegraph.cody.edit
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.sourcegraph.cody.agent.CodyAgent
-import com.sourcegraph.cody.agent.CodyAgentService.Companion.withAgent
-import com.sourcegraph.cody.agent.CommandExecuteParams
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.InlineEditParams
 import java.util.concurrent.CompletableFuture
@@ -28,7 +26,6 @@ class EditSession(
   }
 
   override fun dispose() {}
-
 
   override fun diff() {
     logger.warn("Diff: Not yet implemented")

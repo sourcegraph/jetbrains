@@ -137,6 +137,7 @@ object CodyEditorUtil {
   @RequiresEdt
   fun isEditorValidForAutocomplete(editor: Editor?): Boolean {
     return editor != null &&
+        !editor.isDisposed &&
         editor.document.isWritable &&
         CodyProjectUtil.isProjectAvailable(editor.project) &&
         isEditorSupported(editor)

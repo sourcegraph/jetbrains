@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.actionSystem.EditorAction
 import com.intellij.openapi.editor.actionSystem.EditorActionHandler
 import com.intellij.openapi.project.DumbAware
 import com.sourcegraph.cody.autocomplete.action.CodyAction
+import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.utils.CodyEditorUtil
 
 class DocumentCodeAction : EditorAction(DocumentCodeActionHandler()), CodyAction, DumbAware
@@ -16,7 +17,8 @@ class DocumentCodeActionHandler : EditorActionHandler() {
   private val logger = Logger.getInstance(DocumentCodeActionHandler::class.java)
 
   override fun isEnabledForCaret(editor: Editor, caret: Caret, dataContext: DataContext?): Boolean {
-    return CodyEditorUtil.isEditorValidForAutocomplete(editor) // close enough for now
+    return CodyEditorUtil.isEditorValidForAutocomplete(editor) &&
+        ConfigUtil.isExperimentalInlineEditEnabled()
   }
 
   override fun doExecute(editor: Editor, where: Caret?, dataContext: DataContext?) {
