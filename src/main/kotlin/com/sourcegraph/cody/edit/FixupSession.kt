@@ -42,6 +42,8 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
 
   private var selectionRange: Range? = null
 
+  private var rangeMarkers: MutableSet<RangeMarker> = mutableSetOf()
+
   private val lensActionCallbacks =
       mapOf(
           COMMAND_ACCEPT to { accept() },
@@ -200,7 +202,13 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   }
 
   fun finish() {
-    controller.removeSession(this)
+    try {
+      controller.removeSession(this)
+      rangeMarkers.forEach { it.dispose() }
+      rangeMarkers.clear()
+    } catch (x: Exception) {
+      logger.debug("Session cleanup error", x)
+    }
     Disposer.dispose(this)
   }
 
@@ -232,10 +240,15 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
       // preserving the original positions of the edits.
       val markers = edits.mapNotNull { createMarkerForEdit(doc, it) }
       val sortedEdits = edits.zip(markers).sortedByDescending { it.second.startOffset }
+      // Apply the edits in a write action.
       WriteCommandAction.runWriteCommandAction(project) {
         for ((edit, marker) in sortedEdits) {
-          applyEdit(doc, edit, marker)
-          marker.dispose()
+          when (edit.type) {
+            "replace",
+            "delete" -> ReplaceUndoableAction(this, edit, marker)
+            "insert" -> InsertUndoableAction(this, edit, marker)
+            else -> logger.warn("Unknown edit type: ${edit.type}")
+          }
         }
       }
     }
@@ -244,7 +257,6 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   private fun createMarkerForEdit(doc: Document, edit: TextEdit): RangeMarker? {
     val startOffset: Int
     val endOffset: Int
-
     when (edit.type) {
       "replace",
       "delete" -> {
@@ -259,22 +271,22 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
       }
       else -> return null
     }
-
-    return doc.createRangeMarker(startOffset, endOffset)
+    return createMarker(startOffset, endOffset)
   }
 
-  fun applyEdit(doc: Document, edit: TextEdit, marker: RangeMarker) {
-    when (edit.type) {
-      "replace" -> doc.replaceString(marker.startOffset, marker.endOffset, edit.value ?: "")
-      "insert" -> doc.insertString(marker.startOffset, edit.value ?: "")
-      "delete" ->
-          if (marker.startOffset != marker.endOffset) {
-            doc.deleteString(marker.startOffset, marker.endOffset)
-          }
+  fun createMarker(startOffset: Int, endOffset: Int): RangeMarker {
+    return editor.document.createRangeMarker(startOffset, endOffset).apply {
+      rangeMarkers.add(this)
     }
-    // Record the edit as an undoable action
-    val project = editor.project ?: return
-    UndoManager.getInstance(project).undoableActionPerformed(FixupUndoableAction.from(editor, edit))
+  }
+
+  fun removeMarker(marker: RangeMarker) {
+    try {
+      marker.dispose()
+      rangeMarkers.remove(marker)
+    } catch (x: Exception) {
+      logger.debug("Error disposing marker $marker", x)
+    }
   }
 
   protected fun undoEdits() {
@@ -297,6 +309,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   }
 
   companion object {
+    // Lens actions the user can take; we notify the Agent when they are taken.
     const val COMMAND_ACCEPT = "cody.fixup.codelens.accept"
     const val COMMAND_CANCEL = "cody.fixup.codelens.cancel"
     const val COMMAND_RETRY = "cody.fixup.codelens.retry"
@@ -305,7 +318,6 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
 
     // TODO: Register the hotkeys now that we are displaying them.
     fun getHotKey(command: String): String {
-      // Claude picked these key bindings for me.
       val mac = SystemInfoRt.isMac
       return when (command) {
         COMMAND_ACCEPT -> if (mac) "⌥⌘A" else "Ctrl+Alt+A"

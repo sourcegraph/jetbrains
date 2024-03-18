@@ -7,112 +7,108 @@ import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.command.undo.UndoableAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.RangeMarker
+import com.intellij.openapi.util.TextRange
 import com.sourcegraph.cody.agent.protocol.TextEdit
 
-abstract class FixupUndoableAction(val editor: Editor, val edit: TextEdit) : UndoableAction {
-  private val logger = Logger.getInstance(FixupUndoableAction::class.java)
+abstract class FixupUndoableAction(
+    val session: FixupSession,
+    val edit: TextEdit,
+    var beforeMarker: RangeMarker
+) : UndoableAction {
+  val logger = Logger.getInstance(FixupUndoableAction::class.java)
+  val editor = session.editor
 
   val document: Document = editor.document
+
+  protected val originalText =
+      document.getText(TextRange(beforeMarker.startOffset, beforeMarker.endOffset))
+
+  protected var afterMarker: RangeMarker? = null
 
   override fun getAffectedDocuments(): Array<out DocumentReference> {
     val documentReference = DocumentReferenceManager.getInstance().create(document)
     return arrayOf(documentReference)
   }
 
-  override fun isGlobal(): Boolean {
-    return true
+  override fun isGlobal() = true
+
+  private fun getUndoManager() = editor.project?.let { UndoManager.getInstance(it) }
+
+  fun isUndoInProgress() = getUndoManager()?.isUndoOrRedoInProgress == true
+
+  fun addUndoableAction(action: UndoableAction) {
+    editor.project?.let { UndoManager.getInstance(it).undoableActionPerformed(action) }
   }
 
-  // TODO: Use this.
-  fun createRangeMarker(start: Int, end: Int): RangeMarker {
-    val rangeMarker = document.createRangeMarker(start, end)
-    rangeMarker.isGreedyToLeft = true
-    rangeMarker.isGreedyToRight = true
-    return rangeMarker
+  /** Applies the initial edit and records Undo/Redo information. */
+  abstract fun apply()
+
+  override fun redo() {
+    apply()
+  }
+}
+
+class InsertUndoableAction(session: FixupSession, edit: TextEdit, marker: RangeMarker) :
+    FixupUndoableAction(session, edit, marker) {
+
+  private val insertText = edit.value ?: ""
+
+  init {
+    apply()
   }
 
-  class InsertUndoableAction(editor: Editor, edit: TextEdit) : FixupUndoableAction(editor, edit) {
-
-    override fun undo() {
-      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
-      val offsets = (edit.range ?: return).toOffsets(document)
-      ApplicationManager.getApplication().runWriteAction {
-        document.deleteString(offsets.first, offsets.second)
-      }
-    }
-
-    override fun redo() {
-      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
-      val offset = edit.position?.toOffset(document) ?: return
-      ApplicationManager.getApplication().runWriteAction {
-        document.insertString(offset, edit.value ?: "")
-      }
-    }
+  override fun apply() {
+    if (isUndoInProgress()) return
+    val start = beforeMarker.startOffset
+    session.removeMarker(beforeMarker)
+    // This is called from a WriteAction, so we can safely modify the document.
+    document.insertString(start, insertText)
+    afterMarker = session.createMarker(start, start + insertText.length)
+    addUndoableAction(this)
   }
 
-  class ReplaceUndoableAction(editor: Editor, edit: TextEdit) : FixupUndoableAction(editor, edit) {
-
-    override fun undo() {
-      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
-
-      TODO("fix")
-    }
-
-    override fun redo() {
-      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
-
-      TODO("finish")
+  override fun undo() {
+    if (isUndoInProgress()) return
+    val (start, end) = Pair(afterMarker!!.startOffset, afterMarker!!.endOffset)
+    session.removeMarker(afterMarker!!)
+    ApplicationManager.getApplication().runWriteAction {
+      editor.document.deleteString(start, end)
+      beforeMarker = session.createMarker(start, start + originalText.length)
     }
   }
+}
 
-  class DeleteUndoableAction(editor: Editor, edit: TextEdit) : FixupUndoableAction(editor, edit) {
-    var oldText = ""
+// Handles deletion requests as well, which are just replacements with "".
+class ReplaceUndoableAction(
+    session: FixupSession,
+    edit: TextEdit, // Instructions for the replacement.
+    beforeMarker: RangeMarker // Marks bounds of the original text to be replaced.
+) : FixupUndoableAction(session, edit, beforeMarker) {
 
-    override fun undo() {
-      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
+  private val replacementText = edit.value ?: "" // "" for deletions
 
-      val offsets = (edit.range ?: return).toOffsets(document)
-      val deleted = document.text.substring(offsets.first, offsets.second)
-      ApplicationManager.getApplication().runWriteAction {
-        document.replaceString(offsets.first, offsets.second, oldText)
-      }
-      oldText = deleted
-    }
-
-    override fun redo() {
-      if (UndoManager.getInstance(editor.project ?: return).isUndoInProgress) return
-
-      val offsets = (edit.range ?: return).toOffsets(document)
-      ApplicationManager.getApplication().runWriteAction {
-        document.deleteString(offsets.first, offsets.second)
-      }
-      oldText = ""
-    }
+  init {
+    apply()
   }
 
-  class NoOpUndoableAction(editor: Editor, edit: TextEdit) : FixupUndoableAction(editor, edit) {
-    private val logger = Logger.getInstance(NoOpUndoableAction::class.java)
-
-    override fun undo() {
-      logger.warn("Received invalid undoable action for $edit")
-    }
-
-    override fun redo() {
-      logger.warn("Received invalid undoable action for $edit")
-    }
+  override fun apply() {
+    if (isUndoInProgress()) return
+    val (start, end) = Pair(beforeMarker.startOffset, beforeMarker.endOffset)
+    session.removeMarker(beforeMarker)
+    // This is called from a WriteAction, so we can safely modify the document.
+    document.replaceString(start, end, replacementText)
+    afterMarker = session.createMarker(start, start + replacementText.length)
+    addUndoableAction(this)
   }
 
-  companion object {
-
-    fun from(editor: Editor, edit: TextEdit): FixupUndoableAction {
-      return when (edit.type) {
-        "insert" -> InsertUndoableAction(editor, edit)
-        "replace" -> ReplaceUndoableAction(editor, edit)
-        "delete" -> DeleteUndoableAction(editor, edit)
-        else -> NoOpUndoableAction(editor, edit)
-      }
+  override fun undo() {
+    if (isUndoInProgress()) return
+    val (start, end) = Pair(afterMarker!!.startOffset, afterMarker!!.endOffset)
+    session.removeMarker(afterMarker!!)
+    ApplicationManager.getApplication().runWriteAction {
+      editor.document.replaceString(start, end, originalText)
+      beforeMarker = session.createMarker(start, start + originalText.length)
     }
   }
 }
