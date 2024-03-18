@@ -24,7 +24,7 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: IDE Version
+      label: IDE Information
       description: Trigger the action "About" (Shift Shift -> Actions), click on "Copy and close" and paste the output here
     validations:
       required: true
