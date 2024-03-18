@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.chat
 
+import com.google.gson.GsonBuilder
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -35,12 +36,14 @@ class ExportChatsService {
   }
 
   @Synchronized
-  fun getChats(): Any? {
+  fun getChats(): String {
     println("getChats")
-    return localHistory.get().completeOnTimeout(null, 8, TimeUnit.SECONDS)
+    val anyChats = localHistory.get().completeOnTimeout(null, 8, TimeUnit.SECONDS).get()
+    return gson.toJson(anyChats)
   }
 
   companion object {
+    private val gson = GsonBuilder().create()
 
     @JvmStatic
     fun getInstance(project: Project): ExportChatsService {

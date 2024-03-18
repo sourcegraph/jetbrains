@@ -7,10 +7,11 @@ import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.HistoryService
 
-class ExportChatsBackgroundable(project: Project, private val onFinished: (Any) -> Unit) :
-    Task.Backgroundable(project, "Exporting chats...", true) {
-
-  var result: Any? = null
+class ExportChatsBackgroundable(
+    project: Project,
+    private val onSuccess: (Any) -> Unit,
+    private val onFinished: () -> Unit
+) : Task.Backgroundable(project, /* title = */ "Exporting chats...", /* canBeCancelled = */ true) {
 
   override fun run(indicator: ProgressIndicator) {
     val accountId = CodyAuthenticationManager.instance.getActiveAccount(project)?.id
@@ -37,13 +38,13 @@ class ExportChatsBackgroundable(project: Project, private val onFinished: (Any) 
     agentChatSession.sendExtensionMessage(ExtensionMessage(type = ExtensionMessage.Type.HISTORY))
 
     println("START: result = ExportChatsService.getInstance(project).result.get()")
-    result = ExportChatsService.getInstance(project).getChats()
+    val result = ExportChatsService.getInstance(project).getChats()
     println("STOP: result = ExportChatsService.getInstance(project).result.get()")
+    onSuccess.invoke(result)
   }
 
   override fun onFinished() {
-    println("onFinished")
     super.onFinished()
-    result?.let { onFinished.invoke(it) }
+    onFinished.invoke()
   }
 }
