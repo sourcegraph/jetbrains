@@ -11,6 +11,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import com.sourcegraph.cody.chat.ExportChatsBackgroundable
 import com.sourcegraph.common.ui.DumbAwareBGTAction
 import java.io.File
@@ -43,7 +44,9 @@ class ExportChatsAction : DumbAwareBGTAction() {
                 val fileName: String = "Untitled" + (if (SystemInfo.isMac) ".$EXTENSION" else "")
                 val result = saveFileDialog.save(outputDir, fileName) ?: return@invokeLater
 
-                saveTextToFile(json.toString(), result.file)
+                WriteAction.run<RuntimeException> {
+                  saveTextToFile(json.toByteArray(), result.file)
+                }
               }
             },
             onFinished = {
@@ -53,18 +56,15 @@ class ExportChatsAction : DumbAwareBGTAction() {
         .queue()
   }
 
-  private fun saveTextToFile(textContent: String, filePath: File) {
-    val contentBytes = textContent.toByteArray()
+  @RequiresWriteLock
+  private fun saveTextToFile(contentBytes: ByteArray, filePath: File) {
     val localFileSystem = LocalFileSystem.getInstance()
-
     val parentVirtualFile = localFileSystem.findFileByIoFile(filePath.parentFile) ?: return
     val virtualFile =
         parentVirtualFile.findOrCreateChildData(/* requestor = */ this, /* name = */ filePath.name)
 
-    WriteAction.run<RuntimeException> {
-      virtualFile.setBinaryContent(contentBytes)
-      VirtualFileManager.getInstance().syncRefresh()
-    }
+    virtualFile.setBinaryContent(contentBytes)
+    VirtualFileManager.getInstance().syncRefresh()
   }
 
   companion object {

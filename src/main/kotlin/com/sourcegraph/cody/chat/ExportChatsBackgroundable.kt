@@ -9,7 +9,7 @@ import com.sourcegraph.cody.history.HistoryService
 
 class ExportChatsBackgroundable(
     project: Project,
-    private val onSuccess: (Any) -> Unit,
+    private val onSuccess: (String) -> Unit,
     private val onFinished: () -> Unit
 ) : Task.Backgroundable(project, /* title = */ "Exporting chats...", /* canBeCancelled = */ true) {
 
