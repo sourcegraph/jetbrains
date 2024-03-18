@@ -21,36 +21,14 @@ class EditSession(
     val model: String,
 ) : FixupSession(controller, editor) {
   private val logger = Logger.getInstance(EditSession::class.java)
-  private val project = editor.project!!
 
   override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
     val params = InlineEditParams(instructions, model)
     return agent.server.commandsEdit(params)
   }
 
-  override fun dispose() {
-    // No resources to dispose until we implement this class.
-    logger.info("Disposing edit session: $taskId")
-  }
+  override fun dispose() {}
 
-  override fun accept() {
-    logger.warn("Accept: Not yet implemented")
-    withAgent(project) { agent ->
-      agent.server.commandExecute(CommandExecuteParams(COMMAND_ACCEPT, listOf(taskId!!)))
-    }
-    finish()
-  }
-
-  override fun cancel() {
-    withAgent(project) { agent ->
-      agent.server.commandExecute(CommandExecuteParams(COMMAND_CANCEL, listOf(taskId!!)))
-    }
-    if (performedEdits) {
-      undo()
-    } else {
-      finish()
-    }
-  }
 
   override fun diff() {
     logger.warn("Diff: Not yet implemented")
@@ -61,13 +39,5 @@ class EditSession(
     // E.g. "Write a brief documentation comment for the selected code <etc.>"
     // We need to send the prompt along with the lenses, so that the client can display it.
     EditCommandPrompt(controller, editor, "Edit instructions and Retry").displayPromptUI()
-  }
-
-  override fun undo() {
-    withAgent(project) { agent ->
-      agent.server.commandExecute(CommandExecuteParams(COMMAND_UNDO, listOf(taskId!!)))
-    }
-    undoEdits()
-    finish()
   }
 }

@@ -17,6 +17,7 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.CommandExecuteParams
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
@@ -31,6 +32,7 @@ import java.util.concurrent.TimeUnit
  */
 abstract class FixupSession(val controller: FixupService, val editor: Editor) : Disposable {
   private val logger = Logger.getInstance(FixupSession::class.java)
+  val project = editor.project!!
 
   // This is passed back by the Agent when we initiate the editing task.
   var taskId: String? = null
@@ -215,15 +217,35 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   /** Subclass sends a fixup command to the agent, and returns the initial task. */
   abstract fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask>
 
-  abstract fun accept()
+  fun accept() {
+    CodyAgentService.withAgent(project) { agent ->
+      agent.server.commandExecute(CommandExecuteParams(COMMAND_ACCEPT, listOf(taskId!!)))
+    }
+    finish()
+  }
+
+  fun cancel() {
+    CodyAgentService.withAgent(project) { agent ->
+      agent.server.commandExecute(CommandExecuteParams(COMMAND_CANCEL, listOf(taskId!!)))
+    }
+    if (performedEdits) {
+      undo()
+    } else {
+      finish()
+    }
+  }
 
   abstract fun retry()
 
-  abstract fun cancel()
-
   abstract fun diff()
 
-  abstract fun undo()
+  fun undo() {
+    CodyAgentService.withAgent(project) { agent ->
+      agent.server.commandExecute(CommandExecuteParams(COMMAND_UNDO, listOf(taskId!!)))
+    }
+    undoEdits()
+    finish()
+  }
 
   fun performInlineEdits(edits: List<TextEdit>) {
     val project = editor.project ?: return
