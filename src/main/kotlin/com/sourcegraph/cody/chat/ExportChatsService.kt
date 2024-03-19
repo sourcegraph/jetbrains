@@ -8,6 +8,7 @@ import com.jetbrains.rd.util.AtomicReference
 import com.jetbrains.rd.util.string.printToString
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import kotlin.math.max
 
 @Service(Service.Level.PROJECT)
 class ExportChatsService {
@@ -19,8 +20,8 @@ class ExportChatsService {
   @Synchronized
   fun setLocalHistory(connectionId: String, localHistory: Any?) {
     val str = localHistory.printToString()
-    println("setLocalHistory($connectionId, ${str.substring(0, str.length)})")
-    if (this.connectionId.get() == connectionId) {
+    println("setLocalHistory($connectionId, ${str.substring(0, max(str.length, 128))})")
+    if (this.connectionId.get() == connectionId && localHistory != null) {
       println("setLocalHistory-complete")
       this.localHistory.get().complete(localHistory)
     }
@@ -38,7 +39,8 @@ class ExportChatsService {
   @Synchronized
   fun getChats(): String {
     println("getChats")
-    val anyChats = localHistory.get().completeOnTimeout(null, 8, TimeUnit.SECONDS).get()
+    val anyChats =
+        localHistory.get().completeOnTimeout("message" to "failure", 60, TimeUnit.SECONDS).get()
     return gson.toJson(anyChats)
   }
 
