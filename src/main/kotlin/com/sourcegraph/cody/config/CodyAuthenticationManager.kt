@@ -52,10 +52,6 @@ class CodyAuthenticationManager internal constructor() {
     if (!project.isDisposed) project.service<CodyProjectActiveAccountHolder>().account = account
   }
 
-  fun getActiveAccountType(project: Project): AccountType {
-    return getActiveAccount(project)?.getAccountType() ?: AccountType.DOTCOM
-  }
-
   fun hasNoActiveAccount(project: Project) = instance.getActiveAccount(project) == null
 
   companion object {

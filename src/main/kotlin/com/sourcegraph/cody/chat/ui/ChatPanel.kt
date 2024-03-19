@@ -11,7 +11,6 @@ import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.chat.ChatSession
-import com.sourcegraph.cody.config.CodyAccount.Companion.isEnterpriseAccount
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.ui.EnhancedContextPanel
 import com.sourcegraph.cody.history.HistoryService
@@ -111,7 +110,7 @@ class ChatPanel(
 
   private fun setLlmForAgentSession(chatModelProvider: ChatModelsResponse.ChatModelProvider) {
     val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-    if (activeAccountType.isEnterpriseAccount()) {
+    if (activeAccountType?.isEnterpriseAccount() == true) {
       // no need to send the webview message since the chat model is set by default
     } else {
       chatSession.sendWebviewMessage(

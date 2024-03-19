@@ -253,15 +253,15 @@ private constructor(
     CodyAgentService.withAgent(project) { agent ->
       val chatModels = agent.server.chatModels(ChatModelsParams(connectionId.get().get()))
       val response =
-          chatModels.completeOnTimeout(null, 4, TimeUnit.SECONDS).get() ?: return@withAgent
+          chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get() ?: return@withAgent
 
-      val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-      val isCurrentUserFree =
-          if (activeAccountType?.isDotcomAccount() == true) {
-            agent.server.isCurrentUserPro().completeOnTimeout(false, 4, TimeUnit.SECONDS).get() ==
-                false
-          } else false
-      chatPanel.updateLlmDropdownModels(LlmDropdownData(response.models, isCurrentUserFree))
+      val activeAccount = CodyAuthenticationManager.instance.getActiveAccount(project)
+      val isFreeUser =
+          activeAccount
+              ?.isFreeUser(project)
+              ?.completeOnTimeout(true, 10, TimeUnit.SECONDS)
+              ?.get() == true
+      chatPanel.updateLlmDropdownModels(LlmDropdownData(response.models, isFreeUser))
     }
   }
 

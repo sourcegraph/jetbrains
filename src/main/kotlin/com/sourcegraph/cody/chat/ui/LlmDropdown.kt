@@ -5,7 +5,6 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.MutableCollectionComboBoxModel
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
-import com.sourcegraph.cody.config.CodyAccount.Companion.isEnterpriseAccount
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.ui.LlmComboBoxRenderer
 import com.sourcegraph.common.BrowserOpener
@@ -44,9 +43,9 @@ class LlmDropdown(
     data.models.forEach(::addItem)
     data.models.find { it.default }?.let { this.selectedItem = it }
 
-    val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-    isEnabled =
-        !didSendFirstMessage && !(activeAccountType.isEnterpriseAccount() || model.size <= 1)
+    val isEnterpriseAccount =
+        CodyAuthenticationManager.instance.getActiveAccount(project)?.isEnterpriseAccount() ?: false
+    isEnabled = !didSendFirstMessage && !isEnterpriseAccount && model.size > 1
   }
 
   override fun getModel(): MutableCollectionComboBoxModel<ChatModelsResponse.ChatModelProvider> {
