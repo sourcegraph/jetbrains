@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.fields.ExpandableTextField
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import java.awt.*
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
@@ -26,7 +27,6 @@ import javax.swing.event.DocumentListener
 class EditCommandPrompt(val controller: FixupService, val editor: Editor, val dialogTitle: String) {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
   private val offset = editor.caretModel.primaryCaret.offset
-  private val promptHistory = mutableListOf<String>()
 
   private var dialog: EditCommandPrompt.InstructionsDialog? = null
 
@@ -176,16 +176,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     }
   } // InstructionsDialog
 
-  fun addToHistory(prompt: String) {
-    if (prompt.isNotBlank() && !promptHistory.contains(prompt)) {
-      promptHistory.add(prompt)
-    }
-  }
-
-  fun getHistory(): List<String> {
-    return promptHistory
-  }
-
   private fun generatePromptUI(offset: Int): JPanel {
     val root = JPanel(BorderLayout())
 
@@ -277,9 +267,18 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
 
 
   companion object {
-    // TODO: make this smarter
-    const val DEFAULT_TEXT_FIELD_WIDTH: Int = 620
+    const val DEFAULT_TEXT_FIELD_WIDTH: Int = 620 // TODO: make this smarter
 
     const val GHOST_TEXT = "Instructions (@ to include code)"
+
+    // Going with a global history for now, shared across edit-code prompts.
+    val promptHistory = mutableListOf<String>()
+
+    @RequiresEdt
+    fun addToHistory(prompt: String) {
+      if (prompt.isNotBlank() && !promptHistory.contains(prompt)) {
+        promptHistory.add(prompt)
+      }
+    }
   }
 }
