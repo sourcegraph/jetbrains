@@ -15,17 +15,16 @@ class DocumentCodeSession(controller: FixupService, editor: Editor) :
   }
 
   override fun retry() {
-    // TODO: The actual prompt is displayed as ghost text in the text input field.
+    // TODO: The actual prompt we sent is displayed as ghost text in the text input field, in VS
+    // Code.
     // E.g. "Write a brief documentation comment for the selected code <etc.>"
     // We need to send the prompt along with the lenses, so that the client can display it.
     EditCommandPrompt(controller, editor, "Edit instructions and Retry").displayPromptUI()
   }
 
-  // Brings up a diff view showing the changes the AI made.
   override fun diff() {
-    // The FixupController issues a vscode.diff command to show the smart diff in the
-    // handler for cody.fixup.codelens.diff. TODO: Register a handler in the Agent
-    // and send a new RPC to the client to display the diff, maybe just a notification.
+    // TODO: Use DiffManager and bring up a diff of the changed region.
+    // You can see it in action now by clicking the green gutter to the left of Cody changes.
     logger.warn("Code Lenses: Show Diff")
   }
 

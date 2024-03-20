@@ -30,68 +30,63 @@ class FixupService(val project: Project) : Disposable {
 
   init {
     // JetBrains docs say avoid heavy lifting in the constructor, so pass to another thread.
-    backgroundThread {
-      CodyAgentService.withAgent(project) { agent ->
-        ApplicationManager.getApplication().invokeLater {
-          agent.client.setOnEditTaskDidUpdate { task ->
-            val session = activeSessions[task.id]
-            if (session == null) {
-              logger.warn("No session found for task ${task.id}")
-            } else {
-              session.update(task)
-            }
-          }
+    CodyAgentService.withAgent(project) { agent ->
+      agent.client.setOnEditTaskDidUpdate { task ->
+        val session = activeSessions[task.id]
+        if (session == null) {
+          logger.warn("No session found for task ${task.id}")
+        } else {
+          session.update(task)
+        }
+      }
 
-          agent.client.setOnEditTaskDidDelete { task ->
-            val session = activeSessions[task.id]
-            if (session == null) {
-              logger.warn("No session found for task ${task.id}")
-            } else {
-              session.taskDeleted()
-            }
-          }
+      agent.client.setOnEditTaskDidDelete { task ->
+        val session = activeSessions[task.id]
+        if (session == null) {
+          logger.warn("No session found for task ${task.id}")
+        } else {
+          session.taskDeleted()
+        }
+      }
 
-          agent.client.setOnWorkspaceEdit { params ->
-              for (op in params.operations) {
-              // TODO: We need to support the file-level operations.
-              when (op.type) {
-                "create-file" -> {
-                  logger.warn("Workspace edit operation created a file: ${op.uri}")
-                }
-                "rename-file" -> {
-                  logger.warn(
-                      "Workspace edit operation renamed a file: ${op.oldUri} -> ${op.newUri}")
-                }
-                "delete-file" -> {
-                  logger.warn("Workspace edit operation deleted a file: ${op.uri}")
-                }
-                "edit-file" -> {
-                  if (op.edits == null) {
-                    logger.warn("Workspace edit operation has no edits")
-                  } else {
-                    // If there is a pending session, assume that it is the one that caused the
-                    // edit.
-                    val session: FixupSession? =
-                        if (pendingSessions.isNotEmpty()) {
-                          pendingSessions.first()
-                        } else {
-                          // TODO: This is what I'd like to be able to do, but it requires a
-                          // protocol change:
-                          // session = activeSessions[op.id]
-                          activeSessions.values.firstOrNull()
-                        }
-                    if (session == null) {
-                      logger.warn("No sessions found for performing inline edits")
+      agent.client.setOnWorkspaceEdit { params ->
+        for (op in params.operations) {
+          // TODO: We need to support the file-level operations.
+          when (op.type) {
+            "create-file" -> {
+              logger.warn("Workspace edit operation created a file: ${op.uri}")
+            }
+            "rename-file" -> {
+              logger.warn("Workspace edit operation renamed a file: ${op.oldUri} -> ${op.newUri}")
+            }
+            "delete-file" -> {
+              logger.warn("Workspace edit operation deleted a file: ${op.uri}")
+            }
+            "edit-file" -> {
+              if (op.edits == null) {
+                logger.warn("Workspace edit operation has no edits")
+              } else {
+                // If there is a pending session, assume that it is the one that caused the
+                // edit.
+                val session: FixupSession? =
+                    if (pendingSessions.isNotEmpty()) {
+                      pendingSessions.first()
                     } else {
-                      session.performInlineEdits(op.edits)
+                      // TODO: This is what I'd like to be able to do, but it requires a
+                      // protocol change:
+                      // session = activeSessions[op.id]
+                      activeSessions.values.firstOrNull()
                     }
-                  }
+                if (session == null) {
+                  logger.warn("No sessions found for performing inline edits")
+                } else {
+                  session.performInlineEdits(op.edits)
                 }
-                else ->
-                    logger.warn(
-                        "DocumentCommand session received unknown workspace edit operation: ${op.type}")
               }
             }
+            else ->
+                logger.warn(
+                    "DocumentCommand session received unknown workspace edit operation: ${op.type}")
           }
         }
       }
@@ -152,6 +147,7 @@ class FixupService(val project: Project) : Disposable {
 
   override fun dispose() {
     activeSessions.values.forEach { it.dispose() }
+    pendingSessions.forEach { it.dispose() }
   }
 
   companion object {

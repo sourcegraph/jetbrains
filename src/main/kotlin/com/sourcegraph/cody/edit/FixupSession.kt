@@ -32,13 +32,12 @@ import java.util.concurrent.TimeUnit
  */
 abstract class FixupSession(val controller: FixupService, val editor: Editor) : Disposable {
   private val logger = Logger.getInstance(FixupSession::class.java)
-  val project = editor.project!!
+  val project = editor.project ?: throw IllegalStateException("Editor has no project")
 
   // This is passed back by the Agent when we initiate the editing task.
   var taskId: String? = null
 
-  var performedEdits = false
-    private set
+  private var performedEdits = false
 
   private var lensGroup: LensWidgetGroup? = null
 
@@ -65,38 +64,35 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   private fun triggerDocumentCodeAsync() {
     // This caret lookup requires us to be on the EDT.
     val caret = editor.caretModel.primaryCaret.offset
-
-    FixupService.backgroundThread {
-      val project = editor.project!!
-      CodyAgentService.withAgent(project) { agent ->
-        workAroundUninitializedCodebase(editor)
-        // Force a round-trip to get folding ranges before showing lenses.
-        ensureSelectionRange(agent, editor, caret)
-        showWorkingGroup()
-        // All this because we can get the workspace/edit before the request returns!
-        FixupService.getInstance(project).addSession(this) // puts in Pending
-        makeEditingRequest(agent)
-            .handle { result, error ->
-              if (error != null || result == null) {
-                // TODO: Adapt logic from CodyCompletionsManager.handleError
-                logger.warn("Error while generating doc string: $error")
-                FixupService.getInstance(project).removeSession(this)
-              } else {
-                taskId = result.id
-                selectionRange = result.selectionRange
-                FixupService.getInstance(project).addSession(this)
-              }
-              null
-            }
-            .exceptionally { error: Throwable? ->
-              if (!(error is CancellationException || error is CompletionException)) {
-                logger.warn("Error while generating doc string: $error")
-              }
+    val project = editor.project ?: return
+    CodyAgentService.withAgent(project) { agent ->
+      workAroundUninitializedCodebase(editor)
+      // Force a round-trip to get folding ranges before showing lenses.
+      ensureSelectionRange(agent, editor, caret)
+      showWorkingGroup()
+      // All this because we can get the workspace/edit before the request returns!
+      FixupService.getInstance(project).addSession(this) // puts in Pending
+      makeEditingRequest(agent)
+          .handle { result, error ->
+            if (error != null || result == null) {
+              // TODO: Adapt logic from CodyCompletionsManager.handleError
+              logger.warn("Error while generating doc string: $error")
               FixupService.getInstance(project).removeSession(this)
-              null
+            } else {
+              taskId = result.id
+              selectionRange = result.selectionRange
+              FixupService.getInstance(project).addSession(this)
             }
-            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
-      }
+            null
+          }
+          .exceptionally { error: Throwable? ->
+            if (!(error is CancellationException || error is CompletionException)) {
+              logger.warn("Error while generating doc string: $error")
+            }
+            FixupService.getInstance(project).removeSession(this)
+            null
+          }
+          .completeOnTimeout(null, 3, TimeUnit.SECONDS)
     }
   }
 
@@ -105,7 +101,6 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   // Calling onFileOpened forces the right initialization path.
   private fun workAroundUninitializedCodebase(editor: Editor) {
     val file = FileDocumentManager.getInstance().getFile(editor.document)!!
-    val project = editor.project!!
     CodyAgentCodebase.getInstance(project).onFileOpened(project, file)
   }
 
@@ -183,8 +178,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
       val position = Position(editor.caretModel.currentCaret.logicalPosition.line, 0)
       range = Range(start = position, end = position)
     } else {
-      // The actual insertion point is on the line above.
-      val position = Position(range.start.line - 1, 0)
+      val position = Position(range.start.line, 0)
       range = Range(start = position, end = position)
     }
     group.show(range)
@@ -311,7 +305,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
     }
   }
 
-  protected fun undoEdits() {
+  private fun undoEdits() {
     val project = editor.project ?: return
     if (project.isDisposed) return
     val fileEditor = getEditorForDocument(editor.document, project)

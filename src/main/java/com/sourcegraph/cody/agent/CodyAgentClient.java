@@ -42,9 +42,6 @@ public class CodyAgentClient {
   // Callback for the "textDocument/edit" request from the agent.
   @Nullable private Consumer<TextDocumentEditParams> onTextDocumentEdit;
 
-  // Callback for the "workspace/executeCommand" request from the agent.
-  @Nullable private Consumer<DisplayCodeLensParams> onDisplayCodeLens;
-
   // Callback for the "workspace/edit" request from the agent.
   @Nullable private Consumer<WorkspaceEditParams> onWorkspaceEdit;
 
@@ -96,23 +93,6 @@ public class CodyAgentClient {
             logger.warn("No callback registered for textDocument/edit");
           }
           return true;
-        });
-  }
-
-  public void setOnDisplayCodeLens(@Nullable Consumer<DisplayCodeLensParams> callback) {
-    onDisplayCodeLens = callback;
-  }
-
-  @JsonNotification("codeLenses/display")
-  public void codeLensesDisplay(DisplayCodeLensParams params) {
-    onEventThread(
-        () -> {
-          if (onDisplayCodeLens != null) {
-            onDisplayCodeLens.accept(params);
-          } else {
-            logger.warn("No callback registered for codeLenses/display");
-          }
-          return null;
         });
   }
 

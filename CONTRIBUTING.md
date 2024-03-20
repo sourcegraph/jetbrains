@@ -358,27 +358,26 @@ agent, to rebuild it first.
 
 ## Debugging VS Code
 
-Sometimes, the Agent behaves differently when called from IntelliJ than
-when called from VS Code, and you may need to debug the same code paths
-through the Agent twice. First, when called from the JetBrains extension
-side, and again when called from the VS Code extension side.
+Sometimes, the TypeScript backend behaves differently when called from
+IntelliJ via Agent than when the same code is called from the VS Code
+extension, and you may need to debug the same code paths through the
+Agent twice. First, when called from the JetBrains extension side, and
+again when called from the VS Code extension side.
 
-To accomplish the latter, you can use VSC to debug itself. It works very
-similarly to how it works in JetBrains. There are predefined run
-configurations for debugging VSC Cody in the file `.vscode/launch.json`
-in `sourcegraph/cody`, such as `Launch VS Code Extension (Desktop)`.
+To accomplish the latter, you can use VS Code to debug itself. It works
+very similarly to how it works in JetBrains. There are predefined run
+configurations for debugging VS Code Cody in the file
+`.vscode/launch.json` in `sourcegraph/cody`, such as `Launch VS Code
+Extension (Desktop)`.
 
-You do not launch VSC run configurations from the command palette.
+You do not launch VS Code run configurations from the command palette.
 Instead, use ctrl-shift-D to open the Run and Debug view, and you can
 see the configuration dropdown at the top.
 
 ## Known Issues
 
-- Force-stopping the target often corrupts the indexes, requiring an
-  extra restart of the debugged target to fix them.
-  - Workaround is to exit the target gracefully by quitting each time.
-  
+- Force-stopping the target often corrupts IntelliJ's project indexes,
+  requiring an extra restart of the debugged target to fix them.
+  - Workaround is to exit the target gracefully by quitting each time,
+    using the menus or hotkeys, rather than force-stopping it.
 
-
-One workaround is to quit the target instance gracefully from its
-own menus/hotkeys (e.g. ⌘-Q), rather than force-stopping it.

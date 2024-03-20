@@ -1,7 +1,5 @@
 package com.sourcegraph.cody.agent.protocol
 
-import com.intellij.openapi.editor.Document
-
 typealias RangePair = Pair<Int, Int>
 
 data class Range(val start: Position, val end: Position) {
@@ -14,15 +12,4 @@ data class Range(val start: Position, val end: Position) {
   fun toSearchRange(): RangePair = RangePair(start.line.plus(1), end.line)
 
   fun length() = end.line - start.line + 1
-
-  fun toOffsets(document: Document): Pair<Int, Int> {
-    return Pair(start.toOffset(document), end.toOffset(document))
-  }
-
-  // Return true if the agent gave us all zeroes for the range.
-  fun isZero() = start.isZero() && end.isZero()
-
-  companion object {
-    fun nullRange() = Range(Position(0, 0), Position(0, 0))
-  }
 }

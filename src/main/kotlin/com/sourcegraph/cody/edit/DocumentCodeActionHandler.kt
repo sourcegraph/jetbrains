@@ -22,11 +22,11 @@ class DocumentCodeActionHandler : EditorActionHandler() {
   }
 
   override fun doExecute(editor: Editor, where: Caret?, dataContext: DataContext?) {
-    val fixupService = editor.project?.getService(FixupService::class.java)
-    if (fixupService == null) {
-      logger.warn("FixupService not found")
+    val project = editor.project
+    if (project == null) {
+      logger.warn("No project found, cannot run DocumentCodeActionHandler::startDocumentCode")
     } else {
-      fixupService.startDocumentCode(editor)
+      FixupService.getInstance(project).startDocumentCode(editor)
     }
   }
 }

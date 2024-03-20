@@ -7,7 +7,9 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.colors.EditorFontType
-import com.intellij.openapi.editor.event.*
+import com.intellij.openapi.editor.event.EditorMouseEvent
+import com.intellij.openapi.editor.event.EditorMouseListener
+import com.intellij.openapi.editor.event.EditorMouseMotionListener
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
@@ -55,15 +57,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
         }
       }
 
-  private val documentListener =
-      object : DocumentListener {
-        override fun documentChanged(event: DocumentEvent) {
-          if (!listenersMuted) {
-            handleDocumentChanged(event)
-          }
-        }
-      }
-
   private var listenersMuted = false
 
   val widgetFont =
@@ -83,12 +76,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var lastHoveredWidget: LensWidget? = null // Used for mouse rollover highlighting.
 
-  /**
-   * This bears some explanation. The protocol doesn't tell us when the "last" lens is sent. This is
-   * a heuristic; we flag what looks like the final lens as soon as we see it arrive.
-   */
-  private var displayedAcceptLens = false
-
   var inlay: Inlay<EditorCustomElementRenderer>? = null
 
   private var prevCursor: Cursor? = null
@@ -97,7 +84,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     Disposer.register(session, this)
     editor.addEditorMouseListener(mouseClickListener)
     editor.addEditorMouseMotionListener(mouseMotionListener)
-    editor.document.addDocumentListener(documentListener)
   }
 
   fun withListenersMuted(block: () -> Unit) {
@@ -232,21 +218,12 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     }
   }
 
-  private fun handleDocumentChanged(@Suppress("UNUSED_PARAMETER") e: DocumentEvent) {
-    // We let them edit up until we show the Accept lens, and then editing auto-accepts.
-    // TODO: What is the vscode behavior?
-    if (displayedAcceptLens) {
-      // session.accept()
-    }
-  }
-
   /** Immediately hides and discards this inlay and widget group. */
   override fun dispose() {
     isDisposed.set(true)
     if (editor.isDisposed) return
     editor.removeEditorMouseListener(mouseClickListener)
     editor.removeEditorMouseMotionListener(mouseMotionListener)
-    editor.document.removeDocumentListener(documentListener)
     disposeInlay()
   }
 

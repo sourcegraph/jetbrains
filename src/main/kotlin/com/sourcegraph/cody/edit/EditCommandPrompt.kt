@@ -2,7 +2,6 @@ package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.ui.ComboBox
@@ -25,7 +24,6 @@ import javax.swing.event.DocumentListener
 
 /** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
 class EditCommandPrompt(val controller: FixupService, val editor: Editor, val dialogTitle: String) {
-  private val logger = Logger.getInstance(EditCommandPrompt::class.java)
   private val offset = editor.caretModel.primaryCaret.offset
 
   private var dialog: EditCommandPrompt.InstructionsDialog? = null
@@ -60,6 +58,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
 
   fun getText(): String = instructionsField.text
 
+  @RequiresEdt
   private fun setupTextField() {
     instructionsField.document.addDocumentListener(
         object : DocumentListener {
@@ -84,10 +83,12 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
         })
   }
 
+  @RequiresEdt
   private fun updateOkButtonState() {
     dialog?.isOKActionEnabled = instructionsField.text.isNotBlank()
   }
 
+  @RequiresEdt
   private fun checkForInterruptions() {
     if (editor.isDisposed || editor.isViewer || !editor.document.isWritable) {
       dialog?.apply {
@@ -97,6 +98,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     }
   }
 
+  @RequiresEdt
   private fun setupKeyListener() {
     instructionsField.addKeyListener(
         object : KeyAdapter() {
@@ -110,14 +112,17 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
         })
   }
 
+  @RequiresEdt
   private fun fetchPreviousHistoryItem() {
     updateTextFromHistory(historyCursor.getPreviousHistoryItem())
   }
 
+  @RequiresEdt
   private fun fetchNextHistoryItem() {
     updateTextFromHistory(historyCursor.getNextHistoryItem())
   }
 
+  @RequiresEdt
   private fun updateTextFromHistory(text: String) {
     instructionsField.text = text
     instructionsField.caretPosition = text.length
@@ -131,6 +136,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
 
     fun getNextHistoryItem() = getHistoryItemByDelta(1)
 
+    @RequiresEdt
     private fun getHistoryItemByDelta(delta: Int): String {
       if (promptHistory.isNotEmpty()) {
         historyIndex = (historyIndex + delta).coerceIn(0, promptHistory.size - 1)
@@ -152,12 +158,14 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
 
     override fun getPreferredFocusedComponent() = instructionsField
 
+    @RequiresEdt
     override fun createCenterPanel(): JComponent {
       val result = generatePromptUI(offset)
       updateOkButtonState()
       return result
     }
 
+    @RequiresEdt
     override fun doOKAction() {
       val text = instructionsField.text
       val model = modelComboBox.item
@@ -169,6 +177,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
       }
     }
 
+    @RequiresEdt
     override fun doCancelAction() {
       super.doCancelAction()
       dialog?.disposeIfNeeded()
@@ -176,6 +185,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     }
   } // InstructionsDialog
 
+  @RequiresEdt
   private fun generatePromptUI(offset: Int): JPanel {
     val root = JPanel(BorderLayout())
 
@@ -234,7 +244,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
   inner class GhostTextField : ExpandableTextField(), FocusListener, Disposable {
 
     init {
-      //Disposer.register(this@EditCommandPrompt, this@GhostTextField)
+      // Disposer.register(this@EditCommandPrompt, this@GhostTextField)
       addFocusListener(this)
     }
 
@@ -247,7 +257,10 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
         g2.color = JBColor.GRAY
         val fontMetrics = g2.fontMetrics
         val x = insets.left + fontMetrics.charWidth('G')
-        val y = insets.top + (height - insets.top - insets.bottom - fontMetrics.height) / 2 + fontMetrics.ascent
+        val y =
+            insets.top +
+                (height - insets.top - insets.bottom - fontMetrics.height) / 2 +
+                fontMetrics.ascent
         g2.drawString(GHOST_TEXT, x, y)
       }
     }
@@ -264,7 +277,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
       removeFocusListener(this)
     }
   }
-
 
   companion object {
     const val DEFAULT_TEXT_FIELD_WIDTH: Int = 620 // TODO: make this smarter
