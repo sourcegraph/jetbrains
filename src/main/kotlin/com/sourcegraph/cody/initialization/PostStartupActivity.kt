@@ -49,7 +49,11 @@ class PostStartupActivity : StartupActivity.DumbAware {
     }
   }
 
-  private fun pushFrontAction(actionManager: ActionManager, actionId: String, group: DefaultActionGroup) {
+  private fun pushFrontAction(
+      actionManager: ActionManager,
+      actionId: String,
+      group: DefaultActionGroup
+  ) {
     actionManager.getAction(actionId)?.let { group.add(it, Constraints.FIRST) }
   }
 }

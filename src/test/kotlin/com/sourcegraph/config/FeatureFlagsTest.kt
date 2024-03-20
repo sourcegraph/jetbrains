@@ -20,7 +20,6 @@ class FeatureFlagsTest {
     assertEquals(emptyMap<String, Boolean>(), result)
   }
 
-
   @Test
   fun `parseFeatureFlags parses single flag correctly`() {
     val result = ConfigUtil.parseFeatureFlags("feature1=true")
