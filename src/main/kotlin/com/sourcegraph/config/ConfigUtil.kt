@@ -16,9 +16,10 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.ServerAuthLoader
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
+import org.jetbrains.annotations.Contract
+import org.jetbrains.annotations.VisibleForTesting
 import java.nio.file.Path
 import java.nio.file.Paths
-import org.jetbrains.annotations.Contract
 
 object ConfigUtil {
   const val DOTCOM_URL = "https://sourcegraph.com/"
@@ -26,6 +27,33 @@ object ConfigUtil {
   const val CODY_DISPLAY_NAME = "Cody"
   const val CODE_SEARCH_DISPLAY_NAME = "Code Search"
   const val SOURCEGRAPH_DISPLAY_NAME = "Sourcegraph"
+  private const val FEATURE_FLAGS_ENV_VAR = "CODY_JETBRAINS_FEATURES"
+
+  private val featureFlags: Map<String, Boolean> by lazy {
+    parseFeatureFlags(System.getenv(FEATURE_FLAGS_ENV_VAR))
+  }
+
+  @VisibleForTesting
+  fun parseFeatureFlags(envVarValue: String?): Map<String, Boolean> {
+    return envVarValue
+        ?.split(',')
+        ?.mapNotNull { it.trim().split('=').takeIf { pair -> pair.size == 2 } }
+        ?.associate { (key, value) -> key.trim() to value.trim().toBoolean() } ?: emptyMap()
+  }
+
+  /**
+   * Returns true if the specified feature flag is enabled. Feature flags are currently set in the
+   * environment variable CODY_JETBRAINS_FEATURES. The format is
+   * CODY_JETBRAINS_FEATURES=cody.feature.1=true,cody.feature.2=false. The value should be unquoted
+   * in your run configuration, but quoted in the env var; e.g.,
+   * ```
+   * export CODY_JETBRAINS_FEATURES="cody.feature.1=true,cody.feature.2=false"
+   * ```
+   *
+   * @param flagName The name of the feature flag
+   * @return true if the feature flag is enabled, false otherwise
+   */
+  @JvmStatic fun isFeatureFlagEnabled(flagName: String) = featureFlags.getOrDefault(flagName, false)
 
   @JvmStatic
   fun getAgentConfiguration(project: Project): ExtensionConfiguration {
