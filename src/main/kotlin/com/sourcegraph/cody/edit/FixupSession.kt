@@ -125,9 +125,7 @@ abstract class FixupSession(
         if (selectionRange == null) {
           logger.warn("Unable to find enclosing folding range at $caret in $url")
           selectionRange =
-              Range(
-                  Position.fromOffset(document, caret),
-                  Position.fromOffset(document, caret))
+              Range(Position.fromOffset(document, caret), Position.fromOffset(document, caret))
         }
         future.complete(null)
       }
@@ -147,8 +145,7 @@ abstract class FixupSession(
 
   private fun findRangeEnclosing(ranges: List<Range>, offset: Int): Range? {
     return ranges.firstOrNull { range ->
-      range.start.toOffset(document) <= offset &&
-          range.end.toOffset(document) >= offset
+      range.start.toOffset(document) <= offset && range.end.toOffset(document) >= offset
     }
   }
 
@@ -295,9 +292,7 @@ abstract class FixupSession(
   }
 
   fun createMarker(startOffset: Int, endOffset: Int): RangeMarker {
-    return document.createRangeMarker(startOffset, endOffset).apply {
-      rangeMarkers.add(this)
-    }
+    return document.createRangeMarker(startOffset, endOffset).apply { rangeMarkers.add(this) }
   }
 
   fun removeMarker(marker: RangeMarker) {

@@ -23,9 +23,7 @@ import javax.swing.SwingUtilities
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
-/**
- * Pop up a user interface for giving Cody instructions to fix up code at the cursor.
- */
+/** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
 class EditCommandPrompt(val controller: FixupService, val editor: Editor, val dialogTitle: String) {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
 
