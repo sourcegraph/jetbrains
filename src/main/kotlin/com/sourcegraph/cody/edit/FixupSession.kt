@@ -30,9 +30,14 @@ import java.util.concurrent.TimeUnit
  * Common functionality for commands that let the agent edit the code inline, such as adding a doc
  * string, or fixing up a region according to user instructions.
  */
-abstract class FixupSession(val controller: FixupService, val editor: Editor) : Disposable {
+abstract class FixupSession(
+    val controller: FixupService,
+    val editor: Editor,
+    val project: Project,
+    val document: Document
+) : Disposable {
   private val logger = Logger.getInstance(FixupSession::class.java)
-  val project = editor.project ?: throw IllegalStateException("Editor has no project")
+  private val fixupService = FixupService.getInstance(project)
 
   // This is passed back by the Agent when we initiate the editing task.
   var taskId: String? = null
@@ -64,24 +69,23 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   private fun triggerDocumentCodeAsync() {
     // This caret lookup requires us to be on the EDT.
     val caret = editor.caretModel.primaryCaret.offset
-    val project = editor.project ?: return
     CodyAgentService.withAgent(project) { agent ->
-      workAroundUninitializedCodebase(editor)
+      workAroundUninitializedCodebase()
       // Force a round-trip to get folding ranges before showing lenses.
-      ensureSelectionRange(agent, editor, caret)
+      ensureSelectionRange(agent, caret)
       showWorkingGroup()
       // All this because we can get the workspace/edit before the request returns!
-      FixupService.getInstance(project).addSession(this) // puts in Pending
+      fixupService.addSession(this) // puts in Pending
       makeEditingRequest(agent)
           .handle { result, error ->
             if (error != null || result == null) {
               // TODO: Adapt logic from CodyCompletionsManager.handleError
               logger.warn("Error while generating doc string: $error")
-              FixupService.getInstance(project).removeSession(this)
+              fixupService.removeSession(this)
             } else {
               taskId = result.id
               selectionRange = result.selectionRange
-              FixupService.getInstance(project).addSession(this)
+              fixupService.addSession(this)
             }
             null
           }
@@ -89,7 +93,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
             if (!(error is CancellationException || error is CompletionException)) {
               logger.warn("Error while generating doc string: $error")
             }
-            FixupService.getInstance(project).removeSession(this)
+            fixupService.removeSession(this)
             null
           }
           .completeOnTimeout(null, 3, TimeUnit.SECONDS)
@@ -99,13 +103,17 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   // We're consistently triggering the 'retrieved codebase context before initialization' error
   // in ContextProvider.ts. It's a different initialization path from completions & chat.
   // Calling onFileOpened forces the right initialization path.
-  private fun workAroundUninitializedCodebase(editor: Editor) {
-    val file = FileDocumentManager.getInstance().getFile(editor.document)!!
-    CodyAgentCodebase.getInstance(project).onFileOpened(project, file)
+  private fun workAroundUninitializedCodebase() {
+    val file = FileDocumentManager.getInstance().getFile(document)
+    if (file != null) {
+      CodyAgentCodebase.getInstance(project).onFileOpened(project, file)
+    } else {
+      logger.warn("No virtual file associated with $document")
+    }
   }
 
-  private fun ensureSelectionRange(agent: CodyAgent, editor: Editor, caret: Int) {
-    val url = getDocumentUrl(editor)
+  private fun ensureSelectionRange(agent: CodyAgent, caret: Int) {
+    val url = getDocumentUrl()
     if (url != null) {
       val future = CompletableFuture<Unit>()
       agent.server.getFoldingRanges(GetFoldingRangeParams(uri = url)).handle { result, error ->
@@ -118,8 +126,8 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
           logger.warn("Unable to find enclosing folding range at $caret in $url")
           selectionRange =
               Range(
-                  Position.fromOffset(editor.document, caret),
-                  Position.fromOffset(editor.document, caret))
+                  Position.fromOffset(document, caret),
+                  Position.fromOffset(document, caret))
         }
         future.complete(null)
       }
@@ -128,8 +136,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
     }
   }
 
-  private fun getDocumentUrl(editor: Editor): String? {
-    val document = editor.document
+  private fun getDocumentUrl(): String? {
     val virtualFile = FileDocumentManager.getInstance().getFile(document)
     if (virtualFile == null) {
       logger.warn("No URI for document: $document")
@@ -140,8 +147,8 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
 
   private fun findRangeEnclosing(ranges: List<Range>, offset: Int): Range? {
     return ranges.firstOrNull { range ->
-      range.start.toOffset(editor.document) <= offset &&
-          range.end.toOffset(editor.document) >= offset
+      range.start.toOffset(document) <= offset &&
+          range.end.toOffset(document) >= offset
     }
   }
 
@@ -242,9 +249,6 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   }
 
   fun performInlineEdits(edits: List<TextEdit>) {
-    val project = editor.project ?: return
-    val doc: Document = editor.document
-
     // TODO: This is an artifact of the update to concurrent editing tasks.
     // We do need to mute any LensGroup listeners, but this is an ugly way to do it.
     // There are multiple Lens groups; we need a Document-level listener list.
@@ -254,7 +258,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
       }
       // Mark all the edit locations so the markers will move as we edit the document,
       // preserving the original positions of the edits.
-      val markers = edits.mapNotNull { createMarkerForEdit(doc, it) }
+      val markers = edits.mapNotNull { createMarkerForEdit(it) }
       val sortedEdits = edits.zip(markers).sortedByDescending { it.second.startOffset }
       // Apply the edits in a write action.
       WriteCommandAction.runWriteCommandAction(project) {
@@ -270,19 +274,19 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
     }
   }
 
-  private fun createMarkerForEdit(doc: Document, edit: TextEdit): RangeMarker? {
+  private fun createMarkerForEdit(edit: TextEdit): RangeMarker? {
     val startOffset: Int
     val endOffset: Int
     when (edit.type) {
       "replace",
       "delete" -> {
         val range = edit.range ?: return null
-        startOffset = doc.getLineStartOffset(range.start.line) + range.start.character
-        endOffset = doc.getLineStartOffset(range.end.line) + range.end.character
+        startOffset = document.getLineStartOffset(range.start.line) + range.start.character
+        endOffset = document.getLineStartOffset(range.end.line) + range.end.character
       }
       "insert" -> {
         val position = edit.position ?: return null
-        startOffset = doc.getLineStartOffset(position.line) + position.character
+        startOffset = document.getLineStartOffset(position.line) + position.character
         endOffset = startOffset
       }
       else -> return null
@@ -291,7 +295,7 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   }
 
   fun createMarker(startOffset: Int, endOffset: Int): RangeMarker {
-    return editor.document.createRangeMarker(startOffset, endOffset).apply {
+    return document.createRangeMarker(startOffset, endOffset).apply {
       rangeMarkers.add(this)
     }
   }
@@ -306,21 +310,20 @@ abstract class FixupSession(val controller: FixupService, val editor: Editor) : 
   }
 
   private fun undoEdits() {
-    val project = editor.project ?: return
     if (project.isDisposed) return
-    val fileEditor = getEditorForDocument(editor.document, project)
+    val fileEditor = getEditorForDocument()
     val undoManager = UndoManager.getInstance(project)
     if (undoManager.isUndoAvailable(fileEditor)) {
       undoManager.undo(fileEditor)
     }
   }
 
-  private fun getEditorForDocument(document: Document, project: Project): FileEditor? {
+  private fun getEditorForDocument(): FileEditor? {
     val file = FileDocumentManager.getInstance().getFile(document)
-    return file?.let { getCurrentFileEditor(project, it) }
+    return file?.let { getCurrentFileEditor(it) }
   }
 
-  private fun getCurrentFileEditor(project: Project, file: VirtualFile): FileEditor? {
+  private fun getCurrentFileEditor(file: VirtualFile): FileEditor? {
     return FileEditorManager.getInstance(project).getEditors(file).firstOrNull()
   }
 

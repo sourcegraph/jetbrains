@@ -1,7 +1,6 @@
 package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
@@ -102,9 +101,8 @@ class FixupService(val project: Project) : Disposable {
 
   /** Entry point for the document code command, called by the action handler. */
   fun startDocumentCode(editor: Editor) {
-    if (isEligibleForInlineEdit(editor)) {
-      DocumentCodeSession(this, editor)
-    }
+    if (!isEligibleForInlineEdit(editor)) return
+    DocumentCodeSession(this, editor, editor.project ?: return, editor.document)
   }
 
   fun isEligibleForInlineEdit(editor: Editor): Boolean {
@@ -154,10 +152,6 @@ class FixupService(val project: Project) : Disposable {
     @JvmStatic
     fun getInstance(project: Project): FixupService {
       return project.service<FixupService>()
-    }
-
-    fun backgroundThread(code: Runnable) {
-      ApplicationManager.getApplication().executeOnPooledThread(code)
     }
   }
 }

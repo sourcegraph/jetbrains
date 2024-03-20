@@ -2,6 +2,7 @@ package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.ui.ComboBox
@@ -22,8 +23,12 @@ import javax.swing.SwingUtilities
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
-/** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
+/**
+ * Pop up a user interface for giving Cody instructions to fix up code at the cursor.
+ */
 class EditCommandPrompt(val controller: FixupService, val editor: Editor, val dialogTitle: String) {
+  private val logger = Logger.getInstance(EditCommandPrompt::class.java)
+
   private val offset = editor.caretModel.primaryCaret.offset
 
   private var dialog: EditCommandPrompt.InstructionsDialog? = null
@@ -173,7 +178,14 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
       controller.setCurrentModel(model)
       if (text.isNotBlank()) {
         addToHistory(text)
-        controller.addSession(EditSession(controller, editor, text, model))
+        val project = editor.project
+        // TODO: How do we show user feedback when an error like this happens?
+        if (project == null) {
+          logger.warn("Project was null when trying to add an edit session")
+          return
+        }
+        controller.addSession(
+            EditSession(controller, editor, project, editor.document, text, model))
       }
     }
 
