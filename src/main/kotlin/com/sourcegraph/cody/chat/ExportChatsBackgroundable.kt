@@ -3,7 +3,7 @@ package com.sourcegraph.cody.chat
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.agent.ExtensionMessage
+import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.HistoryService
 
@@ -35,12 +35,16 @@ class ExportChatsBackgroundable(
       }
     }
 
-    agentChatSession.sendExtensionMessage(ExtensionMessage(type = ExtensionMessage.Type.HISTORY))
+    agentChatSession.sendWebviewMessage(WebviewMessage(command = "history", action = "export"))
 
     println("START: result = ExportChatsService.getInstance(project).result.get()")
     val result = ExportChatsService.getInstance(project).getChats()
     println("STOP: result = ExportChatsService.getInstance(project).result.get()")
-    onSuccess.invoke(result)
+    if (result != null) {
+      onSuccess.invoke(result)
+    } else {
+      throw Error("getChats is null")
+    }
   }
 
   override fun onFinished() {

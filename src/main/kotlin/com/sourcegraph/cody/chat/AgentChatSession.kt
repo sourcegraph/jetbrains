@@ -12,7 +12,6 @@ import com.sourcegraph.cody.agent.CodyAgentException
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
-import com.sourcegraph.cody.agent.WebviewPostMessageParams
 import com.sourcegraph.cody.agent.WebviewReceiveMessageParams
 import com.sourcegraph.cody.agent.protocol.ChatError
 import com.sourcegraph.cody.agent.protocol.ChatMessage
@@ -206,13 +205,6 @@ private constructor(
     CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
       agent.server.webviewReceiveMessage(
           WebviewReceiveMessageParams(this.connectionId.get().get(), message))
-    }
-  }
-
-  override fun sendExtensionMessage(message: ExtensionMessage) {
-    CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
-      agent.client.webviewPostMessage(
-          WebviewPostMessageParams(this.connectionId.get().get(), message))
     }
   }
 

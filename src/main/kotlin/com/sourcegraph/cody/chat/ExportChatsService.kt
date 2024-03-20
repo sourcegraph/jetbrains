@@ -37,11 +37,9 @@ class ExportChatsService {
   }
 
   @Synchronized
-  fun getChats(): String {
-    println("getChats")
-    val anyChats =
-        localHistory.get().completeOnTimeout("message" to "failure", 60, TimeUnit.SECONDS).get()
-    return gson.toJson(anyChats)
+  fun getChats(): String? {
+    val anyChats = localHistory.get().completeOnTimeout(null, 15, TimeUnit.SECONDS).get()
+    return anyChats?.let<Any, String>(gson::toJson)
   }
 
   companion object {

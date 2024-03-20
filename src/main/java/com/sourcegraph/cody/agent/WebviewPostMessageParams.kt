@@ -13,6 +13,7 @@ data class WebviewMessage(
     val command: String,
     val text: String? = null,
     val submitType: String? = null, // One of: "user", "suggestion", "example"
+    val action: String? = null, // One of: "clear", "export"
     val addEnhancedContext: Boolean? = null,
     val contextFiles: List<ContextItem>? = null,
     val error: ChatError? = null,
