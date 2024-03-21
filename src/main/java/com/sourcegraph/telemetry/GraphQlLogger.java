@@ -82,7 +82,11 @@ public class GraphQlLogger {
     var updatedEventParameters = eventParameters.deepCopy();
     var activeAccount = CodyAuthenticationManager.getInstance().getActiveAccount(project);
     if (activeAccount != null) {
-      updatedEventParameters.addProperty("tier", activeAccount.getAccountType(project));
+      var accountTier =
+          activeAccount.isDotcomAccount()
+              ? activeAccount.isProUser(project).getNow(false) ? "pro" : "free"
+              : "enterprise";
+      updatedEventParameters.addProperty("tier", accountTier);
     }
     updatedEventParameters.addProperty("serverEndpoint", sourcegraphServerPath.getUrl());
     // Extension specific properties

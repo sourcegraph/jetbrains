@@ -27,12 +27,6 @@ data class CodyAccount(
 
   @Volatile private var isProUser: Boolean? = null
 
-  fun getAccountType(project: Project): String {
-    return if (isDotcomAccount()) {
-      if (isProUser(project).getNow(false)) "pro" else "free"
-    } else "enterprise"
-  }
-
   fun isDotcomAccount(): Boolean = server.url.lowercase().startsWith(ConfigUtil.DOTCOM_URL)
 
   fun isEnterpriseAccount(): Boolean = isDotcomAccount().not()

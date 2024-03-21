@@ -65,21 +65,21 @@ class MyAccountTabPanel(val project: Project) : JPanel() {
     }
   }
 
-  private fun createCenterPanel(isPro: Boolean?) = panel {
+  private fun createCenterPanel(isCurrentUserPro: Boolean?) = panel {
     val tier =
-        if (isPro == null) CodyBundle.getString("my-account-tab.loading-label")
-        else if (isPro) CodyBundle.getString("my-account-tab.cody-pro-label")
+        if (isCurrentUserPro == null) CodyBundle.getString("my-account-tab.loading-label")
+        else if (isCurrentUserPro) CodyBundle.getString("my-account-tab.cody-pro-label")
         else CodyBundle.getString("my-account-tab.cody-free-label")
     row { label("<html>Current tier: <b>$tier</b><html/>") }
     row {
-      if (isPro != null && !isPro) {
+      if (isCurrentUserPro == false) {
         val upgradeButton =
             button("Upgrade") { BrowserUtil.browse(ConfigUtil.DOTCOM_URL + "cody/subscription") }
         upgradeButton.component.putClientProperty(DarculaButtonUI.DEFAULT_STYLE_KEY, true)
       }
       button("Check Usage") { BrowserUtil.browse(ConfigUtil.DOTCOM_URL + "cody/manage") }
     }
-    if (isPro != null && !isPro) {
+    if (isCurrentUserPro == false) {
       row { text(CodyBundle.getString("my-account-tab.already-pro")) }
     }
   }
@@ -94,14 +94,14 @@ class MyAccountTabPanel(val project: Project) : JPanel() {
     }
 
     val activeAccount = CodyAuthenticationManager.instance.getActiveAccount(project)
-    val isProFuture = activeAccount?.isProUser(project)
-    val centerPanel = createCenterPanel(isProFuture?.getNow(null))
+    val isCurrentUserProFuture = activeAccount?.isProUser(project)
+    val centerPanel = createCenterPanel(isCurrentUserProFuture?.getNow(null))
     this.add(centerPanel)
 
-    isProFuture?.thenAccept { isPro ->
+    isCurrentUserProFuture?.thenAccept { isCurrentUserPro ->
       invokeLater {
         this.remove(centerPanel)
-        this.add(createCenterPanel(isPro))
+        this.add(createCenterPanel(isCurrentUserPro))
         revalidate()
         repaint()
       }
