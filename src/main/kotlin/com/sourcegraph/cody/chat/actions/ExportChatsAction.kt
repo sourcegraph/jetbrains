@@ -9,14 +9,11 @@ import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
 import com.intellij.openapi.fileChooser.FileSaverDialog
 import com.intellij.openapi.util.SystemInfo
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import com.sourcegraph.cody.chat.ExportChatsBackgroundable
 import com.sourcegraph.common.ui.DumbAwareBGTAction
-import java.io.File
 
 class ExportChatsAction : DumbAwareBGTAction() {
 
@@ -55,23 +52,13 @@ class ExportChatsAction : DumbAwareBGTAction() {
               val json = gson.toJson(chatHistory)
               invokeLater {
                 WriteAction.run<RuntimeException> {
-                  saveTextToFile(json.toByteArray(), result.file)
+                  result.getVirtualFile(true)?.setBinaryContent(json.toByteArray())
+                  VirtualFileManager.getInstance().syncRefresh()
                 }
               }
             },
             onFinished = { isRunning = false })
         .queue()
-  }
-
-  @RequiresWriteLock
-  private fun saveTextToFile(contentBytes: ByteArray, filePath: File) {
-    val localFileSystem = LocalFileSystem.getInstance()
-    val parentVirtualFile = localFileSystem.findFileByIoFile(filePath.parentFile) ?: return
-    val virtualFile =
-        parentVirtualFile.findOrCreateChildData(/* requestor = */ this, /* name = */ filePath.name)
-
-    virtualFile.setBinaryContent(contentBytes)
-    VirtualFileManager.getInstance().syncRefresh()
   }
 
   companion object {
