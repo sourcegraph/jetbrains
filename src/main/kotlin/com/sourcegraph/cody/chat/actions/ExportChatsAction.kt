@@ -3,8 +3,8 @@ package com.sourcegraph.cody.chat.actions
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
 import com.intellij.openapi.fileChooser.FileSaverDialog
@@ -32,28 +32,28 @@ class ExportChatsAction : DumbAwareBGTAction() {
     val project = e.project ?: return
     isRunning = true
 
+    // Update default file path to user home if myProject.getBasePath() is not valid
+    var outputDir: VirtualFile? = project.baseDir
+    if (outputDir == null || !outputDir.exists()) {
+      outputDir = VfsUtil.getUserHomeDir()
+    }
+
+    val descriptor = FileSaverDescriptor("Cody: Export Chats", "Save as *.$EXTENSION", EXTENSION)
+
+    val saveFileDialog: FileSaverDialog =
+        FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project)
+
+    // Append extension manually to file name on MacOS because FileSaverDialog does not
+    // do it automatically.
+    val fileName: String = "Untitled" + (if (SystemInfo.isMac) ".$EXTENSION" else "")
+
+    val result = saveFileDialog.save(outputDir, fileName) ?: return
+
     ExportChatsBackgroundable(
             project,
             onSuccess = { chatHistory ->
-              ApplicationManager.getApplication().invokeLater {
-                // Update default file path to user home if myProject.getBasePath() is not valid
-                var outputDir: VirtualFile? = project.baseDir
-                if (outputDir == null || !outputDir.exists()) {
-                  outputDir = VfsUtil.getUserHomeDir()
-                }
-
-                val descriptor =
-                    FileSaverDescriptor("Cody: Export Chats", "Save as *.$EXTENSION", EXTENSION)
-
-                val saveFileDialog: FileSaverDialog =
-                    FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project)
-
-                // Append extension manually to file name on MacOS because FileSaverDialog does not
-                // do it automatically.
-                val fileName: String = "Untitled" + (if (SystemInfo.isMac) ".$EXTENSION" else "")
-                val result = saveFileDialog.save(outputDir, fileName) ?: return@invokeLater
-                val json = gson.toJson(chatHistory)
-
+              val json = gson.toJson(chatHistory)
+              invokeLater {
                 WriteAction.run<RuntimeException> {
                   saveTextToFile(json.toByteArray(), result.file)
                 }

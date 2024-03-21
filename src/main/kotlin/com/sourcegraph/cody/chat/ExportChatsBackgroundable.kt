@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.chat
 
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
@@ -43,7 +44,7 @@ class ExportChatsBackgroundable(
         if (result != null) {
           onSuccess.invoke(result)
         } else {
-          throw Error("getChats is null") // todo: handle it
+          throw Error("Request timed out") // todo: handle it
         }
       }
     }
