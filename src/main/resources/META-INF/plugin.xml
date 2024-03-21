@@ -181,6 +181,7 @@
 
         <action id="cody.exportChats"
                 icon="/icons/chat/download.svg"
+                text="Export Chats as JSON"
                 class="com.sourcegraph.cody.chat.actions.ExportChatsAction">
         </action>
 

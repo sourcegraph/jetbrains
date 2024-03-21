@@ -3,13 +3,16 @@ package com.sourcegraph.cody.chat
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.agent.WebviewMessage
+import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.protocol.ChatHistoryResponse
+import com.sourcegraph.cody.agent.protocol.IdParam
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.HistoryService
+import java.util.concurrent.TimeUnit
 
 class ExportChatsBackgroundable(
     project: Project,
-    private val onSuccess: (String) -> Unit,
+    private val onSuccess: (ChatHistoryResponse) -> Unit,
     private val onFinished: () -> Unit
 ) : Task.Backgroundable(project, /* title = */ "Exporting chats...", /* canBeCancelled = */ true) {
 
@@ -22,29 +25,33 @@ class ExportChatsBackgroundable(
             .filter { it.accountId == accountId }
             .filter { it.messages.isNotEmpty() }
 
-    val agentChatSession =
-        AgentChatSession.createNew(project) {
-          ExportChatsService.getInstance(project).reset(it.get())
-        }
-
     chats.forEachIndexed { index, chatState ->
       AgentChatSessionService.getInstance(project).getOrCreateFromState(chatState)
-      indicator.fraction = (index / (chats.size + 1.0))
+      indicator.fraction = ((index + 1.0) / (chats.size + 1.0))
       if (indicator.isCanceled) {
         return
       }
     }
 
-    agentChatSession.sendWebviewMessage(WebviewMessage(command = "history", action = "export"))
-
-    println("START: result = ExportChatsService.getInstance(project).result.get()")
-    val result = ExportChatsService.getInstance(project).getChats()
-    println("STOP: result = ExportChatsService.getInstance(project).result.get()")
-    if (result != null) {
-      onSuccess.invoke(result)
-    } else {
-      throw Error("getChats is null")
+    AgentChatSession.createNew(project) { connectionId ->
+      CodyAgentService.withAgent(project) { agent ->
+        val result: ChatHistoryResponse? =
+            agent.server
+                .chatExport(IdParam(connectionId))
+                .completeOnTimeout(null, 15, TimeUnit.SECONDS)
+                .get()
+        if (result != null) {
+          onSuccess.invoke(result)
+        } else {
+          throw Error("getChats is null") // todo: handle it
+        }
+      }
     }
+  }
+
+  override fun onCancel() {
+    super.onCancel()
+    onFinished.invoke()
   }
 
   override fun onFinished() {

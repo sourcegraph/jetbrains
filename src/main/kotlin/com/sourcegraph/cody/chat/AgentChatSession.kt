@@ -15,11 +15,11 @@ import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.WebviewReceiveMessageParams
 import com.sourcegraph.cody.agent.protocol.ChatError
 import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ChatModelsParams
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
 import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
 import com.sourcegraph.cody.agent.protocol.ContextItem
+import com.sourcegraph.cody.agent.protocol.IdParam
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
@@ -215,10 +215,6 @@ private constructor(
           this.chatPanel.promptPanel.setContextFilesSelector(message.userContextFiles)
         }
       }
-      ExtensionMessage.Type.HISTORY -> {
-        ExportChatsService.getInstance(project)
-            .setLocalHistory(connectionId.get().get(), message.localHistory)
-      }
       else -> {
         logger.debug(String.format("unknown message type: %s", message.type))
       }
@@ -253,7 +249,7 @@ private constructor(
     }
 
     CodyAgentService.withAgent(project) { agent ->
-      val chatModels = agent.server.chatModels(ChatModelsParams(connectionId.get().get()))
+      val chatModels = agent.server.chatModels(IdParam(connectionId.get().get()))
       val response =
           chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get() ?: return@withAgent
       chatPanel.updateLlmDropdownModels(response.models)

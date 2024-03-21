@@ -1,5 +1,7 @@
 package com.sourcegraph.cody.chat.actions
 
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
@@ -18,14 +20,21 @@ import java.io.File
 
 class ExportChatsAction : DumbAwareBGTAction() {
 
+  private var isRunning = false
+
+  override fun update(e: AnActionEvent) {
+    super.update(e)
+    e.presentation.isEnabled = !isRunning
+    e.presentation.description = if (isRunning) "Export in progress..." else "Export Chats As JSON"
+  }
+
   override fun actionPerformed(e: AnActionEvent) {
     val project = e.project ?: return
-    e.presentation.isEnabled = false
-    e.presentation.description = "Export in progress..."
+    isRunning = true
 
     ExportChatsBackgroundable(
             project,
-            onSuccess = { json ->
+            onSuccess = { chatHistory ->
               ApplicationManager.getApplication().invokeLater {
                 // Update default file path to user home if myProject.getBasePath() is not valid
                 var outputDir: VirtualFile? = project.baseDir
@@ -43,16 +52,14 @@ class ExportChatsAction : DumbAwareBGTAction() {
                 // do it automatically.
                 val fileName: String = "Untitled" + (if (SystemInfo.isMac) ".$EXTENSION" else "")
                 val result = saveFileDialog.save(outputDir, fileName) ?: return@invokeLater
+                val json = gson.toJson(chatHistory)
 
                 WriteAction.run<RuntimeException> {
                   saveTextToFile(json.toByteArray(), result.file)
                 }
               }
             },
-            onFinished = {
-              e.presentation.isEnabled = false
-              e.presentation.description = "Export chats..."
-            })
+            onFinished = { isRunning = false })
         .queue()
   }
 
@@ -68,6 +75,8 @@ class ExportChatsAction : DumbAwareBGTAction() {
   }
 
   companion object {
+    val gson: Gson = GsonBuilder().create()
+
     const val EXTENSION = "json"
   }
 }
