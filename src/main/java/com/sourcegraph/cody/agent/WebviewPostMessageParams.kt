@@ -13,7 +13,6 @@ data class WebviewMessage(
     val command: String,
     val text: String? = null,
     val submitType: String? = null, // One of: "user", "suggestion", "example"
-    val action: String? = null, // One of: "clear", "export"
     val addEnhancedContext: Boolean? = null,
     val contextFiles: List<ContextItem>? = null,
     val error: ChatError? = null,
@@ -37,15 +36,13 @@ data class ExtensionMessage(
     val isTranscriptError: Boolean? = null,
     val customPrompts: List<List<Any>>? = null,
     val userContextFiles: List<ContextItem>? = null,
-    val localHistory: Any? = null,
-    val errors: String? = null,
+    val errors: String?,
     val query: String? = null,
     val configFeatures: ConfigFeatures? = null,
 ) {
 
   object Type {
     const val TRANSCRIPT = "transcript"
-    const val HISTORY = "history"
     const val ERRORS = "errors"
     const val USER_CONTEXT_FILES = "userContextFiles"
     const val SET_CONFIG_FEATURES = "setConfigFeatures"

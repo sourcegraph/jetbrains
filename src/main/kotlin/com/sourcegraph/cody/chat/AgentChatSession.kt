@@ -57,8 +57,6 @@ private constructor(
   private val cancellationToken = AtomicReference(CancellationToken())
   private val messages = mutableListOf<ChatMessage>()
 
-  private val logger = LoggerFactory.getLogger(ChatSession::class.java)
-
   init {
     cancellationToken.get().dispose()
     updateLlmDropdownModels()
@@ -74,6 +72,8 @@ private constructor(
   override fun getInternalId(): String = internalId
 
   override fun getCancellationToken(): CancellationToken = cancellationToken.get()
+
+  private val logger = LoggerFactory.getLogger(ChatSession::class.java)
 
   @RequiresEdt
   override fun sendMessage(text: String, contextItems: List<ContextItem>) {

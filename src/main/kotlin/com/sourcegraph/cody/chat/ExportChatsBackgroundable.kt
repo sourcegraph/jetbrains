@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.chat
 
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
