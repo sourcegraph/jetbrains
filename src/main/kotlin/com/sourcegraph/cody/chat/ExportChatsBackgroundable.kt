@@ -5,7 +5,6 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ChatHistoryResponse
-import com.sourcegraph.cody.agent.protocol.IdParam
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.HistoryService
 import java.util.concurrent.TimeUnit
@@ -33,13 +32,10 @@ class ExportChatsBackgroundable(
       }
     }
 
-    AgentChatSession.createNew(project) { connectionId ->
+    AgentChatSession.createNew(project) { _ ->
       CodyAgentService.withAgent(project) { agent ->
         val result: ChatHistoryResponse? =
-            agent.server
-                .chatExport(IdParam(connectionId))
-                .completeOnTimeout(null, 15, TimeUnit.SECONDS)
-                .get()
+            agent.server.chatExport().completeOnTimeout(null, 15, TimeUnit.SECONDS).get()
         if (result != null) {
           onSuccess.invoke(result)
         } else {
