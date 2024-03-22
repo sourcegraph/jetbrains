@@ -1,19 +1,14 @@
+
 import com.jetbrains.plugin.structure.base.utils.isDirectory
-import java.net.URL
-import java.nio.file.FileSystems
-import java.nio.file.FileVisitResult
-import java.nio.file.Files
-import java.nio.file.PathMatcher
-import java.nio.file.Paths
-import java.nio.file.SimpleFileVisitor
-import java.nio.file.StandardCopyOption
-import java.nio.file.attribute.BasicFileAttributes
-import java.util.EnumSet
-import java.util.jar.JarFile
-import java.util.zip.ZipFile
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.net.URL
+import java.nio.file.*
+import java.nio.file.attribute.BasicFileAttributes
+import java.util.*
+import java.util.jar.JarFile
+import java.util.zip.ZipFile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -28,27 +23,41 @@ val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") 
 plugins {
   id("java")
   // Dependencies are locked at this version to work with JDK 11 on CI.
-  id("org.jetbrains.kotlin.jvm") version "1.9.22"
+  id("org.jetbrains.kotlin.jvm") version "1.9.22" // Also change in gradle.properties
   id("org.jetbrains.intellij") version "1.17.2"
   id("org.jetbrains.changelog") version "1.3.1"
   id("com.diffplug.spotless") version "6.25.0"
 }
 
+val kotlinVersion: String by project
+val platformVersion: String by project
+val javaVersion: String by project
+
 group = properties("pluginGroup")
 
 version = properties("pluginVersion")
 
-repositories { mavenCentral() }
+repositories {
+  maven { url = uri("https://www.jetbrains.com/intellij-repository/releases") }
+  mavenCentral()
+}
 
-intellij {
-  pluginName.set(properties("pluginName"))
-  version.set(properties("platformVersion"))
-  type.set(properties("platformType"))
+configurations {
+  create("intTestImplementation") {
+    extendsFrom(configurations.testImplementation.get())
+  }
+  create("intTestRuntimeOnly") {
+    extendsFrom(configurations.testRuntimeOnly.get())
+  }
+}
 
-  // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
-  plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
-
-  updateSinceUntilBuild.set(false)
+sourceSets {
+  val main by getting
+  val intTest by creating {
+    // Correctly access configurations for compileClasspath and runtimeClasspath
+    compileClasspath += main.output + configurations.named("intTestImplementation").get()
+    runtimeClasspath += output + compileClasspath + configurations.named("intTestRuntimeOnly").get()
+  }
 }
 
 dependencies {
@@ -57,7 +66,22 @@ dependencies {
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.21.0")
   implementation("com.googlecode.java-diff-utils:diffutils:1.3.0")
   testImplementation("org.awaitility:awaitility-kotlin:4.2.0")
+  testImplementation("org.junit.jupiter:junit-jupiter:5.7.0")
+  // testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
+  testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.22")
+
+  "intTestImplementation"("com.jetbrains.intellij.idea:ideaIC:2022.1")
 }
+
+// Create a task to run integration tests
+tasks.register<Test>("intTest") {
+  description = "Runs the integration tests."
+  group = "verification"
+  testClassesDirs = sourceSets["intTest"].output.classesDirs
+  classpath = sourceSets["intTest"].runtimeClasspath
+}
+
+tasks.named("check") { dependsOn("intTest") }
 
 spotless {
   java {
@@ -74,7 +98,19 @@ spotless {
     ktfmt()
     trimTrailingWhitespace()
     target("src/**/*.kt")
+    toggleOffOn()
   }
+}
+
+intellij {
+  pluginName.set(properties("pluginName"))
+  version.set(platformVersion)
+  type.set(properties("platformType"))
+
+  // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
+  plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+
+  updateSinceUntilBuild.set(false)
 }
 
 java {
