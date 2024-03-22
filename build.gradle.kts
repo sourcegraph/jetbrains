@@ -1,14 +1,20 @@
-
 import com.jetbrains.plugin.structure.base.utils.isDirectory
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
-import java.nio.file.*
+import java.nio.file.FileSystems
+import java.nio.file.FileVisitResult
+import java.nio.file.Files
+import java.nio.file.PathMatcher
+import java.nio.file.Paths
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
-import java.util.*
+import java.util.EnumSet
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
+import kotlin.script.experimental.jvm.util.hasParentNamed
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -22,6 +28,7 @@ val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") 
 
 plugins {
   id("java")
+  id("jvm-test-suite")
   // Dependencies are locked at this version to work with JDK 11 on CI.
   id("org.jetbrains.kotlin.jvm") version "1.9.22" // Also change in gradle.properties
   id("org.jetbrains.intellij") version "1.17.2"
@@ -42,24 +49,6 @@ repositories {
   mavenCentral()
 }
 
-configurations {
-  create("intTestImplementation") {
-    extendsFrom(configurations.testImplementation.get())
-  }
-  create("intTestRuntimeOnly") {
-    extendsFrom(configurations.testRuntimeOnly.get())
-  }
-}
-
-sourceSets {
-  val main by getting
-  val intTest by creating {
-    // Correctly access configurations for compileClasspath and runtimeClasspath
-    compileClasspath += main.output + configurations.named("intTestImplementation").get()
-    runtimeClasspath += output + compileClasspath + configurations.named("intTestRuntimeOnly").get()
-  }
-}
-
 dependencies {
   implementation("org.commonmark:commonmark:0.21.0")
   implementation("org.commonmark:commonmark-ext-gfm-tables:0.21.0")
@@ -67,21 +56,8 @@ dependencies {
   implementation("com.googlecode.java-diff-utils:diffutils:1.3.0")
   testImplementation("org.awaitility:awaitility-kotlin:4.2.0")
   testImplementation("org.junit.jupiter:junit-jupiter:5.7.0")
-  // testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.22")
-
-  "intTestImplementation"("com.jetbrains.intellij.idea:ideaIC:2022.1")
 }
-
-// Create a task to run integration tests
-tasks.register<Test>("intTest") {
-  description = "Runs the integration tests."
-  group = "verification"
-  testClassesDirs = sourceSets["intTest"].output.classesDirs
-  classpath = sourceSets["intTest"].runtimeClasspath
-}
-
-tasks.named("check") { dependsOn("intTest") }
 
 spotless {
   java {
@@ -437,4 +413,33 @@ tasks {
   }
 
   test { dependsOn(project.tasks.getByPath("buildCody")) }
+
+  configurations {
+    create("intTestImplementation") { extendsFrom(configurations.testImplementation.get()) }
+    create("intTestRuntimeClasspath") { extendsFrom(configurations.testRuntimeOnly.get()) }
+  }
+
+  sourceSets {
+    create("intTest") {
+      kotlin.srcDir("src/integrationTest/kotlin")
+      compileClasspath += main.get().output
+      runtimeClasspath += main.get().output
+    }
+  }
+
+  // Create a task to run integration tests
+  register<Test>("intTest") {
+    description = "Runs the integration tests."
+    group = "verification"
+    testClassesDirs = sourceSets["intTest"].output.classesDirs
+    classpath = sourceSets["intTest"].runtimeClasspath
+
+    include { it.file.hasParentNamed("intTest") }
+
+    useJUnit()
+  }
+
+  named("intTest") { dependsOn("buildCody") }
+
+  named("check") { dependsOn("intTest") }
 }

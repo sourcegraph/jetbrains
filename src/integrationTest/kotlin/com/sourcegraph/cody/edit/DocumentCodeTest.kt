@@ -19,7 +19,9 @@ class DocumentCodeTest : BasePlatformTestCase() {
 
     // TODO: Move this into testData as a file with <caret>
     // spotless:off
-        myFixture.configureByText("Foo.java", """
+    myFixture.configureByText(
+        "Foo.java",
+        """
 import java.util.*;
 
 public class Foo {
@@ -42,6 +44,7 @@ public class Foo {
   }
 
   fun testTopLevelClass() {
+    assert(false)
     // ...
   }
 }
