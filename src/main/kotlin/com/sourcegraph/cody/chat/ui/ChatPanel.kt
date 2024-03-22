@@ -104,12 +104,12 @@ class ChatPanel(
     stopGeneratingButton.addActionListener { cancellationToken.abort() }
   }
 
-  fun updateLlmDropdownModels(llmDropdownData: LlmDropdownData) {
-    ApplicationManager.getApplication().invokeLater { llmDropdown.updateModels(llmDropdownData) }
+  fun updateLlmDropdownModels(models: List<ChatModelsResponse.ChatModelProvider>) {
+    ApplicationManager.getApplication().invokeLater { llmDropdown.updateModels(models) }
   }
 
   private fun setLlmForAgentSession(chatModelProvider: ChatModelsResponse.ChatModelProvider) {
-    val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
+    val activeAccountType = CodyAuthenticationManager.getInstance(project).getActiveAccount()
     if (activeAccountType?.isEnterpriseAccount() == true) {
       // no need to send the webview message since the chat model is set by default
     } else {

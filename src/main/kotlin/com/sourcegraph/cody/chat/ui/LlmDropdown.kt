@@ -5,15 +5,11 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.MutableCollectionComboBoxModel
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
+import com.sourcegraph.cody.config.AccountTier
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.ui.LlmComboBoxRenderer
 import com.sourcegraph.common.BrowserOpener
 import com.sourcegraph.common.CodyBundle
-
-data class LlmDropdownData(
-    val models: List<ChatModelsResponse.ChatModelProvider>,
-    val isCurrentUserFree: Boolean
-)
 
 class LlmDropdown(
     private val project: Project,
@@ -22,6 +18,7 @@ class LlmDropdown(
 ) : ComboBox<ChatModelsResponse.ChatModelProvider>(MutableCollectionComboBoxModel()) {
 
   private var didSendFirstMessage: Boolean = false
+  var isCurrentUserFree = true
 
   init {
     renderer = LlmComboBoxRenderer(this)
@@ -33,18 +30,22 @@ class LlmDropdown(
   }
 
   @RequiresEdt
-  fun updateModels(data: LlmDropdownData) {
+  fun updateModels(models: List<ChatModelsResponse.ChatModelProvider>) {
     if (chatModelProviderFromState != null) {
       return
     }
 
     removeAllItems()
-    (renderer as LlmComboBoxRenderer).isCurrentUserFree = data.isCurrentUserFree
-    data.models.forEach(::addItem)
-    data.models.find { it.default }?.let { this.selectedItem = it }
+    models.forEach(::addItem)
+    models.find { it.default }?.let { this.selectedItem = it }
+
+    CodyAuthenticationManager.getInstance(project).getActiveAccountTier().thenApply { accountTier ->
+      isCurrentUserFree = accountTier == AccountTier.DOTCOM_FREE
+    }
 
     val isEnterpriseAccount =
-        CodyAuthenticationManager.instance.getActiveAccount(project)?.isEnterpriseAccount() ?: false
+        CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isEnterpriseAccount()
+            ?: false
     isEnabled = !didSendFirstMessage && !isEnterpriseAccount && model.size > 1
   }
 
@@ -55,11 +56,9 @@ class LlmDropdown(
   override fun setSelectedItem(anObject: Any?) {
     val modelProvider = anObject as? ChatModelsResponse.ChatModelProvider
     if (modelProvider != null) {
-      if (modelProvider.codyProOnly) {
-        if ((renderer as LlmComboBoxRenderer).isCurrentUserFree) {
-          BrowserOpener.openInBrowser(project, "https://sourcegraph.com/cody/subscription")
-          return
-        }
+      if (modelProvider.codyProOnly && isCurrentUserFree) {
+        BrowserOpener.openInBrowser(project, "https://sourcegraph.com/cody/subscription")
+        return
       }
       super.setSelectedItem(anObject)
       onSetSelectedItem(modelProvider)
@@ -70,7 +69,7 @@ class LlmDropdown(
     didSendFirstMessage = true
     isEnabled = false
 
-    val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
+    val activeAccountType = CodyAuthenticationManager.getInstance(project).getActiveAccount()
     if (activeAccountType?.isDotcomAccount() == true) {
       toolTipText = CodyBundle.getString("LlmDropdown.disabled.text")
     }

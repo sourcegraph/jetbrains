@@ -4,11 +4,11 @@ import com.intellij.ide.BrowserUtil
 import com.intellij.ide.ui.LafManagerListener
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.Project
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
+import com.sourcegraph.cody.config.AccountTier
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.UpgradeToCodyProNotification
@@ -65,45 +65,40 @@ class MyAccountTabPanel(val project: Project) : JPanel() {
     }
   }
 
-  private fun createCenterPanel(isCurrentUserPro: Boolean?) = panel {
+  private fun createCenterPanel(accountTier: AccountTier?) = panel {
     val tier =
-        if (isCurrentUserPro == null) CodyBundle.getString("my-account-tab.loading-label")
-        else if (isCurrentUserPro) CodyBundle.getString("my-account-tab.cody-pro-label")
-        else CodyBundle.getString("my-account-tab.cody-free-label")
+        when (accountTier) {
+          null -> CodyBundle.getString("my-account-tab.loading-label")
+          AccountTier.DOTCOM_PRO -> CodyBundle.getString("my-account-tab.cody-pro-label")
+          else -> CodyBundle.getString("my-account-tab.cody-free-label")
+        }
     row { label("<html>Current tier: <b>$tier</b><html/>") }
     row {
-      if (isCurrentUserPro == false) {
+      if (accountTier == AccountTier.DOTCOM_FREE) {
         val upgradeButton =
             button("Upgrade") { BrowserUtil.browse(ConfigUtil.DOTCOM_URL + "cody/subscription") }
         upgradeButton.component.putClientProperty(DarculaButtonUI.DEFAULT_STYLE_KEY, true)
       }
       button("Check Usage") { BrowserUtil.browse(ConfigUtil.DOTCOM_URL + "cody/manage") }
     }
-    if (isCurrentUserPro == false) {
+    if (accountTier == AccountTier.DOTCOM_FREE) {
       row { text(CodyBundle.getString("my-account-tab.already-pro")) }
     }
   }
 
   @RequiresEdt
-  fun update() {
+  fun update(accountTier: AccountTier? = null) {
     this.removeAll()
     chatLimitError = UpgradeToCodyProNotification.chatRateLimitError.get()
     autocompleteLimitError = UpgradeToCodyProNotification.autocompleteRateLimitError.get()
     if (chatLimitError != null || autocompleteLimitError != null) {
       this.add(createRateLimitPanel(), BorderLayout.PAGE_START)
     }
+    this.add(createCenterPanel(accountTier))
 
-    val activeAccount = CodyAuthenticationManager.instance.getActiveAccount(project)
-    val isCurrentUserProFuture = activeAccount?.isProUser(project)
-    val centerPanel = createCenterPanel(isCurrentUserProFuture?.getNow(null))
-    this.add(centerPanel)
-
-    isCurrentUserProFuture?.thenAccept { isCurrentUserPro ->
-      invokeLater {
-        this.remove(centerPanel)
-        this.add(createCenterPanel(isCurrentUserPro))
-        revalidate()
-        repaint()
+    if (accountTier == null) {
+      CodyAuthenticationManager.getInstance(project).getActiveAccountTier().thenApply {
+        ApplicationManager.getApplication().invokeLater { update(it) }
       }
     }
 
