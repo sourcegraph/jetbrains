@@ -10,13 +10,13 @@ import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
+import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.*
 import java.net.Socket
 import java.net.URI
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
-import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -136,7 +136,8 @@ private constructor(
             val script = File(System.getenv("CODY_DIR"), "agent/dist/index.js")
             logger.info("using Cody agent script " + script.absolutePath)
             if (shouldSpawnDebuggableAgent()) {
-              listOf("node", "--inspect", "--enable-source-maps", script.absolutePath)
+              // TODO: Differentiate between --inspect and --inspect-brk (via env var)
+              listOf("node", "--inspect-brk", "--enable-source-maps", script.absolutePath)
             } else {
               listOf("node", "--enable-source-maps", script.absolutePath)
             }
@@ -154,6 +155,13 @@ private constructor(
 
       if (java.lang.Boolean.getBoolean("cody.log-events-to-connected-instance-only")) {
         processBuilder.environment()["CODY_LOG_EVENT_MODE"] = "connected-instance-only"
+      }
+
+      // TODO: Figure out which of these two works best and remove the other one.
+      if (java.lang.Boolean.getBoolean("cody.integration.testing")
+              || System.getenv("CODY_TESTING") == "true") {
+        processBuilder.environment()["CODY_TESTING"] = "true"
+        processBuilder.environment()["CODY_SHIM_TESTING"] = "true"
       }
 
       val process =

@@ -41,10 +41,11 @@ public class Foo {
 }
 """) // spotless:on
     EditorTestUtil.executeAction(myFixture.editor, "cody.documentCodeAction")
+    assertTrue(myFixture.editor.document.text.contains("/\\*"))
   }
 
   fun testTopLevelClass() {
-    assert(false)
+    assert(true)
     // ...
   }
 }

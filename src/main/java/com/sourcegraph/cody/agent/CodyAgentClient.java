@@ -2,7 +2,6 @@ package com.sourcegraph.cody.agent;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.Editor;
 import com.sourcegraph.cody.agent.protocol.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -20,8 +19,6 @@ import org.jetbrains.annotations.Nullable;
 public class CodyAgentClient {
 
   private static final Logger logger = Logger.getInstance(CodyAgentClient.class);
-
-  @Nullable public Editor editor;
 
   // Callback that is invoked when the agent sends a "chat/updateMessageInProgress" notification.
   @Nullable public Consumer<WebviewPostMessageParams> onNewMessage;

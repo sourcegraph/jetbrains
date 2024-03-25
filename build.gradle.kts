@@ -1,3 +1,4 @@
+
 import com.jetbrains.plugin.structure.base.utils.isDirectory
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
@@ -437,9 +438,12 @@ tasks {
     include { it.file.hasParentNamed("intTest") }
 
     useJUnit()
-  }
 
-  named("intTest") { dependsOn("buildCody") }
+    systemProperty("cody.integration.testing", "true")
+    environment("CODY_TESTING", "true")
+
+    dependsOn("buildCody")
+  }
 
   named("check") { dependsOn("intTest") }
 }
