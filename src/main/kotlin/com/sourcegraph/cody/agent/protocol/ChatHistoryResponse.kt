@@ -1,3 +1,3 @@
 package com.sourcegraph.cody.agent.protocol
 
-typealias ChatHistoryResponse = List<Any>
+data class ChatHistoryResponse(val chatID: String, val transcript: Any)

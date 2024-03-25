@@ -1,14 +1,20 @@
 package com.sourcegraph.cody.history
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.treeStructure.SimpleTree
 import com.intellij.util.EditSourceOnDoubleClickHandler
+import com.sourcegraph.cody.Icons
+import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.INTERNAL_ID_DATA_KEY
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.node.LeafNode
 import com.sourcegraph.cody.history.node.PeriodNode
@@ -55,6 +61,12 @@ class HistoryTree(
     group.add(
         LeafPopupAction(
             CodyBundle.getString("popup.select-chat"), null, ::hasLeafSelected, ::selectLeaf))
+    group.add(
+        LeafPopupAction(
+            CodyBundle.getString("popup.export-chat"),
+            Icons.Chat.Download,
+            ::hasLeafSelected,
+            ::export))
     group.add(
         LeafPopupAction(
             CodyBundle.getString("popup.remove-chat"),
@@ -136,6 +148,26 @@ class HistoryTree(
 
   private fun selectLeaf() {
     getSelectedLeaf()?.let { onSelect(it.chat) }
+  }
+
+  private fun export() {
+    getSelectedLeaf()?.let {
+      val action = ActionManager.getInstance().getAction("cody.exportChats")
+      action.actionPerformed(
+          AnActionEvent(
+              /* inputEvent = */ null,
+              /* dataContext = */ { dataId ->
+                when (dataId) {
+                  CommonDataKeys.PROJECT.name -> project
+                  INTERNAL_ID_DATA_KEY.name -> it.chat.internalId
+                  else -> null
+                }
+              },
+              /* place = */ ActionPlaces.UNKNOWN,
+              /* presentation = */ Presentation(),
+              /* actionManager = */ ActionManager.getInstance(),
+              /* modifiers = */ 0))
+    }
   }
 
   private fun removeLeaf() {

@@ -3,6 +3,7 @@ package com.sourcegraph.cody.chat.actions
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.fileChooser.FileChooserFactory
@@ -27,6 +28,7 @@ class ExportChatsAction : DumbAwareBGTAction() {
 
   override fun actionPerformed(e: AnActionEvent) {
     val project = e.project ?: return
+    val internalId = e.getData(INTERNAL_ID_DATA_KEY)
     isRunning = true
 
     // Update default file path to user home if myProject.getBasePath() is not valid
@@ -48,6 +50,7 @@ class ExportChatsAction : DumbAwareBGTAction() {
 
     ExportChatsBackgroundable(
             project,
+            internalId = internalId,
             onSuccess = { chatHistory ->
               val json = gson.toJson(chatHistory)
               invokeLater {
@@ -65,5 +68,6 @@ class ExportChatsAction : DumbAwareBGTAction() {
     val gson: Gson = GsonBuilder().create()
 
     const val EXTENSION = "json"
+    val INTERNAL_ID_DATA_KEY = DataKey.create<String?>("internalId")
   }
 }
