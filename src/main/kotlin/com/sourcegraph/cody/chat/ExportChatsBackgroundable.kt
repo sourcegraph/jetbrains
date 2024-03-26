@@ -1,5 +1,8 @@
 package com.sourcegraph.cody.chat
 
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
@@ -7,6 +10,7 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.chat.AgentChatSession.Companion.restoreChatSession
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.initialization.EndOfTrialNotificationScheduler
 import java.util.concurrent.TimeUnit
 
 class ExportChatsBackgroundable(
@@ -47,15 +51,29 @@ class ExportChatsBackgroundable(
           if (singleChatHistory != null) {
             onSuccess.invoke(singleChatHistory)
           } else {
-            // todo: handle error
-            throw Error("Request error")
+            logger.warn("export failed: singleChatHistory is null")
+
+            val notification =
+                Notification(
+                    "Sourcegraph Cody",
+                    "Cody: Chat export failed. Please retry...",
+                    "",
+                    NotificationType.WARNING)
+            notification.notify(project)
           }
         } else {
           onSuccess.invoke(result)
         }
       } else {
-        // todo: handle error
-        throw Error("Request timed out")
+        logger.warn("export failed: result is null")
+
+        val notification =
+            Notification(
+                "Sourcegraph Cody",
+                "Cody: Chat export timed out. Please retry...",
+                "",
+                NotificationType.WARNING)
+        notification.notify(project)
       }
     }
   }
@@ -68,5 +86,9 @@ class ExportChatsBackgroundable(
   override fun onFinished() {
     super.onFinished()
     onFinished.invoke()
+  }
+
+  companion object {
+    private val logger = Logger.getInstance(EndOfTrialNotificationScheduler::class.java)
   }
 }
