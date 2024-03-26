@@ -27,37 +27,35 @@ class ExportChatsBackgroundable(
             .filter { it.internalId != null }
             .filter { chat -> if (internalId != null) chat.internalId == internalId else true }
 
-    AgentChatSession.createNew(project) { _ ->
-      CodyAgentService.withAgent(project) { agent ->
-        chats.forEachIndexed { index, chatState ->
-          restoreChatSession(agent, chatState)
-          indicator.fraction = ((index + 1.0) / (chats.size + 1.0))
-          if (indicator.isCanceled) {
-            return@withAgent
-          }
-        }
-
-        val result = agent.server.chatExport().completeOnTimeout(null, 15, TimeUnit.SECONDS).get()
+    CodyAgentService.withAgent(project) { agent ->
+      chats.forEachIndexed { index, chatState ->
+        restoreChatSession(agent, chatState)
+        indicator.fraction = ((index + 1.0) / (chats.size + 1.0))
         if (indicator.isCanceled) {
           return@withAgent
         }
+      }
 
-        if (result != null) {
-          if (internalId != null) {
-            val singleChatHistory = result.find { it.chatID == internalId }
-            if (singleChatHistory != null) {
-              onSuccess.invoke(singleChatHistory)
-            } else {
-              // todo: handle error
-              throw Error("Request error")
-            }
+      val result = agent.server.chatExport().completeOnTimeout(null, 15, TimeUnit.SECONDS).get()
+      if (indicator.isCanceled) {
+        return@withAgent
+      }
+
+      if (result != null) {
+        if (internalId != null) {
+          val singleChatHistory = result.find { it.chatID == internalId }
+          if (singleChatHistory != null) {
+            onSuccess.invoke(singleChatHistory)
           } else {
-            onSuccess.invoke(result)
+            // todo: handle error
+            throw Error("Request error")
           }
         } else {
-          // todo: handle error
-          throw Error("Request timed out")
+          onSuccess.invoke(result)
         }
+      } else {
+        // todo: handle error
+        throw Error("Request timed out")
       }
     }
   }
