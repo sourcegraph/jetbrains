@@ -5,7 +5,11 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.*
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.LogicalPosition
+import com.intellij.openapi.editor.RangeMarker
+import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -14,11 +18,17 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.CommandExecuteParams
-import com.sourcegraph.cody.agent.protocol.*
+import com.sourcegraph.cody.agent.protocol.CodyTaskState
+import com.sourcegraph.cody.agent.protocol.EditTask
+import com.sourcegraph.cody.agent.protocol.GetFoldingRangeParams
+import com.sourcegraph.cody.agent.protocol.Position
+import com.sourcegraph.cody.agent.protocol.Range
+import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import java.util.concurrent.CancellationException
@@ -44,9 +54,10 @@ abstract class FixupSession(
 
   private var performedEdits = false
 
-  private var lensGroup: LensWidgetGroup? = null
+  var lensGroup: LensWidgetGroup? = null
+    private set
 
-  private var selectionRange: Range? = null
+  var selectionRange: Range? = null
 
   private var rangeMarkers: MutableSet<RangeMarker> = mutableSetOf()
 
@@ -113,25 +124,26 @@ abstract class FixupSession(
   }
 
   private fun ensureSelectionRange(agent: CodyAgent, caret: Int) {
-    val url = getDocumentUrl()
-    if (url != null) {
-      val future = CompletableFuture<Unit>()
-      agent.server.getFoldingRanges(GetFoldingRangeParams(uri = url)).handle { result, error ->
-        if (result != null && error == null) {
-          selectionRange = findRangeEnclosing(result.ranges, caret)
-        }
-        // Make sure we have SOME selection range near the caret.
-        // Otherwise, we wind up with the lenses and insertion at top of file.
-        if (selectionRange == null) {
-          logger.warn("Unable to find enclosing folding range at $caret in $url")
-          selectionRange =
-              Range(Position.fromOffset(document, caret), Position.fromOffset(document, caret))
-        }
-        future.complete(null)
+    val url = getDocumentUrl() ?: return
+    val future = CompletableFuture<Unit>()
+    agent.server.getFoldingRanges(GetFoldingRangeParams(uri = url)).handle { result, error ->
+      if (result != null && error == null) {
+        selectionRange = findRangeEnclosing(result.ranges, caret)
       }
-      // Block until we get the folding ranges.
-      future.get()
+      // Make sure we have SOME selection range near the caret.
+      // Otherwise, we wind up with the lenses and insertion at top of file.
+      if (selectionRange == null) {
+        logger.warn("Unable to find enclosing folding range at $caret in $url")
+        selectionRange =
+            Range(Position.fromOffset(document, caret), Position.fromOffset(document, caret))
+      } else {
+        // This is useful for tracking issues with integration tests, but if it's annoying, ax it.
+        logger.warn("Found enclosing folding range at $caret in $url: $selectionRange")
+      }
+      future.complete(null)
+      publishProgressOnEdt(CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES)
     }
+    future.get() // Block until we have a selection range.
   }
 
   private fun getDocumentUrl(): String? {
@@ -188,13 +200,16 @@ abstract class FixupSession(
     group.show(range)
     // Make sure the lens is visible.
     ApplicationManager.getApplication().invokeLater {
-      val logicalPosition = LogicalPosition(range.start.line, range.start.character)
-      editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+      if (!editor.isDisposed) {
+        val logicalPosition = LogicalPosition(range.start.line, range.start.character)
+        editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+      }
     }
   }
 
   private fun showWorkingGroup() {
     showLensGroup(LensGroupFactory(this).createTaskWorkingGroup())
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
   }
 
   private fun showAcceptGroup() {
@@ -267,6 +282,7 @@ abstract class FixupSession(
             else -> logger.warn("Unknown edit type: ${edit.type}")
           }
         }
+        publishProgress(CodyInlineEditActionNotifier.TOPIC_WORKSPACE_EDIT)
       }
     }
   }
@@ -320,6 +336,22 @@ abstract class FixupSession(
 
   private fun getCurrentFileEditor(file: VirtualFile): FileEditor? {
     return FileEditorManager.getInstance(project).getEditors(file).firstOrNull()
+  }
+
+  private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
+    ApplicationManager.getApplication().executeOnPooledThread {
+      project.messageBus
+          .syncPublisher(topic)
+          .afterAction(CodyInlineEditActionNotifier.Context(session = this))
+    }
+  }
+
+  private fun publishProgressOnEdt(topic: Topic<CodyInlineEditActionNotifier>) {
+    ApplicationManager.getApplication().invokeLater {
+      project.messageBus
+          .syncPublisher(topic)
+          .afterAction(CodyInlineEditActionNotifier.Context(session = this))
+    }
   }
 
   companion object {

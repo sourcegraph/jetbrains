@@ -3,7 +3,14 @@ package com.sourcegraph.cody.autocomplete
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.event.*
+import com.intellij.openapi.editor.event.BulkAwareDocumentListener
+import com.intellij.openapi.editor.event.CaretEvent
+import com.intellij.openapi.editor.event.CaretListener
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.EditorFactoryEvent
+import com.intellij.openapi.editor.event.EditorFactoryListener
+import com.intellij.openapi.editor.event.SelectionEvent
+import com.intellij.openapi.editor.event.SelectionListener
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -63,7 +70,9 @@ class CodyEditorFactoryListener : EditorFactoryListener {
       if (commandName == VIM_EXIT_INSERT_MODE_ACTION) {
         return
       }
-      Util.informAgentAboutEditorChange(e.editor)
+      // TODO: This is sending a redundant textDocument/didOpen to the Agent when first opening a
+      // file.
+      // Util.informAgentAboutEditorChange(e.editor)
       val suggestions = instance
       val editor = e.editor
       if (isEditorValidForAutocomplete(editor) && Util.isSelectedEditor(editor)) {

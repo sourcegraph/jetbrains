@@ -69,7 +69,7 @@ class FixupService(val project: Project) : Disposable {
                 // edit.
                 val session: FixupSession? =
                     if (pendingSessions.isNotEmpty()) {
-                      pendingSessions.first()
+                      pendingSessions.firstOrNull() // I still see empty collections here (race?)
                     } else {
                       // TODO: This is what I'd like to be able to do, but it requires a
                       // protocol change:

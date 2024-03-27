@@ -1,21 +1,14 @@
-
 import com.jetbrains.plugin.structure.base.utils.isDirectory
-import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
-import java.nio.file.FileSystems
-import java.nio.file.FileVisitResult
-import java.nio.file.Files
-import java.nio.file.PathMatcher
-import java.nio.file.Paths
-import java.nio.file.SimpleFileVisitor
-import java.nio.file.StandardCopyOption
+import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
-import java.util.EnumSet
+import java.util.*
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import kotlin.script.experimental.jvm.util.hasParentNamed
+import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -98,6 +91,8 @@ java {
     languageVersion.set(JavaLanguageVersion.of(properties("javaVersion").toInt()))
   }
 }
+
+tasks.named("classpathIndexCleanup") { dependsOn("compileIntTestKotlin") }
 
 fun download(url: String, output: File) {
   if (output.exists()) {
