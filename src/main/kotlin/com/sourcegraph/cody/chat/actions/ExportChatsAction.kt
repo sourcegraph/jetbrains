@@ -13,13 +13,11 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.openapi.vfs.VirtualFileWrapper
 import com.jetbrains.rd.util.AtomicReference
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.chat.ExportChatsBackgroundable
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.ui.DumbAwareBGTAction
-import java.io.File
 
 class ExportChatsAction : DumbAwareBGTAction() {
 
@@ -53,8 +51,7 @@ class ExportChatsAction : DumbAwareBGTAction() {
     // do it automatically.
     val fileName: String = "Untitled" + (if (SystemInfo.isMac) ".$EXTENSION" else "")
 
-    //    val result = saveFileDialog.save(outputDir, fileName) ?: return
-    val result = VirtualFileWrapper(File(outputDir?.path + "/" + fileName)) // todo
+    val result = saveFileDialog.save(outputDir, fileName) ?: return
 
     CodyAgentService.withAgent(project) { agent ->
       ExportChatsBackgroundable(
