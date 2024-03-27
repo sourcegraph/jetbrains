@@ -4,21 +4,23 @@ import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.TextFieldWithAutoCompletion
-import com.intellij.ui.TextFieldWithAutoCompletionListProvider
 import com.intellij.util.Alarm
 import com.sourcegraph.cody.config.DialogValidationUtils
 import com.sourcegraph.cody.context.RemoteRepoUtils
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.vcs.CodebaseName
 import com.sourcegraph.vcs.convertGitCloneURLToCodebaseNameOrError
+import org.jdom.filter2.Filters.document
+import org.jetbrains.annotations.Debug
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.util.concurrent.TimeUnit
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
-import org.jetbrains.annotations.NotNull
+
 
 class AddRepositoryDialog(
     private val project: Project,
@@ -26,7 +28,9 @@ class AddRepositoryDialog(
     private val addAction: (CodebaseName) -> Unit
 ) : DialogWrapper(project) {
 
-  private val repoUrlInputField = TextFieldWithAutoCompletion.create(project, listOf(), false, null)
+  // TODO: trigger the popup automatically, see https://intellij-support.jetbrains.com/hc/en-us/community/posts/115000056164-completion-contributor-trigger
+  private val repoUrlInputField = TextFieldWithAutoCompletion.create(project, listOf(), true, null)
+  // private val repoThinger = RemoteRepoThinger(project, repoUrlInputField)
 
   init {
     init()
@@ -109,23 +113,23 @@ class AddRepositoryDialog(
     val mainPanel = JPanel(GridBagLayout())
     val rightSidePanel = JPanel(GridBagLayout())
 
-    // TODO: we can provide repository suggestions using `provider.setItems` method
-    val completionProvider: TextFieldWithAutoCompletionListProvider<String> =
-        object : TextFieldWithAutoCompletionListProvider<String>(listOf()) {
-          @NotNull
-          override fun getLookupString(@NotNull s: String): String {
-            return s
-          }
-        }
+    val completionProvider = RemoteRepoCompletionProvider(project)
 
     myPreferredFocusedComponent = repoUrlInputField
     repoUrlInputField.setPreferredWidth(350)
+
+    val psiFile = PsiDocumentManager.getInstance(repoUrlInputField.project).getPsiFile(repoUrlInputField.document)
+    System.out.println(psiFile.toString())
+
     repoUrlInputField.installProvider(completionProvider)
     repoUrlInputField.requestFocusInWindow()
     repoUrlInputField.addDocumentListener(
         object : DocumentListener {
           override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
             initValidation()
+
+            // TODO: Debounce typing.
+            //repoThinger.didUpdateQuery(event.document.text)
           }
         })
 
