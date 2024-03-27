@@ -32,18 +32,18 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
-import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import org.slf4j.LoggerFactory
 
 class AgentChatSession
 private constructor(
-  private val project: Project,
-  newConnectionId: CompletableFuture<ConnectionId>,
-  private val internalId: String = UUID.randomUUID().toString(),
-  private val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider? = null,
+    private val project: Project,
+    newConnectionId: CompletableFuture<ConnectionId>,
+    private val internalId: String = UUID.randomUUID().toString(),
+    private val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider? = null,
 ) : ChatSession {
   /**
    * There are situations (like startup of the chat) when we want to show UI immediately, but we
@@ -51,9 +51,9 @@ private constructor(
    * store the connectionId.
    */
   private val connectionId: AtomicReference<CompletableFuture<ConnectionId>> =
-    AtomicReference(newConnectionId)
+      AtomicReference(newConnectionId)
   private val chatPanel: ChatPanel =
-    ChatPanel(project, chatSession = this, chatModelProviderFromState)
+      ChatPanel(project, chatSession = this, chatModelProviderFromState)
   private val cancellationToken = AtomicReference(CancellationToken())
   private val messages = mutableListOf<ChatMessage>()
 
@@ -67,7 +67,7 @@ private constructor(
   override fun getConnectionId(): ConnectionId? = connectionId.get().getNow(null)
 
   fun hasConnectionId(thatConnectionId: ConnectionId): Boolean =
-    getConnectionId() == thatConnectionId
+      getConnectionId() == thatConnectionId
 
   override fun getInternalId(): String = internalId
 
@@ -79,19 +79,19 @@ private constructor(
   override fun sendMessage(text: String, contextItems: List<ContextItem>) {
     val displayText = XmlStringUtil.escapeString(text)
     val humanMessage =
-      ChatMessage(
-        Speaker.HUMAN,
-        text,
-        displayText,
-      )
+        ChatMessage(
+            Speaker.HUMAN,
+            text,
+            displayText,
+        )
     addMessageAtIndex(humanMessage, index = messages.count())
 
     val responsePlaceholder =
-      ChatMessage(
-        Speaker.ASSISTANT,
-        text = "",
-        displayText = "",
-      )
+        ChatMessage(
+            Speaker.ASSISTANT,
+            text = "",
+            displayText = "",
+        )
     addMessageAtIndex(responsePlaceholder, index = messages.count())
 
     submitMessageToAgent(humanMessage, contextItems)
@@ -99,40 +99,38 @@ private constructor(
 
   private fun submitMessageToAgent(humanMessage: ChatMessage, contextItems: List<ContextItem>) {
     CodyAgentService.withAgentRestartIfNeeded(
-      project,
-      callback = { agent ->
-        val message =
-          WebviewMessage(
-            command = "submit",
-            text = humanMessage.actualMessage(),
-            submitType = "user",
-            addEnhancedContext = chatPanel.isEnhancedContextEnabled(),
-            contextFiles = contextItems
-          )
+        project,
+        callback = { agent ->
+          val message =
+              WebviewMessage(
+                  command = "submit",
+                  text = humanMessage.actualMessage(),
+                  submitType = "user",
+                  addEnhancedContext = chatPanel.isEnhancedContextEnabled(),
+                  contextFiles = contextItems)
 
-        try {
-          val request =
-            agent.server.chatSubmitMessage(
-              ChatSubmitMessageParams(connectionId.get().get(), message)
-            )
+          try {
+            val request =
+                agent.server.chatSubmitMessage(
+                    ChatSubmitMessageParams(connectionId.get().get(), message))
 
-          GraphQlLogger.logCodyEvent(project, "chat-question", "submitted")
+            GraphQlLogger.logCodyEvent(project, "chat-question", "submitted")
 
-          ApplicationManager.getApplication().invokeLater {
-            createCancellationToken(
-              onCancel = { request.cancel(true) },
-              onFinish = { GraphQlLogger.logCodyEvent(project, "chat-question", "executed") })
+            ApplicationManager.getApplication().invokeLater {
+              createCancellationToken(
+                  onCancel = { request.cancel(true) },
+                  onFinish = { GraphQlLogger.logCodyEvent(project, "chat-question", "executed") })
+            }
+          } catch (e: Exception) {
+            createCancellationToken(onCancel = {}, onFinish = {})
+            handleException(e)
+            throw e
           }
-        } catch (e: Exception) {
+        },
+        onFailure = { e ->
           createCancellationToken(onCancel = {}, onFinish = {})
           handleException(e)
-          throw e
-        }
-      },
-      onFailure = { e ->
-        createCancellationToken(onCancel = {}, onFinish = {})
-        handleException(e)
-      })
+        })
   }
 
   @Throws(ExecutionException::class, InterruptedException::class)
@@ -144,8 +142,7 @@ private constructor(
       } else {
         RateLimitStateManager.invalidateForChat(project)
         if (extensionMessage.messages?.isNotEmpty() == true &&
-          extensionMessage.isMessageInProgress == false
-        ) {
+            extensionMessage.isMessageInProgress == false) {
           getCancellationToken().dispose()
         }
 
@@ -169,15 +166,14 @@ private constructor(
 
       val rateLimitError = chatError.toRateLimitError()
       val errorMessage =
-        if (rateLimitError != null) {
-          RateLimitStateManager.reportForChat(project, rateLimitError)
-          when {
-            rateLimitError.upgradeIsAvailable ->
-              CodyBundle.getString("chat.rate-limit-error.upgrade")
-
-            else -> CodyBundle.getString("chat.rate-limit-error.explain")
-          }
-        } else CodyBundle.getString("chat.general-error").fmt(chatError.message, "")
+          if (rateLimitError != null) {
+            RateLimitStateManager.reportForChat(project, rateLimitError)
+            when {
+              rateLimitError.upgradeIsAvailable ->
+                  CodyBundle.getString("chat.rate-limit-error.upgrade")
+              else -> CodyBundle.getString("chat.rate-limit-error.explain")
+            }
+          } else CodyBundle.getString("chat.general-error").fmt(chatError.message, "")
 
       addErrorMessageAsAssistantMessage(errorMessage)
     } finally {
@@ -193,8 +189,7 @@ private constructor(
       val errorReportLink = CodyErrorSubmitter().getEncodedUrl(e.getThrowableText(), message)
       val errorReportMsg = CodyBundle.getString("chat.general-error.report").fmt(errorReportLink)
       addErrorMessageAsAssistantMessage(
-        CodyBundle.getString("chat.general-error").fmt(message, errorReportMsg)
-      )
+          CodyBundle.getString("chat.general-error").fmt(message, errorReportMsg))
     } finally {
       getCancellationToken().abort()
     }
@@ -209,8 +204,7 @@ private constructor(
   override fun sendWebviewMessage(message: WebviewMessage) {
     CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
       agent.server.webviewReceiveMessage(
-        WebviewReceiveMessageParams(this.connectionId.get().get(), message)
-      )
+          WebviewReceiveMessageParams(this.connectionId.get().get(), message))
     }
   }
 
@@ -221,7 +215,6 @@ private constructor(
           this.chatPanel.promptPanel.setContextFilesSelector(message.userContextFiles)
         }
       }
-
       else -> {
         logger.debug(String.format("unknown message type: %s", message.type))
       }
@@ -258,7 +251,7 @@ private constructor(
     CodyAgentService.withAgent(project) { agent ->
       val chatModels = agent.server.chatModels(ChatModelsParams(connectionId.get().get()))
       val response =
-        chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get() ?: return@withAgent
+          chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get() ?: return@withAgent
       chatPanel.updateLlmDropdownModels(response.models)
     }
   }
@@ -272,8 +265,8 @@ private constructor(
   companion object {
     @RequiresEdt
     fun createNew(
-      project: Project,
-      runWithConnectionId: (ConnectionId) -> Unit = {}
+        project: Project,
+        runWithConnectionId: (ConnectionId) -> Unit = {}
     ): AgentChatSession {
       val connectionId = createNewPanel(project) { it.server.chatNew() }
       val chatSession = AgentChatSession(project, connectionId)
@@ -285,13 +278,13 @@ private constructor(
     @RequiresEdt
     fun createFromCommand(project: Project, commandId: CommandId): AgentChatSession {
       val connectionId =
-        createNewPanel(project) { agent: CodyAgent ->
-          when (commandId) {
-            CommandId.Explain -> agent.server.commandsExplain()
-            CommandId.Smell -> agent.server.commandsSmell()
-            CommandId.Test -> agent.server.commandsTest()
+          createNewPanel(project) { agent: CodyAgent ->
+            when (commandId) {
+              CommandId.Explain -> agent.server.commandsExplain()
+              CommandId.Smell -> agent.server.commandsSmell()
+              CommandId.Test -> agent.server.commandsTest()
+            }
           }
-        }
 
       ApplicationManager.getApplication().executeOnPooledThread {
         GraphQlLogger.logCodyEvent(project, "command:${commandId.displayName}", "submitted")
@@ -300,63 +293,60 @@ private constructor(
       val chatSession = AgentChatSession(project, connectionId)
 
       chatSession.createCancellationToken(
-        onCancel = { chatSession.sendWebviewMessage(WebviewMessage(command = "abort")) },
-        onFinish = {
-          GraphQlLogger.logCodyEvent(project, "command:${commandId.displayName}", "executed")
-        })
+          onCancel = { chatSession.sendWebviewMessage(WebviewMessage(command = "abort")) },
+          onFinish = {
+            GraphQlLogger.logCodyEvent(project, "command:${commandId.displayName}", "executed")
+          })
 
       chatSession.addMessageAtIndex(
-        ChatMessage(
-          Speaker.HUMAN,
-          commandId.displayName,
-        ),
-        chatSession.messages.count()
-      )
+          ChatMessage(
+              Speaker.HUMAN,
+              commandId.displayName,
+          ),
+          chatSession.messages.count())
       chatSession.addMessageAtIndex(
-        ChatMessage(
-          Speaker.ASSISTANT,
-          text = "",
-          displayText = "",
-        ),
-        chatSession.messages.count()
-      )
+          ChatMessage(
+              Speaker.ASSISTANT,
+              text = "",
+              displayText = "",
+          ),
+          chatSession.messages.count())
       AgentChatSessionService.getInstance(project).addSession(chatSession)
       return chatSession
     }
 
     fun restoreChatSession(
-      agent: CodyAgent,
-      chatState: ChatState
+        agent: CodyAgent,
+        chatState: ChatState
     ): CompletableFuture<ConnectionId> {
       val modelFromState =
-        chatState.llm?.let {
-          ChatModelsResponse.ChatModelProvider(
-            default = it.model == null,
-            codyProOnly = false,
-            provider = it.provider,
-            title = it.title,
-            model = it.model ?: ""
-          )
-        }
+          chatState.llm?.let {
+            ChatModelsResponse.ChatModelProvider(
+                default = it.model == null,
+                codyProOnly = false,
+                provider = it.provider,
+                title = it.title,
+                model = it.model ?: "")
+          }
 
       val chatMessages =
-        chatState.messages.map { message ->
-          val parsed =
-            when (val speaker = message.speaker) {
-              MessageState.SpeakerState.HUMAN -> Speaker.HUMAN
-              MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
-              else -> error("unrecognized speaker $speaker")
-            }
+          chatState.messages.map { message ->
+            val parsed =
+                when (val speaker = message.speaker) {
+                  MessageState.SpeakerState.HUMAN -> Speaker.HUMAN
+                  MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
+                  else -> error("unrecognized speaker $speaker")
+                }
 
-          ChatMessage(speaker = parsed, message.text)
-        }
+            ChatMessage(speaker = parsed, message.text)
+          }
 
       val messages =
-        chatMessages
-          .dropWhile { it.speaker == Speaker.ASSISTANT }
-          .fold(emptyList<ChatMessage>()) { acc, msg ->
-            if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
-          }
+          chatMessages
+              .dropWhile { it.speaker == Speaker.ASSISTANT }
+              .fold(emptyList<ChatMessage>()) { acc, msg ->
+                if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
+              }
 
       val restoreParams = ChatRestoreParams(modelFromState?.model, messages, chatState.internalId!!)
       return agent.server.chatRestore(restoreParams)
@@ -378,8 +368,8 @@ private constructor(
     }
 
     private fun createNewPanel(
-      project: Project,
-      newPanelAction: (CodyAgent) -> CompletableFuture<String>
+        project: Project,
+        newPanelAction: (CodyAgent) -> CompletableFuture<String>
     ): CompletableFuture<ConnectionId> {
       val result = CompletableFuture<ConnectionId>()
       CodyAgentService.withAgentRestartIfNeeded(project) { agent ->

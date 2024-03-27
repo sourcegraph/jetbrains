@@ -29,10 +29,10 @@ internal class CodyAuthData(val account: CodyAccount, login: String, token: Stri
     get() = password!!
 }
 
-enum class AccountTier(val value: String) {
-  DOTCOM_FREE("free"),
-  DOTCOM_PRO("pro"),
-  ENTERPRISE("enterprise")
+enum class AccountTier(val value: Int) {
+  DOTCOM_FREE(0),
+  DOTCOM_PRO(1),
+  ENTERPRISE(2)
 }
 
 /** Entry point for interactions with Sourcegraph authentication subsystem */
