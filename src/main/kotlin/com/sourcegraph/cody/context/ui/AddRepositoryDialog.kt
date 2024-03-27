@@ -14,7 +14,6 @@ import com.sourcegraph.vcs.CodebaseName
 import com.sourcegraph.vcs.convertGitCloneURLToCodebaseNameOrError
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
-import java.net.URL
 import java.util.concurrent.TimeUnit
 import javax.swing.JComponent
 import javax.swing.JLabel
@@ -40,24 +39,24 @@ class AddRepositoryDialog(
   private var validatedRepoName: CodebaseName? = null
 
   /**
-   * Converts [rawInput] to a repo name. If a matching remote repository exists, returns the
-   * repo name, otherwise `null`.
+   * Converts [rawInput] to a repo name. If a matching remote repository exists, returns the repo
+   * name, otherwise `null`.
    */
   @Synchronized
   fun validateRepoExists(rawInput: String): CodebaseName? {
     if (rawInput == validatedInput) {
+      // We have a cached result.
       return validatedRepoName
     }
+    val candidates =
+        listOfNotNull(
+            CodebaseName(rawInput),
+            runCatching { convertGitCloneURLToCodebaseNameOrError(rawInput) }.getOrNull())
+    val repos =
+        RemoteRepoUtils.getRepositories(project, candidates)
+            .completeOnTimeout(emptyList(), 15, TimeUnit.SECONDS)
+            .get()
     validatedInput = rawInput
-    val candidates = mutableListOf(CodebaseName(rawInput))
-    try {
-      candidates.add(convertGitCloneURLToCodebaseNameOrError(rawInput))
-    } catch (e: Exception) {
-      // We will validate only the raw input, as-is.
-    }
-    val repos = RemoteRepoUtils.getRepositories(project, candidates)
-      .completeOnTimeout(emptyList(), 15, TimeUnit.SECONDS)
-      .get()
     validatedRepoName = repos.firstOrNull()?.let { CodebaseName(it.name) }
     return validatedRepoName
   }
@@ -91,10 +90,7 @@ class AddRepositoryDialog(
                   .none { it.codebaseName == codebaseName }
             }
 
-    return listOfNotNull(
-        validateNonEmpty()
-            ?: validateRepoExists()
-            ?: validateRepoNotAddedYet())
+    return listOfNotNull(validateNonEmpty() ?: validateRepoExists() ?: validateRepoNotAddedYet())
   }
 
   override fun getValidationThreadToUse(): Alarm.ThreadToUse {
