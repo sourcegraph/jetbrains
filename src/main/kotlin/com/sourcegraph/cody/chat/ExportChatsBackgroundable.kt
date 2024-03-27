@@ -12,6 +12,7 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.initialization.EndOfTrialNotificationScheduler
 import com.sourcegraph.cody.vscode.CancellationToken
+import com.sourcegraph.common.CodyBundle
 import java.util.concurrent.TimeUnit
 
 class ExportChatsBackgroundable(
@@ -37,7 +38,6 @@ class ExportChatsBackgroundable(
       restoreChatSession(agent, chatState)
       indicator.fraction = ((index + 1.0) / (chats.size + 1.0))
 
-      Thread.sleep(3000)
       if (indicator.isCanceled) {
         return
       }
@@ -59,7 +59,7 @@ class ExportChatsBackgroundable(
           val notification =
               Notification(
                   "Sourcegraph Cody",
-                  "Cody: Chat export failed. Please retry...",
+                  CodyBundle.getString("export.failed"),
                   "",
                   NotificationType.WARNING)
           notification.notify(project)
@@ -73,7 +73,7 @@ class ExportChatsBackgroundable(
       val notification =
           Notification(
               "Sourcegraph Cody",
-              "Cody: Chat export timed out. Please retry...",
+              CodyBundle.getString("export.timed-out"),
               "",
               NotificationType.WARNING)
       notification.notify(project)
