@@ -221,7 +221,6 @@
                 text="Restart Cody Agent"/>
 
         <group id="CodyChatActionsGroup">
-            <reference ref="cody.exportChats"/>
             <reference ref="cody.newChat"/>
         </group>
 

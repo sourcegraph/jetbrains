@@ -6,18 +6,20 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.chat.AgentChatSession.Companion.restoreChatSession
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.initialization.EndOfTrialNotificationScheduler
+import com.sourcegraph.cody.vscode.CancellationToken
 import java.util.concurrent.TimeUnit
 
 class ExportChatsBackgroundable(
     project: Project,
+    private val agent: CodyAgent,
     private val internalId: String?,
     private val onSuccess: (Any) -> Unit,
-    private val onFinished: () -> Unit
+    private val cancellationToken: CancellationToken
 ) : Task.Backgroundable(project, /* title = */ "Exporting chats...", /* canBeCancelled = */ true) {
 
   override fun run(indicator: ProgressIndicator) {
@@ -31,61 +33,61 @@ class ExportChatsBackgroundable(
             .filter { it.internalId != null }
             .filter { chat -> if (internalId != null) chat.internalId == internalId else true }
 
-    CodyAgentService.withAgent(project) { agent ->
-      chats.forEachIndexed { index, chatState ->
-        restoreChatSession(agent, chatState)
-        indicator.fraction = ((index + 1.0) / (chats.size + 1.0))
-        if (indicator.isCanceled) {
-          return@withAgent
-        }
-      }
+    chats.forEachIndexed { index, chatState ->
+      restoreChatSession(agent, chatState)
+      indicator.fraction = ((index + 1.0) / (chats.size + 1.0))
 
-      val result = agent.server.chatExport().completeOnTimeout(null, 15, TimeUnit.SECONDS).get()
+      Thread.sleep(3000)
       if (indicator.isCanceled) {
-        return@withAgent
+        return
       }
+    }
 
-      if (result != null) {
-        if (internalId != null) {
-          val singleChatHistory = result.find { it.chatID == internalId }
-          if (singleChatHistory != null) {
-            onSuccess.invoke(singleChatHistory)
-          } else {
-            logger.warn("export failed: singleChatHistory is null")
+    val result = agent.server.chatExport().completeOnTimeout(null, 15, TimeUnit.SECONDS).get()
+    if (indicator.isCanceled) {
+      return
+    }
 
-            val notification =
-                Notification(
-                    "Sourcegraph Cody",
-                    "Cody: Chat export failed. Please retry...",
-                    "",
-                    NotificationType.WARNING)
-            notification.notify(project)
-          }
+    if (result != null) {
+      if (internalId != null) {
+        val singleChatHistory = result.find { it.chatID == internalId }
+        if (singleChatHistory != null) {
+          onSuccess.invoke(singleChatHistory)
         } else {
-          onSuccess.invoke(result)
+          logger.warn("export failed: singleChatHistory is null")
+
+          val notification =
+              Notification(
+                  "Sourcegraph Cody",
+                  "Cody: Chat export failed. Please retry...",
+                  "",
+                  NotificationType.WARNING)
+          notification.notify(project)
         }
       } else {
-        logger.warn("export failed: result is null")
-
-        val notification =
-            Notification(
-                "Sourcegraph Cody",
-                "Cody: Chat export timed out. Please retry...",
-                "",
-                NotificationType.WARNING)
-        notification.notify(project)
+        onSuccess.invoke(result)
       }
+    } else {
+      logger.warn("export failed: result is null")
+
+      val notification =
+          Notification(
+              "Sourcegraph Cody",
+              "Cody: Chat export timed out. Please retry...",
+              "",
+              NotificationType.WARNING)
+      notification.notify(project)
     }
   }
 
   override fun onCancel() {
     super.onCancel()
-    onFinished.invoke()
+    cancellationToken.abort()
   }
 
   override fun onFinished() {
     super.onFinished()
-    onFinished.invoke()
+    cancellationToken.dispose()
   }
 
   companion object {

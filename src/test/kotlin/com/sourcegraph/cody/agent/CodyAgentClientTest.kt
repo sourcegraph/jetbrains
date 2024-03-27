@@ -44,6 +44,7 @@ class CodyAgentClientTest : BasePlatformTestCase() {
                 message =
                     ExtensionMessage(
                         type = ExtensionMessage.Type.SET_CONFIG_FEATURES,
+                        errors = null,
                         configFeatures = expected,
                     )))
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()

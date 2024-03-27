@@ -13,7 +13,11 @@ import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.treeStructure.SimpleTree
 import com.intellij.util.EditSourceOnDoubleClickHandler
+import com.intellij.util.IconUtil
+import com.intellij.util.ui.JBEmptyBorder
+import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.Icons
+import com.sourcegraph.cody.chat.actions.ExportChatsAction
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.INTERNAL_ID_DATA_KEY
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.node.LeafNode
@@ -24,10 +28,13 @@ import com.sourcegraph.cody.history.ui.DurationGroupFormatter
 import com.sourcegraph.cody.history.ui.HistoryTreeNodeRenderer
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.ui.DumbAwareBGTAction
+import java.awt.BorderLayout
 import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
 import javax.swing.AbstractAction
 import javax.swing.Icon
+import javax.swing.JButton
+import javax.swing.JPanel
 import javax.swing.KeyStroke
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
@@ -56,6 +63,21 @@ class HistoryTree(
         actionMap.put(DELETE_MAP_KEY, ActionWrapper(::removeLeaf))
       }
 
+  private val exportAction = ActionManager.getInstance().getAction("cody.exportChats")
+
+  private val exportChatsAsJson =
+      object : JButton("Export All Chats As JSON", IconUtil.desaturate(Icons.Chat.Download)) {
+        val fontMetric = getFontMetrics(font)
+
+        init {
+          addActionListener { triggerChatExportAction() }
+        }
+
+        override fun isEnabled(): Boolean {
+          return super.isEnabled() && !ExportChatsAction.isRunning.get()
+        }
+      }
+
   init {
     val group = DefaultActionGroup()
     group.add(
@@ -63,10 +85,10 @@ class HistoryTree(
             CodyBundle.getString("popup.select-chat"), null, ::hasLeafSelected, ::selectLeaf))
     group.add(
         LeafPopupAction(
-            CodyBundle.getString("popup.export-chat"),
-            Icons.Chat.Download,
-            ::hasLeafSelected,
-            ::export))
+            text = CodyBundle.getString("popup.export-chat"),
+            icon = Icons.Chat.Download,
+            isEnabled = { hasLeafSelected() && !ExportChatsAction.isRunning.get() },
+            action = ::triggerChatExportAction))
     group.add(
         LeafPopupAction(
             CodyBundle.getString("popup.remove-chat"),
@@ -83,7 +105,16 @@ class HistoryTree(
 
     PopupHandler.installPopupMenu(tree, group, "ChatActionsPopup")
     EditSourceOnDoubleClickHandler.install(tree, ::selectLeaf)
-    setContent(ScrollPaneFactory.createScrollPane(tree))
+    val scrollPane = ScrollPaneFactory.createScrollPane(tree)
+    val wrapper = JPanel(BorderLayout())
+    wrapper.add(scrollPane, BorderLayout.CENTER)
+
+    val actionWrapper = JPanel()
+    actionWrapper.add(exportChatsAsJson)
+    actionWrapper.border = JBEmptyBorder(JBUI.insets(20))
+    wrapper.add(actionWrapper, BorderLayout.SOUTH)
+
+    setContent(wrapper)
     HistoryService.getInstance(project).listenOnUpdate(::updatePresentation)
   }
 
@@ -150,24 +181,21 @@ class HistoryTree(
     getSelectedLeaf()?.let { onSelect(it.chat) }
   }
 
-  private fun export() {
-    getSelectedLeaf()?.let {
-      val action = ActionManager.getInstance().getAction("cody.exportChats")
-      action.actionPerformed(
-          AnActionEvent(
-              /* inputEvent = */ null,
-              /* dataContext = */ { dataId ->
-                when (dataId) {
-                  CommonDataKeys.PROJECT.name -> project
-                  INTERNAL_ID_DATA_KEY.name -> it.chat.internalId
-                  else -> null
-                }
-              },
-              /* place = */ ActionPlaces.UNKNOWN,
-              /* presentation = */ Presentation(),
-              /* actionManager = */ ActionManager.getInstance(),
-              /* modifiers = */ 0))
-    }
+  private fun triggerChatExportAction() {
+    exportAction.actionPerformed(
+        AnActionEvent(
+            /* inputEvent = */ null,
+            /* dataContext = */ { dataId ->
+              when (dataId) {
+                CommonDataKeys.PROJECT.name -> project
+                INTERNAL_ID_DATA_KEY.name -> getSelectedLeaf()?.chat?.internalId
+                else -> null
+              }
+            },
+            /* place = */ ActionPlaces.UNKNOWN,
+            /* presentation = */ Presentation(),
+            /* actionManager = */ ActionManager.getInstance(),
+            /* modifiers = */ 0))
   }
 
   private fun removeLeaf() {
