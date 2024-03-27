@@ -145,9 +145,10 @@ class AddRepositoryDialog(
     mainPanel.add(rightSidePanel, constraints(gridx = 1, gridy = 0, ipadx = 10))
 
     rightSidePanel.add(repoUrlInputField, constraints(gridx = 0, gridy = 0))
+    rightSidePanel.add(RemoteRepoList(project), constraints(gridx = 0, gridy = 1))
     rightSidePanel.add(
         JLabel(CodyBundle.getString("context-panel.add-repo-dialog.url-input-help")),
-        constraints(gridx = 0, gridy = 1, ipadx = 10, ipady = 10))
+        constraints(gridx = 0, gridy = 2, ipadx = 10, ipady = 10))
 
     return mainPanel
   }

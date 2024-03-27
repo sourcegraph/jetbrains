@@ -87,6 +87,12 @@ interface CodyAgentServer {
   @JsonNotification("autocomplete/completionAccepted")
   fun completionAccepted(logID: CompletionItemParams)
 
+  @JsonNotification("remoteRepo/didChange")
+  fun remoteRepoDidChange()
+
+  @JsonNotification("remoteRepo/didChangeState")
+  fun remoteRepoDidChangeState(state: RemoteRepoFetchState)
+
   @JsonRequest("webview/receiveMessage")
   fun webviewReceiveMessage(params: WebviewReceiveMessageParams): CompletableFuture<Any?>
 
@@ -130,4 +136,9 @@ interface CodyAgentServer {
   fun attributionSearch(
       params: AttributionSearchParams
   ): CompletableFuture<AttributionSearchResponse>
+
+  @JsonRequest("remoteRepo/list")
+  fun remoteRepoList(
+      params: RemoteRepoListParams
+  ): CompletableFuture<RemoteRepoListResponse>
 }
