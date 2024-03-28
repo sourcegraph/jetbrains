@@ -67,10 +67,9 @@ class HistoryTree(
 
   private val exportChatsAsJson =
       object : JButton("Export All Chats As JSON", IconUtil.desaturate(Icons.Chat.Download)) {
-        val fontMetric = getFontMetrics(font)
 
         init {
-          addActionListener { triggerChatExportAction() }
+          addActionListener { triggerChatExportAction(internalId = null) }
         }
 
         override fun isEnabled(): Boolean {
@@ -88,7 +87,7 @@ class HistoryTree(
             text = CodyBundle.getString("popup.export-chat"),
             icon = Icons.Chat.Download,
             isEnabled = { hasLeafSelected() && !ExportChatsAction.isRunning.get() },
-            action = ::triggerChatExportAction))
+            action = { triggerChatExportAction(internalId = getSelectedLeaf()?.chat?.internalId) }))
     group.add(
         LeafPopupAction(
             CodyBundle.getString("popup.remove-chat"),
@@ -181,14 +180,14 @@ class HistoryTree(
     getSelectedLeaf()?.let { onSelect(it.chat) }
   }
 
-  private fun triggerChatExportAction() {
+  private fun triggerChatExportAction(internalId: String?) {
     exportAction.actionPerformed(
         AnActionEvent(
             /* inputEvent = */ null,
             /* dataContext = */ { dataId ->
               when (dataId) {
                 CommonDataKeys.PROJECT.name -> project
-                INTERNAL_ID_DATA_KEY.name -> getSelectedLeaf()?.chat?.internalId
+                INTERNAL_ID_DATA_KEY.name -> internalId
                 else -> null
               }
             },
