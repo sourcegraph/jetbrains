@@ -27,10 +27,7 @@ class AddRepositoryDialog(
     private val remoteContextNode: ContextTreeRemoteRootNode,
     private val addAction: (CodebaseName) -> Unit
 ) : DialogWrapper(project) {
-
-  // TODO: trigger the popup automatically, see https://intellij-support.jetbrains.com/hc/en-us/community/posts/115000056164-completion-contributor-trigger
   private val repoUrlInputField = TextFieldWithAutoCompletion.create(project, listOf(), true, null)
-  // private val repoThinger = RemoteRepoThinger(project, repoUrlInputField)
 
   init {
     init()
@@ -117,19 +114,12 @@ class AddRepositoryDialog(
 
     myPreferredFocusedComponent = repoUrlInputField
     repoUrlInputField.setPreferredWidth(350)
-
-    val psiFile = PsiDocumentManager.getInstance(repoUrlInputField.project).getPsiFile(repoUrlInputField.document)
-    System.out.println(psiFile.toString())
-
     repoUrlInputField.installProvider(completionProvider)
     repoUrlInputField.requestFocusInWindow()
     repoUrlInputField.addDocumentListener(
         object : DocumentListener {
           override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
             initValidation()
-
-            // TODO: Debounce typing.
-            //repoThinger.didUpdateQuery(event.document.text)
           }
         })
 
@@ -149,10 +139,9 @@ class AddRepositoryDialog(
     mainPanel.add(rightSidePanel, constraints(gridx = 1, gridy = 0, ipadx = 10))
 
     rightSidePanel.add(repoUrlInputField, constraints(gridx = 0, gridy = 0))
-    rightSidePanel.add(RemoteRepoList(project), constraints(gridx = 0, gridy = 1))
     rightSidePanel.add(
         JLabel(CodyBundle.getString("context-panel.add-repo-dialog.url-input-help")),
-        constraints(gridx = 0, gridy = 2, ipadx = 10, ipady = 10))
+        constraints(gridx = 0, gridy = 1, ipadx = 10, ipady = 10))
 
     return mainPanel
   }
