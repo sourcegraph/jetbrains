@@ -8,6 +8,7 @@ import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.vcs.commit.NonModalCommitPanel.Companion.showAbove
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.protocol.Repo
@@ -238,6 +239,7 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
             .setToolbarBorder(BorderFactory.createEmptyBorder())
 
     if (!isDotComAccount()) {
+      // TODO: Remove add, remove actions.
       toolbarDecorator.setAddActionName(
           CodyBundle.getString("context-panel.button.add-remote-repo"))
       toolbarDecorator.setAddAction {
@@ -258,6 +260,14 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
           removeRemoteRepository(node)
           expandAllNodes()
         }
+      }
+
+      // TODO: L10N
+      toolbarDecorator.setEditActionName("Edit Remote Repositories")
+      toolbarDecorator.setEditAction {
+        val controller = RemoteRepoPopupController(project)
+        val popup = controller.createPopup()
+        popup.showAbove(tree)
       }
     }
 
