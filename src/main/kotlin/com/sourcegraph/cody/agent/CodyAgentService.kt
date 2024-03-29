@@ -61,6 +61,14 @@ class CodyAgentService(project: Project) : Disposable {
         FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
       }
 
+      agent.client.onRemoteRepoDidChange = Consumer {
+        TODO("NYI")
+      }
+
+      agent.client.onRemoteRepoDidChangeState = Consumer { state ->
+        TODO("NYI")
+      }
+
       if (!project.isDisposed) {
         AgentChatSessionService.getInstance(project).restoreAllSessions(agent)
         val fileEditorManager = FileEditorManager.getInstance(project)

@@ -8,7 +8,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.TextFieldWithAutoCompletionListProvider
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
-import org.jetbrains.annotations.NotNull
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 
@@ -68,23 +67,28 @@ class RemoteRepoCompletionProvider(private var project: Project) : TextFieldWith
             return mutableListOf()
         }
         // TODO: Hang the thread here, until the agent notifies us that all the repositories are fetched.
-        val result = CompletableFuture<List<String>>()
-        CodyAgentService.withAgent(project) { agent ->
-            try {
-                val repos = agent.server.remoteRepoList(RemoteRepoListParams(
-                    query = prefix,
-                    after = null,
-                    first = 250,
-                ))
-                val repoNames = repos.get().repos.map {
-                    it.name
+        while (true) {
+            val result = CompletableFuture<List<String>>()
+            CodyAgentService.withAgent(project) { agent ->
+                agent.client
+                try {
+                    val repos = agent.server.remoteRepoList(
+                        RemoteRepoListParams(
+                            query = prefix,
+                            after = null,
+                            first = 250,
+                        )
+                    )
+                    val repoNames = repos.get().repos.map {
+                        it.name
+                    }
+                    result.complete(repoNames)
+                } catch (e: Exception) {
+                    // TODO: Indicate something went wrong.
                 }
-                result.complete(repoNames)
-            } catch (e: Exception) {
-                // TODO: Indicate something went wrong.
             }
+            // TODO: Handle failure
+            return result.get(15, TimeUnit.SECONDS).toMutableList()
         }
-        // TODO: Handle failure
-        return result.get(15, TimeUnit.SECONDS).toMutableList()
     }
 }

@@ -2,10 +2,8 @@ package com.sourcegraph.cody.agent;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.sourcegraph.cody.agent.protocol.DebugMessage;
-import com.sourcegraph.cody.agent.protocol.EditTask;
-import com.sourcegraph.cody.agent.protocol.TextDocumentEditParams;
-import com.sourcegraph.cody.agent.protocol.WorkspaceEditParams;
+import com.sourcegraph.cody.agent.protocol.*;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
@@ -52,6 +50,22 @@ public class CodyAgentClient {
   @JsonNotification("editTask/didDelete")
   public CompletableFuture<Void> editTaskDidDelete(EditTask params) {
     return acceptOnEventThread("editTask/didDelete", onEditTaskDidDelete, params);
+  }
+
+  @Nullable Consumer<Void> onRemoteRepoDidChange;
+
+  @JsonNotification("remoteRepo/didChange")
+  public CompletableFuture<Void> remoteRepoDidChange() {
+    // TODO: This doesn't need to be the event thread.
+    return acceptOnEventThread("remoteRepo/didChange", onRemoteRepoDidChange, null);
+  }
+
+  @Nullable Consumer<RemoteRepoFetchState> onRemoteRepoDidChangeState;
+
+  @JsonNotification("remoteRepo/didChangeState")
+  public CompletableFuture<Void> remoteRepoDidChangeState(RemoteRepoFetchState state) {
+    // TODO: This doesn't need to be the event thread.
+    return acceptOnEventThread("remoteRepo/didChangeState", onRemoteRepoDidChangeState, state);
   }
 
   @JsonRequest("textDocument/edit")
