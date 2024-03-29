@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.context.ui
 
+import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
@@ -234,6 +235,7 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
     val toolbarDecorator =
         createDecorator(tree)
             .disableUpDownActions()
+            .setToolbarPosition(ActionToolbarPosition.RIGHT)
             .setVisibleRowCount(1)
             .setScrollPaneBorder(BorderFactory.createEmptyBorder())
             .setToolbarBorder(BorderFactory.createEmptyBorder())
@@ -280,9 +282,8 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
         object : TreeExpansionListener {
           private fun resize() {
             val padding = 5
-            val actionsPanelHeight = toolbarDecorator.actionsPanel.height
             panel.preferredSize =
-                Dimension(0, padding + actionsPanelHeight + tree.rowCount * tree.rowHeight)
+                Dimension(0, padding + tree.rowCount * tree.rowHeight)
             panel.parent.revalidate()
           }
 
