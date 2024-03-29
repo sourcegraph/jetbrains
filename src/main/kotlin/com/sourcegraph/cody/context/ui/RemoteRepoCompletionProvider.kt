@@ -1,8 +1,8 @@
 package com.sourcegraph.cody.context.ui
 
-import com.intellij.codeInsight.completion.CompletionParameters
-import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.CharFilter
+import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.ui.TextFieldWithAutoCompletionListProvider
@@ -19,13 +19,28 @@ data class RemoteRepo(
 class RemoteRepoCompletionProvider(private var project: Project) : TextFieldWithAutoCompletionListProvider<String>(listOf()),
     DumbAware {
 
+    // The plain document moves the insertion offset at . or /. This insertion handler makes the repo completion occupy
+    // the whole line.
+    // TODO: Work out how to disable "insert by pressing ." for this provider/editor/document and remove this.
+    // https://stackoverflow.com/questions/71885263/intellij-plugin-completion-exits-on-dot
+    val insertHandler =
+        InsertHandler<LookupElement> { context, item ->
+            val line = context.document.getLineNumber(context.startOffset)
+            val start = context.document.getLineStartOffset(line)
+            val end = context.document.getLineEndOffset(line)
+            context.document.replaceString(start, end, item.lookupString)
+        }
+
+    override fun createInsertHandler(item: String): InsertHandler<LookupElement>? {
+        return insertHandler
+    }
+
     override fun getAdvertisement(): String? {
         // TODO: L10N
         return "Contact your Sourcegraph admin to add a missing repo."
     }
 
-    @NotNull
-    override fun getLookupString(@NotNull s: String): String {
+    override fun getLookupString(s: String): String {
         return s
     }
 
@@ -39,6 +54,7 @@ class RemoteRepoCompletionProvider(private var project: Project) : TextFieldWith
 
     override fun applyPrefixMatcher(result: CompletionResultSet, prefix: String): CompletionResultSet {
         // Return all the results. They are already filtered by fuzzysort, we don't want to filter them further.
+        result.restartCompletionOnAnyPrefixChange()
         return result
     }
 
@@ -48,8 +64,10 @@ class RemoteRepoCompletionProvider(private var project: Project) : TextFieldWith
         parameters: CompletionParameters?
     ): MutableCollection<String> {
         if (cached) {
+            // TODO: When loading is done, treat completions as "cached" items.
             return mutableListOf()
         }
+        // TODO: Hang the thread here, until the agent notifies us that all the repositories are fetched.
         val result = CompletableFuture<List<String>>()
         CodyAgentService.withAgent(project) { agent ->
             try {

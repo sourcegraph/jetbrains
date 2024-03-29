@@ -268,7 +268,7 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
       toolbarDecorator.setEditActionName("Edit Remote Repositories")
       toolbarDecorator.setEditAction {
         val controller = RemoteRepoPopupController(project)
-        val popup = controller.createPopup()
+        val popup = controller.createPopup(tree.width)
         popup.showAbove(tree)
       }
     }
@@ -278,6 +278,8 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
 
     val panel = toolbarDecorator.createPanel()
 
+    // TODO: This is buggy, if you collapse a tree node, the element *now* under the pointer on mouse up gets a click
+    // event. For example, collapsing "local project" will cause all context to check/uncheck.
     tree.addTreeExpansionListener(
         object : TreeExpansionListener {
           private fun resize() {
