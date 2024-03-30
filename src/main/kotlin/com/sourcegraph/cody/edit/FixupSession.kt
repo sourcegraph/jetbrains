@@ -140,9 +140,6 @@ abstract class FixupSession(
         logger.warn("Unable to find enclosing folding range at $caret in $url")
         selectionRange =
             Range(Position.fromOffset(document, caret), Position.fromOffset(document, caret))
-      } else {
-        // This is useful for tracking issues with integration tests, but if it's annoying, ax it.
-        logger.warn("Found enclosing folding range at $caret in $url: $selectionRange")
       }
       future.complete(null)
       publishProgressOnEdt(CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES)

@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.edit
 
+import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
@@ -54,8 +55,10 @@ class DocumentCodeTest : BasePlatformTestCase() {
         "Fifth lens should be a label with a hotkey",
         (widgets[5] as LensLabel).text.matches(Regex(" \\(.+\\)")))
 
-    // TODO:  The LensSpinner is not shut down (maybe not disposed)
-
+    // This avoids an error saying the spinner hasn't shut down, at the end of the test.
+    runInEdtAndWait {
+      Disposer.dispose(lenses)
+    }
   }
 
   private fun listenForFoldingRangeReply():
