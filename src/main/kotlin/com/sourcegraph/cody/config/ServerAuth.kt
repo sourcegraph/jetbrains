@@ -20,6 +20,15 @@ object ServerAuthLoader {
       return ServerAuth(
           defaultAccount.server.url, accessToken, defaultAccount.server.customRequestHeaders)
     }
+    if (ConfigUtil.isIntegrationTestModeEnabled()) {
+      val token = System.getenv("CODY_INTEGRATION_TEST_TOKEN")
+      if (token != null) {
+        return ServerAuth(ConfigUtil.DOTCOM_URL, token, "")
+      } else {
+        throw IllegalArgumentException(
+            "Integration testing enabled but no CODY_INTEGRATION_TEST_TOKEN passed")
+      }
+    }
     return ServerAuth(ConfigUtil.DOTCOM_URL, "", "")
   }
 }

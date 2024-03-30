@@ -2,6 +2,7 @@ package com.sourcegraph.cody.edit
 
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.edit.widget.LensAction
@@ -9,7 +10,6 @@ import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 class DocumentCodeTest : BasePlatformTestCase() {
 
@@ -19,32 +19,13 @@ class DocumentCodeTest : BasePlatformTestCase() {
   }
 
   fun testGetsWorkingGroupLens() {
-    val foldingRangeFuture = CompletableFuture<Unit>()
-    project.messageBus
-        .connect()
-        .subscribe(
-            CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES,
-            object : CodyInlineEditActionNotifier {
-              override fun afterAction(context: CodyInlineEditActionNotifier.Context) {
-                testSelectionRange(context)
-                foldingRangeFuture.complete(null)
-              }
-            })
-    // TODO: Solve the missing document problem.
-    //   Hypothesis: We never send a file-opened notification for configuration above
-    //   - normally we do it in
-    //   - workAroundUninitializedCodeBase might be a place to set a breakpoint at
-    // Current problem is shown first in getFoldingRanges:
-    // in agent.ts, registered authenticated request 'editTask/getFoldingRanges'
-    // - File path passed in is "temp:///src/Foo.java"
-    // - uri parses correctly
-    // - this.workspace.getDocument(uri) is undefined
-    //
+    val foldingRangeFuture = listenForFoldingRangeReply()
+
     val editor = myFixture.editor
     assertFalse(editor.inlayModel.hasBlockElements())
 
     // Execute the action and await the working group lens.
-    EditorTestUtil.executeAction(editor, "cody.documentCodeAction")
+    runInEdtAndWait { EditorTestUtil.executeAction(editor, "cody.documentCodeAction") }
 
     val context = waitForTopic(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
     assertNotNull("Timed out waiting for working group lens", context)
@@ -52,26 +33,32 @@ class DocumentCodeTest : BasePlatformTestCase() {
     // The inlay should be up.
     assertTrue("Lens group inlay should be displayed", editor.inlayModel.hasBlockElements())
 
+    foldingRangeFuture.get() // TODO: Do something here.
+
     // Lens group should match the expected structure.
     val lenses = context!!.session.lensGroup
     assertNotNull("Lens group should be displayed", lenses)
 
     val widgets = lenses!!.widgets
-    assertEquals("Lens group should have 3 lenses", 3, widgets.size)
+    assertEquals("Lens group should have 6 widgets", 6, widgets.size)
     assertTrue("First lens should be a spinner", widgets[0] is LensSpinner)
-    assertTrue("Second lens should be a label", widgets[1] is LensLabel)
-    assertTrue("Third lens should be an action", widgets[2] is LensAction)
+    assertTrue("Second lens should be a label", widgets[3] is LensLabel)
+    assertTrue("Third lens should be an action", widgets[5] is LensAction)
+  }
 
-    // We make the editTask/getFoldingRanges call before calling commands/document.
-    // It's not supposed to be possible for them to be out of order, but this ensures
-    // that if they wind up out of order, both paths are tested.
-    try {
-      foldingRangeFuture.get(5, TimeUnit.SECONDS)
-    } catch (e: TimeoutException) {
-      fail("Folding range future did not complete within 5 seconds")
-    } catch (e: Exception) {
-      fail("Unexpected exception: ${e.message}")
-    }
+  private fun listenForFoldingRangeReply():
+      CompletableFuture<CodyInlineEditActionNotifier.Context> {
+    val foldingRangeFuture = CompletableFuture<CodyInlineEditActionNotifier.Context>()
+    project.messageBus
+        .connect()
+        .subscribe(
+            CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES,
+            object : CodyInlineEditActionNotifier {
+              override fun afterAction(context: CodyInlineEditActionNotifier.Context) {
+                foldingRangeFuture.complete(context)
+              }
+            })
+    return foldingRangeFuture
   }
 
   @RequiresEdt
@@ -102,10 +89,10 @@ class DocumentCodeTest : BasePlatformTestCase() {
   //    - assertTrue(myFixture.editor.document.text.contains("/\\*"))
   //  - test Undo
 
-  fun testTopLevelClass() {
-    assert(true)
-    // ...
-  }
+  //  fun testTopLevelClass() {
+  //    assert(true)
+  //    // ...
+  //  }
 
   private fun configureFixture() {
     // spotless:off
@@ -138,7 +125,7 @@ public class Foo {
   ): CodyInlineEditActionNotifier.Context? {
     val future =
         CompletableFuture<CodyInlineEditActionNotifier.Context?>()
-            .completeOnTimeout(null, 5, TimeUnit.SECONDS)
+            .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     project.messageBus
         .connect()
         .subscribe(
@@ -149,5 +136,13 @@ public class Foo {
               }
             })
     return future.get()
+  }
+
+  companion object {
+
+    // TODO: find the lowest value this can be for production, and use it
+    // If it's too low the test may be flaky.
+
+    const val ASYNC_WAIT_TIMEOUT_SECONDS = 50L // 5L for non-debugging
   }
 }

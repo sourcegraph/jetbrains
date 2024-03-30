@@ -10,13 +10,13 @@ import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
-import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.*
 import java.net.Socket
 import java.net.URI
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
+import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -132,24 +132,24 @@ private constructor(
       }
       val token = CancellationToken()
       val command: List<String> =
-              if (System.getenv("CODY_DIR") != null) {
-                val script = File(System.getenv("CODY_DIR"), "agent/dist/index.js")
-                logger.info("using Cody agent script " + script.absolutePath)
-                if (shouldSpawnDebuggableAgent()) {
-                  // TODO: Differentiate between --inspect and --inspect-brk (via env var)
-                  listOf("node", "--inspect-brk", "--enable-source-maps", script.absolutePath)
-                } else {
-                  listOf("node", "--enable-source-maps", script.absolutePath)
-                }
-              } else {
-                val binary = agentBinary(token)
-                logger.info("starting Cody agent " + binary.absolutePath)
-                listOf(binary.absolutePath)
-              }
+          if (System.getenv("CODY_DIR") != null) {
+            val script = File(System.getenv("CODY_DIR"), "agent/dist/index.js")
+            logger.info("using Cody agent script " + script.absolutePath)
+            if (shouldSpawnDebuggableAgent()) {
+              // TODO: Differentiate between --inspect and --inspect-brk (via env var)
+              listOf("node", "--inspect-brk", "--enable-source-maps", script.absolutePath)
+            } else {
+              listOf("node", "--enable-source-maps", script.absolutePath)
+            }
+          } else {
+            val binary = agentBinary(token)
+            logger.info("starting Cody agent " + binary.absolutePath)
+            listOf(binary.absolutePath)
+          }
 
       val processBuilder = ProcessBuilder(command)
       if (java.lang.Boolean.getBoolean("cody.accept-non-trusted-certificates-automatically") ||
-              ConfigUtil.getShouldAcceptNonTrustedCertificatesAutomatically()) {
+          ConfigUtil.getShouldAcceptNonTrustedCertificatesAutomatically()) {
         processBuilder.environment()["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
       }
 
@@ -157,18 +157,19 @@ private constructor(
         processBuilder.environment()["CODY_LOG_EVENT_MODE"] = "connected-instance-only"
       }
 
-      // TODO: Figure out which of these two works best and remove the other one.
-      if (java.lang.Boolean.getBoolean("cody.integration.testing") ||
-              System.getenv("CODY_TESTING") == "true") {
+      if (ConfigUtil.isIntegrationTestModeEnabled()) {
         processBuilder.environment()["CODY_TESTING"] = "true"
         processBuilder.environment()["CODY_SHIM_TESTING"] = "true"
+        processBuilder.environment()["CODY_INTEGRATION_TEST_TOKEN"] =
+            System.getenv("CODY_INTEGRATION_TEST_TOKEN")
+                ?: throw Error("No access token set for integration tests")
       }
 
       val process =
-              processBuilder
-                      .redirectErrorStream(false)
-                      .redirectError(ProcessBuilder.Redirect.PIPE)
-                      .start()
+          processBuilder
+              .redirectErrorStream(false)
+              .redirectError(ProcessBuilder.Redirect.PIPE)
+              .start()
       process.onExit().thenAccept { token.abort() }
 
       // Redirect agent stderr into idea.log by buffering line by line into `logger.warn()`
@@ -177,7 +178,7 @@ private constructor(
       // agent shouldn't print much normally (excluding a few noisy messages during
       // initialization), it's mostly used to report unexpected errors.
       Thread { process.errorStream.bufferedReader().forEachLine { line -> logger.warn(line) } }
-              .start()
+          .start()
 
       return AgentConnection.ProcessConnection(process)
     }

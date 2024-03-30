@@ -177,4 +177,11 @@ object ConfigUtil {
   fun getShouldAcceptNonTrustedCertificatesAutomatically(): Boolean {
     return CodyApplicationSettings.instance.shouldAcceptNonTrustedCertificatesAutomatically
   }
+
+  @JvmStatic
+  fun isIntegrationTestModeEnabled(): Boolean {
+    // TODO: Figure out which one to use and stick with it.
+    return java.lang.Boolean.getBoolean("cody.integration.testing") ||
+        System.getenv("CODY_TESTING") == "true"
+  }
 }

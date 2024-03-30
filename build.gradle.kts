@@ -1,6 +1,12 @@
 import com.jetbrains.plugin.structure.base.utils.isDirectory
 import java.net.URL
-import java.nio.file.*
+import java.nio.file.FileSystems
+import java.nio.file.FileVisitResult
+import java.nio.file.Files
+import java.nio.file.PathMatcher
+import java.nio.file.Paths
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.*
 import java.util.jar.JarFile
@@ -435,6 +441,10 @@ tasks {
     useJUnit()
 
     systemProperty("cody.integration.testing", "true")
+    systemProperty(
+        "idea.test.execution.policy", // For now, should be used by all tests
+        "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
+
     environment("CODY_TESTING", "true")
 
     dependsOn("buildCody")
