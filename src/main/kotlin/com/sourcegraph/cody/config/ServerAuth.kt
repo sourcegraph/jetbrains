@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.config
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.sourcegraph.config.ConfigUtil
 
@@ -10,6 +11,7 @@ data class ServerAuth(
 )
 
 object ServerAuthLoader {
+  val logger = Logger.getInstance(ServerAuth::class.java)
 
   @JvmStatic
   fun loadServerAuth(project: Project): ServerAuth {
@@ -25,8 +27,7 @@ object ServerAuthLoader {
       if (token != null) {
         return ServerAuth(ConfigUtil.DOTCOM_URL, token, "")
       } else {
-        throw IllegalArgumentException(
-            "Integration testing enabled but no CODY_INTEGRATION_TEST_TOKEN passed")
+        logger.warn("Integration testing enabled but no CODY_INTEGRATION_TEST_TOKEN passed")
       }
     }
     return ServerAuth(ConfigUtil.DOTCOM_URL, "", "")

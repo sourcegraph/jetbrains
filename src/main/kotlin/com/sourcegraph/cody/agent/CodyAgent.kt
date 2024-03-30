@@ -10,13 +10,13 @@ import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
+import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.*
 import java.net.Socket
 import java.net.URI
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
-import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -160,9 +160,14 @@ private constructor(
       if (ConfigUtil.isIntegrationTestModeEnabled()) {
         processBuilder.environment()["CODY_TESTING"] = "true"
         processBuilder.environment()["CODY_SHIM_TESTING"] = "true"
-        processBuilder.environment()["CODY_INTEGRATION_TEST_TOKEN"] =
-            System.getenv("CODY_INTEGRATION_TEST_TOKEN")
-                ?: throw Error("No access token set for integration tests")
+        val testToken = System.getenv("CODY_INTEGRATION_TEST_TOKEN")
+        // The Cody side will use the real LLM if this token is present,
+        // so you can run the integration tests against a prod LLM rather than a mock.
+        if (testToken is String && testToken.isNotBlank()) {
+            processBuilder.environment()["CODY_INTEGRATION_TEST_TOKEN"] = testToken
+        } else {
+            logger.warn("No access token passed for integration tests; using mock LLM")
+        }
       }
 
       val process =
