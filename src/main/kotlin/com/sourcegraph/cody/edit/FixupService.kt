@@ -33,7 +33,7 @@ class FixupService(val project: Project) : Disposable {
       agent.client.setOnEditTaskDidUpdate { task ->
         val session = activeSessions[task.id]
         if (session == null) {
-          logger.warn("No session found for task ${task.id}")
+          logger.warn("onEditTaskDidUpdate: No session found for task ${task.id}")
         } else {
           session.update(task)
         }
@@ -42,7 +42,7 @@ class FixupService(val project: Project) : Disposable {
       agent.client.setOnEditTaskDidDelete { task ->
         val session = activeSessions[task.id]
         if (session == null) {
-          logger.warn("No session found for task ${task.id}")
+          logger.warn("onEditTaskDidDelete: No session found for task ${task.id}")
         } else {
           session.taskDeleted()
         }

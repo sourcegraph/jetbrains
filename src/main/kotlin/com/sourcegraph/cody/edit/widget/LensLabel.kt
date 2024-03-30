@@ -1,9 +1,10 @@
 package com.sourcegraph.cody.edit.widget
 
+import org.jetbrains.annotations.VisibleForTesting
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 
-class LensLabel(group: LensWidgetGroup, private val text: String) : LensWidget(group) {
+class LensLabel(group: LensWidgetGroup, @VisibleForTesting val text: String) : LensWidget(group) {
   override fun calcWidthInPixels(fontMetrics: FontMetrics): Int = fontMetrics.stringWidth(text)
 
   override fun calcHeightInPixels(fontMetrics: FontMetrics): Int = fontMetrics.height

@@ -26,6 +26,7 @@ import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.Point
 import java.awt.geom.Rectangle2D
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 
 operator fun Point.component1() = this.x
@@ -102,20 +103,28 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     }
   }
 
-  // N.B. Blocks until the lens group is displayed, crossing thread boundaries.
   @RequiresBackgroundThread
-  fun show(range: Range) {
+  fun show(range: Range): CompletableFuture<Boolean> {
     commandCallbacks = session.commandCallbacks()
     val offset = range.start.toOffset(editor.document)
+    val future = CompletableFuture<Boolean>()
     ApplicationManager.getApplication().invokeLater {
-      if (!isDisposed.get()) {
-        inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
-        Disposer.register(this, inlay!!)
-        // Make sure the lens is visible.
-        val logicalPosition = LogicalPosition(range.start.line, range.start.character)
-        editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+      try {
+        if (isDisposed.get()) {
+          future.complete(false)
+        } else {
+          inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
+          Disposer.register(this, inlay!!)
+          // Make sure the lens is visible.
+          val logicalPosition = LogicalPosition(range.start.line, range.start.character)
+          editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+          future.complete(true)
+        }
+      } catch (ex: Throwable) {
+        future.completeExceptionally(ex)
       }
     }
+    return future
   }
 
   // Propagate repaint requests from widgets to the inlay.

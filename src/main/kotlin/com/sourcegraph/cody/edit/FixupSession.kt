@@ -94,7 +94,12 @@ abstract class FixupSession(
               fixupService.removeSession(this)
             } else {
               taskId = result.id
-              selectionRange = result.selectionRange
+              // Sometimes even though we get a folding range back, we don't get a selection range.
+              if (result.selectionRange.start.isZero() && result.selectionRange.end.isZero()) {
+                logger.warn("Empty selection range returned by Agent: $result")
+              } else {
+                selectionRange = result.selectionRange
+              }
               fixupService.addSession(this)
             }
             null
@@ -163,7 +168,10 @@ abstract class FixupSession(
   fun update(task: EditTask) {
     logger.warn("Task updated: $task")
     when (task.state) {
-      CodyTaskState.Idle -> {} // Internal state for pooled idle tasks.
+      // This is an internal state (parked/ready tasks) and we should never see it.
+      CodyTaskState.Idle -> {}
+      // These four may or may not all arrive, depending on the operation, testing, etc.
+      // They are all sent in quick succession and any one can substitute for another.
       CodyTaskState.Working,
       CodyTaskState.Inserting,
       CodyTaskState.Applying,
@@ -182,6 +190,9 @@ abstract class FixupSession(
     finish()
   }
 
+  // N.B. Blocks calling thread until the lens group is shown,
+  // which may require switching to the EDT. This is primarily to help smooth
+  // integration testing, but also because there's no real harm blocking pool threads.
   @RequiresBackgroundThread
   private fun showLensGroup(group: LensWidgetGroup) {
     lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
@@ -197,7 +208,7 @@ abstract class FixupSession(
       val position = Position(range.start.line, 0)
       range = Range(start = position, end = position)
     }
-    group.show(range)
+    group.show(range).get()
   }
 
   @RequiresBackgroundThread

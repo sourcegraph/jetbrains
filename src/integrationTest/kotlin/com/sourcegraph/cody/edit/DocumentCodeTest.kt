@@ -6,6 +6,7 @@ import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.edit.widget.LensAction
+import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import java.util.concurrent.CompletableFuture
@@ -33,7 +34,8 @@ class DocumentCodeTest : BasePlatformTestCase() {
     // The inlay should be up.
     assertTrue("Lens group inlay should be displayed", editor.inlayModel.hasBlockElements())
 
-    foldingRangeFuture.get() // TODO: Do something here.
+    // This is done now.
+    runInEdtAndWait { testSelectionRange(foldingRangeFuture.get()) }
 
     // Lens group should match the expected structure.
     val lenses = context!!.session.lensGroup
@@ -41,9 +43,19 @@ class DocumentCodeTest : BasePlatformTestCase() {
 
     val widgets = lenses!!.widgets
     assertEquals("Lens group should have 6 widgets", 6, widgets.size)
-    assertTrue("First lens should be a spinner", widgets[0] is LensSpinner)
-    assertTrue("Second lens should be a label", widgets[3] is LensLabel)
-    assertTrue("Third lens should be an action", widgets[5] is LensAction)
+    assertTrue("Zeroth lens should be a spinner", widgets[0] is LensSpinner)
+    assertTrue("First lens is space separator label", (widgets[1] as LensLabel).text == " ")
+    assertTrue("Second lens is working label", (widgets[2] as LensLabel).text.contains("working"))
+    assertTrue(
+        "Third lens is separator label",
+        (widgets[3] as LensLabel).text == LensGroupFactory.SEPARATOR)
+    assertTrue("Fourth lens should be an action", widgets[4] is LensAction)
+    assertTrue(
+        "Fifth lens should be a label with a hotkey",
+        (widgets[5] as LensLabel).text.matches(Regex(" \\(.+\\)")))
+
+    // TODO:  The LensSpinner is not shut down (maybe not disposed)
+
   }
 
   private fun listenForFoldingRangeReply():
