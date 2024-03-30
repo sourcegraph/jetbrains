@@ -7,9 +7,7 @@ import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.RangeMarker
-import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -17,6 +15,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.agent.CodyAgent
@@ -164,7 +163,7 @@ abstract class FixupSession(
   fun update(task: EditTask) {
     logger.warn("Task updated: $task")
     when (task.state) {
-      CodyTaskState.Idle -> {}
+      CodyTaskState.Idle -> {} // Internal state for pooled idle tasks.
       CodyTaskState.Working,
       CodyTaskState.Inserting,
       CodyTaskState.Applying,
@@ -183,6 +182,7 @@ abstract class FixupSession(
     finish()
   }
 
+  @RequiresBackgroundThread
   private fun showLensGroup(group: LensWidgetGroup) {
     lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
     lensGroup = group
@@ -198,20 +198,15 @@ abstract class FixupSession(
       range = Range(start = position, end = position)
     }
     group.show(range)
-    // Make sure the lens is visible.
-    ApplicationManager.getApplication().invokeLater {
-      if (!editor.isDisposed) {
-        val logicalPosition = LogicalPosition(range.start.line, range.start.character)
-        editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
-      }
-    }
   }
 
+  @RequiresBackgroundThread
   private fun showWorkingGroup() {
     showLensGroup(LensGroupFactory(this).createTaskWorkingGroup())
     publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
   }
 
+  @RequiresBackgroundThread
   private fun showAcceptGroup() {
     showLensGroup(LensGroupFactory(this).createAcceptGroup())
   }

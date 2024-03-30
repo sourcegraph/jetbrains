@@ -6,6 +6,8 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
+import com.intellij.openapi.editor.LogicalPosition
+import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.openapi.editor.event.EditorMouseListener
@@ -15,9 +17,14 @@ import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.FixupSession
-import java.awt.*
+import java.awt.Cursor
+import java.awt.Font
+import java.awt.FontMetrics
+import java.awt.Graphics2D
+import java.awt.Point
 import java.awt.geom.Rectangle2D
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -95,6 +102,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     }
   }
 
+  // N.B. Blocks until the lens group is displayed, crossing thread boundaries.
+  @RequiresBackgroundThread
   fun show(range: Range) {
     commandCallbacks = session.commandCallbacks()
     val offset = range.start.toOffset(editor.document)
@@ -102,6 +111,9 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       if (!isDisposed.get()) {
         inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
         Disposer.register(this, inlay!!)
+        // Make sure the lens is visible.
+        val logicalPosition = LogicalPosition(range.start.line, range.start.character)
+        editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
       }
     }
   }
