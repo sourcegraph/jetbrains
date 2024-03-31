@@ -1,10 +1,3 @@
-/**
- * Calculates the sum of two integers.
- *
- * @param a the first integer to add
- * @param b the second integer to add
- * @return the sum of the two integers
- */
 import java.util.*;
 
 public class Foo {
