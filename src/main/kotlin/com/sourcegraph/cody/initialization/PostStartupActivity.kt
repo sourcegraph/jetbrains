@@ -4,6 +4,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.Constraints
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
 import com.sourcegraph.cody.CodyFocusChangeListener
@@ -23,6 +24,8 @@ import com.sourcegraph.telemetry.TelemetryInitializerActivity
  *   compatibility.
  */
 class PostStartupActivity : StartupActivity.DumbAware {
+  private val logger = Logger.getInstance(PostStartupActivity::class.java)
+
   override fun runActivity(project: Project) {
     TelemetryInitializerActivity().runActivity(project)
     SettingsMigration().runActivity(project)
@@ -40,10 +43,15 @@ class PostStartupActivity : StartupActivity.DumbAware {
   private fun initializeInlineEdits() {
     ApplicationManager.getApplication().invokeLater {
       if (ConfigUtil.isFeatureFlagEnabled("cody.feature.inline-edits")) {
-        val actionManager = ActionManager.getInstance()
-        (actionManager.getAction("CodyEditorActions") as? DefaultActionGroup)?.apply {
-          pushFrontAction(actionManager, "cody.documentCodeAction", this)
-          pushFrontAction(actionManager, "cody.editCodeAction", this)
+        try {
+          val actionManager = ActionManager.getInstance()
+          (actionManager.getAction("CodyEditorActions") as? DefaultActionGroup)?.apply {
+            pushFrontAction(actionManager, "cody.documentCodeAction", this)
+            pushFrontAction(actionManager, "cody.editCodeAction", this)
+          }
+        } catch (x: Exception) {
+          // We should still start up gracefully, so just log a warning.
+          logger.warn("Failed to initialize inline edits", x)
         }
       }
     }
@@ -54,6 +62,7 @@ class PostStartupActivity : StartupActivity.DumbAware {
       actionId: String,
       group: DefaultActionGroup
   ) {
+    // If the group already contains the action, do nothing.
     actionManager.getAction(actionId)?.let { group.add(it, Constraints.FIRST) }
   }
 }
