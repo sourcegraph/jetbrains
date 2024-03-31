@@ -259,19 +259,19 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private fun <T> onEventThread(handler: Supplier<T>): @NotNull CompletableFuture<T> {
     val result = CompletableFuture<T>()
-    if (ApplicationManager.getApplication().isDispatchThread) {
+    val executeAndComplete: () -> Unit = {
       try {
-        result.complete(null)
+        val value = handler.get()
+        result.complete(value)
       } catch (e: Exception) {
         result.completeExceptionally(e)
       }
+    }
+    if (ApplicationManager.getApplication().isDispatchThread) {
+      executeAndComplete()
     } else {
       ApplicationManager.getApplication().invokeLater {
-        try {
-          result.complete(handler.get())
-        } catch (e: Exception) {
-          result.completeExceptionally(e)
-        }
+        executeAndComplete()
       }
     }
     return result

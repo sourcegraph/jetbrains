@@ -205,7 +205,7 @@ abstract class FixupSession(
       range = Range(start = position, end = position)
     }
     val future = group.show(range)
-    if (!ApplicationManager.getApplication().isDispatchThread) {
+    if (!ApplicationManager.getApplication().isDispatchThread) { // integration test
       future.get()
     }
   }
