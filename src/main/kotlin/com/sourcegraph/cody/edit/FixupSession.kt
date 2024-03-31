@@ -190,7 +190,6 @@ abstract class FixupSession(
   // N.B. Blocks calling thread until the lens group is shown,
   // which may require switching to the EDT. This is primarily to help smooth
   // integration testing, but also because there's no real harm blocking pool threads.
-  @RequiresBackgroundThread
   private fun showLensGroup(group: LensWidgetGroup) {
     lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
     lensGroup = group
@@ -205,7 +204,10 @@ abstract class FixupSession(
       val position = Position(range.start.line, 0)
       range = Range(start = position, end = position)
     }
-    group.show(range).get()
+    val future = group.show(range)
+    if (!ApplicationManager.getApplication().isDispatchThread) {
+      future.get()
+    }
   }
 
   @RequiresBackgroundThread

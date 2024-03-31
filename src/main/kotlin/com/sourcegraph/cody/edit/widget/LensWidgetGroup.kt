@@ -17,9 +17,9 @@ import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
-import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.FixupSession
+import org.jetbrains.annotations.NotNull
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -28,6 +28,7 @@ import java.awt.Point
 import java.awt.geom.Rectangle2D
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.function.Supplier
 
 operator fun Point.component1() = this.x
 
@@ -103,12 +104,11 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     }
   }
 
-  @RequiresBackgroundThread
   fun show(range: Range): CompletableFuture<Boolean> {
     commandCallbacks = session.commandCallbacks()
     val offset = range.start.toOffset(editor.document)
     val future = CompletableFuture<Boolean>()
-    ApplicationManager.getApplication().invokeLater {
+    onEventThread {
       try {
         if (isDisposed.get()) {
           future.complete(false)
@@ -255,6 +255,26 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       }
       inlay = null
     }
+  }
+
+  private fun <T> onEventThread(handler: Supplier<T>): @NotNull CompletableFuture<T> {
+    val result = CompletableFuture<T>()
+    if (ApplicationManager.getApplication().isDispatchThread) {
+      try {
+        result.complete(null)
+      } catch (e: Exception) {
+        result.completeExceptionally(e)
+      }
+    } else {
+      ApplicationManager.getApplication().invokeLater {
+        try {
+          result.complete(handler.get())
+        } catch (e: Exception) {
+          result.completeExceptionally(e)
+        }
+      }
+    }
+    return result
   }
 
   companion object {
