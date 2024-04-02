@@ -33,6 +33,7 @@ class LlmDropdown(
     }
 
     isEnabled = false
+    isVisible = false
     updateModels()
   }
 
@@ -63,7 +64,9 @@ class LlmDropdown(
     val isEnterpriseAccount =
         CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isEnterpriseAccount()
             ?: false
-    isEnabled = !didSendFirstMessage && !isEnterpriseAccount && model.size > 1
+    isEnabled = !didSendFirstMessage && model.size > 1
+    isVisible = !isEnterpriseAccount
+    revalidate()
   }
 
   override fun getModel(): MutableCollectionComboBoxModel<ChatModelsResponse.ChatModelProvider> {
