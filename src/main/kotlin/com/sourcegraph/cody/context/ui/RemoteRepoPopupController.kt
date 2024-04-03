@@ -31,6 +31,7 @@ class RemoteRepoPopupController(val project: Project) {
           editor!!
         )
       }
+      setOneLineMode(false)
     }
     val panel = JPanel(BorderLayout()).apply {
       add(textField, BorderLayout.CENTER)

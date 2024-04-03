@@ -62,11 +62,11 @@ class CodyAgentService(project: Project) : Disposable {
       }
 
       agent.client.onRemoteRepoDidChange = Consumer {
-        TODO("NYI")
+        // TODO: Plumb this back to the repo autocompleter and mutate the completion result set.
       }
 
       agent.client.onRemoteRepoDidChangeState = Consumer { state ->
-        TODO("NYI")
+        // TODO: Plumb this back to the repo autocompleter to show it is no longer busy/is busy.
       }
 
       if (!project.isDisposed) {

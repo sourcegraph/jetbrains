@@ -10,6 +10,8 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import kotlin.math.max
+import kotlin.math.min
 
 data class RemoteRepo(
     val name: String,
@@ -17,22 +19,6 @@ data class RemoteRepo(
 
 class RemoteRepoCompletionProvider(private var project: Project) : TextFieldWithAutoCompletionListProvider<String>(listOf()),
     DumbAware {
-
-    // The plain document moves the insertion offset at . or /. This insertion handler makes the repo completion occupy
-    // the whole line.
-    // TODO: Work out how to disable "insert by pressing ." for this provider/editor/document and remove this.
-    // https://stackoverflow.com/questions/71885263/intellij-plugin-completion-exits-on-dot
-    val insertHandler =
-        InsertHandler<LookupElement> { context, item ->
-            val line = context.document.getLineNumber(context.startOffset)
-            val start = context.document.getLineStartOffset(line)
-            val end = context.document.getLineEndOffset(line)
-            context.document.replaceString(start, end, item.lookupString)
-        }
-
-    override fun createInsertHandler(item: String): InsertHandler<LookupElement>? {
-        return insertHandler
-    }
 
     override fun getAdvertisement(): String? {
         // TODO: L10N
@@ -44,17 +30,28 @@ class RemoteRepoCompletionProvider(private var project: Project) : TextFieldWith
     }
 
     override fun acceptChar(c: Char): CharFilter.Result? {
-        return CharFilter.Result.ADD_TO_PREFIX
+        // Tab, enter are handled by the autocomplete popup.
+        return if (c == ' ') { CharFilter.Result.SELECT_ITEM_AND_FINISH_LOOKUP } else { CharFilter.Result.ADD_TO_PREFIX }
     }
 
     override fun getPrefix(text: String, offset: Int): String? {
-        return text
+        // Claim responsibility for the whole prefix.
+        val separatorChars = charArrayOf(' ', '\n')
+        val start = text.subSequence(0, offset).lastIndexOfAny(separatorChars) + 1 // skip the separator itself
+        var end = text.indexOfAny(separatorChars, offset)
+        if (end == -1) {
+            end = text.length
+        }
+        val prefix = text.substring(start, end)
+        println("getPrefix: $text offset: $offset prefix: $prefix")
+        return prefix
     }
 
     override fun applyPrefixMatcher(result: CompletionResultSet, prefix: String): CompletionResultSet {
-        // Return all the results. They are already filtered by fuzzysort, we don't want to filter them further.
+        // Extension-side fuzzysort is already sorting and trimming completions, so delegate to it whenever the prefix
+        // changes.
         result.restartCompletionOnAnyPrefixChange()
-        return result
+        return result.withPrefixMatcher(prefix)
     }
 
     override fun getItems(
