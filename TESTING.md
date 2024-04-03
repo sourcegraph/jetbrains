@@ -467,7 +467,7 @@ To open the context menu:
 
 1. Login to Cody Free account
 2. Create new chat
-3. User doesn't see model dropdown
+3. User sees model dropdown, but non-default LLM is disabled
 4. Default model is Claude 3 Sonnet
 
 ### Pro account after trial
