@@ -41,7 +41,7 @@ import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreePath
 import javax.swing.tree.TreeSelectionModel
 
-class HistoryTree(
+class ChatHistoryPanel(
     private val project: Project,
     private val onSelect: (ChatState) -> Unit,
     private val onRemove: (ChatState) -> Unit,
