@@ -32,7 +32,8 @@ class CodyToolWindowContent(private val project: Project) {
 
   private var codyOnboardingGuidancePanel: CodyOnboardingGuidancePanel? = null
   private val signInWithSourcegraphPanel = SignInWithSourcegraphPanel(project)
-  private val chatHistoryPanel = ChatHistoryPanel(project, ::selectChat, ::removeChat, ::removeAllChats)
+  private val chatHistoryPanel =
+      ChatHistoryPanel(project, ::selectChat, ::removeChat, ::removeAllChats)
   private val tabbedPane = TabbedPaneWrapper(CodyAgentService.getInstance(project))
   private val currentChatSession: AtomicReference<AgentChatSession?> = AtomicReference(null)
 

@@ -82,7 +82,7 @@ private constructor(
             text,
             displayText,
         )
-    addMessageAtIndex(humanMessage, index = messages.count())
+    addMessageAtIndex(humanMessage, index = messages.count(), shouldUpdateTime = true)
 
     val responsePlaceholder =
         ChatMessage(
@@ -220,7 +220,11 @@ private constructor(
   }
 
   @RequiresEdt
-  private fun addMessageAtIndex(message: ChatMessage, index: Int) {
+  private fun addMessageAtIndex(
+      message: ChatMessage,
+      index: Int,
+      shouldUpdateTime: Boolean = false
+  ) {
     val messageToUpdate = messages.getOrNull(index)
     if (messageToUpdate != null) {
       messages[index] = message
@@ -229,7 +233,7 @@ private constructor(
     }
 
     chatPanel.addOrUpdateMessage(message, index)
-    HistoryService.getInstance(project).updateChatMessages(internalId, messages)
+    HistoryService.getInstance(project).updateChatMessages(internalId, messages, shouldUpdateTime)
   }
 
   @RequiresEdt
@@ -295,18 +299,21 @@ private constructor(
           })
 
       chatSession.addMessageAtIndex(
-          ChatMessage(
-              Speaker.HUMAN,
-              commandId.displayName,
-          ),
-          chatSession.messages.count())
+          message =
+              ChatMessage(
+                  speaker = Speaker.HUMAN,
+                  text = commandId.displayName,
+              ),
+          index = chatSession.messages.count(),
+          shouldUpdateTime = true)
       chatSession.addMessageAtIndex(
-          ChatMessage(
-              Speaker.ASSISTANT,
-              text = "",
-              displayText = "",
-          ),
-          chatSession.messages.count())
+          message =
+              ChatMessage(
+                  Speaker.ASSISTANT,
+                  text = "",
+                  displayText = "",
+              ),
+          index = chatSession.messages.count())
       AgentChatSessionService.getInstance(project).addSession(chatSession)
       return chatSession
     }
