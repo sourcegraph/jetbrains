@@ -6,10 +6,12 @@ import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.ui.TextFieldWithAutoCompletionListProvider
+import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import javax.swing.Icon
 import kotlin.math.max
 import kotlin.math.min
 
@@ -52,6 +54,14 @@ class RemoteRepoCompletionProvider(private var project: Project) : TextFieldWith
         // changes.
         result.restartCompletionOnAnyPrefixChange()
         return result.withPrefixMatcher(prefix)
+    }
+
+    override fun getIcon(item: String): Icon? {
+        return when {
+            item.startsWith("github.com/") -> Icons.RepoHostGitHub
+            item.startsWith("gitlab.com/") -> Icons.RepoHostGitLab
+            else -> Icons.RepoHostGeneric
+        }
     }
 
     override fun getItems(
