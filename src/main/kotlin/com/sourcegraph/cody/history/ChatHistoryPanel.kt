@@ -140,7 +140,9 @@ class ChatHistoryPanel(
       }
     } else {
       val currentPeriodText = DurationGroupFormatter.format(chat.getUpdatedTimeAt())
-      val currentPeriod = root.periods().find { it.periodText == currentPeriodText } ?: return
+      val currentPeriod =
+          root.periods().find { it.periodText == currentPeriodText }
+              ?: PeriodNode(currentPeriodText)
       val leafWithChangedPeriod =
           root
               .periods()
