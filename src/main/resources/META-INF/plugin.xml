@@ -220,6 +220,7 @@
                icon="/icons/codyLogoSm.svg" searchable="false"
                class="com.sourcegraph.cody.CodyActionGroup">
             <add-to-group anchor="last" group-id="EditorPopupMenu"/>
+            <separator/>
         </group>
 
         <action id="cody.command.Explain"
@@ -229,7 +230,7 @@
             <keyboard-shortcut first-keystroke="control shift E"
                                keymap="Mac OS X 10.5+"/>
             <keyboard-shortcut first-keystroke="alt shift 1" keymap="$default"/>
-            <add-to-group group-id="CodyEditorActions"/>
+            <add-to-group group-id="CodyEditorActions" anchor="last"/>
         </action>
 
         <action id="cody.command.Smell"
@@ -239,7 +240,7 @@
             <keyboard-shortcut first-keystroke="control shift S"
                                keymap="Mac OS X 10.5+"/>
             <keyboard-shortcut first-keystroke="alt shift 2" keymap="$default"/>
-            <add-to-group group-id="CodyEditorActions"/>
+            <add-to-group group-id="CodyEditorActions" anchor="last"/>
         </action>
 
         <action id="cody.command.Test"
@@ -249,14 +250,13 @@
             <keyboard-shortcut first-keystroke="control shift T"
                                keymap="Mac OS X 10.5+"/>
             <keyboard-shortcut first-keystroke="alt shift 3" keymap="$default"/>
-            <add-to-group group-id="CodyEditorActions"/>
+            <add-to-group group-id="CodyEditorActions" anchor="last"/>
         </action>
 
         <action
                 id="cody.restartAgent"
                 class="com.sourcegraph.cody.agent.action.CodyAgentRestartAction"
                 text="Restart Cody Agent"/>
-
         <group id="CodyChatActionsGroup">
             <reference ref="cody.newChat"/>
         </group>
@@ -266,17 +266,14 @@
                 id="cody.editCodeAction"
                 class="com.sourcegraph.cody.edit.EditCodeAction"
                 text="Edit Code">
-            <!-- TODO: Put these back in and remove the feature flag when they are ready. -->
-            <!--            <add-to-group group-id="CodyEditorActions"/>-->
-
+                        <add-to-group group-id="CodyEditorActions" anchor="first"/>
         </action>
 
         <action
                 id="cody.documentCodeAction"
                 class="com.sourcegraph.cody.edit.DocumentCodeAction"
                 text="Document Code">
-            <!-- TODO: Put these back in and remove the feature flag when they are ready. -->
-            <!--            <add-to-group group-id="CodyEditorActions"/>-->
+                        <add-to-group group-id="CodyEditorActions" anchor="first"/>
         </action>
 
         <action
