@@ -35,6 +35,7 @@
     - [ ] [Automatic repository recognition](#automatic-repository-recognition)
     - [ ] [Persistent custom repository](#persistent-custom-repository)
     - [ ] [Colour scheme changes](#colour-scheme-changes)
+    - [ ] [Claude 3 Enterprise Testing](#claude-3-enterprise-testing)
 - Context
     - [ ] [PLG / SYMF / Local Keyword search](#local-keyword-search)
 - Model dropdown
@@ -531,3 +532,14 @@ Repeat the above starting from different themes.
 #### Expected behaviour
 
 Changing theme should lead to full repaint of the colours according to the current theme.
+
+
+### Claude 3 Enterprise Testing
+#### Cody Gateway Instance
+- [ ] Ask Cody a question in a new chat window. The question should include a request for Cody to generate code with the site-admin configuration is set to **Claude 3 Sonnet** for chatModel and **Claude 3 Haiku** for completionModel
+- [ ] Ask Cody a question in a new chat window. The question should include a request for Cody to generate code with the site-admin configuration is set to **Claude 3 Opus** for chatModel and **Claude 3 Haiku** for completionModel
+- [ ] Generate a completion using the manual-trigger key binding on any primary languages (Javascript, Typescript, TypescriptReact, Python, Go).
+
+#### AWS Bedrock Instance
+- [ ] Ask Cody a question in a new chat window. The question should include a request for Cody to generate code with the site-admin configuration is set to **Claude 3 Sonnet** for chatModel and **Claude 3 Haiku** for completionModel
+- [ ] Generate a completion using the manual-trigger key binding on any primary languages (Javascript, Typescript, TypescriptReact, Python, Go).
