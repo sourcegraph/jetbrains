@@ -253,10 +253,6 @@ private constructor(
 
           ChatMessage(speaker = parsed, message.text)
         }
-    this.messages.addAll(chatMessages)
-    chatMessages.forEachIndexed { index, chatMessage ->
-      chatPanel.addOrUpdateMessage(chatMessage, index)
-    }
 
     val newConnectionId =
         restoreChatSession(agent, chatMessages, chatModelProviderFromState, state.internalId!!)
