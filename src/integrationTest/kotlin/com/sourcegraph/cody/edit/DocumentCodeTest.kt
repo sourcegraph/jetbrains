@@ -20,6 +20,11 @@ class DocumentCodeTest : BasePlatformTestCase() {
     configureFixture()
   }
 
+  override fun tearDown() {
+      // TODO: Notify the Agent that all documents were closed.
+      super.tearDown()
+  }
+
   fun testGetsWorkingGroupLens() {
     val foldingRangeFuture = listenForFoldingRangeReply()
 
