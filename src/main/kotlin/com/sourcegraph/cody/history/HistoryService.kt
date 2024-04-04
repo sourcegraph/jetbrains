@@ -37,9 +37,17 @@ class HistoryService(private val project: Project) :
     val found = getOrCreateChat(internalId)
     if (found.messages.size < chatMessages.size) {
       found.setUpdatedTimeAt(LocalDateTime.now())
-      found.messages = chatMessages.map(::convertToMessageState).toMutableList()
-      synchronized(listeners) { listeners.forEach { it(found) } }
     }
+
+    chatMessages.map(::convertToMessageState).forEachIndexed { index, messageState ->
+      val messageToUpdate = found.messages.getOrNull(index)
+      if (messageToUpdate != null) {
+        found.messages[index] = messageState
+      } else {
+        found.messages.add(messageState)
+      }
+    }
+    synchronized(listeners) { listeners.forEach { it(found) } }
   }
 
   @Synchronized
