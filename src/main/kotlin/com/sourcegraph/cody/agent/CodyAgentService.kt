@@ -72,7 +72,7 @@ class CodyAgentService(project: Project) : Disposable {
   fun startAgent(project: Project): CompletableFuture<CodyAgent> {
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
-        val agent = CodyAgent.create(project).get(45, TimeUnit.SECONDS)
+        val agent = CodyAgent.create(project).get(10, TimeUnit.SECONDS)
         if (!agent.isConnected()) {
           val msg = "Failed to connect to agent Cody agent"
           logger.error(msg)
