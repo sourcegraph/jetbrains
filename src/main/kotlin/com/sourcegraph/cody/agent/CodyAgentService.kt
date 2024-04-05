@@ -72,11 +72,17 @@ class CodyAgentService(project: Project) : Disposable {
   fun startAgent(project: Project): CompletableFuture<CodyAgent> {
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
-        val agent = CodyAgent.create(project).get(10, TimeUnit.SECONDS)
+        val future =
+            CodyAgent.create(project).exceptionally { err ->
+              val msg = "Creating agent unsuccessful: ${err.localizedMessage}"
+              logger.error(msg)
+              throw (CodyAgentException(msg))
+            }
+        val agent = future.get(10, TimeUnit.SECONDS)
         if (!agent.isConnected()) {
           val msg = "Failed to connect to agent Cody agent"
           logger.error(msg)
-          codyAgent.completeExceptionally(CodyAgentException(msg))
+          throw CodyAgentException(msg) // This will be caught by the catch blocks below
         } else {
           synchronized(startupActions) { startupActions.forEach { action -> action(agent) } }
           codyAgent.complete(agent)
@@ -94,7 +100,6 @@ class CodyAgentService(project: Project) : Disposable {
         codyAgent.completeExceptionally(CodyAgentException(msg, e))
       }
     }
-
     return codyAgent
   }
 
