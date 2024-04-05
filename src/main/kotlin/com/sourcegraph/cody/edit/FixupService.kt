@@ -10,6 +10,7 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
+import java.util.function.Consumer
 
 /** Controller for commands that allow the LLM to edit the code directly. */
 @Service(Service.Level.PROJECT)
@@ -29,7 +30,7 @@ class FixupService(val project: Project) : Disposable {
   init {
     // JetBrains docs say avoid heavy lifting in the constructor, so pass to another thread.
     CodyAgentService.withAgent(project) { agent ->
-      agent.client.setOnEditTaskDidUpdate { task ->
+      agent.client.onEditTaskDidUpdate = Consumer { task ->
         val session = activeSessions[task.id]
         if (session == null) {
           logger.warn("onEditTaskDidUpdate: No session found for task ${task.id}")
@@ -38,7 +39,7 @@ class FixupService(val project: Project) : Disposable {
         }
       }
 
-      agent.client.setOnEditTaskDidDelete { task ->
+      agent.client.onEditTaskDidDelete = Consumer { task ->
         val session = activeSessions[task.id]
         if (session == null) {
           logger.warn("onEditTaskDidDelete: No session found for task ${task.id}")
@@ -47,7 +48,7 @@ class FixupService(val project: Project) : Disposable {
         }
       }
 
-      agent.client.setOnWorkspaceEdit { params ->
+      agent.client.onWorkspaceEdit = Consumer { params ->
         for (op in params.operations) {
           // TODO: We need to support the file-level operations.
           when (op.type) {

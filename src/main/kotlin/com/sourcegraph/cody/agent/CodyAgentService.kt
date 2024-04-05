@@ -43,28 +43,23 @@ class CodyAgentService(project: Project) : Disposable {
         }
       }
 
-      agent.client.setOnEditTaskDidUpdate { task ->
+      agent.client.onEditTaskDidUpdate = Consumer { task ->
         FixupService.getInstance(project).getSessionForTask(task)?.update(task)
       }
 
-      agent.client.setOnEditTaskDidDelete { task ->
-        FixupService.getInstance(project).getSessionForTask(task)?.taskDeleted()
-      }
-
-      agent.client.setOnWorkspaceEdit { params ->
-        // TODO: We should change the protocol and send `taskId` as part of `WorkspaceEditParam`
-        // and then use method like `getSessionForTask` instead of this one
-        FixupService.getInstance(project).getActiveSession()?.performWorkspaceEdit(params)
-      }
-
-      agent.client.setOnTextDocumentEdit { params ->
-        // TODO: This one is missing
+      agent.client.onTextDocumentEdit = Consumer { params ->
+        // I think we're only using workspace/edit now -- namespace change?
+        logger.warn("textDocument/edit not supported in JetBrains")
       }
 
       if (!project.isDisposed) {
         AgentChatSessionService.getInstance(project).restoreAllSessions(agent)
-        FileEditorManager.getInstance(project).openFiles.forEach { file ->
-          CodyFileEditorListener.fileOpened(project, agent, file)
+        try {
+          FileEditorManager.getInstance(project).openFiles.forEach { file ->
+            CodyFileEditorListener.fileOpened(project, agent, file)
+          }
+        } catch (x: Exception) {
+          logger.warn("Error notifying Agent of open files", x)
         }
       }
     }

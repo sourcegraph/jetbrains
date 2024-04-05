@@ -19,7 +19,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.FixupSession
-import org.jetbrains.annotations.NotNull
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -29,6 +28,7 @@ import java.awt.geom.Rectangle2D
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
+import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
@@ -270,9 +270,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     if (ApplicationManager.getApplication().isDispatchThread) {
       executeAndComplete()
     } else {
-      ApplicationManager.getApplication().invokeLater {
-        executeAndComplete()
-      }
+      ApplicationManager.getApplication().invokeLater { executeAndComplete() }
     }
     return result
   }

@@ -21,8 +21,8 @@ class DocumentCodeTest : BasePlatformTestCase() {
   }
 
   override fun tearDown() {
-      // TODO: Notify the Agent that all documents were closed.
-      super.tearDown()
+    // TODO: Notify the Agent that all documents were closed.
+    super.tearDown()
   }
 
   fun testGetsWorkingGroupLens() {
@@ -61,9 +61,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
         (widgets[5] as LensLabel).text.matches(Regex(" \\(.+\\)")))
 
     // This avoids an error saying the spinner hasn't shut down, at the end of the test.
-    runInEdtAndWait {
-      Disposer.dispose(lenses)
-    }
+    runInEdtAndWait { Disposer.dispose(lenses) }
   }
 
   private fun listenForFoldingRangeReply():

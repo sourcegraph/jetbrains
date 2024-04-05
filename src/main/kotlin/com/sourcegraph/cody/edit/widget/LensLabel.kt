@@ -1,8 +1,8 @@
 package com.sourcegraph.cody.edit.widget
 
-import org.jetbrains.annotations.VisibleForTesting
 import java.awt.FontMetrics
 import java.awt.Graphics2D
+import org.jetbrains.annotations.VisibleForTesting
 
 class LensLabel(group: LensWidgetGroup, @VisibleForTesting val text: String) : LensWidget(group) {
   override fun calcWidthInPixels(fontMetrics: FontMetrics): Int = fontMetrics.stringWidth(text)

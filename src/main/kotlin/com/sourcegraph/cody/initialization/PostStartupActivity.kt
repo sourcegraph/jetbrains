@@ -62,7 +62,15 @@ class PostStartupActivity : StartupActivity.DumbAware {
       actionId: String,
       group: DefaultActionGroup
   ) {
-    // If the group already contains the action, do nothing.
-    actionManager.getAction(actionId)?.let { group.add(it, Constraints.FIRST) }
+    try {
+      // We get called multiple times on startup, so make it idempotent.
+      actionManager.getAction(actionId)?.let {
+        if (!group.getChildren(null).contains(it)) {
+          group.add(it, Constraints.FIRST)
+        }
+      }
+    } catch (x: Exception) {
+      logger.warn("Failed to add action $actionId to group $group", x)
+    }
   }
 }

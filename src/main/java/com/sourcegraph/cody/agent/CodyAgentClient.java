@@ -33,24 +33,16 @@ public class CodyAgentClient {
   @Nullable public Consumer<WebviewPostMessageParams> onReceivedWebviewMessage;
 
   // Callback for the "editTask/didUpdate" notification from the agent.
-  @Nullable private Consumer<EditTask> onEditTaskDidUpdate;
+  @Nullable public Consumer<EditTask> onEditTaskDidUpdate;
 
   // Callback for the "editTask/didDelete" notification from the agent.
-  @Nullable private Consumer<EditTask> onEditTaskDidDelete;
+  @Nullable public Consumer<EditTask> onEditTaskDidDelete;
 
   // Callback for the "textDocument/edit" request from the agent.
-  @Nullable private Consumer<TextDocumentEditParams> onTextDocumentEdit;
+  @Nullable public Consumer<TextDocumentEditParams> onTextDocumentEdit;
 
   // Callback for the "workspace/edit" request from the agent.
-  @Nullable private Consumer<WorkspaceEditParams> onWorkspaceEdit;
-
-  public void setOnEditTaskDidUpdate(@Nullable Consumer<EditTask> callback) {
-    onEditTaskDidUpdate = callback;
-  }
-
-  public void setOnEditTaskDidDelete(@Nullable Consumer<EditTask> callback) {
-    onEditTaskDidDelete = callback;
-  }
+  @Nullable public Consumer<WorkspaceEditParams> onWorkspaceEdit;
 
   @JsonNotification("editTask/didUpdate")
   public CompletableFuture<Void> editTaskDidUpdate(EditTask params) {
@@ -62,17 +54,9 @@ public class CodyAgentClient {
     return acceptOnEventThread("editTask/didDelete", onEditTaskDidDelete, params);
   }
 
-  public void setOnTextDocumentEdit(@Nullable Consumer<TextDocumentEditParams> callback) {
-    onTextDocumentEdit = callback;
-  }
-
   @JsonRequest("textDocument/edit")
   public CompletableFuture<Void> textDocumentEdit(TextDocumentEditParams params) {
     return acceptOnEventThread("textDocument/edit", onTextDocumentEdit, params);
-  }
-
-  public void setOnWorkspaceEdit(@Nullable Consumer<WorkspaceEditParams> callback) {
-    onWorkspaceEdit = callback;
   }
 
   @JsonRequest("workspace/edit")
