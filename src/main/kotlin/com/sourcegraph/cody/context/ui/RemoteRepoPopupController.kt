@@ -1,8 +1,14 @@
 package com.sourcegraph.cody.context.ui
 
+import com.intellij.codeInsight.AutoPopupController
+import com.intellij.codeInsight.completion.BaseCompletionService
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.PsiFileBase
-import com.intellij.lang.*
+import com.intellij.lang.ASTNode
+import com.intellij.lang.Language
+import com.intellij.lang.ParserDefinition
+import com.intellij.lang.PsiParser
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
@@ -10,9 +16,11 @@ import com.intellij.lexer.Lexer
 import com.intellij.lexer.LexerPosition
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
-import com.intellij.openapi.editor.event.DocumentEvent
-import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.ex.FocusChangeListener
+import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.LanguageFileType
 import com.intellij.openapi.keymap.KeymapUtil
@@ -21,16 +29,13 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.openapi.util.TextRange
-import com.intellij.psi.FileViewProvider
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
+import com.intellij.psi.*
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
 import com.intellij.ui.SoftWrapsEditorCustomization
-import com.intellij.ui.TextFieldWithAutoCompletion
+import com.intellij.util.LocalTimeCounter
+import com.intellij.util.textCompletion.TextCompletionUtil
 import com.intellij.util.ui.JBDimension
 import com.intellij.util.ui.JBUI
 import org.jetbrains.annotations.NonNls
@@ -65,7 +70,7 @@ class RemoteRepoFileType : LanguageFileType(RemoteRepoLanguage) {
   }
 
   override fun getDefaultExtension(): String {
-    return ""
+    return "todoremove"
   }
 
   override fun getIcon(): Icon? {
@@ -73,15 +78,15 @@ class RemoteRepoFileType : LanguageFileType(RemoteRepoLanguage) {
   }
 }
 
-private class TokenType(debugName: @NonNls String) : IElementType(debugName, RemoteRepoLanguage) {
+class RemoteRepoTokenType(debugName: @NonNls String) : IElementType(debugName, RemoteRepoLanguage) {
   override fun toString(): String {
     return "RemoteRepoTokenType." + super.toString()
   }
 
   companion object {
-    val REPO = TokenType("REPO")
-    val SEPARATOR = TokenType("SEPARATOR")
-    val EOF = TokenType("EOF")
+    val REPO = RemoteRepoTokenType("REPO")
+    val SEPARATOR = RemoteRepoTokenType("SEPARATOR")
+    val EOF = RemoteRepoTokenType("EOF")
   }
 }
 
@@ -129,8 +134,8 @@ internal class RemoteRepoListParserDefinition : ParserDefinition {
 
       override fun getTokenType(): IElementType? {
         return when (state) {
-          LexerState.IN_REPO -> TokenType.REPO
-          LexerState.IN_SEPARATOR -> TokenType.SEPARATOR
+          LexerState.IN_REPO -> RemoteRepoTokenType.REPO
+          LexerState.IN_SEPARATOR -> RemoteRepoTokenType.SEPARATOR
           LexerState.EOF -> null
         }
       }
@@ -141,12 +146,12 @@ internal class RemoteRepoListParserDefinition : ParserDefinition {
 
       override fun getTokenEnd(): Int {
         val index = when (tokenType) {
-          TokenType.REPO -> buffer.indexOfAny(charArrayOf(' ', '\t', '\r', '\n'), offset)
-          TokenType.SEPARATOR -> {
+          RemoteRepoTokenType.REPO -> buffer.indexOfAny(charArrayOf(' ', '\t', '\r', '\n'), offset)
+          RemoteRepoTokenType.SEPARATOR -> {
             val subIndex = buffer.subSequence(offset, buffer.length).indexOfFirst { ch -> " \t\r\n".indexOf(ch) == -1 }
             if (subIndex == -1) { -1 } else { offset + subIndex }
           }
-          TokenType.EOF -> return buffer.length
+          RemoteRepoTokenType.EOF -> return buffer.length
           else -> throw RuntimeException("unexpected token type $tokenType lexing repo list")
         }
         return if (index == -1) { buffer.length } else { index }
@@ -215,13 +220,13 @@ internal class RemoteRepoListParserDefinition : ParserDefinition {
       while (!builder.eof()) {
         val tokenType = builder.tokenType
         when (builder.tokenType) {
-          TokenType.REPO -> {
+          RemoteRepoTokenType.REPO -> {
             val mark = builder.mark()
             builder.advanceLexer()
-            mark.done(TokenType.REPO)
+            mark.done(RemoteRepoTokenType.REPO)
           }
 
-          TokenType.SEPARATOR -> {
+          RemoteRepoTokenType.SEPARATOR -> {
             builder.advanceLexer()
           }
 
@@ -258,10 +263,8 @@ class RemoteRepoAnnotator : Annotator, DumbAware {
     println("creating a RemoteRepoAnnotator")
   }
   override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-    println("Annotate! ${element}")
-    holder.newAnnotation(HighlightSeverity.ERROR, "Turn again, Caesar").apply {
-      range(TextRange(0, holder.currentAnnotationSession.file.textLength)).create()
-    }
+    println("Annotate! ${element.text}")
+    holder.newAnnotation(HighlightSeverity.ERROR, "foo").range(element).create()
   }
 }
 
@@ -269,6 +272,8 @@ class RemoteRepoPopupController(val project: Project) {
   private val completionProvider = RemoteRepoCompletionProvider(project)
   fun createPopup(width: Int): JBPopup {
     val initialValue = "" // TODO: Parse initial value from repo list
+
+    /*
     val textField = TextFieldWithAutoCompletion(project, completionProvider, false, initialValue).apply {
       border = CompoundBorder(JBUI.Borders.empty(2), border)
       addSettingsProvider { editor: EditorEx? ->
@@ -280,32 +285,93 @@ class RemoteRepoPopupController(val project: Project) {
       fileType = RemoteRepoFileType.INSTANCE
       setOneLineMode(false)
     }
-    /*
-    textField.addDocumentListener(object : DocumentListener {
-      override fun documentChanged(event: DocumentEvent) {
-        // TODO delete this if we don't need to trigger updates manually
-        super.documentChanged(event)
-
-        val markup = textField.editor!!.markupModel
-        markup.removeAllHighlighters()
-        val attributes = TextAttributes().apply {
-          // TODO: Theme color
-          foregroundColor = Color.BLUE
-          backgroundColor = Color.MAGENTA
-          errorStripeColor = Color.CYAN
-        }
-        markup.addRangeHighlighter(0, event.document.textLength / 2, 0, attributes, HighlighterTargetArea.EXACT_RANGE)
-      }
-    })
      */
+
+    // Despite setting fileType, TextFieldWithAutocompletion creates a plain text document. Reset the document.
+    val factory = PsiFileFactory.getInstance(project)
+    val stamp = LocalTimeCounter.currentTime()
+    val psiFile = factory.createFileFromText(
+      "RepositoryList",
+      RemoteRepoFileType.INSTANCE, "", stamp, true, false
+    )
+    TextCompletionUtil.installProvider(psiFile, completionProvider, true)
+    psiFile.putUserData<Boolean>(BaseCompletionService.FORBID_WORD_COMPLETION, false)
+
+    val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)!!
+    // textField.document = document
+
+    // TODO: releaseEditor when done
+    val editor = EditorFactory.getInstance().createEditor(document, project)
+    // TODO: Auto popup controller still ignoring this editor
+    editor.putUserData<Boolean>(AutoPopupController.ALWAYS_AUTO_POPUP, true)
+    if (editor is EditorEx) {
+      editor.apply {
+        SoftWrapsEditorCustomization.ENABLED.customize(this)
+        setHorizontalScrollbarVisible(false)
+        setVerticalScrollbarVisible(true)
+        highlighter = EditorHighlighterFactory.getInstance().createEditorHighlighter(project, RemoteRepoFileType.INSTANCE)
+        addFocusListener(object : FocusChangeListener {
+          override fun focusGained(editor: Editor) {
+            super.focusGained(editor)
+            val project = editor.project
+            if (project != null) {
+              AutoPopupController.getInstance(project).scheduleAutoPopup(editor)
+            }
+          }
+        })
+      }
+    }
+    editor.settings.apply {
+      additionalLinesCount = 0
+      additionalColumnsCount = 1
+      isRightMarginShown = false
+      setRightMargin(-1)
+      isFoldingOutlineShown = false
+      isLineNumbersShown = false
+      isLineMarkerAreaShown = false
+      isIndentGuidesShown = false
+      isVirtualSpace = false
+      isWheelFontChangeEnabled = false
+      isAdditionalPageAtBottom = false
+      lineCursorWidth = 1
+    }
+    editor.contentComponent.apply {
+      border = CompoundBorder(JBUI.Borders.empty(2), border)
+    }
+    // TODO: completions aren't working in this *editor*
+    // TODO: annotator
+
+    DaemonCodeAnalyzer.getInstance(project).setHighlightingEnabled(psiFile, true)
+    // TODO: This will affect other analyzers in the project, work to get annotations without this.
+    DaemonCodeAnalyzer.getInstance(project).setUpdateByTimerEnabled(true)
+    println("${psiFile}, ${psiFile?.language}")
+
+    /*
+        textField.addDocumentListener(object : DocumentListener {
+          override fun documentChanged(event: DocumentEvent) {
+            // TODO delete this if we don't need to trigger updates manually
+            super.documentChanged(event)
+            val markup = textField.editor!!.markupModel
+            markup.removeAllHighlighters()
+            val attributes = TextAttributes().apply {
+              // TODO: Theme color
+              foregroundColor = Color.BLUE
+              backgroundColor = Color.MAGENTA
+              errorStripeColor = Color.CYAN
+            }
+            markup.addRangeHighlighter(0, event.document.textLength / 2, 0, attributes, HighlighterTargetArea.EXACT_RANGE)
+          }
+        })
+         */
     val panel = JPanel(BorderLayout()).apply {
-      add(textField, BorderLayout.CENTER)
+      // add(textField, BorderLayout.CENTER)
+      add(editor.component, BorderLayout.CENTER)
     }
     val shortcut = KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.shortcuts)
     val scaledHeight = JBDimension(0, 100).height
-    val popup = (JBPopupFactory.getInstance().createComponentPopupBuilder(panel, textField).apply {
+    val popup = (JBPopupFactory.getInstance().createComponentPopupBuilder(panel, editor.contentComponent).apply {
       setAdText("Select up to $MAX_REMOTE_REPOSITORY_COUNT repositories, use $shortcut to finish")
-      setCancelOnClickOutside(true)
+      setCancelOnClickOutside(false) // TODO
       setMayBeParent(true)
       setMinSize(Dimension(width, scaledHeight))
       setRequestFocus(true)

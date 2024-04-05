@@ -2,22 +2,40 @@ package com.sourcegraph.cody.context.ui
 
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.CharFilter
-import com.intellij.codeInsight.lookup.LookupElement
+import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
+import com.intellij.patterns.PlatformPatterns
+import com.intellij.psi.PsiElement
 import com.intellij.ui.TextFieldWithAutoCompletionListProvider
+import com.intellij.util.ProcessingContext
 import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import javax.swing.Icon
-import kotlin.math.max
-import kotlin.math.min
+
 
 data class RemoteRepo(
     val name: String,
 )
+
+class RemoteRepoCompletionContributor : CompletionContributor(), DumbAware {
+    init {
+        extend(CompletionType.BASIC, PlatformPatterns.psiElement(),
+            object : CompletionProvider<CompletionParameters?>() {
+                override fun addCompletions(
+                    parameters: CompletionParameters,
+                    context: ProcessingContext,
+                    result: CompletionResultSet
+                ) {
+                    result.addElement(LookupElementBuilder.create("hello, world"))
+                }
+            }
+        )
+    }
+}
 
 class RemoteRepoCompletionProvider(private var project: Project) : TextFieldWithAutoCompletionListProvider<String>(listOf()),
     DumbAware {
