@@ -1,8 +1,13 @@
 package com.sourcegraph.cody.edit.sessions
 
+import com.intellij.diff.DiffManager
+import com.intellij.diff.requests.NoDiffRequest
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vcs.ex.LineStatusMarkerPopupRenderer
+import com.intellij.openapi.vcs.ex.Range
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.EditTask
@@ -26,5 +31,20 @@ class EditCodeSession(
   override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
     val params = InlineEditParams(instructions, chatModelProvider.model)
     return agent.server.commandsEdit(params)
+  }
+
+  override fun dispose() {}
+
+  override fun diff() {
+    val diffRequest = NoDiffRequest.INSTANCE
+    DiffManager.getInstance().showDiff(project, diffRequest)
+    LineStatusMarkerPopupRenderer.ShowLineStatusRangeDiffAction(editor, Range(0, 0 ,0 , 0))
+  }
+
+  override fun retry() {
+    // TODO: The actual prompt is displayed as ghost text in the text input field.
+    // E.g. "Write a brief documentation comment for the selected code <etc.>"
+    // We need to send the prompt along with the lenses, so that the client can display it.
+    EditCommandPrompt(controller, editor, "Edit instructions and Retry").displayPromptUI()
   }
 }
