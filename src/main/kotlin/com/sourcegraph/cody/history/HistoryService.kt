@@ -1,9 +1,12 @@
 package com.sourcegraph.cody.history
 
-import com.intellij.openapi.components.*
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.SimplePersistentStateComponent
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.state.ChatState
@@ -25,17 +28,8 @@ class HistoryService(private val project: Project) :
   }
 
   @Synchronized
-  fun updateChatLlmProvider(
-      internalId: String,
-      chatModelProvider: ChatModelsResponse.ChatModelProvider
-  ) {
-    val found = getOrCreateChat(internalId)
-    found.llm =
-        LLMState().also {
-          it.model = chatModelProvider.model
-          it.title = chatModelProvider.title
-          it.provider = chatModelProvider.provider
-        }
+  fun updateChatLlmProvider(internalId: String, llmState: LLMState) {
+    getOrCreateChat(internalId).llm = llmState
   }
 
   @Synchronized
@@ -75,6 +69,20 @@ class HistoryService(private val project: Project) :
   }
 
   @Synchronized
+  fun getDefaultLlm(): LLMState? {
+    val defaultLlm = LLMState()
+    defaultLlm.copyFrom(state.defaultLlm ?: return null)
+    return defaultLlm
+  }
+
+  @Synchronized
+  fun setDefaultLlm(defaultLlm: LLMState) {
+    val newDefaultLlm = LLMState()
+    newDefaultLlm.copyFrom(defaultLlm)
+    state.defaultLlm = newDefaultLlm
+  }
+
+  @Synchronized
   fun remove(internalId: String?) {
     state.chats.removeIf { it.internalId == internalId }
   }
@@ -108,7 +116,7 @@ class HistoryService(private val project: Project) :
   private fun getOrCreateChat(internalId: String): ChatState {
     val found = state.chats.find { it.internalId == internalId }
     if (found != null) return found
-    val activeAccountId = CodyAuthenticationManager.instance.getActiveAccount(project)?.id
+    val activeAccountId = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.id
     val newChat = ChatState.create(activeAccountId, internalId)
     state.chats += newChat
     return newChat

@@ -28,6 +28,7 @@ import com.sourcegraph.cody.agent.protocol.GetFoldingRangeParams
 import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.TextEdit
+import com.sourcegraph.cody.agent.protocol.WorkspaceEditParams
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import java.util.concurrent.CancellationException
@@ -263,6 +264,33 @@ abstract class FixupSession(
     }
     undoEdits()
     finish()
+  }
+
+  fun performWorkspaceEdit(workspaceEditParams: WorkspaceEditParams) {
+    for (op in workspaceEditParams.operations) {
+      // TODO: We need to support the file-level operations.
+      when (op.type) {
+        "create-file" -> {
+          logger.warn("Workspace edit operation created a file: ${op.uri}")
+        }
+        "rename-file" -> {
+          logger.warn("Workspace edit operation renamed a file: ${op.oldUri} -> ${op.newUri}")
+        }
+        "delete-file" -> {
+          logger.warn("Workspace edit operation deleted a file: ${op.uri}")
+        }
+        "edit-file" -> {
+          if (op.edits == null) {
+            logger.warn("Workspace edit operation has no edits")
+          } else {
+            performInlineEdits(op.edits)
+          }
+        }
+        else ->
+            logger.warn(
+                "DocumentCommand session received unknown workspace edit operation: ${op.type}")
+      }
+    }
   }
 
   fun performInlineEdits(edits: List<TextEdit>) {

@@ -15,16 +15,13 @@ import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.WebviewReceiveMessageParams
 import com.sourcegraph.cody.agent.protocol.ChatError
 import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ChatModelsParams
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
 import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
 import com.sourcegraph.cody.agent.protocol.ContextItem
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ui.ChatPanel
-import com.sourcegraph.cody.chat.ui.LlmDropdownData
 import com.sourcegraph.cody.commands.CommandId
-import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.RateLimitStateManager
 import com.sourcegraph.cody.error.CodyErrorSubmitter
 import com.sourcegraph.cody.history.HistoryService
@@ -61,30 +58,6 @@ private constructor(
 
   init {
     cancellationToken.get().dispose()
-    fetchLlms()
-  }
-
-  fun restoreAgentSession(
-      agent: CodyAgent,
-      chatModelProvider: ChatModelsResponse.ChatModelProvider? = null
-  ) {
-    val messagesToReload =
-        messages
-            .toList()
-            .dropWhile { it.speaker == Speaker.ASSISTANT }
-            .fold(emptyList<ChatMessage>()) { acc, msg ->
-              if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
-            }
-
-    val restoreParams =
-        ChatRestoreParams(
-            // TODO: Change in the agent handling chat restore with null model
-            chatModelProvider?.model,
-            messagesToReload,
-            UUID.randomUUID().toString())
-    val newConnectionId = agent.server.chatRestore(restoreParams)
-    connectionId.getAndSet(newConnectionId)
-    fetchLlms()
   }
 
   fun getPanel(): ChatPanel = chatPanel
@@ -169,15 +142,13 @@ private constructor(
         if (extensionMessage.messages?.isNotEmpty() == true &&
             extensionMessage.isMessageInProgress == false) {
           getCancellationToken().dispose()
-        } else {
-          if (extensionMessage.chatID != null && extensionMessage.messages != null) {
-            extensionMessage.messages.forEachIndexed { index, incomingMessage ->
-              val sessionMessage = messages.getOrNull(index)
-              if (sessionMessage != incomingMessage) {
-                ApplicationManager.getApplication().invokeLater {
-                  addMessageAtIndex(incomingMessage, index)
-                }
-              }
+        }
+
+        extensionMessage.messages.orEmpty().forEachIndexed { index, incomingMessage ->
+          val sessionMessage = messages.getOrNull(index)
+          if (sessionMessage != incomingMessage) {
+            ApplicationManager.getApplication().invokeLater {
+              addMessageAtIndex(incomingMessage, index)
             }
           }
         }
@@ -270,32 +241,33 @@ private constructor(
     chatPanel.registerCancellationToken(newCancellationToken)
   }
 
-  private fun fetchLlms() {
-    if (chatModelProviderFromState != null) {
-      return
-    }
+  fun updateFromState(agent: CodyAgent, state: ChatState) {
+    val chatMessages =
+        state.messages.map { message ->
+          val parsed =
+              when (val speaker = message.speaker) {
+                MessageState.SpeakerState.HUMAN -> Speaker.HUMAN
+                MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
+                else -> error("unrecognized speaker $speaker")
+              }
 
-    CodyAgentService.withAgent(project) { agent ->
-      val chatModels = agent.server.chatModels(ChatModelsParams(connectionId.get().get()))
-      val response =
-          chatModels.completeOnTimeout(null, 4, TimeUnit.SECONDS).get() ?: return@withAgent
-
-      val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-      val isCurrentUserFree =
-          if (activeAccountType?.isDotcomAccount() == true) {
-            agent.server.isCurrentUserPro().completeOnTimeout(false, 4, TimeUnit.SECONDS).get() ==
-                false
-          } else false
-      chatPanel.updateLlmDropdownModels(LlmDropdownData(response.models, isCurrentUserFree))
-    }
+          ChatMessage(speaker = parsed, message.text)
+        }
+    val newConnectionId =
+        restoreChatSession(agent, chatMessages, chatModelProviderFromState, state.internalId!!)
+    connectionId.getAndSet(newConnectionId)
   }
 
   companion object {
     @RequiresEdt
-    fun createNew(project: Project): AgentChatSession {
+    fun createNew(
+        project: Project,
+        runWithConnectionId: (ConnectionId) -> Unit = {}
+    ): AgentChatSession {
       val connectionId = createNewPanel(project) { it.server.chatNew() }
       val chatSession = AgentChatSession(project, connectionId)
       AgentChatSessionService.getInstance(project).addSession(chatSession)
+      connectionId.thenApply(runWithConnectionId::invoke)
       return chatSession
     }
 
@@ -339,48 +311,46 @@ private constructor(
       return chatSession
     }
 
-    @RequiresEdt
+    fun restoreChatSession(
+        agent: CodyAgent,
+        chatMessages: List<ChatMessage>,
+        chatModelProvider: ChatModelsResponse.ChatModelProvider?,
+        internalId: String
+    ): CompletableFuture<ConnectionId> {
+
+      val messages =
+          chatMessages
+              .dropWhile { it.speaker == Speaker.ASSISTANT }
+              .fold(emptyList<ChatMessage>()) { acc, msg ->
+                if (acc.lastOrNull()?.speaker == msg.speaker) acc else acc.plus(msg)
+              }
+
+      val restoreParams = ChatRestoreParams(chatModelProvider?.model, messages, internalId)
+      return agent.server.chatRestore(restoreParams)
+    }
+
     fun createFromState(project: Project, state: ChatState): AgentChatSession {
       val agentChatSession = CompletableFuture<AgentChatSession>()
+
+      val chatModelProvider =
+          state.llm?.let {
+            ChatModelsResponse.ChatModelProvider(
+                default = it.model == null,
+                codyProOnly = false,
+                provider = it.provider,
+                title = it.title,
+                model = it.model ?: "")
+          }
+
       createNewPanel(project) { codyAgent ->
-        val newConnectionId = codyAgent.server.chatNew()
-        val modelFromState =
-            state.llm?.let {
-              ChatModelsResponse.ChatModelProvider(
-                  default = it.model == null,
-                  codyProOnly = false,
-                  provider = it.provider,
-                  title = it.title,
-                  model = it.model ?: "")
-            }
-
+        val dummyConnectionId = codyAgent.server.chatNew()
         val chatSession =
-            AgentChatSession(project, newConnectionId, state.internalId!!, modelFromState)
-        val chatMessages =
-            state.messages.map { message ->
-              val parsed =
-                  when (val speaker = message.speaker) {
-                    MessageState.SpeakerState.HUMAN -> Speaker.HUMAN
-                    MessageState.SpeakerState.ASSISTANT -> Speaker.ASSISTANT
-                    else -> error("unrecognized speaker $speaker")
-                  }
+            AgentChatSession(project, dummyConnectionId, state.internalId!!, chatModelProvider)
 
-              ChatMessage(speaker = parsed, message.text)
-            }
-        chatSession.messages.addAll(chatMessages)
-        ApplicationManager.getApplication().invokeLater {
-          chatSession.chatPanel.addAllMessages(chatMessages)
-        }
-
-        if (modelFromState?.model.isNullOrEmpty()) {
-          chatSession.restoreAgentSession(codyAgent)
-        } else {
-          chatSession.restoreAgentSession(codyAgent, modelFromState)
-        }
-
+        chatSession.updateFromState(codyAgent, state)
         AgentChatSessionService.getInstance(project).addSession(chatSession)
         agentChatSession.complete(chatSession)
-        newConnectionId
+        dummyConnectionId
       }
       return agentChatSession.completeOnTimeout(null, 15, TimeUnit.SECONDS).get()
     }

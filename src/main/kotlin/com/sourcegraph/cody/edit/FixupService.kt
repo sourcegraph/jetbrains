@@ -7,6 +7,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
 
@@ -18,8 +19,6 @@ class FixupService(val project: Project) : Disposable {
   // We only use this for multiplexing task updates from the Agent to concurrent sessions.
   // TODO: Consider doing the multiplexing in CodyAgentClient instead.
   private var activeSessions: MutableMap<String, FixupSession> = mutableMapOf()
-
-  private var lastSelectedModel = "GPT-3.5"
 
   // Sessions for which we have not yet received a task ID, but may receive an edit anyway.
   private var pendingSessions: MutableSet<FixupSession> = mutableSetOf()
@@ -117,16 +116,24 @@ class FixupService(val project: Project) : Disposable {
     return true
   }
 
-  // TODO: get model list from protocol
-  fun getModels(): List<String> = listOf("GPT-4", "GPT-3.5")
+  fun getLastPrompt(): String = lastPrompt
 
-  fun getCurrentModel(): String = lastSelectedModel
-
-  fun setCurrentModel(model: String) {
-    lastSelectedModel = model
+  fun getActiveSession(): FixupSession? {
+    val session: FixupSession? =
+        pendingSessions.firstOrNull() ?: activeSessions.values.firstOrNull()
+    if (session == null) {
+      logger.warn("No sessions found for performing inline edits")
+    }
+    return session
   }
 
-  fun getLastPrompt(): String = lastPrompt
+  fun getSessionForTask(task: EditTask): FixupSession? {
+    val session = activeSessions[task.id]
+    if (session == null) {
+      logger.warn("No session found for task ${task.id}")
+    }
+    return session
+  }
 
   fun addSession(session: FixupSession) {
     val taskId = session.taskId

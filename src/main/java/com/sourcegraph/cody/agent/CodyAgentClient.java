@@ -2,10 +2,12 @@ package com.sourcegraph.cody.agent;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.sourcegraph.cody.agent.protocol.*;
+import com.sourcegraph.cody.agent.protocol.DebugMessage;
+import com.sourcegraph.cody.agent.protocol.EditTask;
+import com.sourcegraph.cody.agent.protocol.TextDocumentEditParams;
+import com.sourcegraph.cody.agent.protocol.WorkspaceEditParams;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.jetbrains.annotations.NotNull;
@@ -51,29 +53,13 @@ public class CodyAgentClient {
   }
 
   @JsonNotification("editTask/didUpdate")
-  public void editTaskDidUpdate(EditTask params) {
-    onEventThread(
-        () -> {
-          if (onEditTaskDidUpdate != null) {
-            onEditTaskDidUpdate.accept(params);
-          } else {
-            logger.warn("No callback registered for editTask/didUpdate");
-          }
-          return null;
-        });
+  public CompletableFuture<Void> editTaskDidUpdate(EditTask params) {
+    return acceptOnEventThread("editTask/didUpdate", onEditTaskDidUpdate, params);
   }
 
   @JsonNotification("editTask/didDelete")
-  public void editTaskDidDelete(EditTask params) {
-    onEventThread(
-        () -> {
-          if (onEditTaskDidDelete != null) {
-            onEditTaskDidDelete.accept(params);
-          } else {
-            logger.warn("No callback registered for editTask/didDelete");
-          }
-          return null;
-        });
+  public CompletableFuture<Void> editTaskDidDelete(EditTask params) {
+    return acceptOnEventThread("editTask/didDelete", onEditTaskDidDelete, params);
   }
 
   public void setOnTextDocumentEdit(@Nullable Consumer<TextDocumentEditParams> callback) {
@@ -81,16 +67,8 @@ public class CodyAgentClient {
   }
 
   @JsonRequest("textDocument/edit")
-  public CompletableFuture<Boolean> textDocumentEdit(TextDocumentEditParams params) {
-    return onEventThread(
-        () -> {
-          if (onTextDocumentEdit != null) {
-            onTextDocumentEdit.accept(params);
-          } else {
-            logger.warn("No callback registered for textDocument/edit");
-          }
-          return true;
-        });
+  public CompletableFuture<Void> textDocumentEdit(TextDocumentEditParams params) {
+    return acceptOnEventThread("textDocument/edit", onTextDocumentEdit, params);
   }
 
   public void setOnWorkspaceEdit(@Nullable Consumer<WorkspaceEditParams> callback) {
@@ -98,16 +76,8 @@ public class CodyAgentClient {
   }
 
   @JsonRequest("workspace/edit")
-  public CompletableFuture<Boolean> workspaceEdit(WorkspaceEditParams params) {
-    return onEventThread(
-        () -> {
-          if (onWorkspaceEdit != null) {
-            onWorkspaceEdit.accept(params);
-          } else {
-            logger.warn("No callback registered for workspace/edit");
-          }
-          return true;
-        });
+  public CompletableFuture<Void> workspaceEdit(WorkspaceEditParams params) {
+    return acceptOnEventThread("workspace/edit", onWorkspaceEdit, params);
   }
 
   /**
@@ -115,13 +85,19 @@ public class CodyAgentClient {
    * helper for handlers that require access to the IntelliJ editor, for example to read the text
    * contents of the open editor.
    */
-  private <T> @NotNull CompletableFuture<T> onEventThread(Supplier<T> handler) {
-    CompletableFuture<T> result = new CompletableFuture<>();
+  private <T> @NotNull CompletableFuture<Void> acceptOnEventThread(
+      String name, @Nullable Consumer<T> callback, T params) {
+    CompletableFuture<Void> result = new CompletableFuture<>();
     ApplicationManager.getApplication()
         .invokeLater(
             () -> {
               try {
-                result.complete(handler.get());
+                if (callback != null) {
+                  callback.accept(params);
+                  result.complete(null);
+                } else {
+                  result.completeExceptionally(new Exception("No callback registered for " + name));
+                }
               } catch (Exception e) {
                 result.completeExceptionally(e);
               }
