@@ -96,6 +96,17 @@
                                 implementation="com.sourcegraph.cody.statusbar.CodyWidgetFactory"/>
         <actionPromoter order="last"
                         implementation="com.sourcegraph.cody.autocomplete.action.CodyActionPromoter"/>
+
+        <!-- Remote repo input -->
+        <fileType
+                name="SourcegraphRemoteRepoListFile"
+                implementationClass="com.sourcegraph.cody.context.ui.RemoteRepoFileType"
+                fieldName="INSTANCE"
+                language="SourcegraphRemoteRepoList"/>
+        <lang.parserDefinition
+                language="SourcegraphRemoteRepoList"
+                implementationClass="com.sourcegraph.cody.context.ui.RemoteRepoListParserDefinition"/>
+        <annotator language="SourcegraphRemoteRepoList" implementationClass="com.sourcegraph.cody.context.ui.RemoteRepoAnnotator"/>
     </extensions>
 
     <applicationListeners>
