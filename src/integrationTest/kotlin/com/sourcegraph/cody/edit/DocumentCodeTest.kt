@@ -161,6 +161,7 @@ public class Foo {
     // TODO: find the lowest value this can be for production, and use it
     // If it's too low the test may be flaky.
 
-    const val ASYNC_WAIT_TIMEOUT_SECONDS = 15L // 5L for non-debugging
+    // const val ASYNC_WAIT_TIMEOUT_SECONDS = 10000L //debug
+    const val ASYNC_WAIT_TIMEOUT_SECONDS = 5L
   }
 }

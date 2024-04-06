@@ -97,10 +97,12 @@ private constructor(
         val conn = startAgentProcess()
         val client = CodyAgentClient()
         client.onSetConfigFeatures = project.service<CurrentConfigFeatures>()
+        logger.warn("Starting json-rpc Launcher")
         val launcher = startAgentLauncher(conn, client)
         val server = launcher.remoteProxy
         val listeningToJsonRpc = launcher.startListening()
         try {
+          logger.warn("Calling server.initialize")
           return server
               .initialize(
                   ClientInfo(
@@ -158,8 +160,8 @@ private constructor(
       }
 
       if (ConfigUtil.isIntegrationTestModeEnabled()) {
-        processBuilder.environment()["CODY_TESTING"] = "true"
-        processBuilder.environment()["CODY_SHIM_TESTING"] = "true"
+        // processBuilder.environment()["CODY_TESTING"] = "true"
+        // processBuilder.environment()["CODY_SHIM_TESTING"] = "true"
         val testToken = System.getenv("CODY_INTEGRATION_TEST_TOKEN")
         // The Cody side will use the real LLM if this token is present,
         // so you can run the integration tests against a prod LLM rather than a mock.
@@ -175,7 +177,10 @@ private constructor(
               .redirectErrorStream(false)
               .redirectError(ProcessBuilder.Redirect.PIPE)
               .start()
-      process.onExit().thenAccept { token.abort() }
+      process.onExit().thenAccept {
+        logger.warn("Cody agent process exited with code " + it.exitValue())
+        token.abort()
+      }
 
       // Redirect agent stderr into idea.log by buffering line by line into `logger.warn()`
       // statements. Without this logic, the stderr output of the agent process is lost if
