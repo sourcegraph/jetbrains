@@ -6,7 +6,6 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns
-import com.intellij.psi.PsiElement
 import com.intellij.ui.TextFieldWithAutoCompletionListProvider
 import com.intellij.util.ProcessingContext
 import com.sourcegraph.Icons
@@ -77,7 +76,8 @@ class RemoteRepoCompletionProvider(private var project: Project) : TextFieldWith
     override fun getIcon(item: String): Icon? {
         return when {
             item.startsWith("github.com/") -> Icons.RepoHostGitHub
-            item.startsWith("gitlab.com/") -> Icons.RepoHostGitLab
+            item.startsWith("gitlab.com/") -> Icons.RepoHostGitlab
+            item.startsWith("bitbucket.org/") -> Icons.RepoHostBitbucket
             else -> Icons.RepoHostGeneric
         }
     }
