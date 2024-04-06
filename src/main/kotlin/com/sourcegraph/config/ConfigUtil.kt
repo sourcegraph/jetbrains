@@ -44,10 +44,12 @@ object ConfigUtil {
   /**
    * Returns true if the specified feature flag is enabled. Feature flags are currently set in the
    * environment variable CODY_JETBRAINS_FEATURES. The format is
-   * CODY_JETBRAINS_FEATURES=cody.feature.1=true,cody.feature.2=false. The value should be unquoted
-   * in your run configuration, but quoted in the env var; e.g.,
    * ```
-   * export CODY_JETBRAINS_FEATURES="cody.feature.1=true,cody.feature.2=false"
+   *  CODY_JETBRAINS_FEATURES=cody.feature.1=true,cody.feature.2=false
+   * ```
+   * For instance:
+   * ```
+   * export CODY_JETBRAINS_FEATURES=cody.feature.inline-edits=true
    * ```
    *
    * @param flagName The name of the feature flag
