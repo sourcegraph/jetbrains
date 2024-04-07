@@ -22,7 +22,7 @@ data class RemoteRepo(
 
 class RemoteRepoCompletionContributor : CompletionContributor(), DumbAware {
     init {
-        extend(CompletionType.BASIC, PlatformPatterns.psiElement(),
+        extend(CompletionType.SMART, PlatformPatterns.psiElement(),
             object : CompletionProvider<CompletionParameters?>() {
                 override fun addCompletions(
                     parameters: CompletionParameters,

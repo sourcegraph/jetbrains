@@ -108,8 +108,8 @@
                 language="SourcegraphRemoteRepoList"
                 implementationClass="com.sourcegraph.cody.context.ui.RemoteRepoListParserDefinition"/>
         <!-- TODO: Use a CompletionContributor directly, now that we have PSI. -->
-        <completion.contributor language="SourcegraphRemoteRepoList" implementationClass="com.intellij.util.textCompletion.TextCompletionContributor"
-                                order="first, before commitCompletion"/>
+        <!-- <completion.contributor language="SourcegraphRemoteRepoList" implementationClass="com.intellij.util.textCompletion.TextCompletionContributor"
+                                order="first, before commitCompletion"/> -->
         <completion.contributor language="SourcegraphRemoteRepoList" implementationClass="com.sourcegraph.cody.context.ui.RemoteRepoCompletionContributor"
                                 order="first, before commitCompletion"/>
         <annotator language="SourcegraphRemoteRepoList" implementationClass="com.sourcegraph.cody.context.ui.RemoteRepoAnnotator" />

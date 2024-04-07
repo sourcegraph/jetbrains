@@ -38,6 +38,7 @@ import com.intellij.util.LocalTimeCounter
 import com.intellij.util.textCompletion.TextCompletionUtil
 import com.intellij.util.ui.JBDimension
 import com.intellij.util.ui.JBUI
+import com.sourcegraph.utils.CodyEditorUtil
 import org.jetbrains.annotations.NonNls
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -264,7 +265,8 @@ class RemoteRepoAnnotator : Annotator, DumbAware {
   }
   override fun annotate(element: PsiElement, holder: AnnotationHolder) {
     println("Annotate! ${element.text}")
-    holder.newAnnotation(HighlightSeverity.ERROR, "foo").range(element).create()
+    // TODO: Messages/tooltips are not appearing on hover
+    holder.newAnnotation(HighlightSeverity.ERROR, "foo").tooltip("bar").range(element).create()
   }
 }
 
@@ -302,8 +304,9 @@ class RemoteRepoPopupController(val project: Project) {
 
     // TODO: releaseEditor when done
     val editor = EditorFactory.getInstance().createEditor(document, project)
-    // TODO: Auto popup controller still ignoring this editor
+    // TODO: Scheduling popups manually, do we need this?
     editor.putUserData<Boolean>(AutoPopupController.ALWAYS_AUTO_POPUP, true)
+    editor.putUserData<Boolean>(CodyEditorUtil.KEY_EDITOR_WANTS_AUTOCOMPLETE, false)
     if (editor is EditorEx) {
       editor.apply {
         SoftWrapsEditorCustomization.ENABLED.customize(this)
@@ -338,8 +341,6 @@ class RemoteRepoPopupController(val project: Project) {
     editor.contentComponent.apply {
       border = CompoundBorder(JBUI.Borders.empty(2), border)
     }
-    // TODO: completions aren't working in this *editor*
-    // TODO: annotator
 
     DaemonCodeAnalyzer.getInstance(project).setHighlightingEnabled(psiFile, true)
     // TODO: This will affect other analyzers in the project, work to get annotations without this.
