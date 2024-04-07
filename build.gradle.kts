@@ -98,7 +98,7 @@ java {
   }
 }
 
-tasks.named("classpathIndexCleanup") { dependsOn("compileIntTestKotlin") }
+tasks.named("classpathIndexCleanup") { dependsOn("compileIntegrationTestKotlin") }
 
 fun download(url: String, output: File) {
   if (output.exists()) {
@@ -417,12 +417,12 @@ tasks {
   test { dependsOn(project.tasks.getByPath("buildCody")) }
 
   configurations {
-    create("intTestImplementation") { extendsFrom(configurations.testImplementation.get()) }
-    create("intTestRuntimeClasspath") { extendsFrom(configurations.testRuntimeOnly.get()) }
+    create("integrationTestImplementation") { extendsFrom(configurations.testImplementation.get()) }
+    create("integrationTestRuntimeClasspath") { extendsFrom(configurations.testRuntimeOnly.get()) }
   }
 
   sourceSets {
-    create("intTest") {
+    create("integrationTest") {
       kotlin.srcDir("src/integrationTest/kotlin")
       compileClasspath += main.get().output
       runtimeClasspath += main.get().output
@@ -430,13 +430,13 @@ tasks {
   }
 
   // Create a task to run integration tests
-  register<Test>("intTest") {
+  register<Test>("integrationTest") {
     description = "Runs the integration tests."
     group = "verification"
-    testClassesDirs = sourceSets["intTest"].output.classesDirs
-    classpath = sourceSets["intTest"].runtimeClasspath
+    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+    classpath = sourceSets["integrationTest"].runtimeClasspath
 
-    include { it.file.hasParentNamed("intTest") }
+    include { it.file.hasParentNamed("integrationTest") }
 
     useJUnit()
 
@@ -450,5 +450,5 @@ tasks {
     dependsOn("buildCody")
   }
 
-  named("check") { dependsOn("intTest") }
+  named("check") { dependsOn("integrationTest") }
 }

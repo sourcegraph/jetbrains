@@ -399,7 +399,7 @@ see the configuration dropdown at the top.
 Run the integration tests at the command line with:
 
 ```
-./gradlew intTest
+./gradlew integrationTest
 ```
 
 If you pass in an access token, it will use the default production LLM
