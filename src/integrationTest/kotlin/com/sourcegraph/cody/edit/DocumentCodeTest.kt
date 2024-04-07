@@ -26,7 +26,9 @@ class DocumentCodeTest : BasePlatformTestCase() {
   }
 
   fun testGetsWorkingGroupLens() {
-    val foldingRangeFuture = listenForFoldingRangeReply()
+    // Do this before starting the edit operation, in order to be subscribed before
+    // the synchronous notification is sent, because it is not buffered or queued anywhere.
+    val foldingRangeFuture = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES)
 
     val editor = myFixture.editor
     assertFalse(editor.inlayModel.hasBlockElements())
@@ -41,7 +43,11 @@ class DocumentCodeTest : BasePlatformTestCase() {
     assertTrue("Lens group inlay should be displayed", editor.inlayModel.hasBlockElements())
 
     // This is done now.
-    runInEdtAndWait { testSelectionRange(foldingRangeFuture.get()) }
+    runInEdtAndWait {
+      val rangeContext = foldingRangeFuture.get()
+      assertNotNull(rangeContext)
+      testSelectionRange(rangeContext!!)
+    }
 
     // Lens group should match the expected structure.
     val lenses = context!!.session.lensGroup
@@ -62,21 +68,6 @@ class DocumentCodeTest : BasePlatformTestCase() {
 
     // This avoids an error saying the spinner hasn't shut down, at the end of the test.
     runInEdtAndWait { Disposer.dispose(lenses) }
-  }
-
-  private fun listenForFoldingRangeReply():
-      CompletableFuture<CodyInlineEditActionNotifier.Context> {
-    val foldingRangeFuture = CompletableFuture<CodyInlineEditActionNotifier.Context>()
-    project.messageBus
-        .connect()
-        .subscribe(
-            CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES,
-            object : CodyInlineEditActionNotifier {
-              override fun afterAction(context: CodyInlineEditActionNotifier.Context) {
-                foldingRangeFuture.complete(context)
-              }
-            })
-    return foldingRangeFuture
   }
 
   @RequiresEdt
@@ -125,23 +116,29 @@ public class Foo {
 """) // spotless:on
   }
 
+  private fun subscribeToTopic(
+      topic: Topic<CodyInlineEditActionNotifier>,
+  ): CompletableFuture<CodyInlineEditActionNotifier.Context?> {
+    val future =
+            CompletableFuture<CodyInlineEditActionNotifier.Context?>()
+                    .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    project.messageBus
+        .connect()
+        .subscribe(
+             topic,
+             object : CodyInlineEditActionNotifier {
+               override fun afterAction(context: CodyInlineEditActionNotifier.Context) {
+                 future.complete(context)
+               }
+             })
+    return future
+  }
+
   // Block until the passed topic gets a message, or until we time out.
   private fun waitForTopic(
       topic: Topic<CodyInlineEditActionNotifier>
   ): CodyInlineEditActionNotifier.Context? {
-    val future =
-        CompletableFuture<CodyInlineEditActionNotifier.Context?>()
-            .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-    project.messageBus
-        .connect()
-        .subscribe(
-            topic,
-            object : CodyInlineEditActionNotifier {
-              override fun afterAction(context: CodyInlineEditActionNotifier.Context) {
-                future.complete(context)
-              }
-            })
-    return future.get()
+    return subscribeToTopic(topic).get()
   }
 
   companion object {
