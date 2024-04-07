@@ -160,8 +160,7 @@ private constructor(
       }
 
       if (ConfigUtil.isIntegrationTestModeEnabled()) {
-        // processBuilder.environment()["CODY_TESTING"] = "true"
-        // processBuilder.environment()["CODY_SHIM_TESTING"] = "true"
+        // N.B. Do not set CODY_TESTING=true -- that is for Agent-side tests.
         val testToken = System.getenv("CODY_INTEGRATION_TEST_TOKEN")
         // The Cody side will use the real LLM if this token is present,
         // so you can run the integration tests against a prod LLM rather than a mock.
@@ -314,6 +313,7 @@ private constructor(
       }
     }
 
+    // TODO: This has not yet been tested on Windows.
     private fun killAgentOnWindows() {
       val port = NODE_INSPECT_DEFAULT_PORT
       val findProcessCommand = "netstat -aon | findstr :$port"

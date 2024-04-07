@@ -70,9 +70,9 @@ class CodyEditorFactoryListener : EditorFactoryListener {
       if (commandName == VIM_EXIT_INSERT_MODE_ACTION) {
         return
       }
-      // TODO: This is sending a redundant textDocument/didOpen to the Agent when first opening a
-      // file.
-      // Util.informAgentAboutEditorChange(e.editor)
+      // TODO: This is sending a redundant textDocument/didOpen to the Agent
+      // when first opening a file.
+      Util.informAgentAboutEditorChange(e.editor)
       val suggestions = instance
       val editor = e.editor
       if (isEditorValidForAutocomplete(editor) && Util.isSelectedEditor(editor)) {

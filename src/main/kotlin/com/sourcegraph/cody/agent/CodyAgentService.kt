@@ -78,7 +78,7 @@ class CodyAgentService(project: Project) : Disposable {
               logger.error(msg)
               throw (CodyAgentException(msg))
             }
-        val agent = future.get(10, TimeUnit.SECONDS)
+        val agent = future.get(45, TimeUnit.SECONDS)
         if (!agent.isConnected()) {
           val msg = "Failed to connect to agent Cody agent"
           logger.error(msg)
@@ -88,13 +88,11 @@ class CodyAgentService(project: Project) : Disposable {
           codyAgent.complete(agent)
           CodyStatusService.resetApplication(project)
         }
-      } catch (e: TimeoutException) {
-        val msg = "Failed to start Cody agent in timely manner, please run any Cody action to retry"
-        logger.warn(msg, e)
-        setAgentError(project, msg)
-        codyAgent.completeExceptionally(CodyAgentException(msg, e))
       } catch (e: Exception) {
-        val msg = "Failed to start Cody agent"
+        val msg =
+            if (e is TimeoutException)
+                "Failed to start Cody agent in timely manner, please run any Cody action to retry"
+            else "Failed to start Cody agent"
         logger.error(msg, e)
         setAgentError(project, msg)
         codyAgent.completeExceptionally(CodyAgentException(msg, e))

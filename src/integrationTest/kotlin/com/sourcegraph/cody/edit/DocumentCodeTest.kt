@@ -100,18 +100,6 @@ class DocumentCodeTest : BasePlatformTestCase() {
         startOffset == caret && endOffset == caret)
   }
 
-  // Next up:
-  //  - test Cancel
-  //  - test Accept
-  //  - test workspace/edit
-  //    - assertTrue(myFixture.editor.document.text.contains("/\\*"))
-  //  - test Undo
-
-  //  fun testTopLevelClass() {
-  //    assert(true)
-  //    // ...
-  //  }
-
   private fun configureFixture() {
     // spotless:off
     myFixture.configureByText(
