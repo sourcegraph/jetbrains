@@ -55,17 +55,19 @@ public class CodyAgentClient {
   @Nullable Consumer<Void> onRemoteRepoDidChange;
 
   @JsonNotification("remoteRepo/didChange")
-  public CompletableFuture<Void> remoteRepoDidChange() {
-    // TODO: This doesn't need to be the event thread.
-    return acceptOnEventThread("remoteRepo/didChange", onRemoteRepoDidChange, null);
+  public void remoteRepoDidChange() {
+    if (onRemoteRepoDidChange != null) {
+      onRemoteRepoDidChange.accept(null);
+    }
   }
 
   @Nullable Consumer<RemoteRepoFetchState> onRemoteRepoDidChangeState;
 
   @JsonNotification("remoteRepo/didChangeState")
-  public CompletableFuture<Void> remoteRepoDidChangeState(RemoteRepoFetchState state) {
-    // TODO: This doesn't need to be the event thread.
-    return acceptOnEventThread("remoteRepo/didChangeState", onRemoteRepoDidChangeState, state);
+  public void remoteRepoDidChangeState(RemoteRepoFetchState state) {
+    if (onRemoteRepoDidChangeState != null) {
+      onRemoteRepoDidChangeState.accept(state);
+    }
   }
 
   @JsonRequest("textDocument/edit")

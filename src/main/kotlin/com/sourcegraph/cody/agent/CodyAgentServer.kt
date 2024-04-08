@@ -137,8 +137,13 @@ interface CodyAgentServer {
       params: AttributionSearchParams
   ): CompletableFuture<AttributionSearchResponse>
 
+  @JsonRequest("remoteRepo/has")
+  fun remoteRepoHas(
+      params: RemoteRepoHasParams
+  ): CompletableFuture<RemoteRepoHasResponse>
+
   @JsonRequest("remoteRepo/list")
   fun remoteRepoList(
-      params: RemoteRepoListParams
+    params: RemoteRepoListParams
   ): CompletableFuture<RemoteRepoListResponse>
 }

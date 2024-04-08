@@ -10,6 +10,7 @@ import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.CodyFileEditorListener
 import com.sourcegraph.cody.chat.AgentChatSessionService
 import com.sourcegraph.cody.config.CodyApplicationSettings
+import com.sourcegraph.cody.context.RemoteRepoSearcher
 import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import java.util.concurrent.CompletableFuture
@@ -62,11 +63,11 @@ class CodyAgentService(project: Project) : Disposable {
       }
 
       agent.client.onRemoteRepoDidChange = Consumer {
-        // TODO: Plumb this back to the repo autocompleter and mutate the completion result set.
+        RemoteRepoSearcher.getInstance(project).remoteRepoDidChange()
       }
 
       agent.client.onRemoteRepoDidChangeState = Consumer { state ->
-        // TODO: Plumb this back to the repo autocompleter to show it is no longer busy/is busy.
+        RemoteRepoSearcher.getInstance(project).remoteRepoDidChangeState(state)
       }
 
       if (!project.isDisposed) {
