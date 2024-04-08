@@ -22,7 +22,7 @@ data class RemoteRepo(
 
 class RemoteRepoCompletionContributor : CompletionContributor(), DumbAware {
     init {
-        extend(CompletionType.SMART, PlatformPatterns.psiElement(),
+        extend(CompletionType.BASIC, PlatformPatterns.psiElement(),
             object : CompletionProvider<CompletionParameters?>() {
                 override fun addCompletions(
                     parameters: CompletionParameters,
@@ -30,6 +30,7 @@ class RemoteRepoCompletionContributor : CompletionContributor(), DumbAware {
                     result: CompletionResultSet
                 ) {
                     result.addElement(LookupElementBuilder.create("hello, world"))
+                    result.addElement(LookupElementBuilder.create("github.com/sourcegraph/my-test-repo"))
                 }
             }
         )
