@@ -6,8 +6,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vcs.ex.LineStatusMarkerPopupRenderer
-import com.intellij.openapi.vcs.ex.Range
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.EditTask
@@ -38,7 +36,7 @@ class EditCodeSession(
   override fun diff() {
     val diffRequest = NoDiffRequest.INSTANCE
     DiffManager.getInstance().showDiff(project, diffRequest)
-    LineStatusMarkerPopupRenderer.ShowLineStatusRangeDiffAction(editor, Range(0, 0 ,0 , 0))
+//    LineStatusMarkerPopupRenderer.ShowLineStatusRangeDiffAction(editor, Range(0, 0 ,0 , 0))
   }
 
   override fun retry() {
