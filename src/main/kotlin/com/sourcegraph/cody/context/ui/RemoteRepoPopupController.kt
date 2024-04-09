@@ -29,10 +29,17 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.ui.popup.JBPopupListener
+import com.intellij.openapi.ui.popup.LightweightWindowEvent
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
+import com.intellij.psi.util.childrenOfType
+import com.intellij.psi.util.elementType
+import com.intellij.refactoring.suggested.endOffset
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.ui.SoftWrapsEditorCustomization
 import com.intellij.util.LocalTimeCounter
 import com.intellij.util.textCompletion.TextCompletionUtil
@@ -259,14 +266,37 @@ internal class RemoteRepoListParserDefinition : ParserDefinition {
   }
 }
 
-class RemoteRepoAnnotator : Annotator, DumbAware {
-  init {
-    println("creating a RemoteRepoAnnotator")
-  }
+class RemoteRepoAnnotator : Annotator {
   override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-    println("Annotate! ${element.text}")
     // TODO: Messages/tooltips are not appearing on hover
-    holder.newAnnotation(HighlightSeverity.ERROR, "foo").tooltip("bar").range(element).create()
+    when (element.elementType) {
+      RemoteRepoTokenType.REPO -> {
+        // Checks:
+        // - Repositories are known
+      }
+      RemoteRepoListParserDefinition.FILE -> {
+        val seen = mutableSetOf<String>()
+        var firstTruncatedElement: PsiElement? = null
+        element.children.filter {
+          it.elementType == RemoteRepoTokenType.REPO
+        }.forEach { repo ->
+          val name = repo.text
+          if (seen.contains(name)) {
+            // TODO: L10N
+            holder.newAnnotation(HighlightSeverity.WEAK_WARNING, "Duplicate repository name").tooltip("Duplicate repository name").range(repo).create()
+          } else if (seen.size == MAX_REMOTE_REPOSITORY_COUNT) {
+            firstTruncatedElement = firstTruncatedElement ?: repo
+          }
+          seen.add(name)
+        }
+        if (firstTruncatedElement != null) {
+          // TODO: L10N
+          holder.newAnnotation(HighlightSeverity.WARNING, "Add up to $MAX_REMOTE_REPOSITORY_COUNT repositories").tooltip("Too many repositories").range(
+            TextRange(firstTruncatedElement!!.startOffset, element.endOffset)
+          ).create()
+        }
+      }
+    }
   }
 }
 
@@ -274,35 +304,15 @@ class RemoteRepoPopupController(val project: Project) {
   fun createPopup(width: Int): JBPopup {
     val initialValue = "" // TODO: Parse initial value from repo list
 
-    /*
-    val textField = TextFieldWithAutoCompletion(project, completionProvider, false, initialValue).apply {
-      border = CompoundBorder(JBUI.Borders.empty(2), border)
-      addSettingsProvider { editor: EditorEx? ->
-        SoftWrapsEditorCustomization.ENABLED.customize(
-          editor!!
-        )
-        // TODO: Should this display a placeholder?
-      }
-      fileType = RemoteRepoFileType.INSTANCE
-      setOneLineMode(false)
-    }
-     */
-
-    // Despite setting fileType, TextFieldWithAutocompletion creates a plain text document. Reset the document.
-    val factory = PsiFileFactory.getInstance(project)
-    val stamp = LocalTimeCounter.currentTime()
-    val psiFile = factory.createFileFromText(
+    val psiFile = PsiFileFactory.getInstance(project).createFileFromText(
       "RepositoryList",
-      RemoteRepoFileType.INSTANCE, "", stamp, true, false
+      RemoteRepoFileType.INSTANCE, initialValue, LocalTimeCounter.currentTime(), true, false
     )
     psiFile.putUserData<Boolean>(BaseCompletionService.FORBID_WORD_COMPLETION, false)
 
     val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)!!
-    // textField.document = document
 
-    // TODO: releaseEditor when done
     val editor = EditorFactory.getInstance().createEditor(document, project)
-    // TODO: Scheduling popups manually, do we need this?
     editor.putUserData<Boolean>(AutoPopupController.ALWAYS_AUTO_POPUP, true)
     editor.putUserData<Boolean>(CodyEditorUtil.KEY_EDITOR_WANTS_AUTOCOMPLETE, false)
     if (editor is EditorEx) {
@@ -341,9 +351,6 @@ class RemoteRepoPopupController(val project: Project) {
     }
 
     DaemonCodeAnalyzer.getInstance(project).setHighlightingEnabled(psiFile, true)
-    // TODO: This will affect other analyzers in the project, work to get annotations without this.
-    DaemonCodeAnalyzer.getInstance(project).setUpdateByTimerEnabled(true)
-    println("${psiFile}, ${psiFile?.language}")
 
     /*
         textField.addDocumentListener(object : DocumentListener {
@@ -363,7 +370,6 @@ class RemoteRepoPopupController(val project: Project) {
         })
          */
     val panel = JPanel(BorderLayout()).apply {
-      // add(textField, BorderLayout.CENTER)
       add(editor.component, BorderLayout.CENTER)
     }
     val shortcut = KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.shortcuts)
@@ -375,6 +381,11 @@ class RemoteRepoPopupController(val project: Project) {
       setMinSize(Dimension(width, scaledHeight))
       setRequestFocus(true)
       setResizable(true)
+      addListener(object : JBPopupListener {
+        override fun onClosed(event: LightweightWindowEvent) {
+          EditorFactory.getInstance().releaseEditor(editor)
+        }
+      })
     }).createPopup()
 
     // TODO: The popup "ad text" is gratuitously wrapped.
@@ -386,8 +397,6 @@ class RemoteRepoPopupController(val project: Project) {
       }
     }
     okAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, popup.content)
-
-    // TODO: Wire up completion provider.
 
     return popup
   }
