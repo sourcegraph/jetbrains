@@ -309,6 +309,7 @@ class RemoteRepoPopupController(val project: Project) {
       RemoteRepoFileType.INSTANCE, initialValue, LocalTimeCounter.currentTime(), true, false
     )
     psiFile.putUserData<Boolean>(BaseCompletionService.FORBID_WORD_COMPLETION, false)
+    DaemonCodeAnalyzer.getInstance(project).setHighlightingEnabled(psiFile, true)
 
     val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)!!
 
@@ -350,25 +351,6 @@ class RemoteRepoPopupController(val project: Project) {
       border = CompoundBorder(JBUI.Borders.empty(2), border)
     }
 
-    DaemonCodeAnalyzer.getInstance(project).setHighlightingEnabled(psiFile, true)
-
-    /*
-        textField.addDocumentListener(object : DocumentListener {
-          override fun documentChanged(event: DocumentEvent) {
-            // TODO delete this if we don't need to trigger updates manually
-            super.documentChanged(event)
-            val markup = textField.editor!!.markupModel
-            markup.removeAllHighlighters()
-            val attributes = TextAttributes().apply {
-              // TODO: Theme color
-              foregroundColor = Color.BLUE
-              backgroundColor = Color.MAGENTA
-              errorStripeColor = Color.CYAN
-            }
-            markup.addRangeHighlighter(0, event.document.textLength / 2, 0, attributes, HighlighterTargetArea.EXACT_RANGE)
-          }
-        })
-         */
     val panel = JPanel(BorderLayout()).apply {
       add(editor.component, BorderLayout.CENTER)
     }
