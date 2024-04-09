@@ -62,8 +62,10 @@ class RemoteRepoSearcher(private val project: Project) {
           }
         }
         _state.value = repos.state
+        // TODO: logger.debug, when I work out where the idea.log file for the debuggee is.
+        println("remote repo search $query returning ${repos.repos.size} results (${repos.state.state})")
         result.send(repos.repos.map { it.name })
-        fetchDone(repos.state)
+        !fetchDone(repos.state)
       }
 
       try {

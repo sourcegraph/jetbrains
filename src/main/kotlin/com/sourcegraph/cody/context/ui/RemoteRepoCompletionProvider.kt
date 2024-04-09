@@ -57,34 +57,14 @@ class RemoteRepoCompletionContributor : CompletionContributor() {
                     val prefixedResult = if (query != null) { result.withPrefixMatcher(query) } else { result }
                     prefixedResult.restartCompletionOnAnyPrefixChange()
                     try {
-                        // TODO: TextFieldWithAutoCompletionListProvider wraps the progress manager's progress
-                        // indicator, if any, with a SensitiveProgressWrapper. See
-                        // TextFieldWithAutoCompletionListProvider.addNonCachedItems. Work out whether we need the
-                        // sensitive progress indicator.
-                        val progressManager = ProgressManager.getInstance()
-                        val completion = ApplicationManager.getApplication().executeOnPooledThread {
-                            progressManager.runProcess({
-                                runBlockingCancellable {
-                                    ;
-                                    while (isActive) {
-                                        for (repos in searcher.search(query)) {
-                                            for (repo in repos) {
-                                                // TODO: Is this cross-thread addElement safe?
-                                                prefixedResult.addElement(
-                                                    LookupElementBuilder.create(repo).withIcon(getIcon(repo))
-                                                )
-                                            }
-                                        }
-                                    }
+                        runBlockingCancellable {
+                            ;
+                            for (repos in searcher.search(query)) {
+                                for (repo in repos) {
+                                    prefixedResult.addElement(
+                                        LookupElementBuilder.create(repo).withIcon(getIcon(repo))
+                                    )
                                 }
-                            }, progressManager.progressIndicator);
-                        }
-                        while (true) {
-                            ProgressManager.checkCanceled()
-                            try {
-                                completion.get(100, TimeUnit.MILLISECONDS)
-                            } catch (e: java.util.concurrent.TimeoutException) {
-                                // Ignore.
                             }
                         }
                     } catch (e: Exception) {
