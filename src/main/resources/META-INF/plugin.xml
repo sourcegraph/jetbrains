@@ -249,6 +249,11 @@
         <action id="cody.enableInlineEditsActions"
                 class="com.sourcegraph.cody.edit.EnableInlineEditsAction"/>
 
+
+        <action id="cody.editShowDiffAction"
+                class="com.sourcegraph.cody.edit.EditShowDiffAction">
+        </action>
+
         <group id="SourcegraphEditor" popup="true" searchable="false">
             <reference ref="sourcegraph.openFindPopup"/>
             <reference ref="sourcegraph.searchSelection"/>

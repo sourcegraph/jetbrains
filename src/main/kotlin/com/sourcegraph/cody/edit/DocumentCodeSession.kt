@@ -1,7 +1,5 @@
 package com.sourcegraph.cody.edit
 
-import com.intellij.diff.DiffManager
-import com.intellij.diff.requests.NoDiffRequest
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor

@@ -61,7 +61,7 @@ abstract class FixupSession(
 
   private var lensGroup: LensWidgetGroup? = null
 
-  private var selectionRange: Range? = null
+  protected var selectionRange: Range? = null
 
   private var rangeMarkers: MutableSet<RangeMarker> = mutableSetOf()
 
