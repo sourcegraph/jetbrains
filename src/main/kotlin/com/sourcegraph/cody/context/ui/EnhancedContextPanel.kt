@@ -10,6 +10,7 @@ import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.vcs.commit.NonModalCommitPanel.Companion.showAbove
+import com.sourcegraph.cody.Icons.Chat
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.protocol.Repo
@@ -32,11 +33,41 @@ import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 import javax.swing.tree.DefaultTreeModel
 
-class EnhancedContextPanel(private val project: Project, private val chatSession: ChatSession) :
+open class EnhancedContextPanel(protected val project: Project, protected val chatSession: ChatSession) :
     JPanel() {
-
+  // TODO: This is mutable outside the class but the view does not respond to changes.
   val isEnhancedContextEnabled = AtomicBoolean(true)
 
+  fun setContextFromThisChatAsDefault() {
+    ApplicationManager.getApplication().executeOnPooledThread {
+      getContextState()?.let { HistoryService.getInstance(project).updateDefaultContextState(it) }
+    }
+  }
+
+  protected fun getContextState(): EnhancedContextState? {
+    val historyService = HistoryService.getInstance(project)
+    return historyService.getContextReadOnly(chatSession.getInternalId())
+      ?: historyService.getDefaultContextReadOnly()
+  }
+
+  companion object {
+    fun isDotComAccount(project: Project) =
+      CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ?: false
+
+    fun create(project: Project, chatSession: ChatSession): EnhancedContextPanel {
+      return if (isDotComAccount(project)) {
+        ConsumerEnhancedContextPanel(project, chatSession)
+      } else {
+        EnterpriseEnhancedContextPanel(project, chatSession)
+      }
+    }
+  }
+}
+
+class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession): EnhancedContextPanel(project, chatSession) {
+}
+
+class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) : EnhancedContextPanel(project, chatSession) {
   private val treeRoot = CheckedTreeNode(CodyBundle.getString("context-panel.tree.root"))
 
   private val enhancedContextNode =
@@ -66,12 +97,6 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
     CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkboxPropagationPolicy)
   }
 
-  fun setContextFromThisChatAsDefault() {
-    ApplicationManager.getApplication().executeOnPooledThread {
-      getContextState()?.let { HistoryService.getInstance(project).updateDefaultContextState(it) }
-    }
-  }
-
   @RequiresEdt
   private fun prepareTree() {
     treeRoot.add(enhancedContextNode)
@@ -84,7 +109,8 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
       enhancedContextNode.isChecked = contextState?.isEnabled ?: true
     }
 
-    if (!isDotComAccount()) {
+    if (!isDotComAccount(project)) {
+      // TODO: Should be unreachable in the ConsumerEnhancedContextPanel.
       if (contextState != null) {
         contextState.remoteRepositories.forEach { repo ->
           repo.codebaseName?.let { codebaseName ->
@@ -110,13 +136,6 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
     treeModel.reload()
   }
 
-  private fun getContextState(): EnhancedContextState? {
-    val historyService = HistoryService.getInstance(project)
-
-    return historyService.getContextReadOnly(chatSession.getInternalId())
-        ?: historyService.getDefaultContextReadOnly()
-  }
-
   private fun updateContextState(modifyContext: (EnhancedContextState) -> Unit) {
     val contextState = getContextState() ?: EnhancedContextState()
     modifyContext(contextState)
@@ -124,9 +143,6 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
         .updateContextState(chatSession.getInternalId(), contextState)
     HistoryService.getInstance(project).updateDefaultContextState(contextState)
   }
-
-  private fun isDotComAccount() =
-      CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ?: false
 
   private fun getReposByUrlAndRun(
       codebaseNames: List<CodebaseName>,
@@ -240,7 +256,8 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
             .setScrollPaneBorder(BorderFactory.createEmptyBorder())
             .setToolbarBorder(BorderFactory.createEmptyBorder())
 
-    if (!isDotComAccount()) {
+    if (!isDotComAccount(project)) {
+      // TODO: Should be unreachable in the ConsumerEnhancedContextPanel.
       // TODO: L10N
       toolbarDecorator.setEditActionName("Edit Remote Repositories")
       toolbarDecorator.setEditAction {
