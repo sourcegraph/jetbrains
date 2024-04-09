@@ -241,34 +241,21 @@ class EnhancedContextPanel(private val project: Project, private val chatSession
             .setToolbarBorder(BorderFactory.createEmptyBorder())
 
     if (!isDotComAccount()) {
-      // TODO: Remove add, remove actions.
-      toolbarDecorator.setAddActionName(
-          CodyBundle.getString("context-panel.button.add-remote-repo"))
-      toolbarDecorator.setAddAction {
-        AddRepositoryDialog(project, remoteContextNode) { codebaseName ->
-              addRemoteRepository(codebaseName)
-            }
-            .show()
-        expandAllNodes()
-      }
-
-      toolbarDecorator.setRemoveActionName(
-          CodyBundle.getString("context-panel.button.remove-remote-repo"))
-      toolbarDecorator.setRemoveActionUpdater {
-        tree.selectionPath?.lastPathComponent is ContextTreeRemoteRepoNode
-      }
-      toolbarDecorator.setRemoveAction {
-        (tree.selectionPath?.lastPathComponent as? ContextTreeRemoteRepoNode)?.let { node ->
-          removeRemoteRepository(node)
-          expandAllNodes()
-        }
-      }
-
       // TODO: L10N
       toolbarDecorator.setEditActionName("Edit Remote Repositories")
       toolbarDecorator.setEditAction {
+        val initialValue = getContextState()?.remoteRepositories?.map {
+          it.codebaseName
+        }?.joinToString("\n") ?: ""
+
         val controller = RemoteRepoPopupController(project)
-        val popup = controller.createPopup(tree.width)
+        controller.onAccept = { repos ->
+          repos.map {
+            // TODO: Need to remove as well as add.
+            addRemoteRepository(CodebaseName(it))
+          }
+        }
+        val popup = controller.createPopup(tree.width, initialValue)
         popup.showAbove(tree)
       }
     }

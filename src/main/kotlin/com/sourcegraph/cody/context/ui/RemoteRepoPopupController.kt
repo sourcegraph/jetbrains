@@ -271,7 +271,8 @@ internal class RemoteRepoListParserDefinition : ParserDefinition {
 
 class RemoteRepoAnnotator : Annotator {
   override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-    // TODO: Messages/tooltips are not appearing on hover
+    // TODO: Messages/tooltips are not appearing on hover, but they *do* appear if a repo list document is edited
+    // in the main editor first. So there's a hover provider which needs to be set up.
     when (element.elementType) {
       RemoteRepoTokenType.REPO -> {
         val name = element.text
@@ -312,9 +313,10 @@ class RemoteRepoAnnotator : Annotator {
 }
 
 class RemoteRepoPopupController(val project: Project) {
-  fun createPopup(width: Int): JBPopup {
-    val initialValue = "" // TODO: Parse initial value from repo list
+  var onAccept: (repos: List<String>) -> Unit = {}
 
+  fun createPopup(width: Int, initialValue: String = ""): JBPopup {
+    // TODO: Consider caching this file so we get undo, etc.
     val psiFile = PsiFileFactory.getInstance(project).createFileFromText(
       "RepositoryList",
       RemoteRepoFileType.INSTANCE, initialValue, LocalTimeCounter.currentTime(), true, false
@@ -387,6 +389,10 @@ class RemoteRepoPopupController(val project: Project) {
       override fun actionPerformed(event: AnActionEvent) {
         unregisterCustomShortcutSet(popup.content)
         popup.closeOk(event.inputEvent)
+
+        // We don't use the Psi elements here, because the Annotator may be slow, etc.
+        val repos = document.text.split(Regex("""\s+""")).toSet().take(MAX_REMOTE_REPOSITORY_COUNT)
+        onAccept(repos)
       }
     }
     okAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, popup.content)
