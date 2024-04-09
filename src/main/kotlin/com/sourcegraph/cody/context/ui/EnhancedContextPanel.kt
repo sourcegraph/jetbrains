@@ -7,6 +7,7 @@ import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
+import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.vcs.commit.NonModalCommitPanel.Companion.showAbove
@@ -29,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import javax.swing.BorderFactory
 import javax.swing.JPanel
+import javax.swing.JTree
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 import javax.swing.tree.DefaultTreeModel
@@ -50,8 +52,25 @@ open class EnhancedContextPanel(protected val project: Project, protected val ch
       ?: historyService.getDefaultContextReadOnly()
   }
 
+  protected fun updateContextState(modifyContext: (EnhancedContextState) -> Unit) {
+    val contextState = getContextState() ?: EnhancedContextState()
+    modifyContext(contextState)
+    HistoryService.getInstance(project)
+      .updateContextState(chatSession.getInternalId(), contextState)
+    HistoryService.getInstance(project).updateDefaultContextState(contextState)
+  }
+
+  protected fun createToolbar(tree: JTree): ToolbarDecorator {
+    return createDecorator(tree)
+      .disableUpDownActions()
+      .setToolbarPosition(ActionToolbarPosition.RIGHT)
+      .setVisibleRowCount(1)
+      .setScrollPaneBorder(BorderFactory.createEmptyBorder())
+      .setToolbarBorder(BorderFactory.createEmptyBorder())
+  }
+
   companion object {
-    fun isDotComAccount(project: Project) =
+    private fun isDotComAccount(project: Project) =
       CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ?: false
 
     fun create(project: Project, chatSession: ChatSession): EnhancedContextPanel {
@@ -65,84 +84,52 @@ open class EnhancedContextPanel(protected val project: Project, protected val ch
 }
 
 class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession): EnhancedContextPanel(project, chatSession) {
-}
+  init {
+    layout = VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, false)
 
-class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) : EnhancedContextPanel(project, chatSession) {
-  private val treeRoot = CheckedTreeNode(CodyBundle.getString("context-panel.tree.root"))
+    val tree = JTree()
+    val toolbar = createToolbar(tree)
+    // TODO: L10N
+    toolbar.setEditActionName("Edit Remote Repositories")
+    toolbar.setEditAction {
+      val initialValue = getContextState()?.remoteRepositories?.map {
+        it.codebaseName
+      }?.joinToString("\n") ?: ""
 
-  private val enhancedContextNode =
-      ContextTreeRootNode(CodyBundle.getString("context-panel.tree.node-chat-context")) { isChecked
-        ->
-        isEnhancedContextEnabled.set(isChecked)
-        updateContextState { it.isEnabled = isChecked }
+      val controller = RemoteRepoPopupController(project)
+      controller.onAccept = { repos ->
+        repos.map {
+          // TODO: Reset the repository list to this set.
+        }
       }
 
-  private val localContextNode =
-      ContextTreeLocalRootNode(
-          CodyBundle.getString("context-panel.tree.node-local-project"), isEnhancedContextEnabled)
-  private val localProjectNode = ContextTreeLocalRepoNode(project, isEnhancedContextEnabled)
+      val popup = controller.createPopup(tree.width, initialValue)
+      popup.showAbove(tree)
+    }
+    add(toolbar.createPanel())
+  }
+
+  /* other deportees:
 
   private val remoteContextNode =
       ContextTreeRemoteRootNode(CodyBundle.getString("context-panel.tree.node-remote-repos"))
 
-  private val treeModel = DefaultTreeModel(treeRoot)
 
-  private val tree = run {
-    val checkboxPropagationPolicy =
-        CheckboxTreeBase.CheckPolicy(
-            /* checkChildrenWithCheckedParent = */ true,
-            /* uncheckChildrenWithUncheckedParent = */ true,
-            /* checkParentWithCheckedChild = */ true,
-            /* uncheckParentWithUncheckedChild = */ false)
-    CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkboxPropagationPolicy)
-  }
+prepareTree:
 
-  @RequiresEdt
-  private fun prepareTree() {
-    treeRoot.add(enhancedContextNode)
-    localContextNode.add(localProjectNode)
-    enhancedContextNode.add(localContextNode)
-
-    val contextState = getContextState()
-
-    ApplicationManager.getApplication().invokeLater {
-      enhancedContextNode.isChecked = contextState?.isEnabled ?: true
-    }
-
-    if (!isDotComAccount(project)) {
-      // TODO: Should be unreachable in the ConsumerEnhancedContextPanel.
-      if (contextState != null) {
-        contextState.remoteRepositories.forEach { repo ->
-          repo.codebaseName?.let { codebaseName ->
-            addRemoteRepository(CodebaseName(codebaseName), repo.isEnabled)
-          }
-        }
-      } else {
-        CodyAgentCodebase.getInstance(project).getUrl().thenApply { repoUrl ->
-          val codebaseName = convertGitCloneURLToCodebaseNameOrError(repoUrl)
-          RemoteRepoUtils.getRepositories(project, listOf(codebaseName))
-              .completeOnTimeout(null, 15, TimeUnit.SECONDS)
-              .thenApply { repos ->
-                if (repos?.size == 1) {
-                  ApplicationManager.getApplication().invokeLater {
-                    addRemoteRepository(codebaseName)
-                  }
-                }
+    CodyAgentCodebase.getInstance(project).getUrl().thenApply { repoUrl ->
+      val codebaseName = convertGitCloneURLToCodebaseNameOrError(repoUrl)
+      RemoteRepoUtils.getRepositories(project, listOf(codebaseName))
+          .completeOnTimeout(null, 15, TimeUnit.SECONDS)
+          .thenApply { repos ->
+            if (repos?.size == 1) {
+              ApplicationManager.getApplication().invokeLater {
+                addRemoteRepository(codebaseName)
               }
-        }
-      }
+            }
+          }
     }
 
-    treeModel.reload()
-  }
-
-  private fun updateContextState(modifyContext: (EnhancedContextState) -> Unit) {
-    val contextState = getContextState() ?: EnhancedContextState()
-    modifyContext(contextState)
-    HistoryService.getInstance(project)
-        .updateContextState(chatSession.getInternalId(), contextState)
-    HistoryService.getInstance(project).updateDefaultContextState(contextState)
-  }
 
   private fun getReposByUrlAndRun(
       codebaseNames: List<CodebaseName>,
@@ -231,6 +218,49 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
       treeModel.reload()
     }
   }
+ */
+}
+
+class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) : EnhancedContextPanel(project, chatSession) {
+  private val treeRoot = CheckedTreeNode(CodyBundle.getString("context-panel.tree.root"))
+
+  private val enhancedContextNode =
+      ContextTreeRootNode(CodyBundle.getString("context-panel.tree.node-chat-context")) { isChecked
+        ->
+        isEnhancedContextEnabled.set(isChecked)
+        updateContextState { it.isEnabled = isChecked }
+      }
+
+  private val localContextNode =
+      ContextTreeLocalRootNode(
+          CodyBundle.getString("context-panel.tree.node-local-project"), isEnhancedContextEnabled)
+  private val localProjectNode = ContextTreeLocalRepoNode(project, isEnhancedContextEnabled)
+
+  private val treeModel = DefaultTreeModel(treeRoot)
+
+  private val tree = run {
+    val checkboxPropagationPolicy =
+        CheckboxTreeBase.CheckPolicy(
+            /* checkChildrenWithCheckedParent = */ true,
+            /* uncheckChildrenWithUncheckedParent = */ true,
+            /* checkParentWithCheckedChild = */ true,
+            /* uncheckParentWithUncheckedChild = */ false)
+    CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkboxPropagationPolicy)
+  }
+
+  @RequiresEdt
+  private fun prepareTree() {
+    treeRoot.add(enhancedContextNode)
+    localContextNode.add(localProjectNode)
+    enhancedContextNode.add(localContextNode)
+
+    val contextState = getContextState()
+    ApplicationManager.getApplication().invokeLater {
+      enhancedContextNode.isChecked = contextState?.isEnabled ?: true
+    }
+
+    treeModel.reload()
+  }
 
   @RequiresEdt
   private fun expandAllNodes(rowCount: Int = tree.rowCount) {
@@ -248,39 +278,11 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     tree.setModel(treeModel)
     prepareTree()
 
-    val toolbarDecorator =
-        createDecorator(tree)
-            .disableUpDownActions()
-            .setToolbarPosition(ActionToolbarPosition.RIGHT)
-            .setVisibleRowCount(1)
-            .setScrollPaneBorder(BorderFactory.createEmptyBorder())
-            .setToolbarBorder(BorderFactory.createEmptyBorder())
+    val toolbar = createToolbar(tree)
+    toolbar.addExtraAction(ReindexButton(project))
+    toolbar.addExtraAction(HelpButton())
 
-    if (!isDotComAccount(project)) {
-      // TODO: Should be unreachable in the ConsumerEnhancedContextPanel.
-      // TODO: L10N
-      toolbarDecorator.setEditActionName("Edit Remote Repositories")
-      toolbarDecorator.setEditAction {
-        val initialValue = getContextState()?.remoteRepositories?.map {
-          it.codebaseName
-        }?.joinToString("\n") ?: ""
-
-        val controller = RemoteRepoPopupController(project)
-        controller.onAccept = { repos ->
-          repos.map {
-            // TODO: Need to remove as well as add.
-            addRemoteRepository(CodebaseName(it))
-          }
-        }
-        val popup = controller.createPopup(tree.width, initialValue)
-        popup.showAbove(tree)
-      }
-    }
-
-    toolbarDecorator.addExtraAction(ReindexButton(project))
-    toolbarDecorator.addExtraAction(HelpButton())
-
-    val panel = toolbarDecorator.createPanel()
+    val panel = toolbar.createPanel()
 
     // TODO: This is buggy, if you collapse a tree node, the element *now* under the pointer on mouse up gets a click
     // event. For example, collapsing "local project" will cause all context to check/uncheck.
