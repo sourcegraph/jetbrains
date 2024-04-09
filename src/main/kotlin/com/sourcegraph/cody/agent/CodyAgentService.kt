@@ -172,8 +172,14 @@ class CodyAgentService(project: Project) : Disposable {
       if (CodyApplicationSettings.instance.isCodyEnabled) {
         ApplicationManager.getApplication().executeOnPooledThread {
           runBlocking {
-            val task: suspend (CodyAgent) -> Unit = { agent -> callback.accept(agent) };
-            coWithAgent(project, restartIfNeeded, task, onFailure)
+            val task: suspend (CodyAgent) -> Unit = { agent ->
+              try {
+                callback.accept(agent)
+              } catch (e: Exception) {
+                onFailure.accept(e)
+              }
+            };
+            coWithAgent(project, restartIfNeeded, task)
           }
         }
       }
@@ -207,23 +213,25 @@ class CodyAgentService(project: Project) : Disposable {
       }
     }
 
-    suspend fun coWithAgent(project: Project, callback: suspend (CodyAgent) -> Unit) = coWithAgent(project, false, callback)
+    suspend fun <T>coWithAgent(project: Project, callback: suspend (CodyAgent) -> T) = coWithAgent(project, false, callback)
 
-    suspend fun coWithAgent(project: Project, restartIfNeeded: Boolean, callback: suspend (CodyAgent) -> Unit, onFailure: Consumer<Exception> = Consumer {}) {
-      if (CodyApplicationSettings.instance.isCodyEnabled) {
-        try {
-          val instance = CodyAgentService.getInstance(project)
-          val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
-          val agent =
-            if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
-            else instance.codyAgent
-          callback(agent.get())
-          setAgentError(project, null)
-        } catch (e: Exception) {
-          logger.warn("Failed to execute call to agent", e)
-          onFailure.accept(e)
-          if (restartIfNeeded) getInstance(project).restartAgent(project)
-        }
+    suspend fun <T>coWithAgent(project: Project, restartIfNeeded: Boolean, callback: suspend (CodyAgent) -> T): T {
+      if (!CodyApplicationSettings.instance.isCodyEnabled) {
+        throw Exception("Cody is not enabled")
+      }
+      try {
+        val instance = CodyAgentService.getInstance(project)
+        val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
+        val agent =
+          if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
+          else instance.codyAgent
+        val result = callback(agent.get())
+        setAgentError(project, null)
+        return result
+      } catch (e: Exception) {
+        logger.warn("Failed to execute call to agent", e)
+        if (restartIfNeeded) getInstance(project).restartAgent(project)
+        throw e
       }
     }
   }

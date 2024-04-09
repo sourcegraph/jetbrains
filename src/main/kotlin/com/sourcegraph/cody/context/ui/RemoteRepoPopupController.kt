@@ -24,6 +24,8 @@ import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.LanguageFileType
 import com.intellij.openapi.keymap.KeymapUtil
+import com.intellij.openapi.progress.blockingContext
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -45,6 +47,7 @@ import com.intellij.util.LocalTimeCounter
 import com.intellij.util.textCompletion.TextCompletionUtil
 import com.intellij.util.ui.JBDimension
 import com.intellij.util.ui.JBUI
+import com.sourcegraph.cody.context.RemoteRepoSearcher
 import com.sourcegraph.utils.CodyEditorUtil
 import org.jetbrains.annotations.NonNls
 import java.awt.BorderLayout
@@ -271,8 +274,16 @@ class RemoteRepoAnnotator : Annotator {
     // TODO: Messages/tooltips are not appearing on hover
     when (element.elementType) {
       RemoteRepoTokenType.REPO -> {
-        // Checks:
-        // - Repositories are known
+        val name = element.text
+        val service = RemoteRepoSearcher.getInstance(element.project)
+        runBlockingCancellable {
+          if (!service.has(name)) {
+            blockingContext {
+              // TODO: L10N
+              holder.newAnnotation(HighlightSeverity.ERROR, "Repository not found").tooltip("Repository not found").range(element).create()
+            }
+          }
+        }
       }
       RemoteRepoListParserDefinition.FILE -> {
         val seen = mutableSetOf<String>()

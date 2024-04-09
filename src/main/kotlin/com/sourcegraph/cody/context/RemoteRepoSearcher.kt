@@ -37,16 +37,21 @@ class RemoteRepoSearcher(private val project: Project) {
   /**
    * Gets whether `repoName` is a known remote repo. This may block while repo loading is in progress.
    */
-  fun has(repoName: String): CompletableFuture<Boolean> {
-    val result = CompletableFuture<Boolean>()
-    CodyAgentService.withAgent(project) { agent ->
-      try {
-        result.complete(agent.server.remoteRepoHas(RemoteRepoHasParams(repoName)).get().result)
-      } catch (e: Exception) {
-        result.completeExceptionally(e)
+  suspend fun has(repoName: String): Boolean {
+    return CodyAgentService.coWithAgent(project) { agent ->
+      val completable = agent.server.remoteRepoHas(RemoteRepoHasParams(repoName))
+      var completed: Boolean? = null
+      while (true) {
+        try {
+          completed = completable.get(100, TimeUnit.MILLISECONDS).result
+          break
+        } catch (e: TimeoutException) {
+          // ignore
+        }
+        currentCoroutineContext().ensureActive()
       }
+      completed!!
     }
-    return result
   }
 
   suspend fun search(query: String?): ReceiveChannel<List<String>> {
