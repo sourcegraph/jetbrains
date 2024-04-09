@@ -110,11 +110,8 @@ class AddRepositoryDialog(
     val mainPanel = JPanel(GridBagLayout())
     val rightSidePanel = JPanel(GridBagLayout())
 
-    val completionProvider = RemoteRepoCompletionProvider(project)
-
     myPreferredFocusedComponent = repoUrlInputField
     repoUrlInputField.setPreferredWidth(350)
-    repoUrlInputField.installProvider(completionProvider)
     repoUrlInputField.requestFocusInWindow()
     repoUrlInputField.addDocumentListener(
         object : DocumentListener {

@@ -271,7 +271,6 @@ class RemoteRepoAnnotator : Annotator, DumbAware {
 }
 
 class RemoteRepoPopupController(val project: Project) {
-  private val completionProvider = RemoteRepoCompletionProvider(project)
   fun createPopup(width: Int): JBPopup {
     val initialValue = "" // TODO: Parse initial value from repo list
 
@@ -296,7 +295,6 @@ class RemoteRepoPopupController(val project: Project) {
       "RepositoryList",
       RemoteRepoFileType.INSTANCE, "", stamp, true, false
     )
-    TextCompletionUtil.installProvider(psiFile, completionProvider, true)
     psiFile.putUserData<Boolean>(BaseCompletionService.FORBID_WORD_COMPLETION, false)
 
     val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)!!
