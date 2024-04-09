@@ -9,12 +9,17 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.RemoteRepoFetchState
 import com.sourcegraph.cody.agent.protocol.RemoteRepoHasParams
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
+import com.sourcegraph.cody.agent.protocol.RemoteRepoListResponse
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 @Service(Service.Level.PROJECT)
 class RemoteRepoSearcher(private val project: Project) {
@@ -48,31 +53,49 @@ class RemoteRepoSearcher(private val project: Project) {
     val result = Channel<List<String>>(2)
     CodyAgentService.coWithAgent(project) { agent ->
       val runQuery: suspend () -> Boolean = {
-        val repos = agent.server.remoteRepoList(
+        val completableRepos = agent.server.remoteRepoList(
           RemoteRepoListParams(
             query = query,
             first = 500,
             after = null,
           )
-        ).get()
-        if (repos.state.error != null) {
-          logger.warn("remote repository search had error: ${repos.state.error.title}")
-          if (repos.repos.isEmpty()) {
-            result.close(CodyAgentException(repos.state.error.title))
+        )
+        var repos: RemoteRepoListResponse? = null
+        while (true) {
+          // Check for cancellation every 100ms.
+          currentCoroutineContext().ensureActive()
+          try {
+            repos = completableRepos.get(100, TimeUnit.MILLISECONDS)
+            break
+          } catch (e: TimeoutException) {
+            // ignore
           }
         }
-        _state.value = repos.state
-        // TODO: logger.debug, when I work out where the idea.log file for the debuggee is.
-        println("remote repo search $query returning ${repos.repos.size} results (${repos.state.state})")
-        result.send(repos.repos.map { it.name })
-        !fetchDone(repos.state)
+        if (repos == null) {
+          true // unreachable
+        } else {
+          if (repos.state.error != null) {
+            logger.warn("remote repository search had error: ${repos.state.error?.title}")
+            if (repos.repos.isEmpty()) {
+              result.close(CodyAgentException(repos.state.error?.title))
+            }
+          }
+          _state.value = repos.state
+          // TODO: logger.debug, when I work out where the idea.log file for the debuggee is.
+          println("remote repo search $query returning ${repos.repos.size} results (${repos.state.state})")
+          result.send(repos.repos.map { it.name })
+          !fetchDone(repos.state)
+        }
       }
 
       try {
         // Run the query until we're satisfied there's no more results.
         while (runQuery()) {
           // Wait for the fetch to finish.
-          state.first { fetchDone(it) }
+          state.first {
+            currentCoroutineContext().ensureActive();
+            fetchDone(it)
+          }
         }
         result.close()
       } catch (e: Exception) {

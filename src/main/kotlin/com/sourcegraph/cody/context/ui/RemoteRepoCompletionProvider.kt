@@ -6,10 +6,7 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.concurrency.SensitiveProgressWrapper
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.progress.EmptyProgressIndicator
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.runBlockingCancellable
+import com.intellij.openapi.progress.*
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns
@@ -58,12 +55,13 @@ class RemoteRepoCompletionContributor : CompletionContributor() {
                     prefixedResult.restartCompletionOnAnyPrefixChange()
                     try {
                         runBlockingCancellable {
-                            ;
                             for (repos in searcher.search(query)) {
-                                for (repo in repos) {
-                                    prefixedResult.addElement(
-                                        LookupElementBuilder.create(repo).withIcon(getIcon(repo))
-                                    )
+                                blockingContext { // addElement uses ProgressManager.checkCancelled
+                                    for (repo in repos) {
+                                        prefixedResult.addElement(
+                                            LookupElementBuilder.create(repo).withIcon(getIcon(repo))
+                                        )
+                                    }
                                 }
                             }
                         }
