@@ -9,9 +9,11 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.RemoteRepoFetchState
 import com.sourcegraph.cody.agent.protocol.RemoteRepoHasParams
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
-import com.sourcegraph.cody.edit.EditSession
-import com.sourcegraph.cody.error.CodyError
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import java.util.concurrent.CompletableFuture
 
 @Service(Service.Level.PROJECT)
@@ -23,15 +25,9 @@ class RemoteRepoSearcher(private val project: Project) {
   }
 
   private val logger = Logger.getInstance(RemoteRepoSearcher::class.java)
-  private var _state: RemoteRepoFetchState = RemoteRepoFetchState(state = "paused", error = null)
 
-  val isDoneLoading: Boolean
-    @Synchronized
-    get() = _state.state == "errored" || _state.state == "complete"
-
-  val error: CodyError?
-    @Synchronized
-    get() = if (_state.state == "errored") { _state.error } else { null }
+  private val _state = MutableStateFlow(RemoteRepoFetchState("paused", null))
+  val state: StateFlow<RemoteRepoFetchState> = _state
 
   /**
    * Gets whether `repoName` is a known remote repo. This may block while repo loading is in progress.
@@ -48,10 +44,10 @@ class RemoteRepoSearcher(private val project: Project) {
     return result
   }
 
-  fun search(query: String?): Channel<List<String>> {
-    val result = CompletableFuture<List<String>>()
-    CodyAgentService.withAgent(project) { agent ->
-      try {
+  suspend fun search(query: String?): ReceiveChannel<List<String>> {
+    val result = Channel<List<String>>(2)
+    CodyAgentService.coWithAgent(project) { agent ->
+      val runQuery: suspend () -> Boolean = {
         val repos = agent.server.remoteRepoList(
           RemoteRepoListParams(
             query = query,
@@ -62,30 +58,38 @@ class RemoteRepoSearcher(private val project: Project) {
         if (repos.state.error != null) {
           logger.warn("remote repository search had error: ${repos.state.error.title}")
           if (repos.repos.isEmpty()) {
-            result.completeExceptionally(CodyAgentException(repos.state.error.title))
+            result.close(CodyAgentException(repos.state.error.title))
           }
         }
-        synchronized(this) {
-          this._state = repos.state
+        _state.value = repos.state
+        result.send(repos.repos.map { it.name })
+        fetchDone(repos.state)
+      }
+
+      try {
+        // Run the query until we're satisfied there's no more results.
+        while (runQuery()) {
+          // Wait for the fetch to finish.
+          state.first { fetchDone(it) }
         }
-        result.complete(repos.repos.map { it.name })
+        result.close()
       } catch (e: Exception) {
-        result.completeExceptionally(e)
+        result.close(e)
       }
     }
     return result
   }
 
-  // Callbacks for CodyAgentService
-  fun remoteRepoDidChange() {
-    // TODO: If there's an in-progress load, then unblock it.
-    println("remoteRepoDidChange")
+  private fun fetchDone(state: RemoteRepoFetchState): Boolean {
+    return state.state == "complete" || state.state == "errored"
   }
 
-  @Synchronized
+  // Callbacks for CodyAgentService
+  fun remoteRepoDidChange() {
+    // Ignore this. `search` uses the earliest available result.
+  }
+
   fun remoteRepoDidChangeState(state: RemoteRepoFetchState) {
-    // TODO: If there's an in-progress load, then unblock it.
-    _state = state
-    println("remoteRepoDidChangeState ${state.state}/${state.error}")
+    _state.value = state
   }
 }

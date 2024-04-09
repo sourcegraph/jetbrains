@@ -4,6 +4,7 @@ import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.CharFilter
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.concurrency.SensitiveProgressWrapper
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressIndicator
@@ -42,16 +43,9 @@ class RemoteRepoCompletionContributor : CompletionContributor() {
                     context: ProcessingContext,
                     result: CompletionResultSet
                 ) {
-                    // Progress/cancellation cribbed from TextFieldWithAutoCompletionListProvider.addNonCachedItems.
-                    val progressManager = ProgressManager.getInstance()
-                    val mainIndicator = progressManager.progressIndicator
-                    val indicator: ProgressIndicator =
-                        if (mainIndicator != null) SensitiveProgressWrapper(mainIndicator) else EmptyProgressIndicator()
-
                     val searcher = RemoteRepoSearcher.getInstance(parameters.position.project)
-                    // We use original position, if present, because it does not have the helpful dummy text
-                    // "IntellijIdeaRulezzz". Because we do a fuzzy match, we want to use the whole element as the
-                    // query.
+                    // We use original position, if present, because it does not have the "helpful" dummy text
+                    // "IntellijIdeaRulezzz". Because we do a fuzzy match, we use the whole element as the query.
                     val element = parameters.originalPosition
                     val query =
                         if (element?.elementType == RemoteRepoTokenType.REPO) {
@@ -59,25 +53,40 @@ class RemoteRepoCompletionContributor : CompletionContributor() {
                         } else {
                             null  // Return all repos
                         }
+                    // Update the prefix to the whole query to get accurate highlighting.
                     val prefixedResult = if (query != null) { result.withPrefixMatcher(query) } else { result }
                     prefixedResult.restartCompletionOnAnyPrefixChange()
                     try {
-                        runBlockingCancellable(indicator) {
-                            while (isActive) {
-                                // Although the repo list is stored remotely, the extension has a local cache and should
-                                // respond to these queries quickly (although the result set may be empty.)
-                                val repos = searcher.search(query).get(1, TimeUnit.SECONDS)
-                                for (repo in repos) {
-                                    prefixedResult.addElement(LookupElementBuilder.create(repo).withIcon(getIcon(repo)))
+                        // TODO: TextFieldWithAutoCompletionListProvider wraps the progress manager's progress
+                        // indicator, if any, with a SensitiveProgressWrapper. See
+                        // TextFieldWithAutoCompletionListProvider.addNonCachedItems. Work out whether we need the
+                        // sensitive progress indicator.
+                        val progressManager = ProgressManager.getInstance()
+                        val completion = ApplicationManager.getApplication().executeOnPooledThread {
+                            progressManager.runProcess({
+                                runBlockingCancellable {
+                                    ;
+                                    while (isActive) {
+                                        for (repos in searcher.search(query)) {
+                                            for (repo in repos) {
+                                                // TODO: Is this cross-thread addElement safe?
+                                                prefixedResult.addElement(
+                                                    LookupElementBuilder.create(repo).withIcon(getIcon(repo))
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
-
-                                if (searcher.isDoneLoading) {
-                                    return@runBlockingCancellable
-                                }
+                            }, progressManager.progressIndicator);
+                        }
+                        while (true) {
+                            ProgressManager.checkCanceled()
+                            try {
+                                completion.get(100, TimeUnit.MILLISECONDS)
+                            } catch (e: java.util.concurrent.TimeoutException) {
+                                // Ignore.
                             }
                         }
-                    } catch (e: TimeoutException) {
-                        prefixedResult.addLookupAdvertisement("Remote repo search timed out. Partial results.")
                     } catch (e: Exception) {
                         prefixedResult.addLookupAdvertisement(e.getThrowableText())
                     }
