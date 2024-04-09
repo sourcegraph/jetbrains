@@ -91,6 +91,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
     val tree = JTree()
     val toolbar = createToolbar(tree)
+    // TODO: Add the "clock" ??? and "help" icons.
     // TODO: L10N
     toolbar.setEditActionName("Edit Remote Repositories")
     toolbar.setEditAction {
@@ -108,6 +109,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       val popup = controller.createPopup(tree.width, initialValue)
       popup.showAbove(tree)
     }
+    toolbar.addExtraAction(HelpButton())
+
     add(toolbar.createPanel())
   }
 
@@ -294,6 +297,8 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     // event. For example, collapsing "local project" will cause all context to check/uncheck.
     tree.addTreeExpansionListener(
         object : TreeExpansionListener {
+          // TODO: Tree does not set its preferred size initially and is displayed at the wrong size until you
+          // interact with it.
           private fun resize() {
             val padding = 5
             panel.preferredSize =

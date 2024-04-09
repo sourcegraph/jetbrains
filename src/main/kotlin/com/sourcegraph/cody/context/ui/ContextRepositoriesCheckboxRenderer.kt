@@ -27,7 +27,7 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
         val repoName =
             node.codebaseName.value.split(File.separator).lastOrNull() ?: node.codebaseName.value
         textRenderer.appendHTML(
-            "<b>${repoName}</b> <i ${style}>${node.codebaseName.value}</i>",
+            "<b>${repoName}</b> <span ${style}>${node.codebaseName.value}</span>",
             SimpleTextAttributes.REGULAR_ATTRIBUTES)
       }
       is ContextTreeLocalRepoNode -> {
@@ -40,6 +40,18 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
         textRenderer.appendHTML(
             "<b>${node.userObject}</b>", SimpleTextAttributes.REGULAR_ATTRIBUTES)
       }
+
+      // The root node:
+      // - Label: "Chat Context"
+      // - Summary string: Multi repo, 9 Repos
+      // - myCheckbox.setVisible(false)
+
+      // The intermediate node:
+      // - Label: 9 repos on
+      // - Summary string: customer.sourcegraph.com
+
+      // The repo nodes:
+      // - getTextRenderer().setIcon(...) <-- the icon for the repo name
     }
   }
 }
