@@ -35,10 +35,9 @@ import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 import javax.swing.tree.DefaultTreeModel
 
-open class EnhancedContextPanel(protected val project: Project, protected val chatSession: ChatSession) :
+abstract class EnhancedContextPanel(protected val project: Project, protected val chatSession: ChatSession) :
     JPanel() {
-  // TODO: This is mutable outside the class but the view does not respond to changes.
-  val isEnhancedContextEnabled = AtomicBoolean(true)
+  abstract val isEnhancedContextEnabled: Boolean
 
   fun setContextFromThisChatAsDefault() {
     ApplicationManager.getApplication().executeOnPooledThread {
@@ -84,6 +83,9 @@ open class EnhancedContextPanel(protected val project: Project, protected val ch
 }
 
 class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession): EnhancedContextPanel(project, chatSession) {
+  override val isEnhancedContextEnabled: Boolean
+    get() = false  // TODO: Make this toggle-able
+
   init {
     layout = VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, false)
 
@@ -222,19 +224,23 @@ prepareTree:
 }
 
 class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) : EnhancedContextPanel(project, chatSession) {
+  override val isEnhancedContextEnabled: Boolean
+    get() = enhancedContextEnabled.get()
+
+  private val enhancedContextEnabled = AtomicBoolean(true)
   private val treeRoot = CheckedTreeNode(CodyBundle.getString("context-panel.tree.root"))
 
   private val enhancedContextNode =
       ContextTreeRootNode(CodyBundle.getString("context-panel.tree.node-chat-context")) { isChecked
         ->
-        isEnhancedContextEnabled.set(isChecked)
+        enhancedContextEnabled.set(isChecked)
         updateContextState { it.isEnabled = isChecked }
       }
 
   private val localContextNode =
       ContextTreeLocalRootNode(
-          CodyBundle.getString("context-panel.tree.node-local-project"), isEnhancedContextEnabled)
-  private val localProjectNode = ContextTreeLocalRepoNode(project, isEnhancedContextEnabled)
+          CodyBundle.getString("context-panel.tree.node-local-project"), enhancedContextEnabled)
+  private val localProjectNode = ContextTreeLocalRepoNode(project, enhancedContextEnabled)
 
   private val treeModel = DefaultTreeModel(treeRoot)
 

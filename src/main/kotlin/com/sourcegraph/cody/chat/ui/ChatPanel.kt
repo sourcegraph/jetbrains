@@ -75,7 +75,7 @@ class ChatPanel(
     promptPanel.focus()
   }
 
-  fun isEnhancedContextEnabled(): Boolean = contextView.isEnhancedContextEnabled.get()
+  fun isEnhancedContextEnabled(): Boolean = contextView.isEnhancedContextEnabled
 
   @RequiresEdt
   fun addOrUpdateMessage(message: ChatMessage, index: Int) {
