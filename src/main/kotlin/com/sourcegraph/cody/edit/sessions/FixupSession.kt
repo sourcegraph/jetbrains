@@ -52,8 +52,10 @@ abstract class FixupSession(
     val project: Project,
     val document: Document
 ) : Disposable {
+  protected val documentBefore: Document =
+      EditorFactory.getInstance().createDocument(editor.document.text)
   protected lateinit var documentAfter: Document
-  protected lateinit var documentBefore: Document
+
   private val logger = Logger.getInstance(FixupSession::class.java)
   private val fixupService = FixupService.getInstance(project)
 
@@ -94,7 +96,6 @@ abstract class FixupSession(
       // Force a round-trip to get folding ranges before showing lenses.
       ensureSelectionRange(agent, textFile)
       showWorkingGroup()
-      documentBefore = EditorFactory.getInstance().createDocument(editor.document.text)
       // All this because we can get the workspace/edit before the request returns!
       fixupService.addSession(this) // puts in Pending
       makeEditingRequest(agent)
