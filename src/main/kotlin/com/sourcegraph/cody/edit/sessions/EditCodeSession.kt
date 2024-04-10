@@ -12,9 +12,9 @@ import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.InlineEditParams
-import com.sourcegraph.cody.edit.EditShowDiffAction.Companion.EDITOR_DATA_KEY
-import com.sourcegraph.cody.edit.EditShowDiffAction.Companion.SELECTION_RANGE_DATA_KEY
 import com.sourcegraph.cody.edit.FixupService
+import com.sourcegraph.cody.edit.EditShowDiffAction.Companion.DOCUMENT_AFTER_DATA_KEY
+import com.sourcegraph.cody.edit.EditShowDiffAction.Companion.DOCUMENT_BEFORE_DATA_KEY
 import java.util.concurrent.CompletableFuture
 
 /**
@@ -47,8 +47,8 @@ class EditCodeSession(
             /* dataContext = */ { dataId ->
               when (dataId) {
                 CommonDataKeys.PROJECT.name -> project
-                EDITOR_DATA_KEY.name -> editor
-                SELECTION_RANGE_DATA_KEY.name -> selectionRange
+                DOCUMENT_BEFORE_DATA_KEY.name -> documentBefore
+                DOCUMENT_AFTER_DATA_KEY.name -> documentAfter
                 else -> null
               }
             },

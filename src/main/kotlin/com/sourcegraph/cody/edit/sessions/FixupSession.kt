@@ -7,6 +7,7 @@ import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.editor.ScrollType
@@ -51,6 +52,8 @@ abstract class FixupSession(
     val project: Project,
     val document: Document
 ) : Disposable {
+  protected lateinit var documentAfter: Document
+  protected lateinit var documentBefore: Document
   private val logger = Logger.getInstance(FixupSession::class.java)
   private val fixupService = FixupService.getInstance(project)
 
@@ -91,6 +94,7 @@ abstract class FixupSession(
       // Force a round-trip to get folding ranges before showing lenses.
       ensureSelectionRange(agent, textFile)
       showWorkingGroup()
+      documentBefore = EditorFactory.getInstance().createDocument(editor.document.text)
       // All this because we can get the workspace/edit before the request returns!
       fixupService.addSession(this) // puts in Pending
       makeEditingRequest(agent)
@@ -147,7 +151,10 @@ abstract class FixupSession(
       CodyTaskState.Applying,
       CodyTaskState.Formatting -> {}
       // Tasks remain in this state until explicit accept/undo/cancel.
-      CodyTaskState.Applied -> showAcceptGroup()
+      CodyTaskState.Applied -> {
+        showAcceptGroup()
+        documentAfter = editor.document
+      }
       // Then they transition to finished.
       CodyTaskState.Finished -> {}
       CodyTaskState.Error -> {}
