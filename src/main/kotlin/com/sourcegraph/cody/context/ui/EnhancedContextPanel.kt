@@ -2,6 +2,7 @@ package com.sourcegraph.cody.context.ui
 
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
@@ -129,7 +130,11 @@ abstract class EnhancedContextPanel(protected val project: Project, protected va
         /* uncheckChildrenWithUncheckedParent = */ true,
         /* checkParentWithCheckedChild = */ true,
         /* uncheckParentWithUncheckedChild = */ false)
-    CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkPolicy)
+    object : CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkPolicy) {
+      // When collapsed, the horizontal scrollbar obscures the Chat Context summary & checkbox. Prefer to clip. Users
+      // can resize the sidebar if desired.
+      override fun getScrollableTracksViewportWidth(): Boolean = true
+    }
   }
 
   init {
@@ -205,7 +210,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
           .completeOnTimeout(null, 15, TimeUnit.SECONDS)
           .thenApply { repos ->
             if (repos == null) {
-              // TODO: error message
+              // TODO: Show an error notification, balloon, or tool window balloon.
               return@thenApply
             }
             var trimmedRepos = repos.take(MAX_REMOTE_REPOSITORY_COUNT)
@@ -218,12 +223,11 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
               updateContextState { state ->
                 state.remoteRepositories.clear()
                 state.remoteRepositories.addAll(
-                  trimmedRepos.map { it ->
-                    val value = RemoteRepositoryState()
-                    value.codebaseName = it.name
-                    value.remoteUrl = null // TODO: What is this used for?
-                    value.isEnabled = true
-                    value
+                  trimmedRepos.map { repo ->
+                    RemoteRepositoryState().apply {
+                      codebaseName = repo.name
+                      isEnabled = true
+                    }
                   }
                 )
               }
