@@ -6,6 +6,7 @@ import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
+import com.intellij.openapi.ui.getTreePath
 import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
@@ -230,7 +231,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
               // Update the UI.
               // TODO: Pass in the checked/unchecked state.
               updateTree(trimmedRepos.map { it -> it.name })
-              treeModel.reload(contextRoot) // TODO: Do we need to notify about remotesNode below contextRoot?
               resize()
             }
           }
@@ -276,42 +276,21 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   }
 
   private fun updateTree(repoNames: List<String>) {
+    val remotesPath = treeModel.getTreePath(remotesNode.userObject)
+    val wasExpanded = remotesPath != null && tree.isExpanded(remotesPath)
     remotesNode.removeAllChildren()
     repoNames.forEach { repoName ->
       val node = ContextTreeRemoteRepoNode(RemoteRepo(repoName)) { checked -> println("repo $repoName checked? $checked") }
       remotesNode.add(node)
     }
     contextRoot.numRepos = repoNames.size
+    treeModel.reload(contextRoot)
+    if (wasExpanded) {
+      tree.expandPath(remotesPath)
+    }
   }
 
   /* other deportees:
-
-  private val remoteContextNode =
-      ContextTreeRemoteRootNode(CodyBundle.getString("context-panel.tree.node-remote-repos"))
-
-
-prepareTree:
-
-    CodyAgentCodebase.getInstance(project).getUrl().thenApply { repoUrl ->
-      val codebaseName = convertGitCloneURLToCodebaseNameOrError(repoUrl)
-      RemoteRepoUtils.getRepositories(project, listOf(codebaseName))
-          .completeOnTimeout(null, 15, TimeUnit.SECONDS)
-          .thenApply { repos ->
-            if (repos?.size == 1) {
-              ApplicationManager.getApplication().invokeLater {
-                addRemoteRepository(codebaseName)
-              }
-            }
-          }
-    }
-
-
-  private fun getReposByUrlAndRun(
-      codebaseNames: List<CodebaseName>,
-      consumer: Consumer<List<Repo>>
-  ) {
-    RemoteRepoUtils.getRepositories(project, codebaseNames).thenApply { consumer.accept(it) }
-  }
 
   private fun enableRemote(codebaseName: CodebaseName) {
     updateContextState { contextState ->
@@ -347,52 +326,6 @@ prepareTree:
     }
   }
 
-  @RequiresEdt
-  private fun removeRemoteRepository(node: ContextTreeRemoteRepoNode) {
-    updateContextState { contextState ->
-      contextState.remoteRepositories.removeIf { it.codebaseName == node.codebaseName.value }
-    }
-    remoteContextNode.remove(node)
-    if (enhancedContextNode.children().toList().contains(remoteContextNode) &&
-        !remoteContextNode.children().hasMoreElements()) {
-      enhancedContextNode.remove(remoteContextNode)
-    }
-    treeModel.reload()
-    disableRemote(node.codebaseName)
-  }
-
-  @RequiresEdt
-  private fun addRemoteRepository(codebaseName: CodebaseName, isCheckedInitially: Boolean = true) {
-
-    updateContextState { contextState ->
-      val repositories = contextState.remoteRepositories
-      val existingRepo = repositories.find { it.codebaseName == codebaseName.value }
-      val modifiedRepo = existingRepo ?: RemoteRepositoryState()
-      modifiedRepo.codebaseName = codebaseName.value
-      modifiedRepo.isEnabled = isCheckedInitially
-      if (existingRepo == null) repositories.add(modifiedRepo)
-    }
-
-    val existingRemoteNode =
-        remoteContextNode.children().toList().filterIsInstance<ContextTreeRemoteRepoNode>().find {
-          it.codebaseName == codebaseName
-        }
-
-    if (existingRemoteNode != null) {
-      existingRemoteNode.isChecked = isCheckedInitially
-    } else {
-      val remoteRepoNode =
-          ContextTreeRemoteRepoNode(codebaseName) { isChecked ->
-            if (isChecked) enableRemote(codebaseName) else disableRemote(codebaseName)
-          }
-      remoteRepoNode.isChecked = isCheckedInitially
-      remoteContextNode.add(remoteRepoNode)
-      if (!enhancedContextNode.children().toList().contains(remoteContextNode)) {
-        enhancedContextNode.add(remoteContextNode)
-      }
-      treeModel.reload()
-    }
-  }
  */
 }
 

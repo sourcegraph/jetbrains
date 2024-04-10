@@ -34,15 +34,16 @@ class ContextTreeLocalRepoNode(val project: Project, isEnhancedContextEnabled: A
 /**
  * Enterprise context selector tree, root node.
  */
-class ContextTreeEnterpriseRootNode(var endpointName: String, var numRepos: Int, onSetChecked: (Boolean) -> Unit) : ContextTreeNode<Void?>(null, onSetChecked)
+class ContextTreeEnterpriseRootNode(var endpointName: String, var numRepos: Int, onSetChecked: (Boolean) -> Unit) :
+  ContextTreeNode<Any>(Object(), onSetChecked) // TreePaths depend on user objects; Object() ensures uniqueness.
 
 /**
  * Enterprise context selector tree, parent node of all remote repositories.
  */
-class ContextTreeRemotesNode() : ContextTreeNode<Void?>(null)
+class ContextTreeRemotesNode() : ContextTreeNode<Any>(Object()) // TreePaths depend on user objects; Object() ensures uniqueness.
 
 /**
  * Enterprise context selector tree, a specific remote repository.
  */
 class ContextTreeRemoteRepoNode(val repo: RemoteRepo, onSetChecked: (Boolean) -> Unit) :
-  ContextTreeNode<Void?>(null, onSetChecked)
+  ContextTreeNode<Any>(Object(), onSetChecked) // TreePaths depend on user objects; Object() ensures uniqueness.

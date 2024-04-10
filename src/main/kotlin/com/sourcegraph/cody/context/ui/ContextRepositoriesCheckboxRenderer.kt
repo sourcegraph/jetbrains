@@ -39,7 +39,8 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
           "<b>Chat Context</b> <span ${style}>${node.numRepos} Repos on ${node.endpointName}</span>",
           SimpleTextAttributes.REGULAR_ATTRIBUTES
         )
-        myCheckbox.state = if (node.isChecked) { ThreeStateCheckBox.State.SELECTED } else { ThreeStateCheckBox.State.NOT_SELECTED }
+        // TODO: Remove, now the path has identity
+        // myCheckbox.state = if (node.isChecked) { ThreeStateCheckBox.State.SELECTED } else { ThreeStateCheckBox.State.NOT_SELECTED }
       }
       is ContextTreeRemotesNode -> {
         textRenderer.append(
