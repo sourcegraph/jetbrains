@@ -66,7 +66,14 @@ abstract class EnhancedContextPanel(protected val project: Project, protected va
   /**
    * Gets whether enhanced context is enabled.
    */
-  abstract val isEnhancedContextEnabled: Boolean
+  val isEnhancedContextEnabled: Boolean
+    get() = enhancedContextEnabled.get()
+
+  /**
+   * Whether enhanced context is enabled. Set this when enhance context is toggled in the panel UI. This is read on
+   * background threads by `isEnhancedContextEnabled`.
+   */
+  protected val enhancedContextEnabled = AtomicBoolean(true)
 
   /**
    * Sets this EnhancedContextPanel's configuration as the project's default enhanced context state.
@@ -98,7 +105,7 @@ abstract class EnhancedContextPanel(protected val project: Project, protected va
   }
 
   /**
-   * Creates the ToolbarDecorator for the panel. The toolbar decorator does not have any buttons.
+   * Creates the ToolbarDecorator for the panel. The returned toolbar decorator does not have any buttons.
    */
   protected fun createToolbar(): ToolbarDecorator {
     return createDecorator(tree)
@@ -190,9 +197,6 @@ abstract class EnhancedContextPanel(protected val project: Project, protected va
 }
 
 class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession): EnhancedContextPanel(project, chatSession) {
-  override val isEnhancedContextEnabled: Boolean
-    get() = false  // TODO: Make this toggle-able
-
   // Cache the raw user input so the user can reopen the popup to make corrections without starting from scratch.
   private var rawSpec: String = ""
 
@@ -248,10 +252,13 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   }
 
   private val remotesNode = ContextTreeRemotesNode()
-  private val contextRoot = ContextTreeEnterpriseRootNode("", 0) { checked ->
-    println("checked: $checked")
+  private val contextRoot = object : ContextTreeEnterpriseRootNode("", 0, { checked ->
+    enhancedContextEnabled.set(checked)
+  }) {
+    override fun isChecked(): Boolean {
+       return enhancedContextEnabled.get()
+    }
   }
-
 
   init {
     val contextState = getContextState()
@@ -334,11 +341,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 }
 
 class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) : EnhancedContextPanel(project, chatSession) {
-  override val isEnhancedContextEnabled: Boolean
-    get() = enhancedContextEnabled.get()
-
-  private val enhancedContextEnabled = AtomicBoolean(true)
-
   private val enhancedContextNode =
       ContextTreeRootNode(CodyBundle.getString("context-panel.tree.node-chat-context")) { isChecked
         ->

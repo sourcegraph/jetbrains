@@ -34,7 +34,7 @@ class ContextTreeLocalRepoNode(val project: Project, isEnhancedContextEnabled: A
 /**
  * Enterprise context selector tree, root node.
  */
-class ContextTreeEnterpriseRootNode(var endpointName: String, var numRepos: Int, onSetChecked: (Boolean) -> Unit) :
+open class ContextTreeEnterpriseRootNode(var endpointName: String, var numRepos: Int, onSetChecked: (Boolean) -> Unit) :
   ContextTreeNode<Any>(Object(), onSetChecked) // TreePaths depend on user objects; Object() ensures uniqueness.
 
 /**
