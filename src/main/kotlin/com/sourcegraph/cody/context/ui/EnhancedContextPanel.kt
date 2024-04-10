@@ -2,6 +2,7 @@ package com.sourcegraph.cody.context.ui
 
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.ui.CheckboxTree
@@ -25,18 +26,35 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.vcs.CodebaseName
 import com.sourcegraph.vcs.convertGitCloneURLToCodebaseNameOrError
 import java.awt.Dimension
+import java.awt.event.MouseEvent
+import java.awt.event.MouseListener
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import javax.swing.BorderFactory
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTree
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 import javax.swing.tree.DefaultTreeModel
 
+/**
+ * A panel for configuring context in chats.
+ */
 abstract class EnhancedContextPanel(protected val project: Project, protected val chatSession: ChatSession) :
     JPanel() {
+  companion object {
+    fun create(project: Project, chatSession: ChatSession): EnhancedContextPanel {
+      val isDotcomAccount = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ?: false
+      return if (isDotcomAccount) {
+        ConsumerEnhancedContextPanel(project, chatSession)
+      } else {
+        EnterpriseEnhancedContextPanel(project, chatSession)
+      }
+    }
+  }
+
   abstract val isEnhancedContextEnabled: Boolean
 
   fun setContextFromThisChatAsDefault() {
@@ -68,16 +86,63 @@ abstract class EnhancedContextPanel(protected val project: Project, protected va
       .setToolbarBorder(BorderFactory.createEmptyBorder())
   }
 
-  companion object {
-    private fun isDotComAccount(project: Project) =
-      CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ?: false
+  protected val treeRoot = CheckedTreeNode(CodyBundle.getString("context-panel.tree.root"))
+  protected val treeModel = DefaultTreeModel(treeRoot)
+  protected val tree = run {
+    val checkPolicy =
+      CheckboxTreeBase.CheckPolicy(
+        /* checkChildrenWithCheckedParent = */ true,
+        /* uncheckChildrenWithUncheckedParent = */ true,
+        /* checkParentWithCheckedChild = */ true,
+        /* uncheckParentWithUncheckedChild = */ false)
+    CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkPolicy)
+  }
 
-    fun create(project: Project, chatSession: ChatSession): EnhancedContextPanel {
-      return if (isDotComAccount(project)) {
-        ConsumerEnhancedContextPanel(project, chatSession)
-      } else {
-        EnterpriseEnhancedContextPanel(project, chatSession)
-      }
+  init {
+    layout = VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, false)
+    tree.model = treeModel
+  }
+
+  abstract fun createPanel(): JComponent
+  val panel = createPanel()
+
+  init {
+    // TODO: Resizing synchronously causes the element *now* under the pointer to get a click on mouse up, which can
+    // check/uncheck a checkbox.
+    tree.addTreeExpansionListener(
+      object : TreeExpansionListener {
+        override fun treeExpanded(event: TreeExpansionEvent) {
+          if (event.path.pathCount == 2) {
+            // The top-level node was expanded, so expand the entire tree.
+            expandAllNodes()
+          }
+          resize()
+        }
+
+        override fun treeCollapsed(event: TreeExpansionEvent) {
+          resize()
+        }
+      })
+
+    add(panel)
+  }
+
+  @RequiresEdt
+  protected fun resize() {
+    val padding = 5
+    panel.preferredSize =
+      Dimension(0, padding + tree.rowCount * tree.rowHeight)
+    panel.parent?.revalidate()
+  }
+
+  @RequiresEdt
+  private fun expandAllNodes(rowCount: Int = tree.rowCount) {
+    for (i in 0 until tree.rowCount) {
+      tree.expandRow(i)
+    }
+
+    if (tree.getRowCount() != rowCount) {
+      expandAllNodes(tree.rowCount)
     }
   }
 }
@@ -86,10 +151,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   override val isEnhancedContextEnabled: Boolean
     get() = false  // TODO: Make this toggle-able
 
-  init {
-    layout = VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, false)
-
-    val tree = JTree()
+  override fun createPanel(): JComponent {
     val toolbar = createToolbar(tree)
     // TODO: Add the "clock" ??? and "help" icons.
     // TODO: L10N
@@ -111,7 +173,33 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     }
     toolbar.addExtraAction(HelpButton())
 
-    add(toolbar.createPanel())
+    return toolbar.createPanel()
+  }
+
+  init {
+    val repoNames =
+      getContextState()
+        ?.remoteRepositories
+        ?.filter { it.isEnabled }
+        ?.mapNotNull { it.codebaseName }
+        ?: listOf()
+
+    val remotesNode = ContextTreeRemotesNode()
+    repoNames.forEach { repoName ->
+      val node = ContextTreeRemoteRepoNode(RemoteRepo(repoName)) { checked -> println("repo $repoName checked? $checked") }
+      remotesNode.add(node)
+    }
+
+    // TODO: L10N
+    val endpoint = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.server?.displayName ?: "endpoint"
+    val contextRoot = ContextTreeEnterpriseRootNode(endpoint, repoNames.size) { checked ->
+      println("checked: $checked")
+    }
+    contextRoot.add(remotesNode)
+    contextRoot.isChecked = true // TODO
+
+    treeRoot.add(contextRoot)
+    treeModel.reload()
   }
 
   /* other deportees:
@@ -231,7 +319,6 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     get() = enhancedContextEnabled.get()
 
   private val enhancedContextEnabled = AtomicBoolean(true)
-  private val treeRoot = CheckedTreeNode(CodyBundle.getString("context-panel.tree.root"))
 
   private val enhancedContextNode =
       ContextTreeRootNode(CodyBundle.getString("context-panel.tree.node-chat-context")) { isChecked
@@ -245,18 +332,6 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
           CodyBundle.getString("context-panel.tree.node-local-project"), enhancedContextEnabled)
   private val localProjectNode = ContextTreeLocalRepoNode(project, enhancedContextEnabled)
 
-  private val treeModel = DefaultTreeModel(treeRoot)
-
-  private val tree = run {
-    val checkboxPropagationPolicy =
-        CheckboxTreeBase.CheckPolicy(
-            /* checkChildrenWithCheckedParent = */ true,
-            /* uncheckChildrenWithUncheckedParent = */ true,
-            /* checkParentWithCheckedChild = */ true,
-            /* uncheckParentWithUncheckedChild = */ false)
-    CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkboxPropagationPolicy)
-  }
-
   @RequiresEdt
   private fun prepareTree() {
     treeRoot.add(enhancedContextNode)
@@ -269,56 +344,17 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     }
 
     treeModel.reload()
+    resize()
   }
 
-  @RequiresEdt
-  private fun expandAllNodes(rowCount: Int = tree.rowCount) {
-    for (i in 0 until tree.rowCount) {
-      tree.expandRow(i)
-    }
-
-    if (tree.getRowCount() != rowCount) {
-      expandAllNodes(tree.rowCount)
-    }
-  }
-
-  init {
-    layout = VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, false)
-    tree.setModel(treeModel)
-    prepareTree()
-
+  override fun createPanel(): JComponent {
     val toolbar = createToolbar(tree)
     toolbar.addExtraAction(ReindexButton(project))
     toolbar.addExtraAction(HelpButton())
+    return toolbar.createPanel()
+  }
 
-    val panel = toolbar.createPanel()
-
-    // TODO: This is buggy, if you collapse a tree node, the element *now* under the pointer on mouse up gets a click
-    // event. For example, collapsing "local project" will cause all context to check/uncheck.
-    tree.addTreeExpansionListener(
-        object : TreeExpansionListener {
-          // TODO: Tree does not set its preferred size initially and is displayed at the wrong size until you
-          // interact with it.
-          private fun resize() {
-            val padding = 5
-            panel.preferredSize =
-                Dimension(0, padding + tree.rowCount * tree.rowHeight)
-            panel.parent.revalidate()
-          }
-
-          override fun treeExpanded(event: TreeExpansionEvent) {
-            val component = event.path.lastPathComponent
-            if (component is ContextTreeRootNode && component == enhancedContextNode) {
-              expandAllNodes()
-            }
-            resize()
-          }
-
-          override fun treeCollapsed(event: TreeExpansionEvent) {
-            resize()
-          }
-        })
-
-    add(panel)
+  init {
+    prepareTree()
   }
 }

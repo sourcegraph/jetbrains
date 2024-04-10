@@ -26,8 +26,19 @@ import javax.swing.Icon
 
 
 data class RemoteRepo(
-    val name: String,
-)
+    val name: String
+) {
+    val displayName: String
+        get() = name.substring(name.indexOf('/') + 1) // Note, works for names without / => full name.
+
+    val icon: Icon?
+        get() = when {
+            name.startsWith("github.com/") -> Icons.RepoHostGitHub
+            name.startsWith("gitlab.com/") -> Icons.RepoHostGitlab
+            name.startsWith("bitbucket.org/") -> Icons.RepoHostBitbucket
+            else -> Icons.RepoHostGeneric
+        }
+}
 
 // TODO: Make this DumbAware to provide completions earlier. It means the RemoteRepoSearcher cannot be a service,
 // however.
@@ -59,7 +70,7 @@ class RemoteRepoCompletionContributor : CompletionContributor() {
                                 blockingContext { // addElement uses ProgressManager.checkCancelled
                                     for (repo in repos) {
                                         prefixedResult.addElement(
-                                            LookupElementBuilder.create(repo).withIcon(getIcon(repo))
+                                            LookupElementBuilder.create(repo).withIcon(RemoteRepo(repo).icon)
                                         )
                                     }
                                 }
@@ -76,14 +87,5 @@ class RemoteRepoCompletionContributor : CompletionContributor() {
     override fun handleEmptyLookup(parameters: CompletionParameters, editor: Editor?): String? {
         // TODO: L10N
         return "Contact your Sourcegraph admin to add a missing repo."
-    }
-
-    private fun getIcon(item: String): Icon? {
-        return when {
-            item.startsWith("github.com/") -> Icons.RepoHostGitHub
-            item.startsWith("gitlab.com/") -> Icons.RepoHostGitlab
-            item.startsWith("bitbucket.org/") -> Icons.RepoHostBitbucket
-            else -> Icons.RepoHostGeneric
-        }
     }
 }
