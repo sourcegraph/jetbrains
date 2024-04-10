@@ -1,7 +1,6 @@
 <idea-plugin require-restart="true">
     <resource-bundle>CodyBundle</resource-bundle>
 
-
     <id>com.sourcegraph.jetbrains</id>
     <name>Cody: AI Coding Assistant with Autocomplete &amp; Chat</name>
     <vendor email="hi@sourcegraph.com" url="https://sourcegraph.com">
