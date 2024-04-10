@@ -6,6 +6,8 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.progress.JobCanceledException
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.CodyFileEditorListener
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.getInstance
@@ -230,7 +232,9 @@ class CodyAgentService(project: Project) : Disposable {
         return result
       } catch (e: Exception) {
         logger.warn("Failed to execute call to agent", e)
-        if (restartIfNeeded) getInstance(project).restartAgent(project)
+        if (restartIfNeeded && e !is ProcessCanceledException) {
+          getInstance(project).restartAgent(project)
+        }
         throw e
       }
     }

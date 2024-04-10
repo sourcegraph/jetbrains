@@ -34,7 +34,7 @@ class ContextTreeLocalRepoNode(val project: Project, isEnhancedContextEnabled: A
 /**
  * Enterprise context selector tree, root node.
  */
-class ContextTreeEnterpriseRootNode(val endpointName: String, val numRepos: Int, onSetChecked: (Boolean) -> Unit) : ContextTreeNode<Void?>(null, onSetChecked)
+class ContextTreeEnterpriseRootNode(var endpointName: String, var numRepos: Int, onSetChecked: (Boolean) -> Unit) : ContextTreeNode<Void?>(null, onSetChecked)
 
 /**
  * Enterprise context selector tree, parent node of all remote repositories.

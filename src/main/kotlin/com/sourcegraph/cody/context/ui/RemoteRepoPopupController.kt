@@ -313,7 +313,7 @@ class RemoteRepoAnnotator : Annotator {
 }
 
 class RemoteRepoPopupController(val project: Project) {
-  var onAccept: (repos: List<String>) -> Unit = {}
+  var onAccept: (spec: String) -> Unit = {}
 
   fun createPopup(width: Int, initialValue: String = ""): JBPopup {
     // TODO: Consider caching this file so we get undo, etc.
@@ -389,10 +389,8 @@ class RemoteRepoPopupController(val project: Project) {
       override fun actionPerformed(event: AnActionEvent) {
         unregisterCustomShortcutSet(popup.content)
         popup.closeOk(event.inputEvent)
-
         // We don't use the Psi elements here, because the Annotator may be slow, etc.
-        val repos = document.text.split(Regex("""\s+""")).toSet().take(MAX_REMOTE_REPOSITORY_COUNT)
-        onAccept(repos)
+        onAccept(document.text)
       }
     }
     okAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, popup.content)
