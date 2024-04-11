@@ -206,7 +206,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
           .completeOnTimeout(null, 15, TimeUnit.SECONDS)
           .thenApply { repos ->
             if (repos == null) {
-              // TODO: Show an error notification, balloon, or tool window balloon.
+              runInEdt {
+                RemoteRepoResolutionFailedNotification().notify(project)
+              }
               return@thenApply
             }
             var trimmedRepos = repos.take(MAX_REMOTE_REPOSITORY_COUNT)
