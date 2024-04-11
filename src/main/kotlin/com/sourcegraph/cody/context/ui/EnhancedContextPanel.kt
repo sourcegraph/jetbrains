@@ -261,7 +261,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     val endpoint = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.server?.displayName ?: "endpoint"
     contextRoot.endpointName = endpoint
     contextRoot.add(remotesNode)
-    contextRoot.isChecked = true // TODO
 
     val repoNames =
       contextState

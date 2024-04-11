@@ -341,7 +341,7 @@ class RemoteRepoCompletionContributor : CompletionContributor(), DumbAware {
         )
     }
 
-    override fun handleEmptyLookup(parameters: CompletionParameters, editor: Editor?): String? {
+    override fun handleEmptyLookup(parameters: CompletionParameters, editor: Editor?): String {
         // TODO: L10N
         return "Contact your Sourcegraph admin to add a missing repo."
     }

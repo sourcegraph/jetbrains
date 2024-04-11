@@ -39,8 +39,9 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
           "<b>Chat Context</b> <span ${style}>${node.numRepos} Repos on ${node.endpointName}</span>",
           SimpleTextAttributes.REGULAR_ATTRIBUTES
         )
-        // TODO: Remove, now the path has identity
-        // myCheckbox.state = if (node.isChecked) { ThreeStateCheckBox.State.SELECTED } else { ThreeStateCheckBox.State.NOT_SELECTED }
+        // The root element controls enhanced context which includes editor selection, etc. Do not display unchecked/bar
+        // even if the child repos are unchecked.
+        myCheckbox.state = if (node.isChecked) { ThreeStateCheckBox.State.SELECTED } else { ThreeStateCheckBox.State.NOT_SELECTED }
       }
       is ContextTreeRemotesNode -> {
         textRenderer.append(
