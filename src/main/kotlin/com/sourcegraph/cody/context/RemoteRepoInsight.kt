@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.LanguageFileType
 import com.intellij.openapi.progress.*
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.patterns.PlatformPatterns
@@ -255,7 +256,7 @@ internal class RemoteRepoListParserDefinition : ParserDefinition {
     }
 }
 
-class RemoteRepoAnnotator : Annotator {
+class RemoteRepoAnnotator : Annotator, DumbAware {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         // TODO: Messages/tooltips are not appearing on hover, but they *do* appear if the editor/popup is not focused.
         // Debug how popups interact with tooltips and re-enable tooltips.
@@ -298,9 +299,7 @@ class RemoteRepoAnnotator : Annotator {
     }
 }
 
-// TODO: Make this DumbAware to provide completions earlier. It means the RemoteRepoSearcher cannot be a service,
-// however.
-class RemoteRepoCompletionContributor : CompletionContributor() {
+class RemoteRepoCompletionContributor : CompletionContributor(), DumbAware {
     init {
         extend(CompletionType.BASIC, PlatformPatterns.psiElement(),
             object : CompletionProvider<CompletionParameters?>() {
