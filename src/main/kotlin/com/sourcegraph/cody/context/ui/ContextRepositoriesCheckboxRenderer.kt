@@ -5,6 +5,8 @@ import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.ThreeStateCheckBox
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import java.io.File
 import javax.swing.JTree
 
@@ -36,7 +38,7 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
 
       is ContextTreeEnterpriseRootNode -> {
         textRenderer.appendHTML(
-          "<b>Chat Context</b> <span ${style}>${node.numRepos} Repos on ${node.endpointName}</span>",
+          CodyBundle.getString("context-panel.tree.node-chat-context.detailed").fmt(style, node.numRepos.toString(), node.endpointName),
           SimpleTextAttributes.REGULAR_ATTRIBUTES
         )
         // The root element controls enhanced context which includes editor selection, etc. Do not display unchecked/bar
@@ -45,7 +47,7 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
       }
       is ContextTreeRemotesNode -> {
         textRenderer.append(
-          "Repos",
+          CodyBundle.getString("context-panel.tree.node-remote-repositories"),
           SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES
         )
         myCheckbox.isVisible = false
