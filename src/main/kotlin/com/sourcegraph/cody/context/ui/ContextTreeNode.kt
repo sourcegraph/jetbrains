@@ -2,7 +2,7 @@ package com.sourcegraph.cody.context.ui
 
 import com.intellij.openapi.project.Project
 import com.intellij.ui.CheckedTreeNode
-import com.sourcegraph.vcs.CodebaseName
+import com.sourcegraph.cody.context.RemoteRepo
 import java.util.concurrent.atomic.AtomicBoolean
 
 open class ContextTreeNode<T>(value: T, private val onSetChecked: (Boolean) -> Unit = {}) :
