@@ -201,40 +201,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       val controller = RemoteRepoPopupController(project)
       controller.onAccept = { spec ->
         rawSpec = spec
-        val repos = spec.split(Regex("""\s+""")).toSet()
-        RemoteRepoUtils.getRepositories(project, repos.map { it -> CodebaseName(it) }.toList())
-          .completeOnTimeout(null, 15, TimeUnit.SECONDS)
-          .thenApply { repos ->
-            if (repos == null) {
-              runInEdt {
-                RemoteRepoResolutionFailedNotification().notify(project)
-              }
-              return@thenApply
-            }
-            var trimmedRepos = repos.take(MAX_REMOTE_REPOSITORY_COUNT)
-            runInEdt {
-              // Update the extension-side state.
-              chatSession.sendWebviewMessage(
-                WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = trimmedRepos))
-
-              // Update the plugin's copy of the state. :(
-              updateContextState { state ->
-                state.remoteRepositories.clear()
-                state.remoteRepositories.addAll(
-                  trimmedRepos.map { repo ->
-                    RemoteRepositoryState().apply {
-                      codebaseName = repo.name
-                      isEnabled = true
-                    }
-                  }
-                )
-              }
-
-              // Update the UI.
-              updateTree(trimmedRepos.map { it -> it.name })
-              resize()
-            }
-          }
+        applyRepoSpec(spec)
       }
 
       val popup = controller.createPopup(tree.width, rawSpec)
@@ -282,7 +249,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     val wasExpanded = remotesPath != null && tree.isExpanded(remotesPath)
     remotesNode.removeAllChildren()
     repoNames.forEach { repoName ->
-      val node = ContextTreeRemoteRepoNode(RemoteRepo(repoName)) { checked -> println("repo $repoName checked? $checked") }
+      val node = ContextTreeRemoteRepoNode(RemoteRepo(repoName)) { checked ->
+         setRepoEnabledInContextState(repoName, checked)
+      }
       remotesNode.add(node)
     }
     contextRoot.numRepos = repoNames.size
@@ -292,43 +261,66 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     }
   }
 
-  /* other deportees:
+  // Given a textual list of repos, extract a best effort list of repositories from it and update context settings.
+  private fun applyRepoSpec(spec: String) {
+    val repos = spec.split(Regex("""\s+""")).toSet()
+    RemoteRepoUtils.getRepositories(project, repos.map { it -> CodebaseName(it) }.toList())
+      .completeOnTimeout(null, 15, TimeUnit.SECONDS)
+      .thenApply { resolvedRepos ->
+        if (resolvedRepos == null) {
+          runInEdt {
+            RemoteRepoResolutionFailedNotification().notify(project)
+          }
+          return@thenApply
+        }
+        var trimmedRepos = resolvedRepos.take(MAX_REMOTE_REPOSITORY_COUNT)
+        runInEdt {
+          // Update the extension-side state.
+          chatSession.sendWebviewMessage(
+            WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = trimmedRepos))
 
-  private fun enableRemote(codebaseName: CodebaseName) {
-    updateContextState { contextState ->
-      contextState.remoteRepositories.find { it.codebaseName == codebaseName.value }?.isEnabled =
-          true
-    }
+          // Update the plugin's copy of the state. :(
+          updateContextState { state ->
+            state.remoteRepositories.clear()
+            state.remoteRepositories.addAll(
+              trimmedRepos.map { repo ->
+                RemoteRepositoryState().apply {
+                  codebaseName = repo.name
+                  isEnabled = true
+                }
+              }
+            )
+          }
 
-    val enabledCodebases =
-        getContextState()
-            ?.remoteRepositories
-            ?.filter { it.isEnabled }
-            ?.mapNotNull { it.codebaseName }
-            ?.map { CodebaseName(it) } ?: listOf()
-
-    getReposByUrlAndRun(enabledCodebases) { repos ->
-      chatSession.sendWebviewMessage(
-          WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos))
-    }
-  }
-
-  @RequiresEdt
-  private fun disableRemote(codebaseName: CodebaseName) {
-    updateContextState { contextState ->
-      contextState.remoteRepositories.find { it.codebaseName == codebaseName.value }?.isEnabled =
-          false
-    }
-
-    getReposByUrlAndRun(listOf(codebaseName)) { repos ->
-      repos.firstOrNull()?.let { repo ->
-        chatSession.sendWebviewMessage(
-            WebviewMessage(command = "context/remove-remote-search-repo", repoId = repo.id))
+          // Update the UI.
+          updateTree(trimmedRepos.map { it -> it.name })
+          resize()
+        }
       }
-    }
   }
 
- */
+  private fun setRepoEnabledInContextState(repoName: String, enabled: Boolean) {
+    var enabledRepos = listOf<CodebaseName>()
+
+    updateContextState { contextState ->
+      contextState.remoteRepositories.find { it.codebaseName == repoName }?.isEnabled = enabled
+      enabledRepos = contextState.remoteRepositories.filter { it.isEnabled }.mapNotNull { it.codebaseName }.map { CodebaseName(it) }
+    }
+
+    RemoteRepoUtils.getRepositories(project, enabledRepos)
+      .completeOnTimeout(null, 15, TimeUnit.SECONDS)
+      .thenApply { repos ->
+        if (repos == null) {
+          runInEdt {
+            RemoteRepoResolutionFailedNotification().notify(project)
+          }
+          return@thenApply
+        }
+        chatSession.sendWebviewMessage(
+          WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos)
+        )
+    }
+  }
 }
 
 class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) : EnhancedContextPanel(project, chatSession) {

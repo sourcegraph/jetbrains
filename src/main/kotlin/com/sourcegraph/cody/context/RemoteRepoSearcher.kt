@@ -40,7 +40,7 @@ class RemoteRepoSearcher(private val project: Project) {
   suspend fun has(repoName: String): Boolean {
     return CodyAgentService.coWithAgent(project) { agent ->
       val completable = agent.server.remoteRepoHas(RemoteRepoHasParams(repoName))
-      var completed: Boolean? = null
+      var completed: Boolean
       while (true) {
         try {
           completed = completable.get(100, TimeUnit.MILLISECONDS).result
@@ -50,7 +50,7 @@ class RemoteRepoSearcher(private val project: Project) {
         }
         currentCoroutineContext().ensureActive()
       }
-      completed!!
+      completed
     }
   }
 
@@ -65,7 +65,7 @@ class RemoteRepoSearcher(private val project: Project) {
             after = null,
           )
         )
-        var repos: RemoteRepoListResponse? = null
+        var repos: RemoteRepoListResponse
         while (true) {
           // Check for cancellation every 100ms.
           currentCoroutineContext().ensureActive()
@@ -86,8 +86,7 @@ class RemoteRepoSearcher(private val project: Project) {
             }
           }
           _state.value = repos.state
-          // TODO: logger.debug, when I work out where the idea.log file for the debuggee is.
-          println("remote repo search $query returning ${repos.repos.size} results (${repos.state.state})")
+          logger.debug("remote repo search $query returning ${repos.repos.size} results (${repos.state.state})")
           result.send(repos.repos.map { it.name })
           !fetchDone(repos.state)
         }
