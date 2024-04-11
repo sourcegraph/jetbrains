@@ -49,6 +49,8 @@ import com.intellij.util.ui.JBDimension
 import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.context.RemoteRepoFileType
 import com.sourcegraph.cody.context.RemoteRepoSearcher
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.utils.CodyEditorUtil
 import org.jetbrains.annotations.NonNls
 import java.awt.BorderLayout
@@ -116,7 +118,7 @@ class RemoteRepoPopupController(val project: Project) {
     val shortcut = KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.shortcuts)
     val scaledHeight = JBDimension(0, 100).height
     val popup = (JBPopupFactory.getInstance().createComponentPopupBuilder(panel, editor.contentComponent).apply {
-      setAdText("Select up to $MAX_REMOTE_REPOSITORY_COUNT repositories, use $shortcut to finish")
+      setAdText(CodyBundle.getString("context-panel.remote-repo.select-repo-advertisement").fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), shortcut))
       setCancelOnClickOutside(true)
       setMayBeParent(true)
       setMinSize(Dimension(width, scaledHeight))

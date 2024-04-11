@@ -34,6 +34,8 @@ import com.intellij.util.ProcessingContext
 import com.jetbrains.rd.util.getThrowableText
 import com.sourcegraph.Icons
 import com.sourcegraph.cody.context.ui.MAX_REMOTE_REPOSITORY_COUNT
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import org.jetbrains.annotations.NonNls
 import javax.swing.Icon
 
@@ -267,8 +269,7 @@ class RemoteRepoAnnotator : Annotator, DumbAware {
                 runBlockingCancellable {
                     if (!service.has(name)) {
                         blockingContext {
-                            // TODO: L10N
-                            holder.newAnnotation(HighlightSeverity.ERROR, "Repository not found").tooltip("Repository not found").range(element).create()
+                            holder.newAnnotation(HighlightSeverity.ERROR, CodyBundle.getString("context-panel.remote-repo.error-not-found")).tooltip(CodyBundle.getString("context-panel.remote-repo.error-not-found")).range(element).create()
                         }
                     }
                 }
@@ -281,16 +282,15 @@ class RemoteRepoAnnotator : Annotator, DumbAware {
                 }.forEach { repo ->
                     val name = repo.text
                     if (seen.contains(name)) {
-                        // TODO: L10N
-                        holder.newAnnotation(HighlightSeverity.WEAK_WARNING, "Duplicate repository name").tooltip("Duplicate repository name").range(repo).create()
+                        holder.newAnnotation(HighlightSeverity.WEAK_WARNING, CodyBundle.getString("context-panel.remote-repo.error-duplicate-repository")).tooltip(CodyBundle.getString("context-panel.remote-repo.error-duplicate-repository")).range(repo).create()
                     } else if (seen.size == MAX_REMOTE_REPOSITORY_COUNT) {
                         firstTruncatedElement = firstTruncatedElement ?: repo
                     }
                     seen.add(name)
                 }
                 if (firstTruncatedElement != null) {
-                    // TODO: L10N
-                    holder.newAnnotation(HighlightSeverity.WARNING, "Add up to $MAX_REMOTE_REPOSITORY_COUNT repositories").tooltip("Too many repositories").range(
+                    holder.newAnnotation(HighlightSeverity.WARNING, CodyBundle.getString("context-panel.remote-repo.error-too-many-repositories").fmt(
+                        MAX_REMOTE_REPOSITORY_COUNT.toString())).tooltip(CodyBundle.getString("context-panel.remote-repo.error-too-many-repositories.tooltip")).range(
                         TextRange(firstTruncatedElement!!.startOffset, element.endOffset)
                     ).create()
                 }
@@ -342,7 +342,6 @@ class RemoteRepoCompletionContributor : CompletionContributor(), DumbAware {
     }
 
     override fun handleEmptyLookup(parameters: CompletionParameters, editor: Editor?): String {
-        // TODO: L10N
-        return "Contact your Sourcegraph admin to add a missing repo."
+        return CodyBundle.getString("context-panel.remote-repo.contact-admin-advertisement")
     }
 }

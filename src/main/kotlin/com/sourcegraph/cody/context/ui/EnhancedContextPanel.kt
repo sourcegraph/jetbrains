@@ -139,7 +139,10 @@ abstract class EnhancedContextPanel(protected val project: Project, protected va
     tree.model = treeModel
   }
 
-  abstract fun createPanel(): JComponent
+  /**
+   * Creates the component with the enhanced context panel UI.
+   */
+  protected abstract fun createPanel(): JComponent
   val panel = createPanel()
 
   init {
@@ -193,8 +196,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   override fun createPanel(): JComponent {
     val toolbar = createToolbar()
     // TODO: Add the "clock" button when the functionality is clarified.
-    // TODO: L10N
-    toolbar.setEditActionName("Edit Remote Repositories")
+    toolbar.setEditActionName(CodyBundle.getString("context-panel.button.edit-repositories"))
     toolbar.setEditAction {
       val controller = RemoteRepoPopupController(project)
       controller.onAccept = { spec ->
@@ -227,7 +229,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
               }
 
               // Update the UI.
-              // TODO: Pass in the checked/unchecked state.
               updateTree(trimmedRepos.map { it -> it.name })
               resize()
             }
@@ -257,8 +258,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       it.codebaseName
     }?.joinToString("\n") ?: ""
 
-    // TODO: L10N
-    val endpoint = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.server?.displayName ?: "endpoint"
+    val endpoint = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.server?.displayName ?: CodyBundle.getString("context-panel.remote-repo.generic-endpoint-name")
     contextRoot.endpointName = endpoint
     contextRoot.add(remotesNode)
 
