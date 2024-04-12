@@ -477,20 +477,48 @@ To open the context menu:
 2. Create new chat
 3. User doesn't see model dropdown
 
-### Enterprise account
+### Cody Enterprise - Cody Gateway Instance
 
 #### Chat
 
-1. Login to Cody Enterprise account
-2. Create new chat
-3. User should see the default model in the dropdown but is unable to change it
+1. Login to the Cody Enterprise Gateway Instance
+2. Create a new chat
+3. User should not be able to change the LLM model on the chat window
+4. Ask Cody a question in the new chat window. 
 
 #### Commands
 
-1. Login to Cody Enterprise account
+1. Login to the Cody Enterprise Cody Gateway Instance
 2. Go to commands panel
 3. Trigger command
-4. Command should be executed with default model
+4. Command should be executed
+
+#### Completions
+
+1. Login to the Cody Enterprise Cody Gateway Instance
+2. Generate a completion using the manual-trigger key binding on any primary languages (Javascript, Typescript, TypescriptReact, Python, Go).
+ 
+
+### Cody Enterprise - AWS Bedrock Instance 
+
+#### Chat
+
+1. Login to the Cody Enterprise AWS Bedrock Instance
+2. Create a new chat
+3. User should not be able to change the LLM model on the chat window
+4. Ask Cody a question in the new chat window. 
+
+#### Commands
+
+1. Login to the Cody Enterprise AWS Bedrock Instance
+2. Go to commands panel
+3. Trigger command
+4. Command should be executed
+
+#### Completions
+
+1. Login to the Cody Enterprise AWS Bedrock Instance
+2. Generate a completion using the manual-trigger key binding on any primary languages (Javascript, Typescript, TypescriptReact, Python, Go).
 
 ## Other
 
@@ -532,14 +560,3 @@ Repeat the above starting from different themes.
 #### Expected behaviour
 
 Changing theme should lead to full repaint of the colours according to the current theme.
-
-
-### Claude 3 Enterprise Testing
-#### Cody Gateway Instance
-- [ ] Ask Cody a question in a new chat window. The question should include a request for Cody to generate code with the site-admin configuration is set to **Claude 3 Sonnet** for chatModel and **Claude 3 Haiku** for completionModel
-- [ ] Ask Cody a question in a new chat window. The question should include a request for Cody to generate code with the site-admin configuration is set to **Claude 3 Opus** for chatModel and **Claude 3 Haiku** for completionModel
-- [ ] Generate a completion using the manual-trigger key binding on any primary languages (Javascript, Typescript, TypescriptReact, Python, Go).
-
-#### AWS Bedrock Instance
-- [ ] Ask Cody a question in a new chat window. The question should include a request for Cody to generate code with the site-admin configuration is set to **Claude 3 Sonnet** for chatModel and **Claude 3 Haiku** for completionModel
-- [ ] Generate a completion using the manual-trigger key binding on any primary languages (Javascript, Typescript, TypescriptReact, Python, Go).
