@@ -10,13 +10,13 @@ import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
+import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.*
 import java.net.Socket
 import java.net.URI
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
-import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -129,7 +129,6 @@ private constructor(
     }
 
     private fun startAgentProcess(): AgentConnection {
-      killAnyCompetingDebugAgentProcess()
       if (ConfigUtil.shouldConnectToDebugAgent()) {
         return connectToDebugAgent()
       }
@@ -293,54 +292,6 @@ private constructor(
     private fun connectToDebugAgent(): AgentConnection {
       val port = System.getenv("CODY_AGENT_DEBUG_PORT")?.toInt() ?: DEFAULT_AGENT_DEBUG_PORT
       return AgentConnection.SocketConnection(Socket("localhost", port))
-    }
-
-    // Default port used when you pass --inspect or --inspect-brk to a node.js process.
-    private const val NODE_INSPECT_DEFAULT_PORT = 9229
-
-    private fun killAnyCompetingDebugAgentProcess() {
-      // We only kill an Agent process if it's on our port; i.e., a leftover zombie.
-      if (shouldSpawnDebuggableAgent()) {
-        try {
-          if (SystemInfoRt.isWindows) {
-            killAgentOnWindows()
-          } else {
-            killAgentOnUnix()
-          }
-        } catch (e: Exception) {
-          logger.warn("failed trying to kill existing agent process", e)
-        }
-      }
-    }
-
-    // TODO: This has not yet been tested on Windows.
-    private fun killAgentOnWindows() {
-      val port = NODE_INSPECT_DEFAULT_PORT
-      val findProcessCommand = "netstat -aon | findstr :$port"
-      val processBuilder =
-          ProcessBuilder("cmd.exe", "/c", findProcessCommand).redirectErrorStream(true)
-      val process = processBuilder.start()
-      val processOutput = process.inputStream.bufferedReader().readText().trim()
-      val pid = processOutput.substringAfterLast(" ").trim()
-      if (pid.isNotEmpty()) {
-        logger.warn("Killing process pid=$pid on port $port")
-        Runtime.getRuntime().exec("taskkill /F /PID $pid")
-      }
-    }
-
-    private fun killAgentOnUnix() {
-      val port = NODE_INSPECT_DEFAULT_PORT
-      val pid =
-          Runtime.getRuntime()
-              .exec("lsof -ti tcp:$port")
-              .inputStream
-              .bufferedReader()
-              .readText()
-              .trim()
-      if (pid.isNotEmpty()) {
-        logger.warn("Killing process on port $port with PID $pid")
-        Runtime.getRuntime().exec("kill $pid")
-      }
     }
   }
 }
