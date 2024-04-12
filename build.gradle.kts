@@ -267,7 +267,7 @@ tasks {
     // Apple M1 computers. This is required to prevent the following issue
     // https://github.com/vercel/pkg/issues/2004
     if (isLdidSign) {
-      val arm64Binary = buildCodyDir.resolve("agent-macos-arm64").toString()
+      val arm64Binary = buildCodyDir.resolve("cody-agent-macos-arm64").toString()
       println("Signing ldid -S $arm64Binary")
       exec { commandLine("ldid", "-S", arm64Binary) }
     }
@@ -340,11 +340,11 @@ tasks {
             throw Error("Agent binary '$path' not found in plugin zip $pluginPath")
           }
         }
-        assertExists("agent-macos-arm64")
-        assertExists("agent-macos-x64")
-        assertExists("agent-linux-arm64")
-        assertExists("agent-linux-x64")
-        assertExists("agent-win-x64.exe")
+        assertExists("cody-agent-macos-arm64")
+        assertExists("cody-agent-macos-x64")
+        assertExists("cody-agent-linux-arm64")
+        assertExists("cody-agent-linux-x64")
+        assertExists("cody-agent-win-x64.exe")
       }
     }
   }

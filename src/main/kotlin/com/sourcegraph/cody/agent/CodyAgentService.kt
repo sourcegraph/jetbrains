@@ -140,8 +140,8 @@ class CodyAgentService(project: Project) : Disposable {
 
     @JvmStatic
     fun setAgentError(project: Project, errorMsg: String?) {
-      agentError.set(errorMsg)
-      project.let { CodyStatusService.resetApplication(it) }
+      val oldErrorMsg = agentError.getAndSet(errorMsg)
+      if (oldErrorMsg != errorMsg) project.let { CodyStatusService.resetApplication(it) }
     }
 
     @JvmStatic
