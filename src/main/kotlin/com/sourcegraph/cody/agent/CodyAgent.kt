@@ -10,13 +10,13 @@ import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
+import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.*
 import java.net.Socket
 import java.net.URI
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
-import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -159,17 +159,8 @@ private constructor(
         processBuilder.environment()["CODY_LOG_EVENT_MODE"] = "connected-instance-only"
       }
 
-      if (ConfigUtil.isIntegrationTestModeEnabled()) {
-        // N.B. Do not set CODY_TESTING=true -- that is for Agent-side tests.
-        val testToken = System.getenv("CODY_INTEGRATION_TEST_TOKEN")
-        // The Cody side will use the real LLM if this token is present,
-        // so you can run the integration tests against a prod LLM rather than a mock.
-        if (testToken is String && testToken.isNotBlank()) {
-          processBuilder.environment()["CODY_INTEGRATION_TEST_TOKEN"] = testToken
-        } else {
-          logger.warn("No access token passed for integration tests; using mock LLM")
-        }
-      }
+      configureIntegrationTesting(processBuilder)
+      logger.warn(processBuilder.environment().toString())
 
       val process =
           processBuilder
@@ -190,6 +181,20 @@ private constructor(
           .start()
 
       return AgentConnection.ProcessConnection(process)
+    }
+
+    private fun configureIntegrationTesting(processBuilder: ProcessBuilder) {
+      // N.B. Do not set CODY_TESTING=true -- that is for Agent-side tests.
+      if (!ConfigUtil.isIntegrationTestModeEnabled()) return
+
+      val testToken = System.getenv("CODY_INTEGRATION_TEST_TOKEN")
+      // The Cody side will use the real LLM if this token is present,
+      // so you can run the integration tests against a prod LLM rather than a mock.
+      if (testToken is String && testToken.isNotBlank()) {
+        processBuilder.environment()["CODY_INTEGRATION_TEST_TOKEN"] = testToken
+      } else {
+        logger.warn("No access token passed for integration tests")
+      }
     }
 
     @Throws(IOException::class, CodyAgentException::class)
