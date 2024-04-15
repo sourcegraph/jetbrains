@@ -54,7 +54,6 @@ abstract class FixupSession(
 ) : Disposable {
   protected val documentBefore: Document =
       EditorFactory.getInstance().createDocument(editor.document.text)
-  protected lateinit var documentAfter: Document
 
   private val logger = Logger.getInstance(FixupSession::class.java)
   private val fixupService = FixupService.getInstance(project)
@@ -152,10 +151,7 @@ abstract class FixupSession(
       CodyTaskState.Applying,
       CodyTaskState.Formatting -> {}
       // Tasks remain in this state until explicit accept/undo/cancel.
-      CodyTaskState.Applied -> {
-        showAcceptGroup()
-        documentAfter = editor.document
-      }
+      CodyTaskState.Applied -> showAcceptGroup()
       // Then they transition to finished.
       CodyTaskState.Finished -> {}
       CodyTaskState.Error -> {}
