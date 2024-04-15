@@ -34,17 +34,18 @@ import javax.swing.tree.DefaultTreeModel
 import kotlin.math.max
 
 /**
- * A panel for configuring context in chats. Consumer and Enterprise context panels are designed around a tree whose
- * layout grows and shrinks as the tree view nodes are expanded and collapsed.
+ * A panel for configuring context in chats. Consumer and Enterprise context panels are designed
+ * around a tree whose layout grows and shrinks as the tree view nodes are expanded and collapsed.
  */
-abstract class EnhancedContextPanel @RequiresEdt constructor(protected val project: Project, protected val chatSession: ChatSession) :
-    JPanel() {
+abstract class EnhancedContextPanel
+@RequiresEdt
+constructor(protected val project: Project, protected val chatSession: ChatSession) : JPanel() {
   companion object {
-    /**
-     * Creates an EnhancedContextPanel for `chatSession`.
-     */
+    /** Creates an EnhancedContextPanel for `chatSession`. */
     fun create(project: Project, chatSession: ChatSession): EnhancedContextPanel {
-      val isDotcomAccount = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ?: false
+      val isDotcomAccount =
+          CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount()
+              ?: false
       return if (isDotcomAccount) {
         ConsumerEnhancedContextPanel(project, chatSession)
       } else {
@@ -53,15 +54,13 @@ abstract class EnhancedContextPanel @RequiresEdt constructor(protected val proje
     }
   }
 
-  /**
-   * Gets whether enhanced context is enabled.
-   */
+  /** Gets whether enhanced context is enabled. */
   val isEnhancedContextEnabled: Boolean
     get() = enhancedContextEnabled.get()
 
   /**
-   * Whether enhanced context is enabled. Set this when enhance context is toggled in the panel UI. This is read on
-   * background threads by `isEnhancedContextEnabled`.
+   * Whether enhanced context is enabled. Set this when enhance context is toggled in the panel UI.
+   * This is read on background threads by `isEnhancedContextEnabled`.
    */
   protected val enhancedContextEnabled = AtomicBoolean(true)
 
@@ -74,29 +73,25 @@ abstract class EnhancedContextPanel @RequiresEdt constructor(protected val proje
     }
   }
 
-  /**
-   * Gets the chat session's enhanced context state.
-   */
+  /** Gets the chat session's enhanced context state. */
   protected fun getContextState(): EnhancedContextState? {
     val historyService = HistoryService.getInstance(project)
     return historyService.getContextReadOnly(chatSession.getInternalId())
-      ?: historyService.getDefaultContextReadOnly()
+        ?: historyService.getDefaultContextReadOnly()
   }
 
-  /**
-   * Reads, modifies, and writes back the chat's enhanced context state.
-   */
+  /** Reads, modifies, and writes back the chat's enhanced context state. */
   protected fun updateContextState(modifyContext: (EnhancedContextState) -> Unit) {
     val contextState = getContextState() ?: EnhancedContextState()
     modifyContext(contextState)
     HistoryService.getInstance(project)
-      .updateContextState(chatSession.getInternalId(), contextState)
+        .updateContextState(chatSession.getInternalId(), contextState)
     HistoryService.getInstance(project).updateDefaultContextState(contextState)
   }
 
   /**
-   * The root node of the tree view. This node is not visible. Add entries to the enhanced context treeview as roots
-   * of this node.
+   * The root node of the tree view. This node is not visible. Add entries to the enhanced context
+   * treeview as roots of this node.
    */
   protected val treeRoot = CheckedTreeNode(CodyBundle.getString("context-panel.tree.root"))
 
@@ -105,33 +100,30 @@ abstract class EnhancedContextPanel @RequiresEdt constructor(protected val proje
    */
   protected val treeModel = DefaultTreeModel(treeRoot)
 
-  /**
-   * The tree component.
-   */
+  /** The tree component. */
   protected val tree = run {
     val checkPolicy =
-      CheckboxTreeBase.CheckPolicy(
-        /* checkChildrenWithCheckedParent = */ true,
-        /* uncheckChildrenWithUncheckedParent = */ true,
-        /* checkParentWithCheckedChild = */ true,
-        /* uncheckParentWithUncheckedChild = */ false)
+        CheckboxTreeBase.CheckPolicy(
+            /* checkChildrenWithCheckedParent = */ true,
+            /* uncheckChildrenWithUncheckedParent = */ true,
+            /* checkParentWithCheckedChild = */ true,
+            /* uncheckParentWithUncheckedChild = */ false)
     object : CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkPolicy) {
-      // When collapsed, the horizontal scrollbar obscures the Chat Context summary & checkbox. Prefer to clip. Users
+      // When collapsed, the horizontal scrollbar obscures the Chat Context summary & checkbox.
+      // Prefer to clip. Users
       // can resize the sidebar if desired.
       override fun getScrollableTracksViewportWidth(): Boolean = true
     }
   }
 
-  /**
-   * The toolbar decorator component.
-   */
+  /** The toolbar decorator component. */
   protected val toolbar = run {
     createDecorator(tree)
-      .disableUpDownActions()
-      .setToolbarPosition(ActionToolbarPosition.RIGHT)
-      .setVisibleRowCount(1)
-      .setScrollPaneBorder(BorderFactory.createEmptyBorder())
-      .setToolbarBorder(BorderFactory.createEmptyBorder())
+        .disableUpDownActions()
+        .setToolbarPosition(ActionToolbarPosition.RIGHT)
+        .setVisibleRowCount(1)
+        .setScrollPaneBorder(BorderFactory.createEmptyBorder())
+        .setToolbarBorder(BorderFactory.createEmptyBorder())
   }
 
   init {
@@ -139,29 +131,29 @@ abstract class EnhancedContextPanel @RequiresEdt constructor(protected val proje
     tree.model = treeModel
   }
 
-  /**
-   * Creates the component with the enhanced context panel UI.
-   */
+  /** Creates the component with the enhanced context panel UI. */
   protected abstract fun createPanel(): JComponent
+
   val panel = createPanel()
 
   init {
-    // TODO: Resizing synchronously causes the element *now* under the pointer to get a click on mouse up, which can
+    // TODO: Resizing synchronously causes the element *now* under the pointer to get a click on
+    // mouse up, which can
     // check/uncheck a checkbox you were not aiming at.
     tree.addTreeExpansionListener(
-      object : TreeExpansionListener {
-        override fun treeExpanded(event: TreeExpansionEvent) {
-          if (event.path.pathCount == 2) {
-            // The top-level node was expanded, so expand the entire tree.
-            expandAllNodes()
+        object : TreeExpansionListener {
+          override fun treeExpanded(event: TreeExpansionEvent) {
+            if (event.path.pathCount == 2) {
+              // The top-level node was expanded, so expand the entire tree.
+              expandAllNodes()
+            }
+            resize()
           }
-          resize()
-        }
 
-        override fun treeCollapsed(event: TreeExpansionEvent) {
-          resize()
-        }
-      })
+          override fun treeCollapsed(event: TreeExpansionEvent) {
+            resize()
+          }
+        })
 
     add(panel)
   }
@@ -172,11 +164,12 @@ abstract class EnhancedContextPanel @RequiresEdt constructor(protected val proje
   @RequiresEdt
   protected fun resize() {
     val padding = 5
-    // Set the minimum size to accommodate at least one toolbar button and an overflow ellipsis. Because the buttons
+    // Set the minimum size to accommodate at least one toolbar button and an overflow ellipsis.
+    // Because the buttons
     // are approximately square, use the toolbar width as a proxy for the button height.
     val toolbarButtonHeight = toolbar.actionsPanel.preferredSize.width
     panel.preferredSize =
-      Dimension(0, padding + max(tree.rowCount * tree.rowHeight, 2 * toolbarButtonHeight))
+        Dimension(0, padding + max(tree.rowCount * tree.rowHeight, 2 * toolbarButtonHeight))
     panel.parent?.revalidate()
   }
 
@@ -192,8 +185,10 @@ abstract class EnhancedContextPanel @RequiresEdt constructor(protected val proje
   }
 }
 
-class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession): EnhancedContextPanel(project, chatSession) {
-  // Cache the raw user input so the user can reopen the popup to make corrections without starting from scratch.
+class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession) :
+    EnhancedContextPanel(project, chatSession) {
+  // Cache the raw user input so the user can reopen the popup to make corrections without starting
+  // from scratch.
   private var rawSpec: String = ""
 
   @RequiresEdt
@@ -215,31 +210,28 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   }
 
   private val remotesNode = ContextTreeRemotesNode()
-  private val contextRoot = object : ContextTreeEnterpriseRootNode("", 0, { checked ->
-    enhancedContextEnabled.set(checked)
-  }) {
-    override fun isChecked(): Boolean {
-       return enhancedContextEnabled.get()
-    }
-  }
+  private val contextRoot =
+      object :
+          ContextTreeEnterpriseRootNode("", 0, { checked -> enhancedContextEnabled.set(checked) }) {
+        override fun isChecked(): Boolean {
+          return enhancedContextEnabled.get()
+        }
+      }
 
   init {
     val contextState = getContextState()
 
-    rawSpec = contextState?.remoteRepositories?.map {
-      it.codebaseName
-    }?.joinToString("\n") ?: ""
+    rawSpec = contextState?.remoteRepositories?.map { it.codebaseName }?.joinToString("\n") ?: ""
 
-    val endpoint = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.server?.displayName ?: CodyBundle.getString("context-panel.remote-repo.generic-endpoint-name")
+    val endpoint =
+        CodyAuthenticationManager.getInstance(project).getActiveAccount()?.server?.displayName
+            ?: CodyBundle.getString("context-panel.remote-repo.generic-endpoint-name")
     contextRoot.endpointName = endpoint
     contextRoot.add(remotesNode)
 
     val repoNames =
-      contextState
-        ?.remoteRepositories
-        ?.filter { it.isEnabled }
-        ?.mapNotNull { it.codebaseName }
-        ?: listOf()
+        contextState?.remoteRepositories?.filter { it.isEnabled }?.mapNotNull { it.codebaseName }
+            ?: listOf()
     updateTree(repoNames)
 
     treeRoot.add(contextRoot)
@@ -252,9 +244,10 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     val wasExpanded = remotesPath != null && tree.isExpanded(remotesPath)
     remotesNode.removeAllChildren()
     repoNames.forEach { repoName ->
-      val node = ContextTreeRemoteRepoNode(RemoteRepo(repoName)) { checked ->
-         setRepoEnabledInContextState(repoName, checked)
-      }
+      val node =
+          ContextTreeRemoteRepoNode(RemoteRepo(repoName)) { checked ->
+            setRepoEnabledInContextState(repoName, checked)
+          }
       remotesNode.add(node)
     }
     contextRoot.numRepos = repoNames.size
@@ -264,42 +257,41 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     }
   }
 
-  // Given a textual list of repos, extract a best effort list of repositories from it and update context settings.
+  // Given a textual list of repos, extract a best effort list of repositories from it and update
+  // context settings.
   private fun applyRepoSpec(spec: String) {
     val repos = spec.split(Regex("""\s+""")).toSet()
     RemoteRepoUtils.getRepositories(project, repos.map { it -> CodebaseName(it) }.toList())
-      .completeOnTimeout(null, 15, TimeUnit.SECONDS)
-      .thenApply { resolvedRepos ->
-        if (resolvedRepos == null) {
+        .completeOnTimeout(null, 15, TimeUnit.SECONDS)
+        .thenApply { resolvedRepos ->
+          if (resolvedRepos == null) {
+            runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
+            return@thenApply
+          }
+          var trimmedRepos = resolvedRepos.take(MAX_REMOTE_REPOSITORY_COUNT)
           runInEdt {
-            RemoteRepoResolutionFailedNotification().notify(project)
-          }
-          return@thenApply
-        }
-        var trimmedRepos = resolvedRepos.take(MAX_REMOTE_REPOSITORY_COUNT)
-        runInEdt {
-          // Update the extension-side state.
-          chatSession.sendWebviewMessage(
-            WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = trimmedRepos))
+            // Update the extension-side state.
+            chatSession.sendWebviewMessage(
+                WebviewMessage(
+                    command = "context/choose-remote-search-repo", explicitRepos = trimmedRepos))
 
-          // Update the plugin's copy of the state. :(
-          updateContextState { state ->
-            state.remoteRepositories.clear()
-            state.remoteRepositories.addAll(
-              trimmedRepos.map { repo ->
-                RemoteRepositoryState().apply {
-                  codebaseName = repo.name
-                  isEnabled = true
-                }
-              }
-            )
-          }
+            // Update the plugin's copy of the state. :(
+            updateContextState { state ->
+              state.remoteRepositories.clear()
+              state.remoteRepositories.addAll(
+                  trimmedRepos.map { repo ->
+                    RemoteRepositoryState().apply {
+                      codebaseName = repo.name
+                      isEnabled = true
+                    }
+                  })
+            }
 
-          // Update the UI.
-          updateTree(trimmedRepos.map { it -> it.name })
-          resize()
+            // Update the UI.
+            updateTree(trimmedRepos.map { it -> it.name })
+            resize()
+          }
         }
-      }
   }
 
   private fun setRepoEnabledInContextState(repoName: String, enabled: Boolean) {
@@ -307,26 +299,28 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
     updateContextState { contextState ->
       contextState.remoteRepositories.find { it.codebaseName == repoName }?.isEnabled = enabled
-      enabledRepos = contextState.remoteRepositories.filter { it.isEnabled }.mapNotNull { it.codebaseName }.map { CodebaseName(it) }
+      enabledRepos =
+          contextState.remoteRepositories
+              .filter { it.isEnabled }
+              .mapNotNull { it.codebaseName }
+              .map { CodebaseName(it) }
     }
 
     RemoteRepoUtils.getRepositories(project, enabledRepos)
-      .completeOnTimeout(null, 15, TimeUnit.SECONDS)
-      .thenApply { repos ->
-        if (repos == null) {
-          runInEdt {
-            RemoteRepoResolutionFailedNotification().notify(project)
+        .completeOnTimeout(null, 15, TimeUnit.SECONDS)
+        .thenApply { repos ->
+          if (repos == null) {
+            runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
+            return@thenApply
           }
-          return@thenApply
+          chatSession.sendWebviewMessage(
+              WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos))
         }
-        chatSession.sendWebviewMessage(
-          WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos)
-        )
-    }
   }
 }
 
-class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) : EnhancedContextPanel(project, chatSession) {
+class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
+    EnhancedContextPanel(project, chatSession) {
   private val enhancedContextNode =
       ContextTreeRootNode(CodyBundle.getString("context-panel.tree.node-chat-context")) { isChecked
         ->

@@ -10,6 +10,8 @@ import com.sourcegraph.cody.agent.protocol.RemoteRepoFetchState
 import com.sourcegraph.cody.agent.protocol.RemoteRepoHasParams
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListResponse
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.currentCoroutineContext
@@ -17,8 +19,6 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 @Service(Service.Level.PROJECT)
 class RemoteRepoSearcher(private val project: Project) {
@@ -34,7 +34,8 @@ class RemoteRepoSearcher(private val project: Project) {
   val state: StateFlow<RemoteRepoFetchState> = _state
 
   /**
-   * Gets whether `repoName` is a known remote repo. This may block while repo loading is in progress.
+   * Gets whether `repoName` is a known remote repo. This may block while repo loading is in
+   * progress.
    */
   suspend fun has(repoName: String): Boolean {
     return CodyAgentService.coWithAgent(project) { agent ->
@@ -57,13 +58,13 @@ class RemoteRepoSearcher(private val project: Project) {
     val result = Channel<List<String>>(2)
     CodyAgentService.coWithAgent(project) { agent ->
       val runQuery: suspend () -> Boolean = {
-        val completableRepos = agent.server.remoteRepoList(
-          RemoteRepoListParams(
-            query = query,
-            first = 500,
-            after = null,
-          )
-        )
+        val completableRepos =
+            agent.server.remoteRepoList(
+                RemoteRepoListParams(
+                    query = query,
+                    first = 500,
+                    after = null,
+                ))
         var repos: RemoteRepoListResponse
         while (true) {
           // Check for cancellation every 100ms.
@@ -85,7 +86,8 @@ class RemoteRepoSearcher(private val project: Project) {
             }
           }
           _state.value = repos.state
-          logger.debug("remote repo search $query returning ${repos.repos.size} results (${repos.state.state})")
+          logger.debug(
+              "remote repo search $query returning ${repos.repos.size} results (${repos.state.state})")
           result.send(repos.repos.map { it.name })
           !fetchDone(repos.state)
         }
@@ -96,7 +98,7 @@ class RemoteRepoSearcher(private val project: Project) {
         while (runQuery()) {
           // Wait for the fetch to finish.
           state.first {
-            currentCoroutineContext().ensureActive();
+            currentCoroutineContext().ensureActive()
             fetchDone(it)
           }
         }

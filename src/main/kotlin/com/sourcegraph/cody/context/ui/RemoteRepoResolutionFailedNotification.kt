@@ -11,24 +11,26 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.NotificationGroups
 
 class RemoteRepoResolutionFailedNotification :
-  Notification(
-    NotificationGroups.SOURCEGRAPH_ERRORS,
-    CodyBundle.getString("context-panel.remote-repo.error-resolution-failed.title"),
-    CodyBundle.getString("context-panel.remote-repo.error-resolution-failed.detail"),
-    NotificationType.WARNING),
-  NotificationFullContent {
+    Notification(
+        NotificationGroups.SOURCEGRAPH_ERRORS,
+        CodyBundle.getString("context-panel.remote-repo.error-resolution-failed.title"),
+        CodyBundle.getString("context-panel.remote-repo.error-resolution-failed.detail"),
+        NotificationType.WARNING),
+    NotificationFullContent {
 
   init {
     icon = Icons.RepoHostGeneric
 
     addAction(
-      object : NotificationAction(CodyBundle.getString("context-panel.remote-repo.error-resolution-failed.do-not-show-again")) {
-        override fun actionPerformed(event: AnActionEvent, notification: Notification) {
-          PropertiesComponent.getInstance().setValue(ignore, true)
-          notification.expire()
-        }
-      }
-    )
+        object :
+            NotificationAction(
+                CodyBundle.getString(
+                    "context-panel.remote-repo.error-resolution-failed.do-not-show-again")) {
+          override fun actionPerformed(event: AnActionEvent, notification: Notification) {
+            PropertiesComponent.getInstance().setValue(ignore, true)
+            notification.expire()
+          }
+        })
   }
 
   companion object {

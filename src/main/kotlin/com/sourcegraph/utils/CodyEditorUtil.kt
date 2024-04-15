@@ -39,8 +39,8 @@ object CodyEditorUtil {
   @JvmStatic private val KEY_EDITOR_SUPPORTED = Key.create<Boolean>("cody.editorSupported")
 
   /**
-   * Hints whether the editor wants autocomplete. Setting this value to false provides a hint to disable autocomplete.
-   * If absent, assumes editors want autocomplete.
+   * Hints whether the editor wants autocomplete. Setting this value to false provides a hint to
+   * disable autocomplete. If absent, assumes editors want autocomplete.
    */
   @JvmStatic val KEY_EDITOR_WANTS_AUTOCOMPLETE = Key.create<Boolean>("cody.editorWantsAutocomplete")
 

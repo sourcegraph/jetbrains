@@ -37,24 +37,28 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
 
       is ContextTreeEnterpriseRootNode -> {
         textRenderer.appendHTML(
-          CodyBundle.getString("context-panel.tree.node-chat-context.detailed").fmt(style, node.numRepos.toString(), node.endpointName),
-          SimpleTextAttributes.REGULAR_ATTRIBUTES
-        )
-        // The root element controls enhanced context which includes editor selection, etc. Do not display unchecked/bar
+            CodyBundle.getString("context-panel.tree.node-chat-context.detailed")
+                .fmt(style, node.numRepos.toString(), node.endpointName),
+            SimpleTextAttributes.REGULAR_ATTRIBUTES)
+        // The root element controls enhanced context which includes editor selection, etc. Do not
+        // display unchecked/bar
         // even if the child repos are unchecked.
-        myCheckbox.state = if (node.isChecked) { ThreeStateCheckBox.State.SELECTED } else { ThreeStateCheckBox.State.NOT_SELECTED }
+        myCheckbox.state =
+            if (node.isChecked) {
+              ThreeStateCheckBox.State.SELECTED
+            } else {
+              ThreeStateCheckBox.State.NOT_SELECTED
+            }
       }
       is ContextTreeRemotesNode -> {
         textRenderer.append(
-          CodyBundle.getString("context-panel.tree.node-remote-repositories"),
-          SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES
-        )
+            CodyBundle.getString("context-panel.tree.node-remote-repositories"),
+            SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
         myCheckbox.isVisible = false
       }
       is ContextTreeRemoteRepoNode -> {
         textRenderer.appendHTML(
-          "<b>${node.repo.displayName}</b>",
-          SimpleTextAttributes.REGULAR_ATTRIBUTES)
+            "<b>${node.repo.displayName}</b>", SimpleTextAttributes.REGULAR_ATTRIBUTES)
         textRenderer.icon = node.repo.icon
       }
 

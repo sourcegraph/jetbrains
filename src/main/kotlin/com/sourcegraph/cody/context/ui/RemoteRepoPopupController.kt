@@ -40,10 +40,15 @@ class RemoteRepoPopupController(val project: Project) {
 
   @RequiresEdt
   fun createPopup(width: Int, initialValue: String = ""): JBPopup {
-    val psiFile = PsiFileFactory.getInstance(project).createFileFromText(
-      "RepositoryList",
-      RemoteRepoFileType.INSTANCE, initialValue, LocalTimeCounter.currentTime(), true, false
-    )
+    val psiFile =
+        PsiFileFactory.getInstance(project)
+            .createFileFromText(
+                "RepositoryList",
+                RemoteRepoFileType.INSTANCE,
+                initialValue,
+                LocalTimeCounter.currentTime(),
+                true,
+                false)
     psiFile.putUserData<Boolean>(BaseCompletionService.FORBID_WORD_COMPLETION, false)
     DaemonCodeAnalyzer.getInstance(project).setHighlightingEnabled(psiFile, true)
 
@@ -57,16 +62,19 @@ class RemoteRepoPopupController(val project: Project) {
         SoftWrapsEditorCustomization.ENABLED.customize(this)
         setHorizontalScrollbarVisible(false)
         setVerticalScrollbarVisible(true)
-        highlighter = EditorHighlighterFactory.getInstance().createEditorHighlighter(project, RemoteRepoFileType.INSTANCE)
-        addFocusListener(object : FocusChangeListener {
-          override fun focusGained(editor: Editor) {
-            super.focusGained(editor)
-            val project = editor.project
-            if (project != null) {
-              AutoPopupController.getInstance(project).scheduleAutoPopup(editor)
-            }
-          }
-        })
+        highlighter =
+            EditorHighlighterFactory.getInstance()
+                .createEditorHighlighter(project, RemoteRepoFileType.INSTANCE)
+        addFocusListener(
+            object : FocusChangeListener {
+              override fun focusGained(editor: Editor) {
+                super.focusGained(editor)
+                val project = editor.project
+                if (project != null) {
+                  AutoPopupController.getInstance(project).scheduleAutoPopup(editor)
+                }
+              }
+            })
       }
     }
     editor.settings.apply {
@@ -83,37 +91,41 @@ class RemoteRepoPopupController(val project: Project) {
       isAdditionalPageAtBottom = false
       lineCursorWidth = 1
     }
-    editor.contentComponent.apply {
-      border = CompoundBorder(JBUI.Borders.empty(2), border)
-    }
+    editor.contentComponent.apply { border = CompoundBorder(JBUI.Borders.empty(2), border) }
 
-    val panel = JPanel(BorderLayout()).apply {
-      add(editor.component, BorderLayout.CENTER)
-    }
+    val panel = JPanel(BorderLayout()).apply { add(editor.component, BorderLayout.CENTER) }
     val shortcut = KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.shortcuts)
     val scaledHeight = JBDimension(0, 100).height
-    val popup = (JBPopupFactory.getInstance().createComponentPopupBuilder(panel, editor.contentComponent).apply {
-      setAdText(CodyBundle.getString("context-panel.remote-repo.select-repo-advertisement").fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), shortcut))
-      setCancelOnClickOutside(true)
-      setMayBeParent(true)
-      setMinSize(Dimension(width, scaledHeight))
-      setRequestFocus(true)
-      setResizable(true)
-      addListener(object : JBPopupListener {
-        override fun onClosed(event: LightweightWindowEvent) {
-          EditorFactory.getInstance().releaseEditor(editor)
-        }
-      })
-    }).createPopup()
+    val popup =
+        (JBPopupFactory.getInstance()
+                .createComponentPopupBuilder(panel, editor.contentComponent)
+                .apply {
+                  setAdText(
+                      CodyBundle.getString("context-panel.remote-repo.select-repo-advertisement")
+                          .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), shortcut))
+                  setCancelOnClickOutside(true)
+                  setMayBeParent(true)
+                  setMinSize(Dimension(width, scaledHeight))
+                  setRequestFocus(true)
+                  setResizable(true)
+                  addListener(
+                      object : JBPopupListener {
+                        override fun onClosed(event: LightweightWindowEvent) {
+                          EditorFactory.getInstance().releaseEditor(editor)
+                        }
+                      })
+                })
+            .createPopup()
 
-    val okAction = object : DumbAwareAction() {
-      override fun actionPerformed(event: AnActionEvent) {
-        unregisterCustomShortcutSet(popup.content)
-        popup.closeOk(event.inputEvent)
-        // We don't use the Psi elements here, because the Annotator may be slow, etc.
-        onAccept(document.text)
-      }
-    }
+    val okAction =
+        object : DumbAwareAction() {
+          override fun actionPerformed(event: AnActionEvent) {
+            unregisterCustomShortcutSet(popup.content)
+            popup.closeOk(event.inputEvent)
+            // We don't use the Psi elements here, because the Annotator may be slow, etc.
+            onAccept(document.text)
+          }
+        }
     okAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, popup.content)
 
     return popup

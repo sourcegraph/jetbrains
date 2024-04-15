@@ -9,7 +9,8 @@ import java.util.concurrent.CompletableFuture
 
 object RemoteRepoUtils {
   /**
-   * Gets any repository IDs which match `codebaseNames`. If `codebaseNames` is empty, completes with an empty list.
+   * Gets any repository IDs which match `codebaseNames`. If `codebaseNames` is empty, completes
+   * with an empty list.
    */
   fun getRepositories(
       project: Project,

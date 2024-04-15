@@ -14,12 +14,12 @@ import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.context.RemoteRepoSearcher
 import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.statusbar.CodyStatusService
-import kotlinx.coroutines.runBlocking
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
+import kotlinx.coroutines.runBlocking
 
 @Service(Service.Level.PROJECT)
 class CodyAgentService(project: Project) : Disposable {
@@ -174,7 +174,7 @@ class CodyAgentService(project: Project) : Disposable {
               } catch (e: Exception) {
                 onFailure.accept(e)
               }
-            };
+            }
             coWithAgent(project, restartIfNeeded, task)
           }
         }
@@ -209,9 +209,14 @@ class CodyAgentService(project: Project) : Disposable {
       }
     }
 
-    suspend fun <T>coWithAgent(project: Project, callback: suspend (CodyAgent) -> T) = coWithAgent(project, false, callback)
+    suspend fun <T> coWithAgent(project: Project, callback: suspend (CodyAgent) -> T) =
+        coWithAgent(project, false, callback)
 
-    suspend fun <T>coWithAgent(project: Project, restartIfNeeded: Boolean, callback: suspend (CodyAgent) -> T): T {
+    suspend fun <T> coWithAgent(
+        project: Project,
+        restartIfNeeded: Boolean,
+        callback: suspend (CodyAgent) -> T
+    ): T {
       if (!CodyApplicationSettings.instance.isCodyEnabled) {
         throw Exception("Cody is not enabled")
       }
@@ -219,8 +224,8 @@ class CodyAgentService(project: Project) : Disposable {
         val instance = CodyAgentService.getInstance(project)
         val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
         val agent =
-          if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
-          else instance.codyAgent
+            if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
+            else instance.codyAgent
         val result = callback(agent.get())
         setAgentError(project, null)
         return result
