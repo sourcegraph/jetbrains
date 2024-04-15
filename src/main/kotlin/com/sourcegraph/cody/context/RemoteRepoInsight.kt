@@ -89,8 +89,8 @@ class RemoteRepoTokenType(debugName: @NonNls String) : IElementType(debugName, R
   }
 }
 
-class RemoteRepoFile(viewProvider: FileViewProvider?) :
-    PsiFileBase(viewProvider!!, RemoteRepoLanguage) {
+class RemoteRepoFile(viewProvider: FileViewProvider) :
+    PsiFileBase(viewProvider, RemoteRepoLanguage) {
   override fun getFileType(): FileType {
     return RemoteRepoFileType.INSTANCE
   }
@@ -149,28 +149,25 @@ internal class RemoteRepoListParserDefinition : ParserDefinition {
       }
 
       override fun getTokenEnd(): Int {
-        val index =
-            when (tokenType) {
-              RemoteRepoTokenType.REPO ->
-                  buffer.indexOfAny(charArrayOf(' ', '\t', '\r', '\n'), offset)
-              RemoteRepoTokenType.SEPARATOR -> {
-                val subIndex =
-                    buffer.subSequence(offset, buffer.length).indexOfFirst { ch ->
-                      " \t\r\n".indexOf(ch) == -1
-                    }
-                if (subIndex == -1) {
-                  -1
-                } else {
-                  offset + subIndex
+        return when (tokenType) {
+          RemoteRepoTokenType.REPO,
+          RemoteRepoTokenType.SEPARATOR -> {
+            val index =
+                buffer.subSequence(offset, buffer.length).indexOfFirst { ch ->
+                  if (tokenType == RemoteRepoTokenType.REPO) {
+                    ch.isWhitespace()
+                  } else {
+                    !ch.isWhitespace()
+                  }
                 }
-              }
-              RemoteRepoTokenType.EOF -> return buffer.length
-              else -> throw RuntimeException("unexpected token type $tokenType lexing repo list")
+            if (index == -1) {
+              buffer.length
+            } else {
+              offset + index
             }
-        return if (index == -1) {
-          buffer.length
-        } else {
-          index
+          }
+          RemoteRepoTokenType.EOF -> return buffer.length
+          else -> throw RuntimeException("unexpected token type $tokenType lexing repo list")
         }
       }
 
