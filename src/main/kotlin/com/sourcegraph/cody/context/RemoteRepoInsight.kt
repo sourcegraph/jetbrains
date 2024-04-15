@@ -177,7 +177,7 @@ internal class RemoteRepoListParserDefinition : ParserDefinition {
       }
 
       fun stateAtOffset(): LexerState {
-        val ch = nextChar()
+        val ch = peekChar()
         return when {
           ch == null -> LexerState.EOF
           ch.isWhitespace() -> LexerState.IN_SEPARATOR
@@ -185,7 +185,7 @@ internal class RemoteRepoListParserDefinition : ParserDefinition {
         }
       }
 
-      fun nextChar(): Char? {
+      fun peekChar(): Char? {
         return if (offset == buffer.length) {
           null
         } else {
