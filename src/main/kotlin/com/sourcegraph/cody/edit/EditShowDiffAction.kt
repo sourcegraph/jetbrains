@@ -24,10 +24,9 @@ class EditShowDiffAction : CompareFileWithEditorAction() {
 
   override fun getDiffRequestChain(e: AnActionEvent): DiffRequestChain {
     val project = e.project
-    val editor = e.dataContext.getData(EDITOR_DATA_KEY)
     val selectionRange = e.dataContext.getData(SELECTION_RANGE_DATA_KEY)!!
     val documentBefore = e.dataContext.getData(DOCUMENT_BEFORE_DATA_KEY)!!
-    val documentAfter = editor!!.document
+    val documentAfter = e.dataContext.getData(EDITOR_DATA_KEY)!!.document
     val diffDocument: Document = EditorFactory.getInstance().createDocument(documentAfter.text)
 
     val start = documentBefore.getLineEndOffset(selectionRange.start.line - 1)
@@ -59,8 +58,8 @@ class EditShowDiffAction : CompareFileWithEditorAction() {
   }
 
   companion object {
-    val DOCUMENT_BEFORE_DATA_KEY = DataKey.create<Document?>("document_before")
-    val SELECTION_RANGE_DATA_KEY = DataKey.create<Range?>("selection_range")
-    val EDITOR_DATA_KEY = DataKey.create<Editor?>("editor")
+    val DOCUMENT_BEFORE_DATA_KEY = DataKey.create<Document>("document_before")
+    val SELECTION_RANGE_DATA_KEY = DataKey.create<Range>("selection_range")
+    val EDITOR_DATA_KEY = DataKey.create<Editor>("editor")
   }
 }
