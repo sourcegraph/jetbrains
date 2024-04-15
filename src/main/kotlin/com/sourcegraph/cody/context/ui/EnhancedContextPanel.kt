@@ -32,6 +32,7 @@ import javax.swing.JPanel
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 import javax.swing.tree.DefaultTreeModel
+import kotlin.math.max
 
 /**
  * A panel for configuring context in chats. Consumer and Enterprise context panels are designed around a tree whose
@@ -95,18 +96,6 @@ abstract class EnhancedContextPanel(protected val project: Project, protected va
   }
 
   /**
-   * Creates the ToolbarDecorator for the panel. The returned toolbar decorator does not have any buttons.
-   */
-  protected fun createToolbar(): ToolbarDecorator {
-    return createDecorator(tree)
-      .disableUpDownActions()
-      .setToolbarPosition(ActionToolbarPosition.RIGHT)
-      .setVisibleRowCount(1)
-      .setScrollPaneBorder(BorderFactory.createEmptyBorder())
-      .setToolbarBorder(BorderFactory.createEmptyBorder())
-  }
-
-  /**
    * The root node of the tree view. This node is not visible. Add entries to the enhanced context treeview as roots
    * of this node.
    */
@@ -132,6 +121,18 @@ abstract class EnhancedContextPanel(protected val project: Project, protected va
       // can resize the sidebar if desired.
       override fun getScrollableTracksViewportWidth(): Boolean = true
     }
+  }
+
+  /**
+   * The toolbar decorator component.
+   */
+  protected val toolbar = run {
+    createDecorator(tree)
+      .disableUpDownActions()
+      .setToolbarPosition(ActionToolbarPosition.RIGHT)
+      .setVisibleRowCount(1)
+      .setScrollPaneBorder(BorderFactory.createEmptyBorder())
+      .setToolbarBorder(BorderFactory.createEmptyBorder())
   }
 
   init {
@@ -172,8 +173,11 @@ abstract class EnhancedContextPanel(protected val project: Project, protected va
   @RequiresEdt
   protected fun resize() {
     val padding = 5
+    // Set the minimum size to accommodate at least one toolbar button and an overflow ellipsis. Because the buttons
+    // are approximately square, use the toolbar width as a proxy for the button height.
+    val toolbarButtonHeight = toolbar.actionsPanel.preferredSize.width
     panel.preferredSize =
-      Dimension(0, padding + tree.rowCount * tree.rowHeight)
+      Dimension(0, padding + max(tree.rowCount * tree.rowHeight, 2 * toolbarButtonHeight))
     panel.parent?.revalidate()
   }
 
@@ -194,7 +198,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   private var rawSpec: String = ""
 
   override fun createPanel(): JComponent {
-    val toolbar = createToolbar()
     // TODO: Add the "clock" button when the functionality is clarified.
     toolbar.setEditActionName(CodyBundle.getString("context-panel.button.edit-repositories"))
     toolbar.setEditAction {
@@ -352,7 +355,6 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
   }
 
   override fun createPanel(): JComponent {
-    val toolbar = createToolbar()
     toolbar.addExtraAction(ReindexButton(project))
     toolbar.addExtraAction(HelpButton())
     return toolbar.createPanel()
