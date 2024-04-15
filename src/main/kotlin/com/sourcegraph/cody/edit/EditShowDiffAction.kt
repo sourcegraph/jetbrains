@@ -9,22 +9,35 @@ import com.intellij.diff.util.DiffUserDataKeys
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.sourcegraph.cody.agent.protocol.Range
 
 class EditShowDiffAction : CompareFileWithEditorAction() {
 
   override fun isAvailable(e: AnActionEvent): Boolean {
+    e.dataContext.getData(DOCUMENT_BEFORE_DATA_KEY) ?: return false
+    e.dataContext.getData(SELECTION_RANGE_DATA_KEY) ?: return false
     return true
   }
 
   override fun getDiffRequestChain(e: AnActionEvent): DiffRequestChain {
     val project = e.project
-    val documentBefore = e.dataContext.getData(DOCUMENT_BEFORE_DATA_KEY)
-    val documentAfter = e.dataContext.getData(DOCUMENT_AFTER_DATA_KEY)
+    val editor = e.dataContext.getData(EDITOR_DATA_KEY)
+    val selectionRange = e.dataContext.getData(SELECTION_RANGE_DATA_KEY)!!
+    val documentBefore = e.dataContext.getData(DOCUMENT_BEFORE_DATA_KEY)!!
+    val documentAfter = editor!!.document
+    val diffDocument: Document = EditorFactory.getInstance().createDocument(documentAfter.text)
 
-    val content1 = DiffContentFactory.getInstance().create(project, documentBefore!!)
+    val start = documentBefore.getLineEndOffset(selectionRange.start.line - 1)
+    val end = documentBefore.getLineEndOffset(selectionRange.end.line)
+    val selectionText = documentBefore.text.substring(start, end)
+    diffDocument.text.replaceRange(start, end, selectionText)
+
+    val content1 = DiffContentFactory.getInstance().create(project, documentBefore)
     content1.putUserData(DiffUserDataKeys.FORCE_READ_ONLY, true)
-    val content2 = DiffContentFactory.getInstance().create(project, documentAfter!!)
+    val content2 = DiffContentFactory.getInstance().create(project, documentAfter)
 
     val editorFile = FileDocumentManager.getInstance().getFile(documentAfter)
     val editorContentTitle =
@@ -47,6 +60,7 @@ class EditShowDiffAction : CompareFileWithEditorAction() {
 
   companion object {
     val DOCUMENT_BEFORE_DATA_KEY = DataKey.create<Document?>("document_before")
-    val DOCUMENT_AFTER_DATA_KEY = DataKey.create<Document?>("document_after")
+    val SELECTION_RANGE_DATA_KEY = DataKey.create<Range?>("selection_range")
+    val EDITOR_DATA_KEY = DataKey.create<Editor?>("editor")
   }
 }
