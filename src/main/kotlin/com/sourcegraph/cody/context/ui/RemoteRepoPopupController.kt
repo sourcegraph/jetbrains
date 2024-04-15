@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.FocusChangeListener
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory
@@ -57,6 +58,10 @@ class RemoteRepoPopupController(val project: Project) {
     val editor = EditorFactory.getInstance().createEditor(document, project)
     editor.putUserData<Boolean>(AutoPopupController.ALWAYS_AUTO_POPUP, true)
     editor.putUserData<Boolean>(CodyEditorUtil.KEY_EDITOR_WANTS_AUTOCOMPLETE, false)
+
+    // Put the cursor at the end of the first line. This is a more convenient place to insert new repositories.
+    editor.caretModel.moveToLogicalPosition(LogicalPosition(0, document.getLineEndOffset(0)))
+
     if (editor is EditorEx) {
       editor.apply {
         SoftWrapsEditorCustomization.ENABLED.customize(this)

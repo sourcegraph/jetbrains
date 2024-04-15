@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.context.ui
 
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
+import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
@@ -40,6 +41,11 @@ import kotlin.math.max
 abstract class EnhancedContextPanel
 @RequiresEdt
 constructor(protected val project: Project, protected val chatSession: ChatSession) : JPanel() {
+  init {
+    // TODO: When Kotlin @RequiresEdt annotations are instrumented, remove this manual assertion.
+    ApplicationManager.getApplication().assertIsDispatchThread()
+  }
+
   companion object {
     /** Creates an EnhancedContextPanel for `chatSession`. */
     fun create(project: Project, chatSession: ChatSession): EnhancedContextPanel {
@@ -239,7 +245,11 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     resize()
   }
 
+  @RequiresEdt
   private fun updateTree(repoNames: List<String>) {
+    // TODO: When Kotlin @RequiresEdt annotations are instrumented, remove this manual assertion.
+    ApplicationManager.getApplication().assertIsDispatchThread()
+
     val remotesPath = treeModel.getTreePath(remotesNode.userObject)
     val wasExpanded = remotesPath != null && tree.isExpanded(remotesPath)
     remotesNode.removeAllChildren()
