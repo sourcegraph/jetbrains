@@ -7,7 +7,6 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.ThreeStateCheckBox
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
-import java.io.File
 import javax.swing.JTree
 
 class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRenderer() {

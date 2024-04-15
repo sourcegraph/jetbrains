@@ -9,7 +9,6 @@ import com.intellij.openapi.ui.getTreePath
 import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
-import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.vcs.commit.NonModalCommitPanel.Companion.showAbove
@@ -38,7 +37,7 @@ import kotlin.math.max
  * A panel for configuring context in chats. Consumer and Enterprise context panels are designed around a tree whose
  * layout grows and shrinks as the tree view nodes are expanded and collapsed.
  */
-abstract class EnhancedContextPanel(protected val project: Project, protected val chatSession: ChatSession) :
+abstract class EnhancedContextPanel @RequiresEdt constructor(protected val project: Project, protected val chatSession: ChatSession) :
     JPanel() {
   companion object {
     /**
@@ -197,6 +196,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   // Cache the raw user input so the user can reopen the popup to make corrections without starting from scratch.
   private var rawSpec: String = ""
 
+  @RequiresEdt
   override fun createPanel(): JComponent {
     // TODO: Add the "clock" button when the functionality is clarified.
     toolbar.setEditActionName(CodyBundle.getString("context-panel.button.edit-repositories"))
@@ -339,7 +339,6 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
           CodyBundle.getString("context-panel.tree.node-local-project"), enhancedContextEnabled)
   private val localProjectNode = ContextTreeLocalRepoNode(project, enhancedContextEnabled)
 
-  @RequiresEdt
   private fun prepareTree() {
     treeRoot.add(enhancedContextNode)
     localContextNode.add(localProjectNode)
@@ -354,6 +353,7 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     resize()
   }
 
+  @RequiresEdt
   override fun createPanel(): JComponent {
     toolbar.addExtraAction(ReindexButton(project))
     toolbar.addExtraAction(HelpButton())

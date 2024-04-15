@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.config
 
-import com.intellij.util.io.URLUtil
 import com.intellij.util.xmlb.annotations.Attribute
 import com.intellij.util.xmlb.annotations.Tag
 import com.sourcegraph.cody.auth.ServerPath
