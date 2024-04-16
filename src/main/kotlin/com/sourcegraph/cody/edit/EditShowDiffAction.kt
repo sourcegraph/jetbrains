@@ -5,6 +5,7 @@ import com.intellij.diff.DiffRequestFactory
 import com.intellij.diff.actions.BlankDiffWindowUtil.createBlankDiffRequestChain
 import com.intellij.diff.actions.CompareFileWithEditorAction
 import com.intellij.diff.chains.DiffRequestChain
+import com.intellij.diff.contents.FileContent
 import com.intellij.diff.util.DiffUserDataKeys
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataKey
@@ -23,9 +24,11 @@ class EditShowDiffAction : CompareFileWithEditorAction() {
     val documentAfter = e.dataContext.getData(EDITOR_DATA_KEY)!!.document
     val diffSession = e.dataContext.getData(DIFF_SESSION_DATA_KEY)!!
 
-    val content1 = DiffContentFactory.getInstance().create(project, diffSession.document)
-    content1.putUserData(DiffUserDataKeys.FORCE_READ_ONLY, true)
-    val content2 = DiffContentFactory.getInstance().create(project, documentAfter)
+    val rhsContent = DiffContentFactory.getInstance().create(project, documentAfter)
+    val fileType = (rhsContent as? FileContent)?.file?.fileType
+    val lhsContent =
+        DiffContentFactory.getInstance().create(project, diffSession.document, fileType)
+    lhsContent.putUserData(DiffUserDataKeys.FORCE_READ_ONLY, true)
 
     val editorFile = FileDocumentManager.getInstance().getFile(documentAfter)
     val editorContentTitle =
@@ -34,7 +37,7 @@ class EditShowDiffAction : CompareFileWithEditorAction() {
           else -> DiffRequestFactory.getInstance().getContentTitle(editorFile)
         }
 
-    val chain = createBlankDiffRequestChain(content1, content2, baseContent = null)
+    val chain = createBlankDiffRequestChain(lhsContent, rhsContent, baseContent = null)
     chain.windowTitle =
         when {
           editorFile == null -> "Cody Diff"
