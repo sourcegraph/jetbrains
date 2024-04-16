@@ -3,8 +3,7 @@ package com.sourcegraph.cody.config.notification
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.CodyToolWindowContent
-import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService
+import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.telemetry.GraphQlLogger
@@ -21,12 +20,7 @@ class AccountSettingChangeListener(project: Project) : ChangeListener(project) {
             // Notify JCEF about the config changes
             javaToJSBridge?.callJS("pluginSettingsChanged", ConfigUtil.getConfigAsJson(project))
 
-            // Notify Cody Agent about config changes.
-            if (ConfigUtil.isCodyEnabled()) {
-              CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
-                agent.server.configurationDidChange(ConfigUtil.getAgentConfiguration(project))
-              }
-              CodyAgentService.getInstance(project).restartAgent(project)
+            if (ConfigUtil.isCodyEnabled() && context.accountChanged()) {
               CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
                 removeAllChatSessions()
               }
@@ -34,13 +28,13 @@ class AccountSettingChangeListener(project: Project) : ChangeListener(project) {
 
             UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
             UpgradeToCodyProNotification.chatRateLimitError.set(null)
-            CodyAutocompleteStatusService.resetApplication(project)
+            CodyStatusService.resetApplication(project)
 
             if (ConfigUtil.isCodyEnabled()) {
               CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
                 refreshPanelsVisibility()
                 refreshMyAccountTab()
-                refreshHistoryTree()
+                refreshChatHistoryPanel()
               }
             }
 

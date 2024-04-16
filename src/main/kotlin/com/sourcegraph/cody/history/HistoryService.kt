@@ -1,14 +1,18 @@
 package com.sourcegraph.cody.history
 
-import com.intellij.openapi.components.*
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.SimplePersistentStateComponent
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.jetbrains.rd.framework.base.deepClonePolymorphic
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.HistoryState
+import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.history.state.MessageState
 import java.time.LocalDateTime
 
@@ -24,55 +28,66 @@ class HistoryService(private val project: Project) :
   }
 
   @Synchronized
-  fun updateChatMessages(
-      internalId: String,
-      chatMessages: List<ChatMessage>,
-      selectedModel: String?
-  ) {
-    selectedModel?.let {
-      val found = getOrCreateChat(internalId)
-      found.model = selectedModel
-    }
-    updateChatMessages(internalId, chatMessages)
+  fun updateChatLlmProvider(internalId: String, llmState: LLMState) {
+    getOrCreateChat(internalId).llm = llmState
   }
 
   @Synchronized
   fun updateChatMessages(internalId: String, chatMessages: List<ChatMessage>) {
     val found = getOrCreateChat(internalId)
-    found.messages = chatMessages.map(::convertToMessageState).toMutableList()
-    if (chatMessages.lastOrNull()?.speaker == Speaker.HUMAN) {
+    if (found.messages.size < chatMessages.size) {
       found.setUpdatedTimeAt(LocalDateTime.now())
+    }
+
+    chatMessages.map(::convertToMessageState).forEachIndexed { index, messageState ->
+      val messageToUpdate = found.messages.getOrNull(index)
+      if (messageToUpdate != null) {
+        found.messages[index] = messageState
+      } else {
+        found.messages.add(messageState)
+      }
     }
     synchronized(listeners) { listeners.forEach { it(found) } }
   }
 
   @Synchronized
   fun updateContextState(internalId: String, contextState: EnhancedContextState?) {
-    val found = getOrCreateChat(internalId)
-    if (found.enhancedContext == null || contextState == null) {
-      found.enhancedContext = EnhancedContextState()
-    }
     if (contextState != null) {
+      val found = getOrCreateChat(internalId)
+      found.enhancedContext = EnhancedContextState()
       found.enhancedContext?.copyFrom(contextState)
     }
   }
 
   @Synchronized
   fun updateDefaultContextState(contextState: EnhancedContextState) {
-    if (state.defaultEnhancedContext == null) {
-      state.defaultEnhancedContext = EnhancedContextState()
-    }
+    state.defaultEnhancedContext = EnhancedContextState()
     state.defaultEnhancedContext?.copyFrom(contextState)
   }
 
   @Synchronized
-  fun getOrCreateChatReadOnly(internalId: String): ChatState {
-    return getOrCreateChat(internalId).deepClonePolymorphic()
+  fun getContextReadOnly(internalId: String): EnhancedContextState? {
+    return copyEnhancedContextState(
+        state.chats.find { it.internalId == internalId }?.enhancedContext)
   }
 
   @Synchronized
-  fun getHistoryReadOnly(): HistoryState {
-    return state.deepClonePolymorphic()
+  fun getDefaultContextReadOnly(): EnhancedContextState? {
+    return copyEnhancedContextState(state.defaultEnhancedContext)
+  }
+
+  @Synchronized
+  fun getDefaultLlm(): LLMState? {
+    val defaultLlm = LLMState()
+    defaultLlm.copyFrom(state.defaultLlm ?: return null)
+    return defaultLlm
+  }
+
+  @Synchronized
+  fun setDefaultLlm(defaultLlm: LLMState) {
+    val newDefaultLlm = LLMState()
+    newDefaultLlm.copyFrom(defaultLlm)
+    state.defaultLlm = newDefaultLlm
   }
 
   @Synchronized
@@ -80,8 +95,17 @@ class HistoryService(private val project: Project) :
     state.chats.removeIf { it.internalId == internalId }
   }
 
+  @Synchronized
   fun removeAll() {
     state.chats = mutableListOf()
+  }
+
+  private fun copyEnhancedContextState(context: EnhancedContextState?): EnhancedContextState? {
+    if (context == null) return null
+
+    val copy = EnhancedContextState()
+    copy.copyFrom(context)
+    return copy
   }
 
   private fun convertToMessageState(chatMessage: ChatMessage): MessageState {
@@ -100,7 +124,7 @@ class HistoryService(private val project: Project) :
   private fun getOrCreateChat(internalId: String): ChatState {
     val found = state.chats.find { it.internalId == internalId }
     if (found != null) return found
-    val activeAccountId = CodyAuthenticationManager.instance.getActiveAccount(project)?.id
+    val activeAccountId = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.id
     val newChat = ChatState.create(activeAccountId, internalId)
     state.chats += newChat
     return newChat

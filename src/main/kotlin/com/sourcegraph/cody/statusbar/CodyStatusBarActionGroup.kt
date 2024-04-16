@@ -3,28 +3,30 @@ package com.sourcegraph.cody.statusbar
 import com.intellij.ide.actions.AboutAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.project.Project
+import com.sourcegraph.cody.ui.BGTActionSetter
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil
-import java.util.concurrent.TimeUnit
 
 class CodyStatusBarActionGroup : DefaultActionGroup() {
+
+  init {
+    BGTActionSetter.runUpdateOnBackgroundThread(this)
+  }
+
   override fun update(e: AnActionEvent) {
     super.update(e)
     e.presentation.isVisible = ConfigUtil.isCodyEnabled()
 
     removeAll()
-    if (CodyAutocompleteStatusService.getCurrentStatus() ==
-        CodyAutocompleteStatus.CodyAgentNotRunning) {
+    if (CodyStatusService.getCurrentStatus() == CodyStatus.CodyAgentNotRunning) {
       addAll(
           OpenLogAction(),
           AboutAction().apply { templatePresentation.text = "Open About To Troubleshoot Issue" },
           ReportCodyBugAction())
     } else {
-      val warningActions = deriveWarningAction(e.project!!)
-      addAll(listOfNotNull(warningActions))
+      addAll(listOfNotNull(deriveWarningAction()))
       addSeparator()
       addAll(
           CodyDisableAutocompleteAction(),
@@ -36,16 +38,12 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
     }
   }
 
-  private fun deriveWarningAction(project: Project): RateLimitErrorWarningAction? {
+  private fun deriveWarningAction(): RateLimitErrorWarningAction? {
     val autocompleteRLE = UpgradeToCodyProNotification.autocompleteRateLimitError.get()
     val chatRLE = UpgradeToCodyProNotification.chatRateLimitError.get()
-    val isCodyPro =
-        UpgradeToCodyProNotification.isCodyProJetbrains(project)
-            .completeOnTimeout(false, 500, TimeUnit.MILLISECONDS)
-            .get()
 
     val shouldShowUpgradeOption =
-        isCodyPro && autocompleteRLE?.upgradeIsAvailable ?: chatRLE?.upgradeIsAvailable ?: false
+        autocompleteRLE?.upgradeIsAvailable ?: chatRLE?.upgradeIsAvailable ?: false
 
     val suggestionOrExplanation =
         if (shouldShowUpgradeOption) CodyBundle.getString("status-widget.warning.upgrade")

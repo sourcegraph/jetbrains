@@ -13,12 +13,15 @@ our [issue tracker](https://github.com/sourcegraph/cody/issues/new/choose).
 
 ### Prerequisites
 
-- Java 11: we recommend installing via SDKMAN! https://sdkman.io. Once you have SDKMAN! installed, run `sdk use java 11.0.15-tem`.
+- Java 11: we recommend installing via SDKMAN! https://sdkman.io. Once you have SDKMAN! installed,
+  run `sdk use java 11.0.15-tem`.
   Confirm that you have Java 11 installed with `java -version`.
 - Set up the Cody agent dev environment.
-  - Clone `https://github.com/sourcegraph/cody` in a sibling directory.
-  - Install its dependencies. The easiest way is [with `asdf`](https://github.com/sourcegraph/cody/blob/main/doc/dev/index.md). If not using `asdf`, you just need to install the dependency versions listed in the `.tool-versions` file in that repository.
-  - From the root directory of the repository, `cd ./agent && pnpm install && pnpm build`
+    - Clone `https://github.com/sourcegraph/cody` in a sibling directory.
+    - Install its dependencies. The easiest way
+      is [with `asdf`](https://github.com/sourcegraph/cody/blob/main/doc/dev/index.md). If not using `asdf`, you just
+      need to install the dependency versions listed in the `.tool-versions` file in that repository.
+    - From the root directory of the repository, `cd ./agent && pnpm install && pnpm build`
 
 ### Running
 
@@ -46,8 +49,10 @@ our [issue tracker](https://github.com/sourcegraph/cody/issues/new/choose).
 
 Few tips and tricks regarding versioning of the tooling:
 
-- If you are using macOS and chose not to use `asdf`, use `corepack`, not `brew`, to install `pnpm`  version `8.6.7`: `corepack install --global pnpm@8.6.7`
-  Currently `brew` does not allow you to pick custom `pnpm` version which is causing [various issues](https://github.com/pnpm/pnpm/issues/6903).
+- If you are using macOS and chose not to use `asdf`, use `corepack`, not `brew`, to install `pnpm`
+  version `8.6.7`: `corepack install --global pnpm@8.6.7`
+  Currently `brew` does not allow you to pick custom `pnpm` version which is
+  causing [various issues](https://github.com/pnpm/pnpm/issues/6903).
 - Use `node` version `18` (newer versions causes hard to diagnose errors with `ERR_INVALID_THIS`).
 - If you changed `pnpm` or `node` version after running gradle you need to kill gradle daemon with `./gradlew --stop`.
   Otherwise you won't see effects of your changes.
@@ -85,6 +90,28 @@ Take the steps below _before_ [running JetBrains plugin with agent](#developing-
       Note: After [#56254](https://github.com/sourcegraph/sourcegraph/issues/56254) is resolved this step is not needed
       anymore.
 
+## Updating Cody version
+
+To upgrade Cody to the newer version you need to update the `cody.commit` hash in `gradle.properties`.
+After doing that:
+
+1. Run on the `sourcegraph/cody` repo: `git diff --name-status OLD_HASH..NEW_HASH -- agent`  
+   It will print you a list of files changed between updates.  
+   Changes in tests or bindings might require adjustments in the jetbrains codebase, so please inspect those carefully.
+2. Check if the main features are working before sending it for the full QA.  
+   Please pay special attention to areas with potential changes indicated by point 1):
+    * autocomplete
+    * chat
+    * chat history
+    * context fixes in chat responses
+    * @-files in chat prompt
+    * enhanced remote context
+    * commands from context menu and commands tab
+    * login / account switch
+
+   You don't need to cover all corner cases and do a full QA, but make sure basic features still work.  
+   Cody version updates tends to break them completely or not at all, so it should allow us to catch most issues early.
+
 ## Publishing a New Release
 
 We plan to make releases every other Monday. Nightly version can be released as often as there is a need.
@@ -93,16 +120,23 @@ We plan to make releases every other Monday. Nightly version can be released as 
 
 First, choose whether to publish a new version of nightly or stable.
 
-Use the following command for a **nightly** release:
+Use the following command for a **patch** release:
 
 ```shell
-./scripts/push-git-tag-for-next-release.sh --nightly
+./scripts/push-git-tag-for-next-release.sh --patch
 ```
 
-Or this one for a **stable** release:
+Or this one for a **minor** release:
 
 ```shell
-./scripts/push-git-tag-for-next-release.sh --stable
+./scripts/push-git-tag-for-next-release.sh --minor
+```
+
+Or this one for a **major** release
+(note it should be user only on special occasions):
+
+```shell
+./scripts/push-git-tag-for-next-release.sh --major
 ```
 
 This script runs `verify-release.sh`, which takes a long time to run with a clean cache, which is why we don't run it in
@@ -157,18 +191,21 @@ On the agent (TypeScript) side, and also on the plugin (Java/Kotlin) side.
 There are two supported configurations for debugging this way:
 
 1. The Cody extension spawns the agent subprocess normally, but adds `--inspect`
-   - JetBrains can connect and debug the agent via port 9229
+    - JetBrains can connect and debug the agent via port 9229
 2. Or, JetBrains spawns the agent in debug mode
-   - The agent will listen on port 3113
-   - The Cody extension connects via socket to the "remote" agent
+    - The agent will listen on port 3113
+    - The Cody extension connects via socket to the "remote" agent
 
 Option 1 is the simplest, and probably makes the most sense for you
-to use if you are uncertain which method to use for debugging.
+to use if you are uncertain which method to use for debugging. Option 2
+is especially useful when you need to set a breakpoint very early in
+the Agent startup.
 
 ## How to set up Run Configurations
 
-Run configurations are basically IDEA's launcher scripts. You will need to create one
-run configuration in each project window, using Run → Edit Configurations.
+Run configurations are basically IDEA's launcher scripts. You will need
+to create one run configuration in each project window, using Run → Edit
+Configurations.
 
 For both debugging setups (Cody-spawns and JB-spawned), you will need:
 
@@ -182,8 +219,9 @@ For both debugging setups (Cody-spawns and JB-spawned), you will need:
 
 You'll always have at least 2 IntelliJ project windows open: One for
 debugging the Java side, and one for the TS side.
-  - also a 3rd intellij window pops up when you run your plugin,
-    though this is a new instance completely
+
+- also a 3rd intellij window pops up when you run your plugin,
+  though this is a new instance completely
 
 If you check `Store as project file` and use the default, it will
 remember your configuration between sessions.
@@ -270,7 +308,7 @@ Create this configuration in the `sourcegraph/cody` project window:
 - Working directory: `~/src/sg/cody` (or wherever you cloned sourcegraph/cody)
 - JavaScript file: `agent/dist/index.js`
     - note: this is a relative path, unlike the run configs for Option 2
-- Application Parameters: <leave empty>
+- Application Parameters: leave empty
 - Environment variables:
     - `CODY_AGENT_DEBUG_REMOTE=true`
     - `CODY_AGENT_DEBUG_PORT=3113`
@@ -317,3 +355,29 @@ To set this up, in the Before launch section of any Run/Debug configuration, do 
 You only need to do most of these steps once, when you create the
 External Tool. Then you can use it in any run config that spawns the
 agent, to rebuild it first.
+
+## Debugging VS Code
+
+Sometimes, the TypeScript backend behaves differently when called from
+IntelliJ via Agent than when the same code is called from the VS Code
+extension, and you may need to debug the same code paths through the
+Agent twice. First, when called from the JetBrains extension side, and
+again when called from the VS Code extension side.
+
+To accomplish the latter, you can use VS Code to debug itself. It works
+very similarly to how it works in JetBrains. There are predefined run
+configurations for debugging VS Code Cody in the file
+`.vscode/launch.json` in `sourcegraph/cody`, such as `Launch VS Code
+Extension (Desktop)`.
+
+You do not launch VS Code run configurations from the command palette.
+Instead, use ctrl-shift-D to open the Run and Debug view, and you can
+see the configuration dropdown at the top.
+
+## Known Issues
+
+- Force-stopping the target often corrupts IntelliJ's project indexes,
+  requiring an extra restart of the debugged target to fix them.
+  - Workaround is to exit the target gracefully by quitting each time,
+    using the menus or hotkeys, rather than force-stopping it.
+

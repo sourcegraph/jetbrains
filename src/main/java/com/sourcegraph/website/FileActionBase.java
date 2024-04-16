@@ -6,12 +6,10 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.*;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.sourcegraph.cody.config.AccountType;
-import com.sourcegraph.cody.config.CodyAuthenticationManager;
 import com.sourcegraph.common.ErrorNotification;
+import com.sourcegraph.common.ui.DumbAwareBGTAction;
 import com.sourcegraph.find.PreviewContent;
 import com.sourcegraph.find.SourcegraphVirtualFile;
 import com.sourcegraph.vcs.RepoInfo;
@@ -20,7 +18,7 @@ import com.sourcegraph.vcs.VCSType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class FileActionBase extends DumbAwareAction {
+public abstract class FileActionBase extends DumbAwareBGTAction {
   protected abstract void handleFileUri(@NotNull Project project, @NotNull String uri);
 
   @Override
@@ -132,13 +130,6 @@ public abstract class FileActionBase extends DumbAwareAction {
 
   @Override
   public void update(@NotNull AnActionEvent e) {
-    Project project = e.getProject();
-    if (project == null) {
-      return;
-    }
-    e.getPresentation()
-        .setEnabled(
-            CodyAuthenticationManager.getInstance().getActiveAccountType(project)
-                != AccountType.LOCAL_APP);
+    e.getPresentation().setEnabled(true);
   }
 }

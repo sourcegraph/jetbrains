@@ -1,7 +1,29 @@
 package com.sourcegraph.cody.agent
 
-import com.sourcegraph.cody.agent.protocol.*
-import com.sourcegraph.cody.agent.protocol.util.ChatRemoteReposResponse
+import com.sourcegraph.cody.agent.protocol.AttributionSearchParams
+import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
+import com.sourcegraph.cody.agent.protocol.AutocompleteParams
+import com.sourcegraph.cody.agent.protocol.AutocompleteResult
+import com.sourcegraph.cody.agent.protocol.ChatHistoryResponse
+import com.sourcegraph.cody.agent.protocol.ChatModelsParams
+import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
+import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
+import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
+import com.sourcegraph.cody.agent.protocol.ClientInfo
+import com.sourcegraph.cody.agent.protocol.CompletionItemParams
+import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
+import com.sourcegraph.cody.agent.protocol.EditTask
+import com.sourcegraph.cody.agent.protocol.Event
+import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
+import com.sourcegraph.cody.agent.protocol.GetFoldingRangeParams
+import com.sourcegraph.cody.agent.protocol.GetFoldingRangeResult
+import com.sourcegraph.cody.agent.protocol.GetRepoIdsParam
+import com.sourcegraph.cody.agent.protocol.GetRepoIdsResponse
+import com.sourcegraph.cody.agent.protocol.InlineEditParams
+import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
+import com.sourcegraph.cody.agent.protocol.ServerInfo
+import com.sourcegraph.cody.agent.protocol.TaskIdParam
+import com.sourcegraph.cody.chat.ConnectionId
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
@@ -18,11 +40,6 @@ interface CodyAgentServer {
 
   @JsonRequest("shutdown") fun shutdown(): CompletableFuture<Void?>
 
-  @JsonRequest("recipes/list") fun recipesList(): CompletableFuture<List<RecipeInfo>>
-
-  @JsonRequest("recipes/execute")
-  fun recipesExecute(params: ExecuteRecipeParams?): CompletableFuture<Void?>
-
   @JsonRequest("autocomplete/execute")
   fun autocompleteExecute(params: AutocompleteParams?): CompletableFuture<AutocompleteResult>
 
@@ -30,17 +47,8 @@ interface CodyAgentServer {
 
   @JsonRequest("graphql/currentUserId") fun currentUserId(): CompletableFuture<String>
 
-  @JsonRequest("graphql/getRepoIdIfEmbeddingExists")
-  fun getRepoIdIfEmbeddingExists(repoName: GetRepoIDResponse): CompletableFuture<String?>
-
-  @JsonRequest("graphql/getRepoId")
-  fun getRepoId(repoName: GetRepoIDResponse): CompletableFuture<String?>
-
   @JsonRequest("graphql/getRepoIds")
   fun getRepoIds(repoName: GetRepoIdsParam): CompletableFuture<GetRepoIdsResponse>
-
-  @JsonRequest("git/codebaseName")
-  fun convertGitCloneURLToCodebaseName(cloneURL: CloneURL): CompletableFuture<String?>
 
   @JsonRequest("featureFlags/getFeatureFlag")
   fun evaluateFeatureFlag(flagName: GetFeatureFlag): CompletableFuture<Boolean?>
@@ -55,20 +63,21 @@ interface CodyAgentServer {
 
   @JsonNotification("exit") fun exit()
 
-  @JsonNotification("transcript/reset") fun transcriptReset()
-
   @JsonNotification("extensionConfiguration/didChange")
   fun configurationDidChange(document: ExtensionConfiguration)
 
-  @JsonNotification("textDocument/didFocus") fun textDocumentDidFocus(document: TextDocument)
+  @JsonNotification("textDocument/didFocus")
+  fun textDocumentDidFocus(document: ProtocolTextDocument)
 
-  @JsonNotification("textDocument/didOpen") fun textDocumentDidOpen(document: TextDocument)
+  @JsonNotification("textDocument/didOpen") fun textDocumentDidOpen(document: ProtocolTextDocument)
 
-  @JsonNotification("textDocument/didChange") fun textDocumentDidChange(document: TextDocument)
+  @JsonNotification("textDocument/didChange")
+  fun textDocumentDidChange(document: ProtocolTextDocument)
 
-  @JsonNotification("textDocument/didClose") fun textDocumentDidClose(document: TextDocument)
+  @JsonNotification("textDocument/didClose")
+  fun textDocumentDidClose(document: ProtocolTextDocument)
 
-  @JsonNotification("debug/message") fun debugMessage(message: DebugMessage)
+  @JsonNotification("textDocument/didSave") fun textDocumentDidSave(document: ProtocolTextDocument)
 
   @JsonNotification("autocomplete/clearLastCandidate") fun autocompleteClearLastCandidate()
 
@@ -78,22 +87,31 @@ interface CodyAgentServer {
   @JsonNotification("autocomplete/completionAccepted")
   fun completionAccepted(logID: CompletionItemParams)
 
-  @JsonNotification("$/cancelRequest") fun cancelRequest(cancelParams: CancelParams)
-
-  // Webviews
-  @JsonRequest("webview/didDispose") fun webviewDidDispose(): CompletableFuture<Void?>
-
   @JsonRequest("webview/receiveMessage")
   fun webviewReceiveMessage(params: WebviewReceiveMessageParams): CompletableFuture<Any?>
+
+  @JsonRequest("editTask/accept") fun acceptEditTask(params: TaskIdParam): CompletableFuture<Void?>
+
+  @JsonRequest("editTask/undo") fun undoEditTask(params: TaskIdParam): CompletableFuture<Void?>
+
+  @JsonRequest("editTask/cancel") fun cancelEditTask(params: TaskIdParam): CompletableFuture<Void?>
+
+  @JsonRequest("editTask/getFoldingRanges")
+  fun getFoldingRanges(params: GetFoldingRangeParams): CompletableFuture<GetFoldingRangeResult>
 
   @JsonRequest("command/execute")
   fun commandExecute(params: CommandExecuteParams): CompletableFuture<Any?>
 
-  @JsonRequest("commands/explain") fun commandsExplain(): CompletableFuture<String>
+  @JsonRequest("commands/explain") fun commandsExplain(): CompletableFuture<ConnectionId>
 
-  @JsonRequest("commands/test") fun commandsTest(): CompletableFuture<String>
+  @JsonRequest("commands/test") fun commandsTest(): CompletableFuture<ConnectionId>
 
-  @JsonRequest("commands/smell") fun commandsSmell(): CompletableFuture<String>
+  @JsonRequest("commands/smell") fun commandsSmell(): CompletableFuture<ConnectionId>
+
+  @JsonRequest("editCommands/document") fun commandsDocument(): CompletableFuture<EditTask>
+
+  @JsonRequest("editCommands/code")
+  fun commandsEdit(params: InlineEditParams): CompletableFuture<EditTask>
 
   @JsonRequest("chat/new") fun chatNew(): CompletableFuture<String>
 
@@ -103,12 +121,13 @@ interface CodyAgentServer {
   @JsonRequest("chat/models")
   fun chatModels(params: ChatModelsParams): CompletableFuture<ChatModelsResponse>
 
-  @JsonRequest("chat/restore") fun chatRestore(params: ChatRestoreParams): CompletableFuture<String>
+  @JsonRequest("chat/export") fun chatExport(): CompletableFuture<List<ChatHistoryResponse>>
+
+  @JsonRequest("chat/restore")
+  fun chatRestore(params: ChatRestoreParams): CompletableFuture<ConnectionId>
 
   @JsonRequest("attribution/search")
   fun attributionSearch(
       params: AttributionSearchParams
   ): CompletableFuture<AttributionSearchResponse>
-
-  @JsonRequest("chat/remoteRepos") fun chatRemoteRepos(): CompletableFuture<ChatRemoteReposResponse>
 }

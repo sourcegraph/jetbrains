@@ -31,8 +31,9 @@ class EndOfTrialNotificationScheduler private constructor(val project: Project) 
             this.dispose()
           }
 
-          if (CodyAuthenticationManager.instance.getActiveAccount(project)?.isDotcomAccount() !=
-              true) {
+          if (CodyAuthenticationManager.getInstance(project)
+              .getActiveAccount()
+              ?.isDotcomAccount() != true) {
             return@scheduleAtFixedRate
           }
 
@@ -41,6 +42,10 @@ class EndOfTrialNotificationScheduler private constructor(val project: Project) 
                 agent.server
                     .getCurrentUserCodySubscription()
                     .completeOnTimeout(null, 4, TimeUnit.SECONDS)
+                    .exceptionally { e ->
+                      logger.warn("Error while getting currentUserCodySubscription ", e)
+                      null
+                    }
                     .get()
 
             if (currentUserCodySubscription == null) {

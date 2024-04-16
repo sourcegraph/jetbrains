@@ -28,7 +28,7 @@ public interface Icons {
     Icon CodyAutocompleteDisabled =
         IconLoader.getIcon("/icons/codyLogoMonochromaticMuted.svg", Icons.class);
 
-    Icon CodyAutocompleteUnavailable =
+    Icon CodyUnavailable =
         IconLoader.getIcon("/icons/codyLogoMonochromaticUnavailable.svg", Icons.class);
   }
 
@@ -46,11 +46,13 @@ public interface Icons {
 
   interface Chat {
     Icon ChatLeaf = IconLoader.getIcon("/icons/chat/chatLeaf.svg", Icons.class);
+    Icon Download = IconLoader.getIcon("/icons/chat/download.svg", Icons.class);
   }
 
   interface LLM {
     Icon Anthropic = IconLoader.getIcon("/icons/chat/llm/anthropic.svg", Icons.class);
     Icon OpenAI = IconLoader.getIcon("/icons/chat/llm/openai.svg", Icons.class);
     Icon Mistral = IconLoader.getIcon("/icons/chat/llm/mistral.svg", Icons.class);
+    Icon ProSticker = IconLoader.getIcon("/icons/chat/llm/pro_sticker.svg", Icons.class);
   }
 }

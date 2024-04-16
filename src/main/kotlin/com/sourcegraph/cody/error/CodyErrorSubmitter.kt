@@ -23,9 +23,7 @@ class CodyErrorSubmitter : ErrorReportSubmitter() {
     try {
       if (events.isNotEmpty()) {
         val event = events.first()
-        val error = getErrorDetails(event, additionalInfo)
-        val markdownText = CodyErrorFormatter.formatToMarkdown(error)
-        val url = encodeIssue(error.title, markdownText)
+        val url = getEncodedUrl(event.throwableText, additionalInfo)
         BrowserUtil.browse(url)
       }
     } catch (e: Exception) {
@@ -36,24 +34,43 @@ class CodyErrorSubmitter : ErrorReportSubmitter() {
     return true
   }
 
-  private fun getErrorDetails(event: IdeaLoggingEvent, additionalInfo: String?) =
-      CodyError(
-          title = trimPostfix("bug: " + event.throwableText.lines().first(), 128),
-          pluginVersion = pluginDescriptor?.version,
-          ideVersion = ApplicationInfo.getInstance().build.toString(),
-          additionalInfo = additionalInfo,
-          stacktrace = trimPostfix(event.throwableText, 6500)) // max length for gh links is 8192
+  public fun getEncodedUrl(throwableText: String, additionalInfo: String? = null): String {
+    return "https://github.com/sourcegraph/jetbrains/issues/new" +
+        "?template=bug_report.yml" +
+        "&labels=bug,team/jetbrains" +
+        "&projects=sourcegraph/381" +
+        "&title=${encode(getTitle(throwableText))}" +
+        "&version=${encode(getVersion())}" +
+        "&logs=${encode(formatLogs(throwableText, additionalInfo))}"
+  }
 
-  private fun encodeIssue(title: String, body: String): String =
-      "https://github.com/sourcegraph/jetbrains/issues/new" +
-          "?labels=bug" +
-          "&title=${encode(title)}" +
-          "&body=${encode(body)}"
+  private fun getTitle(throwableText: String): String {
+    val title = trimPostfix(throwableText.lines().first(), 128)
+    return "bug: $title"
+  }
 
-  private fun encode(text: String) = URLEncoder.encode(text, "UTF-8")
+  private fun getVersion() =
+      formatAttributes(
+          "Plugin version" to pluginDescriptor?.version,
+          "IDE version" to ApplicationInfo.getInstance().build.toString())
+
+  private fun formatLogs(throwableText: String, additionalInfo: String?) =
+      formatAttributes(
+          "Stacktrace" to trimPostfix(throwableText, 6500), // max total length is 8192
+          "Additional info" to additionalInfo)
 
   private fun trimPostfix(text: String, maxLength: Int): String {
-    val postfix = " (...)"
+    val postfix = "..."
     return if (text.length > maxLength) text.take(maxLength - postfix.length) + postfix else text
   }
+
+  private fun formatAttributes(vararg pairs: Pair<String, String?>) =
+      pairs
+          .flatMap { (key, value) -> value?.let { listOf(formatAttribute(key, it)) } ?: listOf() }
+          .joinToString("\n")
+
+  private fun formatAttribute(label: String, text: String) =
+      if (text.lines().size != 1) "$label:\n```text\n$text\n```" else "$label: ```$text```"
+
+  private fun encode(text: String) = URLEncoder.encode(text, "UTF-8")
 }

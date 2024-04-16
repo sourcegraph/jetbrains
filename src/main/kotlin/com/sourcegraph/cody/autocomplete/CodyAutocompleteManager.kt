@@ -16,20 +16,28 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.*
+import com.sourcegraph.cody.agent.protocol.AutocompleteItem
+import com.sourcegraph.cody.agent.protocol.AutocompleteParams
+import com.sourcegraph.cody.agent.protocol.AutocompleteResult
+import com.sourcegraph.cody.agent.protocol.AutocompleteTriggerKind
+import com.sourcegraph.cody.agent.protocol.CompletionItemParams
+import com.sourcegraph.cody.agent.protocol.ErrorCode
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
+import com.sourcegraph.cody.agent.protocol.SelectedCompletionInfo
 import com.sourcegraph.cody.autocomplete.render.AutocompleteRendererType
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteBlockElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteSingleLineRenderer
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil.getAllInlaysForEditor
 import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.statusbar.CodyAutocompleteStatus
-import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService.Companion.notifyApplication
-import com.sourcegraph.cody.statusbar.CodyAutocompleteStatusService.Companion.resetApplication
-import com.sourcegraph.cody.vscode.*
+import com.sourcegraph.cody.statusbar.CodyStatus
+import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.notifyApplication
+import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.resetApplication
+import com.sourcegraph.cody.vscode.CancellationToken
+import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
+import com.sourcegraph.cody.vscode.IntelliJTextDocument
 import com.sourcegraph.cody.vscode.Range
 import com.sourcegraph.cody.vscode.TextDocument
 import com.sourcegraph.common.UpgradeToCodyProNotification
@@ -45,7 +53,6 @@ import com.sourcegraph.utils.CodyFormatter
 import difflib.Delta
 import difflib.DiffUtils
 import difflib.Patch
-import java.nio.file.Paths
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
@@ -151,7 +158,8 @@ class CodyAutocompleteManager {
 
     val textDocument: TextDocument = IntelliJTextDocument(editor, project)
 
-    if (isTriggeredExplicitly && CodyAuthenticationManager.instance.hasNoActiveAccount(project)) {
+    if (isTriggeredExplicitly &&
+        CodyAuthenticationManager.getInstance(project).hasNoActiveAccount()) {
       HintManager.getInstance().showErrorHint(editor, "Cody: Sign in to use autocomplete")
       return
     }
@@ -203,14 +211,14 @@ class CodyAutocompleteManager {
     val params =
         if (lookupString.isNullOrEmpty())
             AutocompleteParams(
-                Paths.get(virtualFile.path).toUri().path,
+                virtualFile.url,
                 Position(position.line, position.character),
                 if (triggerKind == InlineCompletionTriggerKind.INVOKE)
                     AutocompleteTriggerKind.INVOKE.value
                 else AutocompleteTriggerKind.AUTOMATIC.value)
         else
             AutocompleteParams(
-                Paths.get(virtualFile.path).toUri().path,
+                virtualFile.url,
                 Position(position.line, position.character),
                 AutocompleteTriggerKind.AUTOMATIC.value,
                 SelectedCompletionInfo(
@@ -220,7 +228,7 @@ class CodyAutocompleteManager {
                         Range(
                             com.sourcegraph.cody.vscode.Position(lineNumber, startPosition),
                             position)))
-    notifyApplication(CodyAutocompleteStatus.AutocompleteInProgress)
+    notifyApplication(CodyStatus.AutocompleteInProgress)
 
     val resultOuter = CompletableFuture<Void?>()
     CodyAgentService.withAgent(project) { agent ->
@@ -256,7 +264,7 @@ class CodyAutocompleteManager {
               null
             }
             .completeOnTimeout(null, 3, TimeUnit.SECONDS)
-            .thenRun {
+            .thenRun { // This is a terminal operation, so we needn't call get().
               resetApplication(project)
               resultOuter.complete(null)
             }
@@ -268,13 +276,12 @@ class CodyAutocompleteManager {
 
   private fun handleError(project: Project, error: Throwable?) {
     if (error is ResponseErrorException) {
-      val errorCode = error.toErrorCode()
-      if (errorCode == ErrorCode.RateLimitError) {
+      if (error.toErrorCode() == ErrorCode.RateLimitError) {
         val rateLimitError = error.toRateLimitError()
         UpgradeToCodyProNotification.autocompleteRateLimitError.set(rateLimitError)
         UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = true
         ApplicationManager.getApplication().executeOnPooledThread {
-          UpgradeToCodyProNotification.notify(rateLimitError, project)
+          UpgradeToCodyProNotification.notify(error.toRateLimitError(), project)
           CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) { refreshMyAccountTab() }
         }
       }
@@ -307,7 +314,6 @@ class CodyAutocompleteManager {
       }
       cancellationToken.dispose()
       clearAutocompleteSuggestions(editor)
-
       // https://github.com/sourcegraph/jetbrains/issues/350
       // CodyFormatter.formatStringBasedOnDocument needs to be on a write action.
       WriteCommandAction.runWriteCommandAction(editor.project) {
@@ -322,6 +328,7 @@ class CodyAutocompleteManager {
    * The reason we have a custom code path to render hints for agent autocompletions is because we
    * can use `insertText` directly and the `range` encloses the entire line.
    */
+  @RequiresEdt
   fun displayAgentAutocomplete(
       editor: Editor,
       offset: Int,
@@ -330,32 +337,24 @@ class CodyAutocompleteManager {
       triggerKind: InlineCompletionTriggerKind,
   ) {
     val project = editor.project
-    if (project != null && System.getProperty("cody.autocomplete.enableFormatting") != "false") {
-      items.map { item ->
-        if (item.insertText.lines().size > 1) {
-          item.insertText =
-              item.insertText.lines()[0] +
-                  CodyFormatter.formatStringBasedOnDocument(
-                      item.insertText.lines().drop(1).joinToString(separator = "\n"),
-                      project,
-                      editor.document,
-                      offset)
-        }
-      }
-    }
-
     val defaultItem = items.firstOrNull() ?: return
     val range = getTextRange(editor.document, defaultItem.range)
     val originalText = editor.document.getText(range)
-    val lines = defaultItem.insertText.lines()
-    val insertTextFirstLine: String = lines.firstOrNull() ?: ""
-    val multilineInsertText: String = lines.drop(1).joinToString(separator = "\n")
 
-    // Run Myers diff between the existing text in the document and the first line of the
-    // `insertText` that is returned from the agent.
+    val formattedInsertText =
+        if (project == null ||
+            System.getProperty("cody.autocomplete.enableFormatting") == "false") {
+          defaultItem.insertText
+        } else {
+          CodyFormatter.formatStringBasedOnDocument(
+              defaultItem.insertText, project, editor.document, range, offset)
+        }
+
+    // Run Myers diff between the existing text in the document and the `insertText` that is
+    // returned from the agent.
     // The diff algorithm returns a list of "deltas" that give us the minimal number of additions we
     // need to make to the document.
-    val patch = diff(originalText, insertTextFirstLine)
+    val patch = diff(originalText, defaultItem.insertText)
     if (!patch.deltas.all { delta -> delta.type == Delta.TYPE.INSERT }) {
       if (triggerKind == InlineCompletionTriggerKind.INVOKE ||
           UserLevelConfig.isVerboseLoggingEnabled()) {
@@ -372,26 +371,36 @@ class CodyAutocompleteManager {
       }
     }
 
-    // Insert one inlay hint per delta in the first line.
-    for (delta in patch.deltas) {
-      val text = delta.revised.lines.joinToString("")
-      inlayModel.addInlineElement(
-          range.startOffset + delta.original.position,
-          true,
-          CodyAutocompleteSingleLineRenderer(text, items, editor, AutocompleteRendererType.INLINE))
-    }
+    defaultItem.insertText = formattedInsertText
+    val cursorPositionInOriginalText = offset - range.startOffset
+    val originalTextBeforeCursor = originalText.substring(0, cursorPositionInOriginalText)
+    val originalTextAfterCursor = originalText.substring(cursorPositionInOriginalText)
+    val completionText =
+        formattedInsertText
+            .removePrefix(originalTextBeforeCursor)
+            .removeSuffix(originalTextAfterCursor)
+    if (completionText.trim().isBlank()) return
 
-    // Insert remaining lines of multiline completions as a single block element under the
-    // (potentially false?) assumption that we don't need to compute diffs for them. My
-    // understanding of multiline completions is that they are only supposed to be triggered in
-    // situations where we insert a large block of code in an empty block.
-    if (multilineInsertText.isNotEmpty()) {
+    val lineBreaks = listOf("\r\n", "\n", "\r")
+    val startsInline = lineBreaks.none { separator -> completionText.startsWith(separator) }
+
+    if (startsInline) {
+      val renderer =
+          CodyAutocompleteSingleLineRenderer(
+              completionText.lines().first(), items, editor, AutocompleteRendererType.INLINE)
+      inlayModel.addInlineElement(offset, /* relatesToPrecedingText = */ true, renderer)
+    }
+    val lines = completionText.lines()
+    if (lines.size > 1) {
+      val text =
+          (if (startsInline) lines.drop(1) else lines).dropWhile { it.isBlank() }.joinToString("\n")
+      val renderer = CodyAutocompleteBlockElementRenderer(text, items, editor)
       inlayModel.addBlockElement(
-          offset,
-          true,
-          false,
-          Int.MAX_VALUE,
-          CodyAutocompleteBlockElementRenderer(multilineInsertText, items, editor))
+          /* offset = */ offset,
+          /* relatesToPrecedingText = */ true,
+          /* showAbove = */ false,
+          /* priority = */ Int.MAX_VALUE,
+          /* renderer = */ renderer)
     }
   }
 
@@ -412,7 +421,7 @@ class CodyAutocompleteManager {
 
   private fun cancelCurrentJob(project: Project?) {
     currentJob.get().abort()
-    resetApplication(project!!)
+    project?.let { resetApplication(it) }
   }
 
   companion object {

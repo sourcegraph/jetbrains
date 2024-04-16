@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.chat.ui
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.ui.ColorUtil
 import com.intellij.util.ui.SwingHelper
@@ -8,8 +9,14 @@ import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.attribution.AttributionListener
 import com.sourcegraph.cody.attribution.AttributionSearchCommand
-import com.sourcegraph.cody.chat.*
+import com.sourcegraph.cody.chat.ChatSession
+import com.sourcegraph.cody.chat.CodeEditorFactory
+import com.sourcegraph.cody.chat.MessageContentCreatorFromMarkdownNodes
+import com.sourcegraph.cody.chat.extractCodeAndLanguage
+import com.sourcegraph.cody.chat.findNodeAfterLastCodeBlock
+import com.sourcegraph.cody.chat.isCodeBlock
 import com.sourcegraph.cody.ui.HtmlViewer.createHtmlViewer
+import com.sourcegraph.telemetry.GraphQlLogger
 import java.awt.Color
 import javax.swing.JEditorPane
 import javax.swing.JPanel
@@ -26,22 +33,29 @@ class SingleMessagePanel(
     private val chatSession: ChatSession,
 ) : PanelWithGradientBorder(gradientWidth, chatMessage.speaker) {
   private var lastMessagePart: MessagePart? = null
+  private var lastTrimmedText = ""
 
   init {
     val markdownNodes: Node = markdownParser.parse(chatMessage.actualMessage())
     markdownNodes.accept(MessageContentCreatorFromMarkdownNodes(this, htmlRenderer))
   }
 
-  fun updateContentWith(message: ChatMessage) {
-    val markdownNodes = markdownParser.parse(message.actualMessage())
-    val lastMarkdownNode = markdownNodes.lastChild
-    if (lastMarkdownNode != null && lastMarkdownNode.isCodeBlock()) {
-      val (code, language) = lastMarkdownNode.extractCodeAndLanguage()
-      addOrUpdateCode(code, language)
-    } else {
-      val nodesAfterLastCodeBlock = markdownNodes.findNodeAfterLastCodeBlock()
-      val renderedHtml = htmlRenderer.render(nodesAfterLastCodeBlock)
-      addOrUpdateText(renderedHtml)
+  fun updateContentWith(text: String) {
+    val trimmedText = text.trimEnd { c -> c == '`' || c.isWhitespace() }
+    val isGrowing =
+        trimmedText.contains(lastTrimmedText) && trimmedText.length > lastTrimmedText.length
+    if (isGrowing) {
+      lastTrimmedText = trimmedText
+      val markdownNodes = markdownParser.parse(text)
+      val lastMarkdownNode = markdownNodes.lastChild
+      if (lastMarkdownNode != null && lastMarkdownNode.isCodeBlock()) {
+        val (code, language) = lastMarkdownNode.extractCodeAndLanguage()
+        addOrUpdateCode(code, language)
+      } else {
+        val nodesAfterLastCodeBlock = markdownNodes.findNodeAfterLastCodeBlock()
+        val renderedHtml = htmlRenderer.render(nodesAfterLastCodeBlock)
+        addOrUpdateText(renderedHtml)
+      }
     }
   }
 
@@ -104,9 +118,13 @@ class SingleMessagePanel(
   fun onPartFinished() {
     val lastPart = lastMessagePart
     if (lastPart is CodeEditorPart) {
-      chatSession.getSessionId()?.let { sessionId ->
+      chatSession.getConnectionId()?.let { connectionId ->
         val listener = AttributionListener.UiThreadDecorator(lastPart.attribution)
-        AttributionSearchCommand(project).onSnippetFinished(lastPart.text, sessionId, listener)
+        AttributionSearchCommand(project).onSnippetFinished(lastPart.text, connectionId, listener)
+      }
+
+      ApplicationManager.getApplication().executeOnPooledThread {
+        GraphQlLogger.logCodeGenerationEvent(project, "chatResponse", "hasCode", lastPart.text)
       }
     }
   }

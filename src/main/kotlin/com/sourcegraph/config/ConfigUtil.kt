@@ -18,9 +18,8 @@ import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
-import java.util.stream.Collectors
 import org.jetbrains.annotations.Contract
+import org.jetbrains.annotations.VisibleForTesting
 
 object ConfigUtil {
   const val DOTCOM_URL = "https://sourcegraph.com/"
@@ -28,6 +27,33 @@ object ConfigUtil {
   const val CODY_DISPLAY_NAME = "Cody"
   const val CODE_SEARCH_DISPLAY_NAME = "Code Search"
   const val SOURCEGRAPH_DISPLAY_NAME = "Sourcegraph"
+  private const val FEATURE_FLAGS_ENV_VAR = "CODY_JETBRAINS_FEATURES"
+
+  private val featureFlags: Map<String, Boolean> by lazy {
+    parseFeatureFlags(System.getenv(FEATURE_FLAGS_ENV_VAR))
+  }
+
+  @VisibleForTesting
+  fun parseFeatureFlags(envVarValue: String?): Map<String, Boolean> {
+    return envVarValue
+        ?.split(',')
+        ?.mapNotNull { it.trim().split('=').takeIf { pair -> pair.size == 2 } }
+        ?.associate { (key, value) -> key.trim() to value.trim().toBoolean() } ?: emptyMap()
+  }
+
+  /**
+   * Returns true if the specified feature flag is enabled. Feature flags are currently set in the
+   * environment variable CODY_JETBRAINS_FEATURES. The format is
+   * CODY_JETBRAINS_FEATURES=cody.feature.1=true,cody.feature.2=false. The value should be unquoted
+   * in your run configuration, but quoted in the env var; e.g.,
+   * ```
+   * export CODY_JETBRAINS_FEATURES="cody.feature.1=true,cody.feature.2=false"
+   * ```
+   *
+   * @param flagName The name of the feature flag
+   * @return true if the feature flag is enabled, false otherwise
+   */
+  @JvmStatic fun isFeatureFlagEnabled(flagName: String) = featureFlags.getOrDefault(flagName, false)
 
   @JvmStatic
   fun getAgentConfiguration(project: Project): ExtensionConfiguration {
@@ -46,6 +72,7 @@ object ConfigUtil {
         debug = isCodyDebugEnabled(),
         verboseDebug = isCodyVerboseDebugEnabled(),
         codebase = CodyAgentCodebase.getInstance(project).getUrl().getNow(null),
+        customConfiguration = getCustomConfiguration(),
     )
   }
 
@@ -63,7 +90,7 @@ object ConfigUtil {
 
   @JvmStatic
   fun getServerPath(project: Project): SourcegraphServerPath {
-    val activeAccount = CodyAuthenticationManager.instance.getActiveAccount(project)
+    val activeAccount = CodyAuthenticationManager.getInstance(project).getActiveAccount()
     return activeAccount?.server ?: from(DOTCOM_URL, "")
   }
 
@@ -78,6 +105,16 @@ object ConfigUtil {
       i += 2
     }
     return result
+  }
+
+  @JvmStatic fun shouldConnectToDebugAgent() = System.getenv("CODY_AGENT_DEBUG_REMOTE") == "true"
+
+  @JvmStatic
+  fun getCustomConfiguration(): Map<String, String> {
+    // Needed by Edit commands to trigger smart-selection; without it things break.
+    // So it isn't optional in JetBrains clients, which do not offer language-neutral solutions
+    // to this problem; instead we hardwire it to use the indentation-based provider.
+    return mapOf("cody.experimental.foldingRanges" to "indentation-based")
   }
 
   @JvmStatic
@@ -123,13 +160,12 @@ object ConfigUtil {
   @JvmStatic
   fun getAllEditors(): List<Editor> {
     val openProjects = ProjectManager.getInstance().openProjects
-    return Arrays.stream(openProjects)
-        .flatMap { project: Project? ->
-          Arrays.stream(FileEditorManager.getInstance(project!!).allEditors)
-        }
-        .filter { fileEditor: FileEditor? -> fileEditor is TextEditor }
+    return openProjects
+        .toList()
+        .flatMap { project: Project -> FileEditorManager.getInstance(project).allEditors.toList() }
+        .filterIsInstance<TextEditor>()
         .map { fileEditor: FileEditor -> (fileEditor as TextEditor).editor }
-        .collect(Collectors.toList())
+        .toList()
   }
 
   @JvmStatic

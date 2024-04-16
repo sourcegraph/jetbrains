@@ -1,25 +1,21 @@
 package com.sourcegraph.cody.chat.ui
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.PromptPanel
-import com.sourcegraph.cody.agent.CodyAgent
-import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ChatModelsParams
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
+import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
+import com.sourcegraph.cody.agent.protocol.ModelUsage
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.ui.EnhancedContextPanel
-import com.sourcegraph.cody.ui.ChatModel
+import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.ui.ChatScrollPane
-import com.sourcegraph.cody.ui.CodyModelComboboxItem
-import com.sourcegraph.cody.ui.CodyModelComboboxRenderer
 import com.sourcegraph.cody.vscode.CancellationToken
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -28,11 +24,19 @@ import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JPanel
 
-class ChatPanel(project: Project, chatSession: ChatSession) :
-    JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
+class ChatPanel(
+    val project: Project,
+    val chatSession: ChatSession,
+    chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?
+) : JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
 
   val promptPanel: PromptPanel = PromptPanel(project, chatSession)
-  val modelDropdown = ComboBox<CodyModelComboboxItem>()
+  private val llmDropdown =
+      LlmDropdown(
+          ModelUsage.CHAT,
+          project,
+          onSetSelectedItem = ::setLlmForAgentSession,
+          chatModelProviderFromState)
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)
 
@@ -57,74 +61,29 @@ class ChatPanel(project: Project, chatSession: ChatSession) :
     lowerPanel.add(stopGeneratingButton)
     lowerPanel.add(promptPanel)
     lowerPanel.add(contextView)
+
+    val wrapper = JPanel()
+    wrapper.add(llmDropdown)
+    wrapper.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 12, 12, true, false)
+
     add(lowerPanel, BorderLayout.SOUTH)
+    add(wrapper, BorderLayout.NORTH)
   }
 
-  fun addModelDropdown(project: Project, sessionId: String, selectedModel: ChatModel?) {
-    CodyAgentService.withAgent(project) { agent ->
-      val activeAccountType = CodyAuthenticationManager.instance.getActiveAccount(project)
-      // Display available model for Enterprise user without possibility to change
-      if (activeAccountType != null && !activeAccountType.isDotcomAccount()) {
-        addAllAvailableModelsToTheDropdown(agent, sessionId)
-        ApplicationManager.getApplication().invokeLater { modelDropdown.isEnabled = false }
-      } else {
-        agent.server.isCurrentUserPro().thenApplyAsync { isUserPro ->
-          agent.server.evaluateFeatureFlag(GetFeatureFlag.CodyProTrialEnded).thenApplyAsync {
-              trialEnded ->
-            if (isUserPro && !trialEnded!!) {
-              if (selectedModel == null) {
-                addAllAvailableModelsToTheDropdown(agent, sessionId)
-              } else {
-                // Here we handle adding model to the dropdown from state
-                ApplicationManager.getApplication().invokeLater {
-                  addEmptyModelDropdownWithRenderer()
-                  modelDropdown.addItem(
-                      CodyModelComboboxItem(selectedModel.icon, selectedModel.displayName))
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private fun addAllAvailableModelsToTheDropdown(agent: CodyAgent, sessionId: String) {
-    val chatModels = agent.server.chatModels(ChatModelsParams(sessionId))
-    chatModels.thenApplyAsync { response ->
-      addEmptyModelDropdownWithRenderer()
-      response.models.forEach { modelProvider ->
-        val model = ChatModel.fromAgentName(modelProvider.model)
-        ApplicationManager.getApplication().invokeLater {
-          modelDropdown.addItem(
-              CodyModelComboboxItem(
-                  model.icon,
-                  if (model == ChatModel.UNKNOWN_MODEL) modelProvider.model else model.displayName))
-        }
-      }
-    }
-  }
-
-  private fun addEmptyModelDropdownWithRenderer() {
-    ApplicationManager.getApplication().invokeLater {
-      modelDropdown.setRenderer(CodyModelComboboxRenderer())
-      add(modelDropdown, BorderLayout.NORTH)
-    }
+  fun setAsActive() {
+    contextView.setContextFromThisChatAsDefault()
+    promptPanel.focus()
   }
 
   fun isEnhancedContextEnabled(): Boolean = contextView.isEnhancedContextEnabled.get()
 
   @RequiresEdt
-  fun addOrUpdateMessage(
-      message: ChatMessage,
-      index: Int,
-      shouldAddBlinkingCursor: Boolean = true
-  ) {
+  fun addOrUpdateMessage(message: ChatMessage, index: Int) {
     if (messagesPanel.componentCount == 1) {
-      modelDropdown.isEnabled = false
+      llmDropdown.updateAfterFirstMessage()
+      promptPanel.updateEmptyTextAfterFirstMessage()
     }
-    promptPanel.updateEmptyTextAfterFirstMessage()
-    messagesPanel.addOrUpdateMessage(message, index, shouldAddBlinkingCursor)
+    messagesPanel.addOrUpdateMessage(message, index)
   }
 
   @RequiresEdt
@@ -139,5 +98,19 @@ class ChatPanel(project: Project, chatSession: ChatSession) :
       stopGeneratingButton.removeActionListener(listener)
     }
     stopGeneratingButton.addActionListener { cancellationToken.abort() }
+  }
+
+  private fun setLlmForAgentSession(chatModelProvider: ChatModelsResponse.ChatModelProvider) {
+    val activeAccountType = CodyAuthenticationManager.getInstance(project).getActiveAccount()
+    if (activeAccountType?.isEnterpriseAccount() == true) {
+      // no need to send the webview message since the chat model is set by default
+    } else {
+      chatSession.sendWebviewMessage(
+          WebviewMessage(command = "chatModel", model = chatModelProvider.model))
+    }
+
+    HistoryService.getInstance(project)
+        .updateChatLlmProvider(
+            chatSession.getInternalId(), LLMState.fromChatModel(chatModelProvider))
   }
 }

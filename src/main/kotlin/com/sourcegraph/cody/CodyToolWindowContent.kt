@@ -1,10 +1,9 @@
 package com.sourcegraph.cody
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.intellij.ui.components.JBTabbedPane
+import com.intellij.ui.TabbedPaneWrapper
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.jetbrains.rd.util.AtomicReference
@@ -18,11 +17,11 @@ import com.sourcegraph.cody.commands.ui.CommandsTabPanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.history.ChatHistoryPanel
 import com.sourcegraph.cody.history.HistoryService
-import com.sourcegraph.cody.history.HistoryTree
 import com.sourcegraph.cody.history.state.ChatState
 import java.awt.CardLayout
-import java.awt.Component
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.border.Border
 
@@ -33,8 +32,9 @@ class CodyToolWindowContent(private val project: Project) {
 
   private var codyOnboardingGuidancePanel: CodyOnboardingGuidancePanel? = null
   private val signInWithSourcegraphPanel = SignInWithSourcegraphPanel(project)
-  private val historyTree = HistoryTree(project, ::selectChat, ::removeChat, ::removeAllChats)
-  private val tabbedPane = JBTabbedPane()
+  private val chatHistoryPanel =
+      ChatHistoryPanel(project, ::selectChat, ::removeChat, ::removeAllChats)
+  private val tabbedPane = TabbedPaneWrapper(CodyAgentService.getInstance(project))
   private val currentChatSession: AtomicReference<AgentChatSession?> = AtomicReference(null)
 
   private val chatContainerPanel =
@@ -51,14 +51,14 @@ class CodyToolWindowContent(private val project: Project) {
         }
       }
 
-  private val myAccountPanel = MyAccountTabPanel()
+  private val myAccountPanel = MyAccountTabPanel(project)
 
   init {
     tabbedPane.insertSimpleTab("Chat", chatContainerPanel, CHAT_TAB_INDEX)
-    tabbedPane.insertSimpleTab("Chat History", historyTree, HISTORY_TAB_INDEX)
+    tabbedPane.insertSimpleTab("Chat History", chatHistoryPanel, HISTORY_TAB_INDEX)
     tabbedPane.insertSimpleTab("Commands", commandsPanel, COMMANDS_TAB_INDEX)
 
-    allContentPanel.add(tabbedPane, MAIN_PANEL, CHAT_PANEL_INDEX)
+    allContentPanel.add(tabbedPane.component, MAIN_PANEL, CHAT_PANEL_INDEX)
     allContentPanel.add(signInWithSourcegraphPanel, SIGN_IN_PANEL, SIGN_IN_PANEL_INDEX)
     allContentLayout.show(allContentPanel, SIGN_IN_PANEL)
 
@@ -75,6 +75,7 @@ class CodyToolWindowContent(private val project: Project) {
   fun switchToChatSession(chatSession: AgentChatSession, showChatWindow: Boolean = true) {
     UIUtil.invokeLaterIfNeeded {
       currentChatSession.getAndSet(chatSession)
+      currentChatSession.get()?.getPanel()?.setAsActive()
       chatContainerPanel.removeAll()
       chatContainerPanel.add(chatSession.getPanel())
       if (showChatWindow) tabbedPane.selectedIndex = CHAT_TAB_INDEX
@@ -83,39 +84,32 @@ class CodyToolWindowContent(private val project: Project) {
 
   fun focusOnChat() {
     tabbedPane.selectedIndex = CHAT_TAB_INDEX
-    currentChatSession.get()?.getPanel()?.promptPanel?.focus()
+    currentChatSession.get()?.getPanel()?.setAsActive()
   }
 
   fun refreshMyAccountTab() {
-    CodyAgentService.withAgent(project) { agent ->
-      fetchMyAccountPanelData(project, agent.server).thenApply { data ->
-        if (data != null) {
-          ApplicationManager.getApplication().invokeLater {
-            val isMyAccountTabVisible = tabbedPane.tabCount > MY_ACCOUNT_TAB_INDEX
-            if (data.isDotcomAccount && data.codyProFeatureFlag) {
-              if (!isMyAccountTabVisible) {
-                tabbedPane.insertSimpleTab("My Account", myAccountPanel, MY_ACCOUNT_TAB_INDEX)
-              }
-              myAccountPanel.update(data.isCurrentUserPro)
-            } else if (isMyAccountTabVisible) {
-              tabbedPane.remove(MY_ACCOUNT_TAB_INDEX)
-            }
-          }
-        }
+    val isMyAccountTabVisible = tabbedPane.tabCount > MY_ACCOUNT_TAB_INDEX
+    if (CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ==
+        true) {
+      if (!isMyAccountTabVisible) {
+        tabbedPane.insertSimpleTab("My Account", myAccountPanel, MY_ACCOUNT_TAB_INDEX)
       }
+      myAccountPanel.update()
+    } else if (isMyAccountTabVisible) {
+      tabbedPane.removeTabAt(MY_ACCOUNT_TAB_INDEX)
     }
   }
 
-  @RequiresEdt fun refreshHistoryTree() = historyTree.rebuildTree()
+  @RequiresEdt fun refreshChatHistoryPanel() = chatHistoryPanel.rebuildTree()
 
   @RequiresEdt
   fun refreshPanelsVisibility() {
-    val codyAuthenticationManager = CodyAuthenticationManager.instance
+    val codyAuthenticationManager = CodyAuthenticationManager.getInstance(project)
     if (codyAuthenticationManager.getAccounts().isEmpty()) {
       allContentLayout.show(allContentPanel, SIGN_IN_PANEL)
       return
     }
-    val activeAccount = codyAuthenticationManager.getActiveAccount(project)
+    val activeAccount = codyAuthenticationManager.getActiveAccount()
     if (!CodyApplicationSettings.instance.isOnboardingGuidanceDismissed) {
       val displayName = activeAccount?.let(CodyAccount::displayName)
       val newCodyOnboardingGuidancePanel = CodyOnboardingGuidancePanel(displayName)
@@ -189,7 +183,10 @@ class CodyToolWindowContent(private val project: Project) {
       }
     }
 
-    private fun JBTabbedPane.insertSimpleTab(title: String, component: Component, index: Int) =
-        insertTab(title, /* icon = */ null, component, /* tip = */ null, index)
+    private fun TabbedPaneWrapper.insertSimpleTab(
+        title: String,
+        component: JComponent,
+        index: Int
+    ) = insertTab(title, /* icon = */ null, component, /* tip = */ null, index)
   }
 }

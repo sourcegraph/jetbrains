@@ -10,18 +10,21 @@ import com.intellij.util.Alarm
 import com.sourcegraph.cody.config.DialogValidationUtils
 import com.sourcegraph.cody.context.RemoteRepoUtils
 import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.vcs.CodebaseName
 import com.sourcegraph.vcs.convertGitCloneURLToCodebaseNameOrError
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
-import java.net.URL
 import java.util.concurrent.TimeUnit
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
 import org.jetbrains.annotations.NotNull
 
-class AddRepositoryDialog(private val project: Project, private val addAction: (String) -> Unit) :
-    DialogWrapper(project) {
+class AddRepositoryDialog(
+    private val project: Project,
+    private val remoteContextNode: ContextTreeRemoteRootNode,
+    private val addAction: (CodebaseName) -> Unit
+) : DialogWrapper(project) {
 
   private val repoUrlInputField = TextFieldWithAutoCompletion.create(project, listOf(), false, null)
 
@@ -32,37 +35,62 @@ class AddRepositoryDialog(private val project: Project, private val addAction: (
     setValidationDelay(100)
   }
 
+  private var validatedInput: String? = null
+  private var validatedRepoName: CodebaseName? = null
+
+  /**
+   * Converts [rawInput] to a repo name. If a matching remote repository exists, returns the repo
+   * name, otherwise `null`.
+   */
+  @Synchronized
+  fun validateRepoExists(rawInput: String): CodebaseName? {
+    if (rawInput == validatedInput) {
+      // We have a cached result.
+      return validatedRepoName
+    }
+    val candidates =
+        listOfNotNull(
+            CodebaseName(rawInput),
+            runCatching { convertGitCloneURLToCodebaseNameOrError(rawInput) }.getOrNull())
+    val repos =
+        RemoteRepoUtils.getRepositories(project, candidates)
+            .completeOnTimeout(emptyList(), 15, TimeUnit.SECONDS)
+            .get()
+    validatedInput = rawInput
+    validatedRepoName = repos.firstOrNull()?.let { CodebaseName(it.name) }
+    return validatedRepoName
+  }
+
   override fun doValidateAll(): List<ValidationInfo> {
+    val text = repoUrlInputField.text
+
     fun validateNonEmpty() =
         DialogValidationUtils.custom(
             repoUrlInputField,
             CodyBundle.getString("context-panel.add-repo-dialog.error-empty-url")) {
-              repoUrlInputField.text.isNotBlank()
-            }
-
-    fun validateValidUrl() =
-        DialogValidationUtils.custom(
-            repoUrlInputField,
-            CodyBundle.getString("context-panel.add-repo-dialog.error-invalid-url")) {
-              val url =
-                  if (repoUrlInputField.text.startsWith("http")) repoUrlInputField.text
-                  else "http://" + repoUrlInputField.text
-              runCatching { URL(url) }.isSuccess
+              text.isNotBlank()
             }
 
     fun validateRepoExists() =
         DialogValidationUtils.custom(
             repoUrlInputField,
             CodyBundle.getString("context-panel.add-repo-dialog.error-no-repo")) {
-              val codebaseName = convertGitCloneURLToCodebaseNameOrError(repoUrlInputField.text)
-              val repo =
-                  RemoteRepoUtils.getRepository(project, codebaseName)
-                      .completeOnTimeout(null, 2, TimeUnit.SECONDS)
-                      .get()
-              repo != null
+              validateRepoExists(text) != null
             }
 
-    return listOfNotNull(validateNonEmpty() ?: validateValidUrl() ?: validateRepoExists())
+    fun validateRepoNotAddedYet() =
+        DialogValidationUtils.custom(
+            repoUrlInputField,
+            CodyBundle.getString("context-panel.add-repo-dialog.error-repo-already-added")) {
+              val codebaseName = runCatching { validateRepoExists(text) }.getOrNull()
+              remoteContextNode
+                  .children()
+                  .toList()
+                  .filterIsInstance<ContextTreeRemoteRepoNode>()
+                  .none { it.codebaseName == codebaseName }
+            }
+
+    return listOfNotNull(validateNonEmpty() ?: validateRepoExists() ?: validateRepoNotAddedYet())
   }
 
   override fun getValidationThreadToUse(): Alarm.ThreadToUse {
@@ -70,7 +98,10 @@ class AddRepositoryDialog(private val project: Project, private val addAction: (
   }
 
   override fun doOKAction() {
-    addAction(repoUrlInputField.text)
+    // validateRepoExists caches the validation result, so this should not fail.
+    runCatching { validateRepoExists(repoUrlInputField.text) }
+        .getOrNull()
+        ?.let { codebaseName -> addAction(codebaseName) }
     close(OK_EXIT_CODE, true)
   }
 

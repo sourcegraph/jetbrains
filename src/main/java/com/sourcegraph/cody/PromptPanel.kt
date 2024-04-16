@@ -6,14 +6,14 @@ import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.WebviewMessage
-import com.sourcegraph.cody.agent.protocol.ContextFile
+import com.sourcegraph.cody.agent.protocol.ContextItem
+import com.sourcegraph.cody.agent.protocol.ContextItemFile
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.chat.CodyChatMessageHistory
 import com.sourcegraph.cody.chat.ui.SendButton
@@ -22,12 +22,12 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import java.awt.Dimension
 import java.awt.event.*
-import java.io.File
-import javax.swing.*
+import javax.swing.DefaultListModel
+import javax.swing.JLayeredPane
+import javax.swing.KeyStroke
 import javax.swing.border.EmptyBorder
 import javax.swing.event.AncestorEvent
 import javax.swing.event.AncestorListener
-import javax.swing.event.DocumentEvent
 
 class PromptPanel(project: Project, private val chatSession: ChatSession) : JLayeredPane() {
 
@@ -41,7 +41,7 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
   private val contextFilesContainer = JBScrollPane(contextFilesListView)
 
   /** Externally updated state */
-  private val selectedContextFiles: ArrayList<ContextFile> = ArrayList()
+  private val selectedContextItems: ArrayList<ContextItem> = ArrayList()
 
   /** Related components */
   private val promptMessageHistory =
@@ -81,26 +81,16 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
     addComponentListener(
         object : ComponentAdapter() {
           override fun componentResized(e: ComponentEvent?) {
-            // HACK
-            val jButtonPreferredSize = sendButton.preferredSize
-            sendButton.setBounds(
-                scrollPane.width - jButtonPreferredSize.width,
-                scrollPane.height - jButtonPreferredSize.height,
-                jButtonPreferredSize.width,
-                jButtonPreferredSize.height)
-            refreshViewLayout()
+            revalidate()
           }
         })
 
     // Add user action listeners
     sendButton.addActionListener { _ -> didSubmitChatMessage() }
-    textArea.document.addDocumentListener(
-        object : DocumentAdapter() {
-          override fun textChanged(e: DocumentEvent) {
-            refreshSendButton()
-            didUserInputChange(textArea.text)
-          }
-        })
+    textArea.addCaretListener {
+      refreshSendButton()
+      didUserInputChange()
+    }
     contextFilesListView.addMouseListener(
         object : MouseAdapter() {
           override fun mouseClicked(e: MouseEvent) {
@@ -117,6 +107,8 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
           }
           .registerCustomShortcutSet(shortcut, textArea)
     }
+
+    revalidate()
   }
 
   fun focus() = textArea.requestFocusInWindow()
@@ -140,13 +132,13 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
 
   /** View handlers */
   private fun didSubmitChatMessage() {
-    val cf = findContextFiles(selectedContextFiles, textArea.text)
+    val cf = findContextFiles(selectedContextItems, textArea.text)
     val text = textArea.text
 
     // Reset text
     promptMessageHistory.messageSent(text)
     textArea.text = ""
-    selectedContextFiles.clear()
+    selectedContextItems.clear()
 
     chatSession.sendMessage(text, cf)
   }
@@ -155,27 +147,27 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
     if (contextFilesListView.selectedIndex == -1) return
 
     val selected = contextFilesListView.model.getElementAt(contextFilesListView.selectedIndex)
-    this.selectedContextFiles.add(selected.contextFile)
-    val cfDisplayPath = selected.toString()
-    val expr = findAtExpressions(textArea.text).lastOrNull() ?: return
+    this.selectedContextItems.add(selected.contextItem)
+    val cfDisplayPath = selected.contextItem.displayPath()
+    val expr =
+        findAtExpressions(textArea.text).find { it.endIndex == textArea.caretPosition } ?: return
 
     textArea.replaceRange("@${cfDisplayPath} ", expr.startIndex, expr.endIndex)
 
     setContextFilesSelector(listOf())
-    refreshViewLayout()
+    revalidate()
   }
 
-  private fun didUserInputChange(text: String) {
-    val exp = findAtExpressions(text).lastOrNull()
-    if (exp == null ||
-        exp.endIndex <
-            text.length) { // TODO(beyang): instead of text.length, should be current cursor index
+  private fun didUserInputChange() {
+    val exp = findAtExpressions(textArea.text).find { it.endIndex == textArea.caretPosition }
+    if (exp == null) {
       setContextFilesSelector(listOf())
-      refreshViewLayout()
+      revalidate()
       return
     }
+    val expTrimmed = exp.value.removePrefix("...")
     this.chatSession.sendWebviewMessage(
-        WebviewMessage(command = "getUserContext", submitType = "user", query = exp.value))
+        WebviewMessage(command = "getUserContext", submitType = "user", query = expTrimmed))
   }
 
   /** State updaters */
@@ -186,12 +178,12 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
       newSelectedIndex += contextFilesListView.model.size
     }
     contextFilesListView.selectedIndex = newSelectedIndex
-    refreshViewLayout()
+    revalidate()
   }
 
-  /** View updaters */
-  @RequiresEdt
-  private fun refreshViewLayout() {
+  override fun revalidate() {
+    super.revalidate()
+
     // get the height of the context files list based on font height and number of context files
     val contextFilesContainerHeight =
         if (contextFilesListViewModel.isEmpty) 0 else contextFilesListView.preferredSize.height + 2
@@ -202,14 +194,15 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
       contextFilesContainer.isVisible = true
     }
 
-    scrollPane.setBounds(0, contextFilesContainerHeight, width, scrollPane.preferredSize.height)
     preferredSize = Dimension(scrollPane.width, scrollPane.height + contextFilesContainerHeight)
 
-    sendButton.setLocation(
-        scrollPane.width - sendButton.preferredSize.width,
-        scrollPane.height + contextFilesContainerHeight - sendButton.preferredSize.height)
+    sendButton.setBounds(
+        preferredSize.width - sendButton.preferredSize.width,
+        preferredSize.height - sendButton.preferredSize.height,
+        sendButton.preferredSize.width,
+        sendButton.preferredSize.height)
 
-    revalidate()
+    scrollPane.setBounds(0, contextFilesContainerHeight, width, scrollPane.preferredSize.height)
   }
 
   @RequiresEdt
@@ -226,20 +219,20 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
   }
 
   @RequiresEdt
-  fun setContextFilesSelector(newUserContextFiles: List<ContextFile>) {
-    val changed = contextFilesListViewModel.elements().toList() != newUserContextFiles
+  fun setContextFilesSelector(newUserContextItems: List<ContextItem>) {
+    val changed = contextFilesListViewModel.elements().toList() != newUserContextItems
     if (changed) {
       val newModel = DefaultListModel<DisplayedContextFile>()
-      newModel.addAll(newUserContextFiles.map { f -> DisplayedContextFile(f) })
+      newModel.addAll(newUserContextItems.map { f -> DisplayedContextFile(f) })
       contextFilesListView.model = newModel
       contextFilesListViewModel = newModel
 
-      if (newUserContextFiles.isNotEmpty()) {
+      if (newUserContextItems.isNotEmpty()) {
         contextFilesListView.selectedIndex = 0
       } else {
         contextFilesListView.selectedIndex = -1
       }
-      refreshViewLayout()
+      revalidate()
     }
   }
 
@@ -258,12 +251,41 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
     val UP = CustomShortcutSet(KEY_UP)
     val DOWN = CustomShortcutSet(KEY_DOWN)
     val TAB = CustomShortcutSet(KEY_TAB)
+
+    private val atExpressionPattern = """(@(?:\\\s|\S)*)(?:\s|$)""".toRegex()
+
+    fun findAtExpressions(text: String): List<AtExpression> {
+      val matches = atExpressionPattern.findAll(text)
+      val expressions = ArrayList<AtExpression>()
+      for (match in matches) {
+        val mainMatch = match.groups[0] ?: continue
+        val prevIndex = mainMatch.range.first - 1
+        // filter out things like email addresses
+        if (prevIndex >= 0 && !text[prevIndex].isWhitespace()) continue
+
+        val subMatch = match.groups[1]
+        if (subMatch != null) {
+          val value = subMatch.value.substring(1).replace("\\ ", " ")
+          expressions.add(
+              AtExpression(subMatch.range.first, subMatch.range.last + 1, subMatch.value, value))
+        }
+      }
+      return expressions
+    }
+
+    private fun findContextFiles(contextItems: List<ContextItem>, text: String): List<ContextItem> {
+      val atExpressions = findAtExpressions(text)
+      return contextItems.filter { f -> atExpressions.any { it.value == f.displayPath() } }
+    }
   }
 }
 
-data class DisplayedContextFile(val contextFile: ContextFile) {
+data class DisplayedContextFile(val contextItem: ContextItem) {
   override fun toString(): String {
-    return displayPath(contextFile)
+    val contextItemFile = contextItem as? ContextItemFile
+    val isTooLarge = contextItemFile?.title == "large-file" || contextItemFile?.isTooLarge == true
+    val warnIfNeeded = if (isTooLarge) "<i> - ⚠ File too large</i>" else ""
+    return "<html>${contextItem.displayPath()}$warnIfNeeded</html>"
   }
 }
 
@@ -273,41 +295,3 @@ data class AtExpression(
     val rawValue: String,
     val value: String
 )
-
-val atExpressionPattern = """(@(?:\\\s|\S)*)(?:\s|$)""".toRegex()
-
-fun findAtExpressions(text: String): List<AtExpression> {
-  val matches = atExpressionPattern.findAll(text)
-  val expressions = ArrayList<AtExpression>()
-  for (match in matches) {
-    val mainMatch = match.groups[0] ?: continue
-    val prevIndex = mainMatch.range.first - 1
-    // filter out things like email addresses
-    if (prevIndex >= 0 && !text[prevIndex].isWhitespace()) continue
-
-    val subMatch = match.groups[1]
-    if (subMatch != null) {
-      val value = subMatch.value.substring(1).replace("\\ ", " ")
-      expressions.add(
-          AtExpression(subMatch.range.first, subMatch.range.last + 1, subMatch.value, value))
-    }
-  }
-  return expressions
-}
-
-fun findContextFiles(contextFiles: List<ContextFile>, text: String): List<ContextFile> {
-  val atExpressions = findAtExpressions(text)
-  return contextFiles.filter { f -> atExpressions.any { it.value == displayPath(f) } }
-}
-
-// TODO(beyang): temporary displayPath implementation. This should be replaced by acquiring the
-// display path from the agent
-// Current behavior: if the path contains more than three components, display the last three.
-fun displayPath(contextFile: ContextFile): String {
-  val path = contextFile.uri.path
-  val pathComponents = path.split("/") // uri path is posix-style
-  if (pathComponents.size > 3) {
-    return "...${File.separator}${pathComponents.subList(pathComponents.size - 3, pathComponents.size).joinToString(File.separator)}"
-  }
-  return path.replace("/", File.separator)
-}

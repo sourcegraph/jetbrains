@@ -1,8 +1,14 @@
 import com.jetbrains.plugin.structure.base.utils.isDirectory
 import java.net.URL
-import java.nio.file.*
+import java.nio.file.FileSystems
+import java.nio.file.FileVisitResult
+import java.nio.file.Files
+import java.nio.file.PathMatcher
+import java.nio.file.Paths
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
-import java.util.*
+import java.util.EnumSet
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import org.jetbrains.changelog.markdownToHTML
@@ -23,7 +29,7 @@ plugins {
   id("java")
   // Dependencies are locked at this version to work with JDK 11 on CI.
   id("org.jetbrains.kotlin.jvm") version "1.9.22"
-  id("org.jetbrains.intellij") version "1.17.0"
+  id("org.jetbrains.intellij") version "1.17.2"
   id("org.jetbrains.changelog") version "1.3.1"
   id("com.diffplug.spotless") version "6.25.0"
 }
@@ -199,7 +205,7 @@ tasks {
     return destinationDir
   }
 
-  val codyCommit = "0e908a782b4b23423a362f1f56d3745575a613f5"
+  val codyCommit = properties("cody.commit")
   fun downloadCody(): File {
     val url = "https://github.com/sourcegraph/cody/archive/$codyCommit.zip"
     val destination = githubArchiveCache.resolve("$codyCommit.zip")
@@ -247,7 +253,7 @@ tasks {
     // Apple M1 computers. This is required to prevent the following issue
     // https://github.com/vercel/pkg/issues/2004
     if (isLdidSign) {
-      val arm64Binary = buildCodyDir.resolve("agent-macos-arm64").toString()
+      val arm64Binary = buildCodyDir.resolve("cody-agent-macos-arm64").toString()
       println("Signing ldid -S $arm64Binary")
       exec { commandLine("ldid", "-S", arm64Binary) }
     }
@@ -320,11 +326,11 @@ tasks {
             throw Error("Agent binary '$path' not found in plugin zip $pluginPath")
           }
         }
-        assertExists("agent-macos-arm64")
-        assertExists("agent-macos-x64")
-        assertExists("agent-linux-arm64")
-        assertExists("agent-linux-x64")
-        assertExists("agent-win-x64.exe")
+        assertExists("cody-agent-macos-arm64")
+        assertExists("cody-agent-macos-x64")
+        assertExists("cody-agent-linux-arm64")
+        assertExists("cody-agent-linux-x64")
+        assertExists("cody-agent-win-x64.exe")
       }
     }
   }

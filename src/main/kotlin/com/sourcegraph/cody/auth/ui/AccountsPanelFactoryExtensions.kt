@@ -22,10 +22,17 @@ import com.sourcegraph.cody.auth.Account
 import com.sourcegraph.cody.auth.AccountManager
 import com.sourcegraph.cody.auth.AccountsListener
 import com.sourcegraph.cody.auth.PersistentActiveAccountHolder
+import com.sourcegraph.cody.ui.BGTActionSetter
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
-import javax.swing.*
+import javax.swing.Icon
+import javax.swing.JComponent
+import javax.swing.JMenuItem
+import javax.swing.JPopupMenu
+import javax.swing.ListCellRenderer
+import javax.swing.ListSelectionModel
+import javax.swing.SwingUtilities
 
 /**
  * Custom factory method to create and account panel with possibility to add mouse listener for list
@@ -83,6 +90,7 @@ private fun <A : Account, Cred, R> create(
     toolbar.addExtraAction(
         object : ToolbarDecorator.ElementActionButton("Set as Active", AllIcons.Actions.Checked) {
           init {
+            BGTActionSetter.runUpdateOnBackgroundThread(this)
             addCustomUpdater { isEnabled && model.activeAccount != accountsList.selectedValue }
           }
 
@@ -150,8 +158,6 @@ fun <A : Account, Cred> Row.customAccountsPanel(
     }
     val newTokensMap = accountsModel.accounts.associateWith { null }
     accountManager.updateAccounts(newTokensMap)
-    val activeAccount = accountsModel.activeAccount
-    activeAccountHolder.account = activeAccount
     accountsModel.clearNewCredentials()
   }
 

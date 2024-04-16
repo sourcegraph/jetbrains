@@ -90,8 +90,6 @@ private constructor(
     private const val DEFAULT_AGENT_DEBUG_PORT = 3113 // Also defined in agent/src/cli/jsonrpc.ts
     @JvmField val executorService: ExecutorService = Executors.newCachedThreadPool()
 
-    private fun shouldConnectToDebugAgent() = System.getenv("CODY_AGENT_DEBUG_REMOTE") == "true"
-
     private fun shouldSpawnDebuggableAgent() = System.getenv("CODY_AGENT_DEBUG_INSPECT") == "true"
 
     fun create(project: Project): CompletableFuture<CodyAgent> {
@@ -102,7 +100,6 @@ private constructor(
         val launcher = startAgentLauncher(conn, client)
         val server = launcher.remoteProxy
         val listeningToJsonRpc = launcher.startListening()
-
         try {
           return server
               .initialize(
@@ -110,7 +107,10 @@ private constructor(
                       version = ConfigUtil.getPluginVersion(),
                       workspaceRootUri =
                           ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
-                      extensionConfiguration = ConfigUtil.getAgentConfiguration(project)))
+                      extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
+                      capabilities =
+                          ClientCapabilities(
+                              edit = "enabled", editWorkspace = "enabled", codeLenses = "enabled")))
               .thenApply { info ->
                 logger.info("Connected to Cody agent " + info.name)
                 server.initialized()
@@ -127,7 +127,7 @@ private constructor(
     }
 
     private fun startAgentProcess(): AgentConnection {
-      if (shouldConnectToDebugAgent()) {
+      if (ConfigUtil.shouldConnectToDebugAgent()) {
         return connectToDebugAgent()
       }
       val token = CancellationToken()
@@ -186,7 +186,7 @@ private constructor(
                 // VSC has many `=== null` checks that return false for undefined fields.
                 .serializeNulls()
                 .registerTypeAdapter(CompletionItemID::class.java, CompletionItemIDSerializer)
-                .registerTypeAdapter(ContextFile::class.java, contextFileDeserializer)
+                .registerTypeAdapter(ContextItem::class.java, ContextItem.deserializer)
                 .registerTypeAdapter(Speaker::class.java, speakerDeserializer)
                 .registerTypeAdapter(Speaker::class.java, speakerSerializer)
                 .registerTypeAdapter(URI::class.java, uriDeserializer)
@@ -210,7 +210,7 @@ private constructor(
       // Only use x86 for macOS because of this issue here https://github.com/vercel/pkg/issues/2004
       // TLDR; we're not able to run macos-arm64 binaries when they're created on ubuntu-latest
       val arch = if (CpuArch.isArm64()) "arm64" else "x64"
-      return "agent-" + os + "-" + arch + binarySuffix()
+      return "cody-agent-" + os + "-" + arch + binarySuffix()
     }
 
     private fun agentDirectory(): Path? {
