@@ -281,7 +281,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
   companion object {
     const val DEFAULT_TEXT_FIELD_WIDTH: Int = 620 // TODO: make this smarter
 
-    const val GHOST_TEXT = "Instructions (@ to include code)"
+    // TODO: Put this back when @-includes are in
+    //const val GHOST_TEXT = "Instructions (@ to include code)"
+    const val GHOST_TEXT = "Type your instructions here"
 
     // Going with a global history for now, shared across edit-code prompts.
     val promptHistory = mutableListOf<String>()
