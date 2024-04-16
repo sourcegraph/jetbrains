@@ -12,8 +12,8 @@ class HistoryStateTest : TestCase() {
   fun `test history serialization`() {
     val history =
         HistoryState().apply {
-          accountHistories +=
-              AccountHistoryState().apply {
+          accountData +=
+              AccountData().apply {
                 accountId = "VXNlkjoxEFU3NjE="
                 chats +=
                     ChatState().apply {
@@ -38,9 +38,9 @@ class HistoryStateTest : TestCase() {
     assertEquals(
         """
       <HistoryState>
-        <accountHistories>
+        <accountData>
           <list>
-            <AccountHistoryState>
+            <AccountData>
               <accountId value="VXNlkjoxEFU3NjE=" />
               <chats>
                 <list>
@@ -62,9 +62,9 @@ class HistoryStateTest : TestCase() {
                   </chat>
                 </list>
               </chats>
-            </AccountHistoryState>
+            </AccountData>
           </list>
-        </accountHistories>
+        </accountData>
       </HistoryState>
     """
             .trimIndent(),

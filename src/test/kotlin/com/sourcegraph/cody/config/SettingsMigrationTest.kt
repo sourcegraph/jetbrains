@@ -165,19 +165,19 @@ class SettingsMigrationTest : BasePlatformTestCase() {
 
     val migratedHistory = HistoryService.getInstance(project).state
 
-    assertEquals(2, migratedHistory.accountHistories.size)
-    migratedHistory.accountHistories.forEachIndexed { index, history ->
-      assertEquals("default LLM [$index]", originalHistory.defaultLlm, history.defaultLlm)
+    assertEquals(2, migratedHistory.accountData.size)
+    migratedHistory.accountData.forEachIndexed { index, accountEntry ->
+      assertEquals("default LLM [$index]", originalHistory.defaultLlm, accountEntry.defaultLlm)
       assertEquals(
           "default enhanced context [$index]",
           originalHistory.defaultEnhancedContext,
-          history.defaultEnhancedContext)
+          accountEntry.defaultEnhancedContext)
     }
-    migratedHistory.accountHistories[0].let {
+    migratedHistory.accountData[0].let {
       assertEquals("sarah", it.accountId)
       assertEquals(mutableListOf(originalHistory.chats[0], originalHistory.chats[1]), it.chats)
     }
-    migratedHistory.accountHistories[1].let {
+    migratedHistory.accountData[1].let {
       assertEquals("dave", it.accountId)
       assertEquals(mutableListOf(originalHistory.chats[2]), it.chats)
     }

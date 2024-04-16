@@ -5,8 +5,8 @@ import com.intellij.util.xmlb.annotations.OptionTag
 
 class HistoryState : BaseState() {
 
-  @get:OptionTag(tag = "accountHistories", nameAttribute = "")
-  var accountHistories: MutableList<AccountHistoryState> by list()
+  @get:OptionTag(tag = "accountData", nameAttribute = "")
+  var accountData: MutableList<AccountData> by list()
 
   @Deprecated("")
   @get:OptionTag(tag = "chats", nameAttribute = "")

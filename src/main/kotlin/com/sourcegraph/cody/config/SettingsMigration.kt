@@ -16,7 +16,7 @@ import com.sourcegraph.cody.CodyToolWindowFactory
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
 import com.sourcegraph.cody.history.HistoryService
-import com.sourcegraph.cody.history.state.AccountHistoryState
+import com.sourcegraph.cody.history.state.AccountData
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.LLMState
@@ -447,10 +447,8 @@ class SettingsMigration : Activity {
         val accountId = oldState.accountId
         if (accountId == null) return@forEach
         val newState =
-            historyState.accountHistories.find { it.accountId == accountId }
-                ?: (AccountHistoryState.create(accountId).also {
-                  historyState.accountHistories += it
-                })
+            historyState.accountData.find { it.accountId == accountId }
+                ?: (AccountData.create(accountId).also { historyState.accountData += it })
         newState.defaultLlm = historyState.defaultLlm
         newState.defaultEnhancedContext = historyState.defaultEnhancedContext
         if (newState.chats.find { it.internalId == oldState.internalId } == null) {

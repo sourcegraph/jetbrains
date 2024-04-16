@@ -9,7 +9,7 @@ import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.history.state.AccountHistoryState
+import com.sourcegraph.cody.history.state.AccountData
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.HistoryState
@@ -56,34 +56,31 @@ class HistoryService(private val project: Project) :
     if (contextState != null) {
       val found = getOrCreateChat(internalId)
       found.enhancedContext = EnhancedContextState()
-      found.enhancedContext?.copyFrom(contextState)
+      found.enhancedContext!!.copyFrom(contextState)
     }
   }
 
   @Synchronized
   fun updateDefaultContextState(contextState: EnhancedContextState) {
-    getOrCreateActiveAccountHistory().defaultEnhancedContext = EnhancedContextState()
-    getOrCreateActiveAccountHistory().defaultEnhancedContext?.copyFrom(contextState)
+    getOrCreateActiveAccountEntry().defaultEnhancedContext = EnhancedContextState()
+    getOrCreateActiveAccountEntry().defaultEnhancedContext!!.copyFrom(contextState)
   }
 
   @Synchronized
   fun getContextReadOnly(internalId: String): EnhancedContextState? {
     return copyEnhancedContextState(
-        getOrCreateActiveAccountHistory()
-            .chats
-            .find { it.internalId == internalId }
-            ?.enhancedContext)
+        getOrCreateActiveAccountEntry().chats.find { it.internalId == internalId }?.enhancedContext)
   }
 
   @Synchronized
   fun getDefaultContextReadOnly(): EnhancedContextState? {
-    return copyEnhancedContextState(getOrCreateActiveAccountHistory().defaultEnhancedContext)
+    return copyEnhancedContextState(getOrCreateActiveAccountEntry().defaultEnhancedContext)
   }
 
   @Synchronized
   fun getDefaultLlm(): LLMState? {
     val account = CodyAuthenticationManager.getInstance(project).getActiveAccount()
-    val llm = account?.let { findHistory(it.id) }?.defaultLlm
+    val llm = account?.let { findEntry(it.id) }?.defaultLlm
     if (llm == null) return null
     return LLMState().also { it.copyFrom(llm) }
   }
@@ -92,17 +89,17 @@ class HistoryService(private val project: Project) :
   fun setDefaultLlm(defaultLlm: LLMState) {
     val newDefaultLlm = LLMState()
     newDefaultLlm.copyFrom(defaultLlm)
-    getOrCreateActiveAccountHistory().defaultLlm = newDefaultLlm
+    getOrCreateActiveAccountEntry().defaultLlm = newDefaultLlm
   }
 
   @Synchronized
   fun remove(internalId: String?) {
-    getOrCreateActiveAccountHistory().chats.removeIf { it.internalId == internalId }
+    getOrCreateActiveAccountEntry().chats.removeIf { it.internalId == internalId }
   }
 
   @Synchronized
   fun removeAll() {
-    getOrCreateActiveAccountHistory().chats = mutableListOf()
+    getOrCreateActiveAccountEntry().chats = mutableListOf()
   }
 
   @Synchronized
@@ -131,26 +128,25 @@ class HistoryService(private val project: Project) :
   }
 
   private fun getOrCreateChat(internalId: String): ChatState {
-    val accountHistory = getOrCreateActiveAccountHistory()
-    val found = accountHistory.chats.find { it.internalId == internalId }
-    return found ?: ChatState.create(internalId).also { accountHistory.chats += it }
+    val accountEntry = getOrCreateActiveAccountEntry()
+    val found = accountEntry.chats.find { it.internalId == internalId }
+    return found ?: ChatState.create(internalId).also { accountEntry.chats += it }
   }
 
-  private fun findHistory(accountId: String): AccountHistoryState? =
-      state.accountHistories.find { it.accountId == accountId }
+  private fun findEntry(accountId: String): AccountData? =
+      state.accountData.find { it.accountId == accountId }
 
   @Synchronized
-  fun getActiveAccountHistory(): AccountHistoryState? =
-      CodyAuthenticationManager.getInstance(project).getActiveAccount()?.let { findHistory(it.id) }
+  fun getActiveAccountHistory(): AccountData? =
+      CodyAuthenticationManager.getInstance(project).getActiveAccount()?.let { findEntry(it.id) }
 
-  private fun getOrCreateActiveAccountHistory(): AccountHistoryState {
+  private fun getOrCreateActiveAccountEntry(): AccountData {
     val activeAccount =
         CodyAuthenticationManager.getInstance(project).getActiveAccount()
             ?: throw IllegalStateException("No active account")
 
-    val existingHistory = findHistory(activeAccount.id)
-    return existingHistory
-        ?: AccountHistoryState.create(activeAccount.id).also { state.accountHistories += it }
+    val existingEntry = findEntry(activeAccount.id)
+    return existingEntry ?: AccountData.create(activeAccount.id).also { state.accountData += it }
   }
 
   companion object {
