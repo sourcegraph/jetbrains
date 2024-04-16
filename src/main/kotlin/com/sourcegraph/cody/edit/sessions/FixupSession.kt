@@ -52,8 +52,6 @@ abstract class FixupSession(
     val project: Project,
     val document: Document
 ) : Disposable {
-  protected val documentBefore: Document =
-      EditorFactory.getInstance().createDocument(editor.document.text)
 
   private val logger = Logger.getInstance(FixupSession::class.java)
   private val fixupService = FixupService.getInstance(project)
@@ -61,13 +59,74 @@ abstract class FixupSession(
   // This is passed back by the Agent when we initiate the editing task.
   var taskId: String? = null
 
-  private var performedEdits = false
-
   private var lensGroup: LensWidgetGroup? = null
 
-  protected var selectionRange: Range? = null
+  private var selectionRange: Range? = null
 
-  private var rangeMarkers: MutableSet<RangeMarker> = mutableSetOf()
+  internal val rangeMarkers: MutableSet<RangeMarker> = mutableSetOf()
+
+  internal val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
+
+  protected fun createDiffSession() =
+      object :
+          FixupSession(
+              controller = controller,
+              editor = editor,
+              project = project,
+              document = EditorFactory.getInstance().createDocument(document.text)) {
+        init {
+          val originalActions = this@FixupSession.performedActions
+          originalActions
+              .mapNotNull { it.afterMarker }
+              .map { createMarker(it.startOffset, it.endOffset) }
+          val sortedEdits =
+              originalActions.zip(this.rangeMarkers).sortedByDescending { it.second.startOffset }
+          WriteCommandAction.runWriteCommandAction(project) {
+            for ((fixupAction, marker) in sortedEdits) {
+              val tmpAfterMarker = fixupAction.afterMarker ?: break
+
+              when (fixupAction.edit.type) {
+                "replace",
+                "delete" -> {
+                  ReplaceUndoableAction(this, fixupAction.edit, marker)
+                      .apply {
+                        afterMarker =
+                            createMarker(tmpAfterMarker.startOffset, tmpAfterMarker.endOffset)
+                        originalText = fixupAction.originalText
+                      }
+                      .undo()
+                }
+                "insert" -> {
+                  InsertUndoableAction(this, fixupAction.edit, marker)
+                      .apply {
+                        afterMarker =
+                            createMarker(tmpAfterMarker.startOffset, tmpAfterMarker.endOffset)
+                        originalText = fixupAction.originalText
+                      }
+                      .undo()
+                }
+                else -> logger.warn("Unknown edit type: ${fixupAction.edit.type}")
+              }
+            }
+          }
+        }
+
+        override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
+          TODO("Not yet implemented")
+        }
+
+        override fun retry() {
+          TODO("Not yet implemented")
+        }
+
+        override fun diff() {
+          TODO("Not yet implemented")
+        }
+
+        override fun dispose() {
+          TODO("Not yet implemented")
+        }
+      }
 
   private val lensActionCallbacks =
       mapOf(
@@ -219,7 +278,7 @@ abstract class FixupSession(
     CodyAgentService.withAgent(project) { agent ->
       agent.server.cancelEditTask(TaskIdParam(taskId!!))
     }
-    if (performedEdits) {
+    if (performedActions.isNotEmpty()) {
       undo()
     } else {
       finish()
@@ -292,8 +351,16 @@ abstract class FixupSession(
         for ((edit, marker) in sortedEdits) {
           when (edit.type) {
             "replace",
-            "delete" -> ReplaceUndoableAction(this, edit, marker)
-            "insert" -> InsertUndoableAction(this, edit, marker)
+            "delete" -> {
+              val action = ReplaceUndoableAction(this, edit, marker)
+              this.performedActions.add(action)
+              action.apply()
+            }
+            "insert" -> {
+              val action = InsertUndoableAction(this, edit, marker)
+              this.performedActions.add(action)
+              action.apply()
+            }
             else -> logger.warn("Unknown edit type: ${edit.type}")
           }
         }

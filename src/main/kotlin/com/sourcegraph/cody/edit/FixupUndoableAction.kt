@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.edit
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.undo.DocumentReference
 import com.intellij.openapi.command.undo.DocumentReferenceManager
 import com.intellij.openapi.command.undo.UndoManager
@@ -22,10 +21,9 @@ abstract class FixupUndoableAction(
 
   val document: Document = editor.document
 
-  protected val originalText =
-      document.getText(TextRange(beforeMarker.startOffset, beforeMarker.endOffset))
+  var originalText = document.getText(TextRange(beforeMarker.startOffset, beforeMarker.endOffset))
 
-  protected var afterMarker: RangeMarker? = null
+  var afterMarker: RangeMarker? = null
 
   override fun getAffectedDocuments(): Array<out DocumentReference> {
     val documentReference = DocumentReferenceManager.getInstance().create(document)
@@ -50,14 +48,10 @@ abstract class FixupUndoableAction(
   }
 }
 
-class InsertUndoableAction(session: FixupSession, edit: TextEdit, marker: RangeMarker) :
-    FixupUndoableAction(session, edit, marker) {
+class InsertUndoableAction(session: FixupSession, edit: TextEdit, beforeMarker: RangeMarker) :
+    FixupUndoableAction(session, edit, beforeMarker) {
 
   private val insertText = edit.value ?: ""
-
-  init {
-    apply()
-  }
 
   override fun apply() {
     if (isUndoInProgress()) return
@@ -73,10 +67,8 @@ class InsertUndoableAction(session: FixupSession, edit: TextEdit, marker: RangeM
     if (isUndoInProgress()) return
     val (start, end) = Pair(afterMarker!!.startOffset, afterMarker!!.endOffset)
     session.removeMarker(afterMarker!!)
-    ApplicationManager.getApplication().runWriteAction {
-      editor.document.deleteString(start, end)
-      beforeMarker = session.createMarker(start, start + originalText.length)
-    }
+    editor.document.deleteString(start, end)
+    beforeMarker = session.createMarker(start, start + originalText.length)
   }
 }
 
@@ -88,10 +80,6 @@ class ReplaceUndoableAction(
 ) : FixupUndoableAction(session, edit, beforeMarker) {
 
   private val replacementText = edit.value ?: "" // "" for deletions
-
-  init {
-    apply()
-  }
 
   override fun apply() {
     if (isUndoInProgress()) return
@@ -107,9 +95,7 @@ class ReplaceUndoableAction(
     if (isUndoInProgress()) return
     val (start, end) = Pair(afterMarker!!.startOffset, afterMarker!!.endOffset)
     session.removeMarker(afterMarker!!)
-    ApplicationManager.getApplication().runWriteAction {
-      editor.document.replaceString(start, end, originalText)
-      beforeMarker = session.createMarker(start, start + originalText.length)
-    }
+    editor.document.replaceString(start, end, originalText)
+    beforeMarker = session.createMarker(start, start + originalText.length)
   }
 }
