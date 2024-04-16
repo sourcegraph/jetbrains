@@ -33,7 +33,17 @@ private constructor(
     }
 
     @JvmStatic
-    @JvmOverloads
+    fun fromEditor(editor: Editor): ProtocolTextDocument? {
+      val project = editor.project
+      val file = FileDocumentManager.getInstance().getFile(editor.document)
+      if (project != null && file != null) {
+        val fileEditorManager = FileEditorManager.getInstance(project)
+        return fromVirtualFile(fileEditorManager, file)
+      }
+      return null
+    }
+
+    @JvmStatic
     fun fromVirtualFile(
         fileEditorManager: FileEditorManager,
         file: VirtualFile,

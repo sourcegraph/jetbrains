@@ -8,11 +8,11 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.CodyFileEditorListener
 import com.sourcegraph.cody.chat.AgentChatSessionService
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.context.RemoteRepoSearcher
 import com.sourcegraph.cody.edit.FixupService
+import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
