@@ -12,7 +12,7 @@ import java.awt.geom.Rectangle2D
 class LensAction(
     group: LensWidgetGroup,
     private val text: String,
-    private val command: String,
+    val command: String,
     private val onClick: () -> Unit
 ) : LensWidget(group) {
 

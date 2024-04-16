@@ -33,6 +33,4 @@ class DocumentCodeSession(
     // You can see it in action now by clicking the green gutter to the left of Cody changes.
     logger.warn("Code Lenses: Show Diff")
   }
-
-  override fun dispose() {}
 }

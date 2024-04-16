@@ -159,7 +159,6 @@ private constructor(
       }
 
       configureIntegrationTesting(processBuilder)
-      logger.warn(processBuilder.environment().toString())
 
       val process =
           processBuilder
@@ -186,9 +185,34 @@ private constructor(
       // N.B. Do not set CODY_TESTING=true -- that is for Agent-side tests.
       if (!ConfigUtil.isIntegrationTestModeEnabled()) return
 
+      processBuilder.environment().apply {
+        this["CODY_RECORDING_NAME"] = "integration-test"
+        // N.B. If you set CODY_RECORDING_MODE, you must set CODY_RECORDING_DIRECTORY,
+        // or the Agent will throw an error and your test will fail.
+        when (val mode = System.getenv("CODY_RECORDING_MODE")) {
+          null -> {
+            logger.warn(
+                """Polly is not enabled for this test. 
+                   Set CODY_RECORDING_MODE and CODY_RECORDING_DIRECTORY 
+                   variables to turn on Polly."""
+                    .trimMargin())
+          }
+          "record",
+          "replay",
+          "passthrough" -> {
+            logger.warn("Cody recording mode: $mode")
+            this["CODY_RECORDING_MODE"] = mode
+            this["CODY_RECORD_IF_MISSING"] = "true"
+            // This flag is for Agent-side integration testing and interferes with ours.
+            // It seems to be sneaking in somewhere, so we explicitly set it to false.
+            this["CODY_TESTING"] = "false"
+            this["CODY_RECORDING_DIRECTORY"] = "recordings"
+          }
+          else -> throw CodyAgentException("Unknown CODY_RECORDING_MODE: $mode")
+        }
+      }
+
       val testToken = System.getenv("CODY_INTEGRATION_TEST_TOKEN")
-      // The Cody side will use the real LLM if this token is present,
-      // so you can run the integration tests against a prod LLM rather than a mock.
       if (testToken is String && testToken.isNotBlank()) {
         processBuilder.environment()["CODY_INTEGRATION_TEST_TOKEN"] = testToken
       } else {

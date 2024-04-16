@@ -25,6 +25,18 @@ interface CodyInlineEditActionNotifier {
         Topic.create(
             "Sourcegraph Cody: Cody working lens shown", CodyInlineEditActionNotifier::class.java)
 
+    @JvmStatic
+    @Topic.ProjectLevel
+    val TOPIC_DISPLAY_ACCEPT_GROUP =
+        Topic.create(
+            "Sourcegraph Cody: Accept lens shown", CodyInlineEditActionNotifier::class.java)
+
+    /** Sent when the user selects the Undo action and the edits are discarded. */
+    @JvmStatic
+    @Topic.ProjectLevel
+    val TOPIC_PERFORM_UNDO =
+        Topic.create("Sourcegraph Cody: Undo Inline Edit", CodyInlineEditActionNotifier::class.java)
+
     /** Sent after a workspace/edit is applied. */
     @JvmStatic
     @Topic.ProjectLevel

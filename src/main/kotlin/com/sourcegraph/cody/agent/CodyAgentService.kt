@@ -47,9 +47,16 @@ class CodyAgentService(project: Project) : Disposable {
         FixupService.getInstance(project).getSessionForTask(task)?.update(task)
       }
 
+      agent.client.onEditTaskDidDelete = Consumer { task ->
+        FixupService.getInstance(project).getSessionForTask(task)?.taskDeleted()
+      }
+
+      agent.client.onWorkspaceEdit = Consumer { params ->
+        FixupService.getInstance(project).getActiveSession()?.performWorkspaceEdit(params)
+      }
+
       agent.client.onTextDocumentEdit = Consumer { params ->
-        // I think we're only using workspace/edit now -- namespace change?
-        logger.warn("textDocument/edit not supported in JetBrains")
+        FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
       }
 
       if (!project.isDisposed) {

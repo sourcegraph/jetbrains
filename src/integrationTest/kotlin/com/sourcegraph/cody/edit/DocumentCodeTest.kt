@@ -12,6 +12,7 @@ import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
 
 class DocumentCodeTest : BasePlatformTestCase() {
 
@@ -42,7 +43,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
     // The inlay should be up.
     assertTrue("Lens group inlay should be displayed", editor.inlayModel.hasBlockElements())
 
-    // This is done now.
+    // We've finished receiving the folding range by now.
     runInEdtAndWait {
       val rangeContext = foldingRangeFuture.get()
       assertNotNull(rangeContext)
@@ -70,9 +71,58 @@ class DocumentCodeTest : BasePlatformTestCase() {
     runInEdtAndWait { Disposer.dispose(lenses) }
   }
 
+  fun testShowsAcceptLens() {
+    val editor = myFixture.editor
+    assertFalse(editor.inlayModel.hasBlockElements())
+
+    runInEdtAndWait { EditorTestUtil.executeAction(editor, "cody.documentCodeAction") }
+
+    val context = waitForTopic(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACCEPT_GROUP)
+    assertNotNull("Timed out waiting for Accept group lens", context)
+
+    // The inlay should be up.
+    assertTrue("Lens group inlay should be displayed", editor.inlayModel.hasBlockElements())
+
+    // Lens group should match the expected structure.
+    val lenses = context!!.session.lensGroup
+    assertNotNull("Lens group should be displayed", lenses)
+
+    val widgets = lenses!!.widgets
+    // There are 13 widgets as of the time of writing, but the UX could change, so check robustly.
+    assertTrue("Lens group should have at least 4 widgets", widgets.size >= 4)
+    assertNotNull("Lens group should contain Accept action",
+            widgets.find { widget -> widget is LensAction && widget.command == FixupSession.COMMAND_ACCEPT })
+    assertNotNull("Lens group should contain Show Diff action",
+            widgets.find { widget -> widget is LensAction && widget.command == FixupSession.COMMAND_DIFF })
+    assertNotNull("Lens group should contain Show Undo action",
+            widgets.find { widget -> widget is LensAction && widget.command == FixupSession.COMMAND_UNDO })
+    assertNotNull("Lens group should contain Show Retry action",
+            widgets.find { widget -> widget is LensAction && widget.command == FixupSession.COMMAND_RETRY })
+
+    // Make sure a doc comment was inserted.
+    assertTrue(hasJavadocComment(editor.document.text))
+
+    // This avoids an error saying the spinner hasn't shut down, at the end of the test.
+    runInEdtAndWait { Disposer.dispose(lenses) }
+  }
+
+  fun testUndo() {
+    // Kick off an 'editCommands/document' request.
+    val editor = myFixture.editor
+    runInEdtAndWait { EditorTestUtil.executeAction(editor, "cody.documentCodeAction") }
+
+    val undoFuture = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
+
+    // The Accept/Retry/Undo group is now showing.
+    // TODO: Send the Undo action as if the user triggered it.
+    //   - we will need to turn our pseudo-actions into real IDE actions
+
+    val context = undoFuture.get()
+    assertNotNull("Timed out waiting for Undo action", context)
+  }
+
   @RequiresEdt
   private fun testSelectionRange(context: CodyInlineEditActionNotifier.Context) {
-    // TODO: Test/check selection range & fail test
     // Ensure we were able to get the selection range.
     val selection = context.session.selectionRange
     assertNotNull("Selection should have been set", selection)
@@ -141,12 +191,17 @@ public class Foo {
     return subscribeToTopic(topic).get()
   }
 
+  private fun hasJavadocComment(text: String): Boolean {
+    // TODO: Check for the exact contents once they are frozen.
+    val javadocPattern = Pattern.compile("/\\*\\*.*?\\*/", Pattern.DOTALL)
+    return javadocPattern.matcher(text).find()
+  }
+
   companion object {
 
     // TODO: find the lowest value this can be for production, and use it
     // If it's too low the test may be flaky.
-
     // const val ASYNC_WAIT_TIMEOUT_SECONDS = 10000L //debug
-    const val ASYNC_WAIT_TIMEOUT_SECONDS = 5L
+    const val ASYNC_WAIT_TIMEOUT_SECONDS = 15L
   }
 }

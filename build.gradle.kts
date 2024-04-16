@@ -1,4 +1,7 @@
 import com.jetbrains.plugin.structure.base.utils.isDirectory
+import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
 import java.nio.file.FileSystems
 import java.nio.file.FileVisitResult
@@ -12,9 +15,6 @@ import java.util.*
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import kotlin.script.experimental.jvm.util.hasParentNamed
-import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -172,7 +172,7 @@ fun unzip(input: File, output: File, excludeMatcher: PathMatcher? = null) {
   }
 }
 
-val githubArchiveCache =
+val githubArchiveCache: File =
     Paths.get(System.getProperty("user.home"), ".sourcegraph", "caches", "jetbrains").toFile()
 
 tasks {
@@ -430,6 +430,8 @@ tasks {
   }
 
   // Create a task to run integration tests
+  // Make a new integration test recording with
+  //  ./gradlew integrationTest -PrecordingMode=record
   register<Test>("integrationTest") {
     description = "Runs the integration tests."
     group = "verification"
@@ -445,7 +447,15 @@ tasks {
         "idea.test.execution.policy", // For now, should be used by all tests
         "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
 
-    environment("CODY_TESTING", "true")
+    val recordingMode = project.findProperty("recordingMode")?.toString() ?: "replay"
+    environment("CODY_RECORDING_MODE", recordingMode)
+    // Polly replays recorded responses from here during the tests.
+    environment("CODY_RECORDING_DIRECTORY", "recordings")
+    if (recordingMode == "record") {
+      environment("CODY_RECORDING_NAME", "integration-tests")
+      environment("CODY_RECORD_IF_MISSING", "true") // Polly needs this to record at all.
+    }
+    environment("CODY_JETBRAINS_FEATURES", "cody.feature.inline-edits=true")
 
     dependsOn("buildCody")
   }

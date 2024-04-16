@@ -72,9 +72,25 @@ abstract class FixupSession(
 
   init {
     triggerDocumentCodeAsync()
+    // Kotlin doesn't like leaking 'this' before the constructors are finished.
+    ApplicationManager.getApplication().invokeLater {
+      Disposer.register(controller, this)
+    }
   }
 
   fun commandCallbacks(): Map<String, () -> Unit> = lensActionCallbacks
+
+  override fun dispose() {
+    lensGroup?.dispose()
+    lensGroup = null
+    rangeMarkers.forEach { it.dispose() }
+    rangeMarkers.clear()
+    try {
+      fixupService.removeSession(this)
+    } catch (x: Exception) {
+      logger.warn("Error while removing session", x)
+    }
+  }
 
   @RequiresEdt
   private fun triggerDocumentCodeAsync() {
@@ -220,6 +236,7 @@ abstract class FixupSession(
   @RequiresBackgroundThread
   private fun showAcceptGroup() {
     showLensGroup(LensGroupFactory(this).createAcceptGroup())
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACCEPT_GROUP)
   }
 
   fun finish() {
@@ -263,6 +280,7 @@ abstract class FixupSession(
       agent.server.commandExecute(CommandExecuteParams(COMMAND_UNDO, listOf(taskId!!)))
     }
     undoEdits()
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
     finish()
   }
 

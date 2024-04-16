@@ -183,9 +183,5 @@ object ConfigUtil {
   }
 
   @JvmStatic
-  fun isIntegrationTestModeEnabled(): Boolean {
-    // TODO: Figure out which one to use and stick with it.
-    return java.lang.Boolean.getBoolean("cody.integration.testing") ||
-        System.getenv("CODY_TESTING") == "true"
-  }
+  fun isIntegrationTestModeEnabled() = java.lang.Boolean.getBoolean("cody.integration.testing")
 }

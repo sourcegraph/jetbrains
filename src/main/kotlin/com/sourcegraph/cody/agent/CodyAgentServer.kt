@@ -80,7 +80,7 @@ interface CodyAgentServer {
 
   @JsonRequest("commands/smell") fun commandsSmell(): CompletableFuture<ConnectionId>
 
-  @JsonRequest("commands/document") fun commandsDocument(): CompletableFuture<EditTask>
+  @JsonRequest("editCommands/document") fun commandsDocument(): CompletableFuture<EditTask>
 
   @JsonRequest("editCommands/code")
   fun commandsEdit(params: InlineEditParams): CompletableFuture<EditTask>
