@@ -774,10 +774,17 @@ Repeat the above starting from different themes.
 
 Changing theme should lead to full repaint of the colours according to the current theme.
 
-### Guardrails:
+### Guardrails
 
-- [ ] Check if Guardrails check passes for any code longer than 10 lines generated in Cody Chat
-- [ ] Check if Guardrails check failes for any code longer than 10 lines that matches indexed OSS
+In chat ask Cody a question to generate over 10 lines of text, for instance: `Please implement DFS in at least 10 lines of Haskell`
+
+#### Expected behavior
+
+When hovering over a code snippet printed by Cody, a set of buttons will appear.
+The disabled one on the right-hand side is expected to say _Guardrails Check Passed_.
+The tooltip for the button should say _Snippet not found on Sourcegraph.com._
+
+The button is expected for a short time period (less than 10s) to indicate search is running rather than a positive check result. The button label at that point will just be _Attribution search_.
 
 ## Inline Edit
 
