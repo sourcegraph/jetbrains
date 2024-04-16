@@ -12,7 +12,7 @@ import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.edit.sessions.FixupSession
 
 abstract class FixupUndoableAction(
-    val session: FixupSession,
+    val session: BaseFixupSession,
     val edit: TextEdit,
     var beforeMarker: RangeMarker
 ) : UndoableAction {
@@ -48,7 +48,7 @@ abstract class FixupUndoableAction(
   }
 }
 
-class InsertUndoableAction(session: FixupSession, edit: TextEdit, beforeMarker: RangeMarker) :
+class InsertUndoableAction(session: BaseFixupSession, edit: TextEdit, beforeMarker: RangeMarker) :
     FixupUndoableAction(session, edit, beforeMarker) {
 
   private val insertText = edit.value ?: ""
@@ -74,7 +74,7 @@ class InsertUndoableAction(session: FixupSession, edit: TextEdit, beforeMarker: 
 
 // Handles deletion requests as well, which are just replacements with "".
 class ReplaceUndoableAction(
-    session: FixupSession,
+    session: BaseFixupSession,
     edit: TextEdit, // Instructions for the replacement.
     beforeMarker: RangeMarker // Marks bounds of the original text to be replaced.
 ) : FixupUndoableAction(session, edit, beforeMarker) {

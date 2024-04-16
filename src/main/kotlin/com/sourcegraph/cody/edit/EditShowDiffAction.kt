@@ -48,6 +48,6 @@ class EditShowDiffAction : CompareFileWithEditorAction() {
 
   companion object {
     val EDITOR_DATA_KEY = DataKey.create<Editor>("editor")
-    val DIFF_SESSION_DATA_KEY = DataKey.create<FixupSession>("diff_session")
+    val DIFF_SESSION_DATA_KEY = DataKey.create<DiffSession>("diff_session")
   }
 }

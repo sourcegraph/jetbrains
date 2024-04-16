@@ -30,7 +30,7 @@ class EditCodeSession(
     document: Document,
     val instructions: String,
     private val chatModelProvider: ChatModelsResponse.ChatModelProvider,
-) : FixupSession(controller, editor, project, document) {
+) : FixupSession(controller, project, editor, document) {
 
   override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
     val params = InlineEditParams(instructions, chatModelProvider.model)

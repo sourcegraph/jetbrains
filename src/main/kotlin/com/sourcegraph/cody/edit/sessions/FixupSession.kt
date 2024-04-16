@@ -48,10 +48,10 @@ import java.util.concurrent.TimeUnit
  */
 abstract class FixupSession(
     val controller: FixupService,
-    val editor: Editor,
     val project: Project,
-    val document: Document
-) : Disposable {
+    editor: Editor,
+    document: Document
+) : BaseFixupSession(editor, document), Disposable {
 
   private val logger = Logger.getInstance(FixupSession::class.java)
   private val fixupService = FixupService.getInstance(project)
@@ -63,70 +63,14 @@ abstract class FixupSession(
 
   private var selectionRange: Range? = null
 
-  internal val rangeMarkers: MutableSet<RangeMarker> = mutableSetOf()
-
-  internal val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
+  private val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
 
   protected fun createDiffSession() =
-      object :
-          FixupSession(
-              controller = controller,
-              editor = editor,
-              project = project,
-              document = EditorFactory.getInstance().createDocument(document.text)) {
-        init {
-          val originalActions = this@FixupSession.performedActions
-          originalActions
-              .mapNotNull { it.afterMarker }
-              .map { createMarker(it.startOffset, it.endOffset) }
-          val sortedEdits =
-              originalActions.zip(this.rangeMarkers).sortedByDescending { it.second.startOffset }
-          WriteCommandAction.runWriteCommandAction(project) {
-            for ((fixupAction, marker) in sortedEdits) {
-              val tmpAfterMarker = fixupAction.afterMarker ?: break
-
-              when (fixupAction.edit.type) {
-                "replace",
-                "delete" -> {
-                  ReplaceUndoableAction(this, fixupAction.edit, marker)
-                      .apply {
-                        afterMarker =
-                            createMarker(tmpAfterMarker.startOffset, tmpAfterMarker.endOffset)
-                        originalText = fixupAction.originalText
-                      }
-                      .undo()
-                }
-                "insert" -> {
-                  InsertUndoableAction(this, fixupAction.edit, marker)
-                      .apply {
-                        afterMarker =
-                            createMarker(tmpAfterMarker.startOffset, tmpAfterMarker.endOffset)
-                        originalText = fixupAction.originalText
-                      }
-                      .undo()
-                }
-                else -> logger.warn("Unknown edit type: ${fixupAction.edit.type}")
-              }
-            }
-          }
-        }
-
-        override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
-          TODO("Not yet implemented")
-        }
-
-        override fun retry() {
-          TODO("Not yet implemented")
-        }
-
-        override fun diff() {
-          TODO("Not yet implemented")
-        }
-
-        override fun dispose() {
-          TODO("Not yet implemented")
-        }
-      }
+      DiffSession(
+          project = project,
+          editor = editor,
+          document = EditorFactory.getInstance().createDocument(document.text),
+          performedActions = performedActions)
 
   private val lensActionCallbacks =
       mapOf(
@@ -253,11 +197,10 @@ abstract class FixupSession(
     showLensGroup(LensGroupFactory(this).createAcceptGroup())
   }
 
-  fun finish() {
+  override fun finish() {
     try {
       controller.removeSession(this)
-      rangeMarkers.forEach { it.dispose() }
-      rangeMarkers.clear()
+      super.finish()
     } catch (x: Exception) {
       logger.debug("Session cleanup error", x)
     }
@@ -386,19 +329,6 @@ abstract class FixupSession(
       else -> return null
     }
     return createMarker(startOffset, endOffset)
-  }
-
-  fun createMarker(startOffset: Int, endOffset: Int): RangeMarker {
-    return document.createRangeMarker(startOffset, endOffset).apply { rangeMarkers.add(this) }
-  }
-
-  fun removeMarker(marker: RangeMarker) {
-    try {
-      marker.dispose()
-      rangeMarkers.remove(marker)
-    } catch (x: Exception) {
-      logger.debug("Error disposing marker $marker", x)
-    }
   }
 
   private fun undoEdits() {

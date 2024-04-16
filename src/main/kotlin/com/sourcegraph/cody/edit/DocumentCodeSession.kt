@@ -13,7 +13,7 @@ class DocumentCodeSession(
     editor: Editor,
     project: Project,
     document: Document
-) : FixupSession(controller, editor, project, document) {
+) : FixupSession(controller, project, editor, document) {
   private val logger = Logger.getInstance(DocumentCodeSession::class.java)
 
   override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
