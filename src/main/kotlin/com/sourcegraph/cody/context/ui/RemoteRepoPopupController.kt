@@ -59,7 +59,8 @@ class RemoteRepoPopupController(val project: Project) {
     editor.putUserData<Boolean>(AutoPopupController.ALWAYS_AUTO_POPUP, true)
     editor.putUserData<Boolean>(CodyEditorUtil.KEY_EDITOR_WANTS_AUTOCOMPLETE, false)
 
-    // Put the cursor at the end of the first line. This is a more convenient place to insert new repositories.
+    // Put the cursor at the end of the first line. This is a more convenient place to insert new
+    // repositories.
     editor.caretModel.moveToLogicalPosition(LogicalPosition(0, document.getLineEndOffset(0)))
 
     if (editor is EditorEx) {
