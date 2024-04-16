@@ -4,7 +4,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
-import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.edit.widget.LensAction
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
@@ -26,29 +25,43 @@ class DocumentCodeTest : BasePlatformTestCase() {
     super.tearDown()
   }
 
-  fun testGetsWorkingGroupLens() {
-    // Do this before starting the edit operation, in order to be subscribed before
-    // the synchronous notification is sent, because it is not buffered or queued anywhere.
+  fun testGetsFoldingRanges() {
     val foldingRangeFuture = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES)
-
-    val editor = myFixture.editor
-    assertFalse(editor.inlayModel.hasBlockElements())
-
-    // Execute the action and await the working group lens.
-    runInEdtAndWait { EditorTestUtil.executeAction(editor, "cody.documentCodeAction") }
-
-    val context = waitForTopic(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
-    assertNotNull("Timed out waiting for working group lens", context)
-
-    // The inlay should be up.
-    assertTrue("Lens group inlay should be displayed", editor.inlayModel.hasBlockElements())
-
-    // We've finished receiving the folding range by now.
+    executeDocumentCodeAction()
     runInEdtAndWait {
       val rangeContext = foldingRangeFuture.get()
       assertNotNull(rangeContext)
-      testSelectionRange(rangeContext!!)
+      // Ensure we were able to get the selection range.
+      val selection = rangeContext!!.session.selectionRange
+      assertNotNull("Selection should have been set", selection)
+      // We set the selection range to whatever the protocol returns.
+      // If a 0-width selection turns out to be reasonable we can adjust or remove this test.
+      assertFalse("Selection range should not be zero-width", selection!!.start == selection.end)
+      // A more robust check is to see if the selection "range" is just the caret position.
+      // If so, then our fallback range somehow made the round trip, which is bad. The lenses will
+      // go
+      // in the wrong places, etc.
+      val document = myFixture.editor.document
+      val startOffset = selection.start.toOffset(document)
+      val endOffset = selection.end.toOffset(document)
+      val caret = myFixture.editor.caretModel.primaryCaret.offset
+      assertFalse(
+          "Selection range should not equal the caret position",
+          startOffset == caret && endOffset == caret)
     }
+  }
+
+  fun testGetsWorkingGroupLens() {
+    val future = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
+    executeDocumentCodeAction()
+
+    // Wait for the working group.
+    val context = future.get()
+    assertNotNull("Timed out waiting for working group lens", context)
+
+    // The inlay should be up.
+    assertTrue(
+        "Lens group inlay should be displayed", myFixture.editor.inlayModel.hasBlockElements())
 
     // Lens group should match the expected structure.
     val lenses = context!!.session.lensGroup
@@ -72,15 +85,13 @@ class DocumentCodeTest : BasePlatformTestCase() {
   }
 
   fun testShowsAcceptLens() {
-    val editor = myFixture.editor
-    assertFalse(editor.inlayModel.hasBlockElements())
-
-    runInEdtAndWait { EditorTestUtil.executeAction(editor, "cody.documentCodeAction") }
-
-    val context = waitForTopic(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACCEPT_GROUP)
+    val future = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACCEPT_GROUP)
+    executeDocumentCodeAction() // awaits sending command to Agent
+    val context = future.get() // awaits the Accept group appearing
     assertNotNull("Timed out waiting for Accept group lens", context)
 
     // The inlay should be up.
+    val editor = myFixture.editor
     assertTrue("Lens group inlay should be displayed", editor.inlayModel.hasBlockElements())
 
     // Lens group should match the expected structure.
@@ -90,14 +101,26 @@ class DocumentCodeTest : BasePlatformTestCase() {
     val widgets = lenses!!.widgets
     // There are 13 widgets as of the time of writing, but the UX could change, so check robustly.
     assertTrue("Lens group should have at least 4 widgets", widgets.size >= 4)
-    assertNotNull("Lens group should contain Accept action",
-            widgets.find { widget -> widget is LensAction && widget.command == FixupSession.COMMAND_ACCEPT })
-    assertNotNull("Lens group should contain Show Diff action",
-            widgets.find { widget -> widget is LensAction && widget.command == FixupSession.COMMAND_DIFF })
-    assertNotNull("Lens group should contain Show Undo action",
-            widgets.find { widget -> widget is LensAction && widget.command == FixupSession.COMMAND_UNDO })
-    assertNotNull("Lens group should contain Show Retry action",
-            widgets.find { widget -> widget is LensAction && widget.command == FixupSession.COMMAND_RETRY })
+    assertNotNull(
+        "Lens group should contain Accept action",
+        widgets.find { widget ->
+          widget is LensAction && widget.command == FixupSession.COMMAND_ACCEPT
+        })
+    assertNotNull(
+        "Lens group should contain Show Diff action",
+        widgets.find { widget ->
+          widget is LensAction && widget.command == FixupSession.COMMAND_DIFF
+        })
+    assertNotNull(
+        "Lens group should contain Show Undo action",
+        widgets.find { widget ->
+          widget is LensAction && widget.command == FixupSession.COMMAND_UNDO
+        })
+    assertNotNull(
+        "Lens group should contain Show Retry action",
+        widgets.find { widget ->
+          widget is LensAction && widget.command == FixupSession.COMMAND_RETRY
+        })
 
     // Make sure a doc comment was inserted.
     assertTrue(hasJavadocComment(editor.document.text))
@@ -107,11 +130,9 @@ class DocumentCodeTest : BasePlatformTestCase() {
   }
 
   fun testUndo() {
-    // Kick off an 'editCommands/document' request.
-    val editor = myFixture.editor
-    runInEdtAndWait { EditorTestUtil.executeAction(editor, "cody.documentCodeAction") }
-
     val undoFuture = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
+    val editor = myFixture.editor
+    executeDocumentCodeAction()
 
     // The Accept/Retry/Undo group is now showing.
     // TODO: Send the Undo action as if the user triggered it.
@@ -121,24 +142,10 @@ class DocumentCodeTest : BasePlatformTestCase() {
     assertNotNull("Timed out waiting for Undo action", context)
   }
 
-  @RequiresEdt
-  private fun testSelectionRange(context: CodyInlineEditActionNotifier.Context) {
-    // Ensure we were able to get the selection range.
-    val selection = context.session.selectionRange
-    assertNotNull("Selection should have been set", selection)
-    // We set the selection range to whatever the protocol returns.
-    // If a 0-width selection turns out to be reasonable we can adjust or remove this test.
-    assertFalse("Selection range should not be zero-width", selection!!.start == selection.end)
-    // A more robust check is to see if the selection "range" is just the caret position.
-    // If so, then our fallback range somehow made the round trip, which is bad. The lenses will go
-    // in the wrong places, etc.
-    val document = myFixture.editor.document
-    val startOffset = selection.start.toOffset(document)
-    val endOffset = selection.end.toOffset(document)
-    val caret = myFixture.editor.caretModel.primaryCaret.offset
-    assertFalse(
-        "Selection range should not equal the caret position",
-        startOffset == caret && endOffset == caret)
+  private fun executeDocumentCodeAction() {
+    assertFalse(myFixture.editor.inlayModel.hasBlockElements())
+    // Execute the action and await the working group lens.
+    runInEdtAndWait { EditorTestUtil.executeAction(myFixture.editor, "cody.documentCodeAction") }
   }
 
   private fun configureFixture() {
@@ -170,17 +177,17 @@ public class Foo {
       topic: Topic<CodyInlineEditActionNotifier>,
   ): CompletableFuture<CodyInlineEditActionNotifier.Context?> {
     val future =
-            CompletableFuture<CodyInlineEditActionNotifier.Context?>()
-                    .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        CompletableFuture<CodyInlineEditActionNotifier.Context?>()
+            .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     project.messageBus
         .connect()
         .subscribe(
-             topic,
-             object : CodyInlineEditActionNotifier {
-               override fun afterAction(context: CodyInlineEditActionNotifier.Context) {
-                 future.complete(context)
-               }
-             })
+            topic,
+            object : CodyInlineEditActionNotifier {
+              override fun afterAction(context: CodyInlineEditActionNotifier.Context) {
+                future.complete(context)
+              }
+            })
     return future
   }
 
