@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.edit
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -14,6 +15,7 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 class DocumentCodeTest : BasePlatformTestCase() {
+  private val logger = Logger.getInstance(DocumentCodeTest::class.java)
 
   override fun setUp() {
     super.setUp()

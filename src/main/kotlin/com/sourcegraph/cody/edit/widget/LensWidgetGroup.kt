@@ -19,6 +19,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.FixupSession
+import org.jetbrains.annotations.NotNull
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -28,7 +29,6 @@ import java.awt.geom.Rectangle2D
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
-import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
@@ -243,9 +243,17 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   override fun dispose() {
     isDisposed.set(true)
     if (editor.isDisposed) return
-    editor.removeEditorMouseListener(mouseClickListener)
-    editor.removeEditorMouseMotionListener(mouseMotionListener)
-    disposeInlay()
+    try {
+      editor.removeEditorMouseListener(mouseClickListener)
+      editor.removeEditorMouseMotionListener(mouseMotionListener)
+    } catch (e: Exception) {
+      logger.warn("Error removing mouse listeners", e)
+    }
+    try {
+      disposeInlay()
+    } catch (e: Exception) {
+      logger.warn("Error disposing inlay", e)
+    }
   }
 
   private fun disposeInlay() {

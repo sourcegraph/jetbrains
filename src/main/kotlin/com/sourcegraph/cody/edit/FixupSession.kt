@@ -180,7 +180,6 @@ abstract class FixupSession(
   }
 
   fun update(task: EditTask) {
-    logger.warn("Task updated: $task")
     when (task.state) {
       // This is an internal state (parked/ready tasks) and we should never see it.
       CodyTaskState.Idle -> {}

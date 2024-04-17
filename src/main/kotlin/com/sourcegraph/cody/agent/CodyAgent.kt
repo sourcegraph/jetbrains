@@ -97,7 +97,6 @@ private constructor(
         val conn = startAgentProcess()
         val client = CodyAgentClient()
         client.onSetConfigFeatures = project.service<CurrentConfigFeatures>()
-        logger.warn("Starting json-rpc Launcher")
         val launcher = startAgentLauncher(conn, client)
         val server = launcher.remoteProxy
         val listeningToJsonRpc = launcher.startListening()

@@ -1,3 +1,4 @@
+
 import com.jetbrains.plugin.structure.base.utils.isDirectory
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
@@ -358,6 +359,7 @@ tasks {
     systemProperty(
         "cody.autocomplete.enableFormatting",
         project.property("cody.autocomplete.enableFormatting") ?: "true")
+    environment("CODY_JETBRAINS_FEATURES", "cody.feature.inline-edits=true")
 
     val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
     if (platformRuntimeVersion != null) {
@@ -429,11 +431,8 @@ tasks {
     }
   }
 
-  // Create a task to run integration tests
-  // Make a new integration test recording with
-  //  ./gradlew integrationTest -PrecordingMode=record
-  register<Test>("integrationTest") {
-    description = "Runs the integration tests."
+  // Common configuration for integration tests.
+  val sharedIntegrationTestConfig: Test.() -> Unit = {
     group = "verification"
     testClassesDirs = sourceSets["integrationTest"].output.classesDirs
     classpath = sourceSets["integrationTest"].runtimeClasspath
@@ -444,21 +443,42 @@ tasks {
 
     systemProperty("cody.integration.testing", "true")
     systemProperty(
-        "idea.test.execution.policy", // For now, should be used by all tests
-        "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
+            "idea.test.execution.policy", // For now, should be used by all tests
+            "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
 
-    val recordingMode = project.findProperty("recordingMode")?.toString() ?: "replay"
-    environment("CODY_RECORDING_MODE", recordingMode)
-    // Polly replays recorded responses from here during the tests.
-    environment("CODY_RECORDING_DIRECTORY", "recordings")
-    if (recordingMode == "record") {
-      environment("CODY_RECORDING_NAME", "integration-tests")
-      environment("CODY_RECORD_IF_MISSING", "true") // Polly needs this to record at all.
-    }
     environment("CODY_JETBRAINS_FEATURES", "cody.feature.inline-edits=true")
+    environment("CODY_RECORDING_MODE", "replay")
+    environment("CODY_RECORDING_DIRECTORY", "recordings")
+    environment("CODY_RECORD_IF_MISSING", "false") // Polly needs this to record at all.
 
     dependsOn("buildCody")
   }
 
+  register<Test>("integrationTest") {
+    description = "Runs the integration tests."
+    applySharedConfiguration(sharedIntegrationTestConfig)
+  }
+
+  // Make sure to set CODY_INTEGRATION_TEST_TOKEN when using this task.
+  register<Test>("passthroughIntegrationTest") {
+    description = "Runs the integration tests, passing everything through to the LLM."
+    applySharedConfiguration(sharedIntegrationTestConfig)
+    environment("CODY_RECORDING_MODE", "passthrough")
+  }
+
+  // Make sure to set CODY_INTEGRATION_TEST_TOKEN when using this task.
+  register<Test>("recordingIntegrationTest") {
+    description = "Runs the integration tests and records the responses."
+    applySharedConfiguration(sharedIntegrationTestConfig)
+
+    environment("CODY_RECORDING_MODE", "record")
+    environment("CODY_RECORDING_NAME", "integration-tests")
+    environment("CODY_RECORD_IF_MISSING", "true") // Polly needs this to record at all.
+  }
+
   named("check") { dependsOn("integrationTest") }
+}
+
+fun Test.applySharedConfiguration(sharedConfig: Test.() -> Unit) {
+  sharedConfig()
 }
