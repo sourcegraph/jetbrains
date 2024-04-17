@@ -34,17 +34,11 @@ class PostStartupActivity : StartupActivity.DumbAware {
     CodyStatusService.resetApplication(project)
     EndOfTrialNotificationScheduler.createAndStart(project)
 
-    val multicaster = EditorFactory.getInstance().eventMulticaster
-    if (multicaster is EditorEventMulticasterEx) {
-      try {
-        val disposable = CodyAgentService.getInstance(project)
-        multicaster.addFocusChangeListener(CodyFocusChangeListener(), disposable)
-        multicaster.addCaretListener(CodyCaretListener(), disposable)
-        multicaster.addSelectionListener(CodySelectionListener(), disposable)
-        multicaster.addDocumentListener(CodyDocumentListener(project), disposable)
-      } catch (e: Exception) {
-        // Ignore exception https://github.com/sourcegraph/sourcegraph/issues/56032
-      }
-    }
+    val multicaster = EditorFactory.getInstance().eventMulticaster as EditorEventMulticasterEx
+    val disposable = CodyAgentService.getInstance(project)
+    multicaster.addFocusChangeListener(CodyFocusChangeListener(project), disposable)
+    multicaster.addCaretListener(CodyCaretListener(project), disposable)
+    multicaster.addSelectionListener(CodySelectionListener(project), disposable)
+    multicaster.addDocumentListener(CodyDocumentListener(project), disposable)
   }
 }

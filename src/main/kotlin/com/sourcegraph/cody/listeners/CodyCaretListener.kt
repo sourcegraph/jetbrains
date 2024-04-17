@@ -3,6 +3,7 @@ package com.sourcegraph.cody.listeners
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
+import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
@@ -11,7 +12,7 @@ import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
 import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.utils.CodyEditorUtil
 
-class CodyCaretListener : CaretListener {
+class CodyCaretListener(val project: Project) : CaretListener {
   override fun caretPositionChanged(e: CaretEvent) {
     if (!ConfigUtil.isCodyEnabled()) {
       return
@@ -22,10 +23,7 @@ class CodyCaretListener : CaretListener {
       return
     }
 
-    val editor = e.editor
-    val project = editor.project
-    val textDocument = ProtocolTextDocument.fromEditor(editor)
-    if (project != null && textDocument != null) {
+    ProtocolTextDocument.fromEditor(e.editor)?.let { textDocument ->
       CodyAgentService.withAgent(project) { agent: CodyAgent ->
         agent.server.textDocumentDidFocus(textDocument)
       }

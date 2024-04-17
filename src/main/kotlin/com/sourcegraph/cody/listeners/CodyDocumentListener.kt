@@ -30,7 +30,7 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
 
   override fun documentChangedNonBulk(event: DocumentEvent) {
     val editor = FileEditorManager.getInstance(project).selectedTextEditor
-    if (editor == null || editor.document != event.document) {
+    if (editor?.document != event.document) {
       return
     }
 
@@ -40,6 +40,7 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
     if (CodyEditorUtil.isImplicitAutocompleteEnabledForEditor(editor) &&
         CodyEditorUtil.isEditorValidForAutocomplete(editor) &&
         !CommandProcessor.getInstance().isUndoTransparentActionInProgress) {
+
       ProtocolTextDocument.fromEditor(editor)?.let { textDocument ->
         CodyAgentService.withAgent(project) { agent ->
           agent.server.textDocumentDidChange(textDocument)
