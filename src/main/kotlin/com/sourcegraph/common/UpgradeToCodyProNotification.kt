@@ -5,11 +5,12 @@ import com.intellij.notification.NotificationType
 import com.intellij.notification.impl.NotificationFullContent
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.protocol.RateLimitError
 import com.sourcegraph.common.BrowserOpener.openInBrowser
+import com.sourcegraph.common.ui.DumbAwareBGTAction
+import com.sourcegraph.common.ui.SimpleDumbAwareBGTAction
 import java.util.concurrent.atomic.AtomicReference
 
 class UpgradeToCodyProNotification
@@ -19,7 +20,7 @@ private constructor(title: String, content: String, shouldShowUpgradeOption: Boo
   init {
     icon = Icons.CodyLogo
     val learnMoreAction: AnAction =
-        object : DumbAwareAction("Learn more") {
+        object : DumbAwareBGTAction("Learn more") {
           override fun actionPerformed(anActionEvent: AnActionEvent) {
             val learnMoreLink =
                 when {
@@ -31,16 +32,11 @@ private constructor(title: String, content: String, shouldShowUpgradeOption: Boo
             hideBalloon()
           }
         }
-    val dismissAction: AnAction =
-        object : DumbAwareAction("Dismiss") {
-          override fun actionPerformed(anActionEvent: AnActionEvent) {
-            hideBalloon()
-          }
-        }
+    val dismissAction: AnAction = SimpleDumbAwareBGTAction("Dismiss") { hideBalloon() }
 
     if (shouldShowUpgradeOption) {
       val upgradeAction: AnAction =
-          object : DumbAwareAction("Upgrade") {
+          object : DumbAwareBGTAction("Upgrade") {
             override fun actionPerformed(anActionEvent: AnActionEvent) {
               openInBrowser(anActionEvent.project, "https://sourcegraph.com/cody/subscription")
               hideBalloon()
