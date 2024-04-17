@@ -16,6 +16,7 @@ class EditShowDiffAction : CompareFileWithEditorAction() {
 
   override fun isAvailable(e: AnActionEvent): Boolean {
     e.dataContext.getData(DIFF_SESSION_DATA_KEY) ?: return false
+    e.dataContext.getData(EDITOR_DATA_KEY) ?: return false
     return true
   }
 

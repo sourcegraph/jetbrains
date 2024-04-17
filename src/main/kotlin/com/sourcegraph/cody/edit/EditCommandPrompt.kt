@@ -192,7 +192,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
           return
         }
         controller.addSession(
-            EditCodeSession(controller, editor, project, editor.document, text, llmDropdown.item))
+            EditCodeSession(controller, editor, project, text, llmDropdown.item))
       }
     }
 

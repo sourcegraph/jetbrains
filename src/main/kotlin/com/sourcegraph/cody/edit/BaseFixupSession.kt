@@ -2,10 +2,9 @@ package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.RangeMarker
 
-open class BaseFixupSession(val editor: Editor, val document: Document) {
+open class BaseFixupSession(val document: Document) {
   protected val rangeMarkers: MutableSet<RangeMarker> = mutableSetOf()
   private val logger = Logger.getInstance(BaseFixupSession::class.java)
 

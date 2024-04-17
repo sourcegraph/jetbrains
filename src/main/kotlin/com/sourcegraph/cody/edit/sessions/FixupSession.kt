@@ -5,7 +5,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.LogicalPosition
@@ -49,9 +48,8 @@ import java.util.concurrent.TimeUnit
 abstract class FixupSession(
     val controller: FixupService,
     val project: Project,
-    editor: Editor,
-    document: Document
-) : BaseFixupSession(editor, document), Disposable {
+    val editor: Editor
+) : BaseFixupSession(editor.document), Disposable {
 
   private val logger = Logger.getInstance(FixupSession::class.java)
   private val fixupService = FixupService.getInstance(project)
@@ -68,8 +66,7 @@ abstract class FixupSession(
   protected fun createDiffSession() =
       DiffSession(
           project = project,
-          editor = editor,
-          document = EditorFactory.getInstance().createDocument(document.text),
+          document = EditorFactory.getInstance().createDocument(editor.document.text),
           performedActions = performedActions)
 
   private val lensActionCallbacks =
@@ -90,7 +87,7 @@ abstract class FixupSession(
   @RequiresEdt
   private fun triggerDocumentCodeAsync() {
     // Those lookups require us to be on the EDT.
-    val file = FileDocumentManager.getInstance().getFile(document)
+    val file = FileDocumentManager.getInstance().getFile(editor.document)
     val textFile = file?.let { ProtocolTextDocument.fromVirtualFile(editor, it) } ?: return
 
     CodyAgentService.withAgent(project) { agent ->
@@ -128,11 +125,11 @@ abstract class FixupSession(
   // in ContextProvider.ts. It's a different initialization path from completions & chat.
   // Calling onFileOpened forces the right initialization path.
   private fun workAroundUninitializedCodebase() {
-    val file = FileDocumentManager.getInstance().getFile(document)
+    val file = FileDocumentManager.getInstance().getFile(editor.document)
     if (file != null) {
       CodyAgentCodebase.getInstance(project).onFileOpened(file)
     } else {
-      logger.warn("No virtual file associated with $document")
+      logger.warn("No virtual file associated with ${editor.document}")
     }
   }
 
@@ -295,12 +292,12 @@ abstract class FixupSession(
           when (edit.type) {
             "replace",
             "delete" -> {
-              val action = ReplaceUndoableAction(this, edit, marker)
+              val action = ReplaceUndoableAction(project, session = this, edit, marker)
               this.performedActions.add(action)
               action.apply()
             }
             "insert" -> {
-              val action = InsertUndoableAction(this, edit, marker)
+              val action = InsertUndoableAction(project, session = this, edit, marker)
               this.performedActions.add(action)
               action.apply()
             }
@@ -318,12 +315,12 @@ abstract class FixupSession(
       "replace",
       "delete" -> {
         val range = edit.range ?: return null
-        startOffset = document.getLineStartOffset(range.start.line) + range.start.character
-        endOffset = document.getLineStartOffset(range.end.line) + range.end.character
+        startOffset = editor.document.getLineStartOffset(range.start.line) + range.start.character
+        endOffset = editor.document.getLineStartOffset(range.end.line) + range.end.character
       }
       "insert" -> {
         val position = edit.position ?: return null
-        startOffset = document.getLineStartOffset(position.line) + position.character
+        startOffset = editor.document.getLineStartOffset(position.line) + position.character
         endOffset = startOffset
       }
       else -> return null
@@ -341,7 +338,7 @@ abstract class FixupSession(
   }
 
   private fun getEditorForDocument(): FileEditor? {
-    val file = FileDocumentManager.getInstance().getFile(document)
+    val file = FileDocumentManager.getInstance().getFile(editor.document)
     return file?.let { getCurrentFileEditor(it) }
   }
 

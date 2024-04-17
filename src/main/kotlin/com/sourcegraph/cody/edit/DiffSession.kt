@@ -3,15 +3,13 @@ package com.sourcegraph.cody.edit
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 
 class DiffSession(
     project: Project,
-    editor: Editor,
     document: Document,
     performedActions: MutableList<FixupUndoableAction>
-) : BaseFixupSession(editor, document) {
+) : BaseFixupSession(document) {
   private val logger = Logger.getInstance(DiffSession::class.java)
 
   init {
@@ -28,7 +26,7 @@ class DiffSession(
         when (fixupAction.edit.type) {
           "replace",
           "delete" -> {
-            ReplaceUndoableAction(this, fixupAction.edit, marker)
+            ReplaceUndoableAction(project, session = this, fixupAction.edit, marker)
                 .apply {
                   afterMarker = createMarker(tmpAfterMarker.startOffset, tmpAfterMarker.endOffset)
                   originalText = fixupAction.originalText
@@ -36,7 +34,7 @@ class DiffSession(
                 .undo()
           }
           "insert" -> {
-            InsertUndoableAction(this, fixupAction.edit, marker)
+            InsertUndoableAction(project, session = this, fixupAction.edit, marker)
                 .apply {
                   afterMarker = createMarker(tmpAfterMarker.startOffset, tmpAfterMarker.endOffset)
                   originalText = fixupAction.originalText
