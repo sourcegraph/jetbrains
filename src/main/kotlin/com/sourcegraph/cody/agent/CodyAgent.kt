@@ -186,6 +186,7 @@ private constructor(
 
       processBuilder.environment().apply {
         this["CODY_RECORDING_NAME"] = "integration-test"
+        this["CODY_TELEMETRY_EXPORTER"] = "testing"
         // N.B. If you set CODY_RECORDING_MODE, you must set CODY_RECORDING_DIRECTORY,
         // or the Agent will throw an error and your test will fail.
         when (val mode = System.getenv("CODY_RECORDING_MODE")) {
