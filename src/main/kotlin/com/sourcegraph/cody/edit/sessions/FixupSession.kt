@@ -49,7 +49,7 @@ abstract class FixupSession(
     val controller: FixupService,
     val project: Project,
     val editor: Editor
-) : BaseFixupSession(editor.document), Disposable {
+) : DocumentMarkerSession(editor.document), Disposable {
 
   private val logger = Logger.getInstance(FixupSession::class.java)
   private val fixupService = FixupService.getInstance(project)

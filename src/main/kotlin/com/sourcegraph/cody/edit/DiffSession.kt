@@ -9,7 +9,7 @@ class DiffSession(
     project: Project,
     document: Document,
     performedActions: MutableList<FixupUndoableAction>
-) : BaseFixupSession(document) {
+) : DocumentMarkerSession(document) {
   private val logger = Logger.getInstance(DiffSession::class.java)
 
   init {

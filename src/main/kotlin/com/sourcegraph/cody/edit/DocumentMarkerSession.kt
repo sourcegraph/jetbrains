@@ -4,9 +4,9 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.RangeMarker
 
-open class BaseFixupSession(val document: Document) {
+open class DocumentMarkerSession(val document: Document) {
   protected val rangeMarkers: MutableSet<RangeMarker> = mutableSetOf()
-  private val logger = Logger.getInstance(BaseFixupSession::class.java)
+  private val logger = Logger.getInstance(DocumentMarkerSession::class.java)
 
   fun removeMarker(marker: RangeMarker) {
     try {
