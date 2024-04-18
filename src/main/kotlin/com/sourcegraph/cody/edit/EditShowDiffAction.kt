@@ -11,6 +11,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.sourcegraph.cody.edit.sessions.DiffSession
 
 class EditShowDiffAction : CompareFileWithEditorAction() {
 

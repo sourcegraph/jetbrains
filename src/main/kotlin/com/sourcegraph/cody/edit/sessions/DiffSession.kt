@@ -1,9 +1,13 @@
-package com.sourcegraph.cody.edit
+package com.sourcegraph.cody.edit.sessions
 
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
+import com.sourcegraph.cody.edit.DocumentMarkerSession
+import com.sourcegraph.cody.edit.FixupUndoableAction
+import com.sourcegraph.cody.edit.InsertUndoableAction
+import com.sourcegraph.cody.edit.ReplaceUndoableAction
 
 class DiffSession(
     project: Project,

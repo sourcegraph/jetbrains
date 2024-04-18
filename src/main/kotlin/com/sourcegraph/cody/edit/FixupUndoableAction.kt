@@ -9,7 +9,6 @@ import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.sourcegraph.cody.agent.protocol.TextEdit
-import com.sourcegraph.cody.edit.sessions.FixupSession
 
 abstract class FixupUndoableAction(
     val project: Project,

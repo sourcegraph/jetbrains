@@ -1,6 +1,11 @@
 package com.sourcegraph.cody.edit.sessions
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.UndoManager
@@ -30,8 +35,12 @@ import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.agent.protocol.WorkspaceEditParams
+import com.sourcegraph.cody.edit.DocumentMarkerSession
 import com.sourcegraph.cody.edit.EditCommandPrompt
+import com.sourcegraph.cody.edit.EditShowDiffAction
+import com.sourcegraph.cody.edit.EditShowDiffAction.Companion.DIFF_SESSION_DATA_KEY
 import com.sourcegraph.cody.edit.FixupService
+import com.sourcegraph.cody.edit.FixupUndoableAction
 import com.sourcegraph.cody.edit.InsertUndoableAction
 import com.sourcegraph.cody.edit.ReplaceUndoableAction
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
@@ -234,9 +243,23 @@ abstract class FixupSession(
   }
 
   fun diff() {
-    // TODO: Use DiffManager and bring up a diff of the changed region.
-    // You can see it in action now by clicking the green gutter to the left of Cody changes.
-    logger.warn("Code Lenses: Show Diff")
+    val editShowDiffAction = ActionManager.getInstance().getAction("cody.editShowDiffAction")
+
+    editShowDiffAction.actionPerformed(
+        AnActionEvent(
+            /* inputEvent = */ null,
+            /* dataContext = */ { dataId ->
+              when (dataId) {
+                CommonDataKeys.PROJECT.name -> project
+                EditShowDiffAction.EDITOR_DATA_KEY.name -> editor
+                DIFF_SESSION_DATA_KEY.name -> createDiffSession()
+                else -> null
+              }
+            },
+            /* place = */ ActionPlaces.UNKNOWN,
+            /* presentation = */ Presentation(),
+            /* actionManager = */ ActionManager.getInstance(),
+            /* modifiers = */ 0))
   }
 
   fun undo() {
