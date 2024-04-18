@@ -190,7 +190,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
           logger.warn("Project was null when trying to add an edit session")
           return
         }
-        controller.addSession(
+        controller.setActiveSession(
             EditSession(controller, editor, project, editor.document, text, llmDropdown.item))
       }
     }
@@ -282,7 +282,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     const val DEFAULT_TEXT_FIELD_WIDTH: Int = 620 // TODO: make this smarter
 
     // TODO: Put this back when @-includes are in
-    //const val GHOST_TEXT = "Instructions (@ to include code)"
+    // const val GHOST_TEXT = "Instructions (@ to include code)"
     const val GHOST_TEXT = "Type your instructions here"
 
     // Going with a global history for now, shared across edit-code prompts.

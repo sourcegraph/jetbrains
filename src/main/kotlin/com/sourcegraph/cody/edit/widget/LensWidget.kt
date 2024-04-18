@@ -39,7 +39,7 @@ abstract class LensWidget(val parentGroup: LensWidgetGroup) : Disposable {
   open fun update() {}
 
   /** Called only when widget is clicked. Coordinates are relative to the widget. */
-  open fun onClick(x: Int, y: Int): Boolean {
+  open fun onClick(e: EditorMouseEvent): Boolean {
     // Not all widgets care.
     return false
   }

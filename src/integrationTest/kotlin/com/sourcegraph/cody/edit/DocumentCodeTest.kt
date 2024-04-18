@@ -1,5 +1,8 @@
 package com.sourcegraph.cody.edit
 
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.EditorTestUtil
@@ -13,6 +16,7 @@ import com.sourcegraph.cody.edit.widget.LensSpinner
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import org.mockito.Mockito.mock
 
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)
@@ -23,6 +27,13 @@ class DocumentCodeTest : BasePlatformTestCase() {
   }
 
   override fun tearDown() {
+    FixupService.getInstance(myFixture.project).getActiveSession()?.apply {
+      try {
+        finish()
+      } catch (x: Exception) {
+        logger.warn("Error shutting down session", x)
+      }
+    }
     // TODO: Notify the Agent that all documents were closed.
     super.tearDown()
   }
@@ -81,23 +92,23 @@ class DocumentCodeTest : BasePlatformTestCase() {
     assertTrue(
         "Fifth lens should be a label with a hotkey",
         (widgets[5] as LensLabel).text.matches(Regex(" \\(.+\\)")))
-
-    // This avoids an error saying the spinner hasn't shut down, at the end of the test.
-    runInEdtAndWait { Disposer.dispose(lenses) }
   }
 
-  fun testShowsAcceptLens() {
+  private fun awaitAcceptLensGroup(): CodyInlineEditActionNotifier.Context {
     val future = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACCEPT_GROUP)
     executeDocumentCodeAction() // awaits sending command to Agent
     val context = future.get() // awaits the Accept group appearing
     assertNotNull("Timed out waiting for Accept group lens", context)
-
-    // The inlay should be up.
     val editor = myFixture.editor
     assertTrue("Lens group inlay should be displayed", editor.inlayModel.hasBlockElements())
+    return context!!
+  }
+
+  fun testShowsAcceptLens() {
+    val context = awaitAcceptLensGroup()
 
     // Lens group should match the expected structure.
-    val lenses = context!!.session.lensGroup
+    val lenses = context.session.lensGroup
     assertNotNull("Lens group should be displayed", lenses)
 
     val widgets = lenses!!.widgets
@@ -125,20 +136,35 @@ class DocumentCodeTest : BasePlatformTestCase() {
         })
 
     // Make sure a doc comment was inserted.
-    assertTrue(hasJavadocComment(editor.document.text))
+    assertTrue(hasJavadocComment(myFixture.editor.document.text))
 
     // This avoids an error saying the spinner hasn't shut down, at the end of the test.
     runInEdtAndWait { Disposer.dispose(lenses) }
   }
 
+  fun testAccept() {
+    val project = myFixture.project!!
+    assertNull(FixupService.getInstance(project).getActiveSession())
+
+    awaitAcceptLensGroup()
+    assertTrue(myFixture.editor.inlayModel.hasBlockElements())
+    assertNotNull(FixupService.getInstance(project).getActiveSession())
+
+    val future = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
+    triggerAction(FixupSession.ACTION_ACCEPT)
+
+    val context = future.get()
+    assertNotNull("Timed out waiting for Accept action to complete", context)
+
+    assertFalse(myFixture.editor.inlayModel.hasBlockElements())
+    assertNull(FixupService.getInstance(project).getActiveSession())
+  }
+
   fun testUndo() {
     val undoFuture = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
-    val editor = myFixture.editor
     executeDocumentCodeAction()
-
     // The Accept/Retry/Undo group is now showing.
-    // TODO: Send the Undo action as if the user triggered it.
-    //   - we will need to turn our pseudo-actions into real IDE actions
+    triggerAction(FixupSession.ACTION_UNDO)
 
     val context = undoFuture.get()
     assertNotNull("Timed out waiting for Undo action", context)
@@ -193,11 +219,16 @@ public class Foo {
     return future
   }
 
-  // Block until the passed topic gets a message, or until we time out.
-  private fun waitForTopic(
-      topic: Topic<CodyInlineEditActionNotifier>
-  ): CodyInlineEditActionNotifier.Context? {
-    return subscribeToTopic(topic).get()
+  private fun triggerAction(actionId: String) {
+    val action = ActionManager.getInstance().getAction(actionId)
+    action.actionPerformed(
+        AnActionEvent(
+            null,
+            mock(DataContext::class.java),
+            "",
+            action.templatePresentation.clone(),
+            ActionManager.getInstance(),
+            0))
   }
 
   private fun hasJavadocComment(text: String): Boolean {

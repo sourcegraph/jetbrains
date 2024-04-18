@@ -10,13 +10,13 @@ import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
-import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.*
 import java.net.Socket
 import java.net.URI
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
+import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -192,15 +192,15 @@ private constructor(
         when (val mode = System.getenv("CODY_RECORDING_MODE")) {
           null -> {
             logger.warn(
-                """Polly is not enabled for this test. 
-                   Set CODY_RECORDING_MODE and CODY_RECORDING_DIRECTORY 
+                """Polly is not enabled for this test.
+                   Set CODY_RECORDING_MODE and CODY_RECORDING_DIRECTORY
                    variables to turn on Polly."""
                     .trimMargin())
           }
           "record",
           "replay",
           "passthrough" -> {
-            logger.warn("Cody recording mode: $mode")
+            logger.warn("Cody integration test recording mode: $mode")
             this["CODY_RECORDING_MODE"] = mode
             this["CODY_RECORD_IF_MISSING"] = "true"
             // This flag is for Agent-side integration testing and interferes with ours.

@@ -26,6 +26,7 @@ import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager.Companion.instance
 import com.sourcegraph.cody.autocomplete.action.AcceptCodyAutocompleteAction
 import com.sourcegraph.cody.chat.CodeEditorFactory
+import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.telemetry.GraphQlLogger
@@ -100,6 +101,9 @@ class CodyEditorFactoryListener : EditorFactoryListener {
     override fun documentChangedNonBulk(event: DocumentEvent) {
       if (!Util.isSelectedEditor(editor)) {
         return
+      }
+      editor.project?.let { project ->
+        FixupService.getInstance(project).getActiveSession()?.handleDocumentChange(editor)
       }
       val completions = instance
       completions.clearAutocompleteSuggestions(editor)

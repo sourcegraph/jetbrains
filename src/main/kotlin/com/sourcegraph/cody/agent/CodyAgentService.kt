@@ -44,11 +44,11 @@ class CodyAgentService(project: Project) : Disposable {
       }
 
       agent.client.onEditTaskDidUpdate = Consumer { task ->
-        FixupService.getInstance(project).getSessionForTask(task)?.update(task)
+        FixupService.getInstance(project).getActiveSession()?.update(task)
       }
 
-      agent.client.onEditTaskDidDelete = Consumer { task ->
-        FixupService.getInstance(project).getSessionForTask(task)?.taskDeleted()
+      agent.client.onEditTaskDidDelete = Consumer { _ ->
+        FixupService.getInstance(project).getActiveSession()?.taskDeleted()
       }
 
       agent.client.onWorkspaceEdit = Consumer { params ->

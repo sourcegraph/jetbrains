@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.FixupSession
 import org.jetbrains.annotations.NotNull
@@ -44,6 +45,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   val editor = parentComponent as EditorImpl
 
   val isDisposed = AtomicBoolean(false)
+  private val addedListeners = AtomicBoolean(false)
+  private val removedListeners = AtomicBoolean(false)
 
   val widgets = mutableListOf<LensWidget>()
 
@@ -93,6 +96,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     Disposer.register(session, this)
     editor.addEditorMouseListener(mouseClickListener)
     editor.addEditorMouseMotionListener(mouseMotionListener)
+    addedListeners.set(true)
   }
 
   fun withListenersMuted(block: () -> Unit) {
@@ -210,7 +214,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   // Dispatch mouse click events to the appropriate widget.
   private fun handleMouseClick(e: EditorMouseEvent) {
     val (x, y) = e.mouseEvent.point
-    if (findWidgetAt(x, y)?.onClick(x, y) == true) {
+    if (findWidgetAt(x, y)?.onClick(e) == true) {
       e.consume()
     }
   }
@@ -239,23 +243,34 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     }
   }
 
-  /** Immediately hides and discards this inlay and widget group. */
+  /** Hides and discards this inlay and widget group. */
   override fun dispose() {
+    // We work extra hard to ensure this method is idempotent and robust,
+    // because IntelliJ (annoyingly) logs an assertion if you try to remove
+    // a nonexistent listener, and it pops up a user-visible exception.
+    if (isDisposed.get()) return
     isDisposed.set(true)
     if (editor.isDisposed) return
-    try {
-      editor.removeEditorMouseListener(mouseClickListener)
-      editor.removeEditorMouseMotionListener(mouseMotionListener)
-    } catch (e: Exception) {
-      logger.warn("Error removing mouse listeners", e)
-    }
-    try {
-      disposeInlay()
-    } catch (e: Exception) {
-      logger.warn("Error disposing inlay", e)
+    onEventThread {
+      if (editor.isDisposed) return@onEventThread
+      if (addedListeners.get() && !removedListeners.get()) {
+        try {
+          removedListeners.set(true)
+          editor.removeEditorMouseListener(mouseClickListener)
+          editor.removeEditorMouseMotionListener(mouseMotionListener)
+        } catch (t: Throwable) {
+          logger.warn("Error removing mouse listeners", t)
+        }
+      }
+      try {
+        disposeInlay()
+      } catch (t: Throwable) {
+        logger.warn("Error disposing inlay", t)
+      }
     }
   }
 
+  @RequiresEdt
   private fun disposeInlay() {
     inlay?.apply {
       if (isValid) {

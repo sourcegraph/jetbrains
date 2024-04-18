@@ -37,6 +37,13 @@ interface CodyInlineEditActionNotifier {
     val TOPIC_PERFORM_UNDO =
         Topic.create("Sourcegraph Cody: Undo Inline Edit", CodyInlineEditActionNotifier::class.java)
 
+    /** Sent when the user performs the Accept action and the edits are kept. */
+    @JvmStatic
+    @Topic.ProjectLevel
+    val TOPIC_PERFORM_ACCEPT =
+        Topic.create(
+            "Sourcegraph Cody: Accept Inline Edit", CodyInlineEditActionNotifier::class.java)
+
     /** Sent after a workspace/edit is applied. */
     @JvmStatic
     @Topic.ProjectLevel

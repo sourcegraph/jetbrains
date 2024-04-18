@@ -1,8 +1,4 @@
-
 import com.jetbrains.plugin.structure.base.utils.isDirectory
-import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
 import java.nio.file.FileSystems
 import java.nio.file.FileVisitResult
@@ -16,6 +12,9 @@ import java.util.*
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import kotlin.script.experimental.jvm.util.hasParentNamed
+import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -58,6 +57,8 @@ dependencies {
   testImplementation("org.awaitility:awaitility-kotlin:4.2.0")
   testImplementation("org.junit.jupiter:junit-jupiter:5.7.0")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.22")
+  implementation("org.mockito:mockito-all:1.10.19")
+  testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1")
 }
 
 spotless {
@@ -443,8 +444,8 @@ tasks {
 
     systemProperty("cody.integration.testing", "true")
     systemProperty(
-            "idea.test.execution.policy", // For now, should be used by all tests
-            "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
+        "idea.test.execution.policy", // For now, should be used by all tests
+        "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
 
     environment("CODY_JETBRAINS_FEATURES", "cody.feature.inline-edits=true")
     environment("CODY_RECORDING_MODE", "replay")
