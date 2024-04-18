@@ -12,7 +12,7 @@ class InternalsStatusBarActionGroup : DefaultActionGroup() {
 
   override fun update(e: AnActionEvent) {
     super.update(e)
-    e.presentation.isVisible = ConfigUtil.isCodyDebugEnabled()
+    e.presentation.isVisible = ConfigUtil.isFeatureFlagEnabled("cody.feature.internals-menu")
     removeAll()
     if (e.project != null) {
       addAll(
