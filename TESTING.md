@@ -19,6 +19,7 @@
     - [ ] [Read chat history without interruptions](#read-chat-history-without-interruptions)
     - [ ] [Organize multiple chats](#organize-multiple-chats)
     - [ ] [Isolate multiple chats](#isolate-multiple-chats)
+    - [ ] [Up Down Arrow Keys](#up-down-arrow-keys)
 - Multi-repo context
     - [] [Free/pro accounts:](#freepro-accounts)
     - [] [Enterprise accounts:](#enterprise-accounts)
@@ -303,7 +304,7 @@ You should also be able to switch between accounts while tokens are still being 
 
 Note: It's important to test performance on large repos here.
 
-#### Up/Down arrow keys
+#### Up Down arrow keys
 
 1. Start new chat
 2. Submit message "Hello". Confirm you get a reply and that the chat input is empty.
