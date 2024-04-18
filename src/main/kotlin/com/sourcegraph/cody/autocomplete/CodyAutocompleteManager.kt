@@ -417,7 +417,7 @@ class CodyAutocompleteManager {
                           KeymapUtil.getShortcutText("cody.cycleBackAutocompleteAction")),
                   inlay /* dispose tooltip alongside inlay */)
               .withHeader(CodyBundle.getString("gotit.autocomplete.header"))
-              .withPosition(Balloon.Position.atLeft)
+              .withPosition(Balloon.Position.above)
               .withIcon(Icons.CodyLogo)
               .andShowCloseShortcut()
       try {
