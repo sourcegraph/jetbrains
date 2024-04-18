@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.history.state
 
 import com.intellij.configurationStore.serialize
+import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.history.state.MessageState.SpeakerState.ASSISTANT
 import com.sourcegraph.cody.history.state.MessageState.SpeakerState.HUMAN
 import junit.framework.TestCase
@@ -28,6 +29,20 @@ class HistoryStateTest : TestCase() {
                             speaker = ASSISTANT
                             text = "hello"
                           }
+                    }
+                chats +=
+                    ChatState("should not appear").apply {
+                      updatedAt = "2024-01-31T01:06:18.524621"
+                      llm =
+                          LLMState.fromChatModel(
+                              ChatModelsResponse.ChatModelProvider(
+                                  false, false, "foo", "bar", "baz"))
+                      enhancedContext = EnhancedContextState().also {
+                          it.isEnabled = true
+                          it.remoteRepositories = mutableListOf(RemoteRepositoryState().also {
+                              it.remoteUrl = "https://github.com/foo/bar"
+                          })
+                      }
                     }
               }
         }
