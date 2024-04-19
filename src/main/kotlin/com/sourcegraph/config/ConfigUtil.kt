@@ -110,11 +110,19 @@ object ConfigUtil {
   @JvmStatic fun shouldConnectToDebugAgent() = System.getenv("CODY_AGENT_DEBUG_REMOTE") == "true"
 
   @JvmStatic
-  fun getCustomConfiguration(): Map<String, String> {
+  fun getCustomConfiguration(): Map<String, Any> {
     // Needed by Edit commands to trigger smart-selection; without it things break.
     // So it isn't optional in JetBrains clients, which do not offer language-neutral solutions
     // to this problem; instead we hardwire it to use the indentation-based provider.
-    return mapOf("cody.experimental.foldingRanges" to "indentation-based")
+    return mapOf(
+      "cody.experimental.foldingRanges" to "indentation-based",
+      "cody.experimental.ollamaChat" to "true",
+      "cody.autocomplete.advanced.provider" to "experimental-ollama",
+      "cody.autocomplete.experimental.ollamaOptions" to mapOf(
+        "url" to "http://localhost:11434",
+        "model" to "codegemma:2b"
+      ),
+    )
   }
 
   @JvmStatic

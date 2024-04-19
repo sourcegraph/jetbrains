@@ -12,5 +12,5 @@ data class ExtensionConfiguration(
     val debug: Boolean? = false,
     val verboseDebug: Boolean? = false,
     val codebase: String? = null,
-    val customConfiguration: Map<String, String> = emptyMap()
+    val customConfiguration: Map<String, Any> = emptyMap()
 )
