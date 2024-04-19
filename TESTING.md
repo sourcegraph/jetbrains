@@ -14,7 +14,8 @@
     - [ ] [Explain Selected Code](#explain-code)
     - [ ] [Generate Test](#generate-test)
     - [ ] [Smell Code](#smell-code)
-    - [ ] Edit
+    - [ ] [Edit](#edit)
+    - [ ] [Document](#document)
 - Chat
     - [ ] [Autoscroll to latest message](#autoscroll-to-latest-message)
     - [ ] [Read chat history without interruptions](#read-chat-history-without-interruptions)
