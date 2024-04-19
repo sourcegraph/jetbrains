@@ -75,7 +75,7 @@ abstract class FixupSession(
   protected fun createDiffSession() =
       DiffSession(
           project = project,
-          document = EditorFactory.getInstance().createDocument(editor.document.text),
+          document = EditorFactory.getInstance().createDocument(document.text),
           performedActions = performedActions)
 
   private val lensActionCallbacks =
@@ -96,7 +96,7 @@ abstract class FixupSession(
   @RequiresEdt
   private fun triggerDocumentCodeAsync() {
     // Those lookups require us to be on the EDT.
-    val file = FileDocumentManager.getInstance().getFile(editor.document)
+    val file = FileDocumentManager.getInstance().getFile(document)
     val textFile = file?.let { ProtocolTextDocument.fromVirtualFile(editor, it) } ?: return
 
     CodyAgentService.withAgent(project) { agent ->
@@ -134,11 +134,11 @@ abstract class FixupSession(
   // in ContextProvider.ts. It's a different initialization path from completions & chat.
   // Calling onFileOpened forces the right initialization path.
   private fun workAroundUninitializedCodebase() {
-    val file = FileDocumentManager.getInstance().getFile(editor.document)
+    val file = FileDocumentManager.getInstance().getFile(document)
     if (file != null) {
       CodyAgentCodebase.getInstance(project).onFileOpened(file)
     } else {
-      logger.warn("No virtual file associated with ${editor.document}")
+      logger.warn("No virtual file associated with $document")
     }
   }
 
@@ -338,12 +338,12 @@ abstract class FixupSession(
       "replace",
       "delete" -> {
         val range = edit.range ?: return null
-        startOffset = editor.document.getLineStartOffset(range.start.line) + range.start.character
-        endOffset = editor.document.getLineStartOffset(range.end.line) + range.end.character
+        startOffset = document.getLineStartOffset(range.start.line) + range.start.character
+        endOffset = document.getLineStartOffset(range.end.line) + range.end.character
       }
       "insert" -> {
         val position = edit.position ?: return null
-        startOffset = editor.document.getLineStartOffset(position.line) + position.character
+        startOffset = document.getLineStartOffset(position.line) + position.character
         endOffset = startOffset
       }
       else -> return null
@@ -361,7 +361,7 @@ abstract class FixupSession(
   }
 
   private fun getEditorForDocument(): FileEditor? {
-    val file = FileDocumentManager.getInstance().getFile(editor.document)
+    val file = FileDocumentManager.getInstance().getFile(document)
     return file?.let { getCurrentFileEditor(it) }
   }
 
