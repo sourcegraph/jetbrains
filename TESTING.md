@@ -14,6 +14,7 @@
     - [ ] [Explain Selected Code](#explain-code)
     - [ ] [Generate Test](#generate-test)
     - [ ] [Smell Code](#smell-code)
+    - [ ] Edit
 - Chat
     - [ ] [Autoscroll to latest message](#autoscroll-to-latest-message)
     - [ ] [Read chat history without interruptions](#read-chat-history-without-interruptions)
@@ -213,6 +214,60 @@ automatically.
 * User is automatically switched to `Chat` tab.
 * Chat responds with **potential issues** and **suggestions** like missing nullability checks or input sanitization (
   response may vary).
+
+### Edit
+
+#### Editing code
+<!-- unhide after full edit command is implemented -->
+<!-- - Verify that the option to run the `Edit Code` command is available from the sidebar, right-click menu, the command palette (option+c, /edit), or Option+K keyboard shortcut. -->
+1. Verify that the option to run the `Edit Code` command is available from the right-click menu.
+1. Highlight a section of code.
+1. Run the `Edit Code` command with instructions for how Cody should edit the selected code.
+1. Verify that Cody automatically applies edits to the selected code, per the user’s instructions.
+1. Verify that there is a notification that "Cody is working..." while edits are being applied.
+1. Verify that you can see a list of code lenses with a Cody icon above the generated code: `Show diff`, `Accept`, `Retry`, and `Undo`.
+<!-- 1. Verify that you can see a diff view of the edit in a new tab by clicking `Show diff`. -->
+1. Verify that you can prompt Cody to retry the command by clicking `Retry` and entering new instructions.
+1. Verify that you can undo the edit by clicking `Undo`.
+1. Verify that the ghost text disappears by clicking `Accept`.
+
+#### Expected behaviour
+* Code that was highlighted should be replaced with the user's instructions. 
+<!-- * Users should have the ability to Accept, Undo, Retry, or Show Diff. -->
+* Users should have the ability to Accept, Undo, and Retry.
+
+
+<!-- unhide after @ file in edit commands are implemented -->
+<!-- #### Editing code (Additional Configuration)
+- [ ] Highlight a section of code.
+- [ ] Trigger the Edit shortcut with Option+K
+- [ ] Try to add a file to the Edit instruction, by using "@" and searching for a file
+- [ ] Try to add a symbol to the Edit instruction, by using "@#" and searching for a symbol
+- [ ] Try to change the range of the Edit, by selecting "Range". Check that navigating through the options correctly updates the range shown in the editor.
+- [ ] Try to change the model of the Edit, by selecting "Model".
+- [ ] Submit edits after changing the above values, and check that the Edit performs correctly (e.g. uses correct range, uses correct context)
+- [ ] Verify that the selected configuration is shown in the input after clicking "Retry" on a completed edit.
+- [ ] Verify that you can still change the configuration shown in the input after clicking "Retry" on a completed edit. -->
+
+### Document
+
+<!-- unhide after full document command is implemented -->
+
+1. Verify that the option to run the `Document Code` command is available from the right-click menu.
+1. Highlight a section of code in a file.
+1. Run the `Document Code` command.
+1. Verify that an icon appears above the highlighted code with "Cody is working..." while Cody generates documentation.
+<!-- 1. Verify that you can see a diff view of the generated documentation in a new tab by clicking `Show diff`. -->
+1. Verify that you can prompt Cody to retry the command by clicking `Retry` and entering new instructions.
+1. Verify that you can undo the documentation by clicking `Undo`.
+1. Verify that the ghost text disappears by clicking `Accept`.
+1. Move your cursor inside a function in the file without highlighting code, before running the `Document Code` command again.
+1. Verify that Cody adds documentation above the function that contains your cursor.
+
+#### Expected behaviour
+* Code that was highlighted should have doc strings generated above the selected symbol. 
+<!-- * Users should have the ability to Accept, Undo, Retry, or Show Diff. -->
+* Users should have the ability to Accept, Undo, and Retry.
 
 ## Chat
 
