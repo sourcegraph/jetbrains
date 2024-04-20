@@ -18,8 +18,6 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.util.SystemInfoRt
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.io.createFile
@@ -79,20 +77,10 @@ abstract class FixupSession(
 
   private val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
 
-  private fun createDiffSession() =
-      DiffSession(
-          project = project,
-          document = EditorFactory.getInstance().createDocument(document.text),
-          performedActions = performedActions)
-
   init {
     triggerDocumentCodeAsync()
     // Kotlin doesn't like leaking 'this' before constructors are finished.
     ApplicationManager.getApplication().invokeLater { Disposer.register(controller, this) }
-  }
-
-  override fun dispose() {
-    fixupService.clearActiveSession()
   }
 
   private val document
@@ -221,10 +209,9 @@ abstract class FixupSession(
     showLensGroup(LensGroupFactory(this).createErrorGroup(hoverText))
   }
 
-  override fun finish() {
+  fun finish() {
     try {
       controller.clearActiveSession()
-      super.finish()
     } catch (x: Exception) {
       logger.debug("Session cleanup error", x)
     }
@@ -233,7 +220,7 @@ abstract class FixupSession(
     } catch (x: Exception) {
       logger.warn("Error disposing fixup session $this", x)
     }
-  
+  }
 
   /** Subclass sends a fixup command to the agent, and returns the initial task. */
   abstract fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask>
