@@ -3,6 +3,7 @@ package com.sourcegraph.cody.edit.widget
 import com.intellij.openapi.diagnostic.Logger
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.edit.FixupSession
+import java.util.*
 
 /** Handles assembling standard groups of lenses. */
 class LensGroupFactory(val session: FixupSession) {
@@ -54,10 +55,10 @@ class LensGroupFactory(val session: FixupSession) {
     addLabel(group, ICON_SPACER)
   }
 
-  private fun addAction(group: LensWidgetGroup, label: String, command: String) {
+  private fun addAction(group: LensWidgetGroup, label: String, command: String, actionId: String) {
     val callback =
         session.commandCallbacks()[command] ?: { logger.warn("No callback for $command") }
-    group.addWidget(LensAction(group, label, command, callback))
+    group.addWidget(LensAction(group, label.uppercase(Locale.getDefault()), command, callback, actionId))
 
     val hotkey = FixupSession.getHotKey(command)
     if (hotkey.isNotEmpty()) {

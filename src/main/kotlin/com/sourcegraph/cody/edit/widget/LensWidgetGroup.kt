@@ -17,9 +17,17 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.FixupSession
-import java.awt.*
+import org.jetbrains.annotations.NotNull
+import java.awt.Color
+import java.awt.Cursor
+import java.awt.Font
+import java.awt.FontMetrics
+import java.awt.GradientPaint
+import java.awt.Graphics2D
+import java.awt.Point
 import java.awt.geom.Rectangle2D
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.function.Supplier
 
 operator fun Point.component1() = this.x
 
@@ -60,7 +68,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private var listenersMuted = false
 
   val widgetFont =
-      with(editor.colorsScheme.getFont(EditorFontType.PLAIN)) { Font(name, style, size - 2) }
+      with(editor.colorsScheme.getFont(EditorFontType.PLAIN)) { Font(name, style, size) }
 
   // Compute inlay height based on the widget font, not the editor font.
   private val inlayHeight =
@@ -70,7 +78,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
                   widgetFont.style,
                   widgetFont.size),
               FontInfo.getFontRenderContext(editor.contentComponent))
-          .height
+          .height + 4
 
   private var widgetFontMetrics: FontMetrics? = null
 
@@ -149,15 +157,44 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       widgetFontMetrics = g.fontMetrics
     }
     val top = targetRegion.y.toFloat()
+
     // Draw all the widgets left to right, keeping track of their width.
     widgets.fold(targetRegion.x.toFloat()) { acc, widget ->
       try {
-        widget.paint(g, acc, top)
+        widget.paint(g, targetRegion, acc, top)
         acc + widget.calcWidthInPixels(g.fontMetrics)
       } finally {
         g.font = widgetFont // In case widget changed it.
       }
     }
+  }
+
+  @Suppress("UseJBColor")
+  fun drawBackgroundRectangle(
+          g: Graphics2D,
+          targetRegion: Rectangle2D,
+          widget: LensWidget,
+          x: Float
+  ) {
+    val fontMetrics = g.fontMetrics
+    val textWidth = widget.calcWidthInPixels(fontMetrics)
+    val textHeight = fontMetrics.height
+
+    val xPadding = fontMetrics.stringWidth("W") / 2f
+    val rectY = targetRegion.y
+    val rectWidth = textWidth + xPadding
+    val rectHeight = textHeight.toFloat()
+    val rectX = x - xPadding / 2
+    val gradientLight = Color(0x99, 0xCC, 0x99)
+    val gradientDark = Color(0x66, 0x99, 0x66)
+    g.paint = GradientPaint(
+        rectX,
+        rectY.toFloat(),
+        gradientLight,
+        rectX + rectWidth,
+        rectY.toFloat() + rectHeight,
+        gradientDark)
+    g.fillRoundRect(rectX.toInt(), rectY.toInt(), rectWidth.toInt(), rectHeight.toInt(), 10, 10)
   }
 
   private fun findWidgetAt(x: Int, y: Int): LensWidget? {

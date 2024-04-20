@@ -4,6 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.geom.AffineTransform
+import java.awt.geom.Rectangle2D
 import javax.swing.Icon
 import javax.swing.Timer
 
@@ -37,7 +38,7 @@ class LensSpinner(group: LensWidgetGroup, private val icon: Icon) : LensWidget(g
 
   override fun calcHeightInPixels(fontMetrics: FontMetrics): Int = icon.iconHeight
 
-  override fun paint(g: Graphics2D, x: Float, y: Float) {
+  override fun paint(g: Graphics2D, targetRegion: Rectangle2D, x: Float, y: Float) {
     val originalTransform = g.transform
     val iconCenterX = x + icon.iconWidth / 2
     val iconCenterY = y + icon.iconHeight / 2

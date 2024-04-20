@@ -1,55 +1,113 @@
 package com.sourcegraph.cody.edit
 
+import com.intellij.application.subscribe
+import com.intellij.ide.ui.UISettingsListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.SystemInfoRt
+import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.WindowManager
-import com.intellij.ui.JBColor
 import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.ModelUsage
 import com.sourcegraph.cody.chat.ui.LlmDropdown
+import com.sourcegraph.config.ThemeUtil
 import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Component
+import java.awt.Container
+import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.awt.event.ActionEvent
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import java.awt.geom.RoundRectangle2D
+import javax.swing.AbstractAction
+import javax.swing.BorderFactory
+import javax.swing.Box
+import javax.swing.BoxLayout
+import javax.swing.JButton
 import javax.swing.JComponent
+import javax.swing.JFrame
 import javax.swing.JLabel
 import javax.swing.JPanel
+import javax.swing.JRootPane
+import javax.swing.KeyStroke
 import javax.swing.SwingUtilities
+import javax.swing.UIManager
+import javax.swing.WindowConstants
+import javax.swing.border.Border
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
 /** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
-class EditCommandPrompt(val controller: FixupService, val editor: Editor, val dialogTitle: String) {
+class EditCommandPrompt(val controller: FixupService, val editor: Editor, val dialogTitle: String) :
+    Disposable {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
 
   private val offset = editor.caretModel.primaryCaret.offset
 
   private var dialog: EditCommandPrompt.InstructionsDialog? = null
 
-  private val instructionsField =
-      GhostTextField().apply {
-        val screenWidth = getScreenWidth(editor)
-        val preferredWidth = minOf(screenWidth / 2, DEFAULT_TEXT_FIELD_WIDTH)
-        preferredSize = Dimension(preferredWidth, preferredSize.height)
-        minimumSize = Dimension(preferredWidth, minimumSize.height)
+  private val escapeKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0)
+
+  private val escapeAction =
+      object : AbstractAction() {
+        override fun actionPerformed(e: ActionEvent?) {
+          dialog?.performCancelAction()
+        }
       }
 
-  val llmDropdown =
+  private var okButton =
+      JButton().apply {
+        text = "Edit Code"
+        foreground = boldLabelColor
+        addActionListener { performOKAction() }
+      }
+
+  private val instructionsField =
+      GhostTextField().apply {
+        val fontHeight = getFontMetrics(font).height
+        preferredSize =
+            Dimension(minOf(getScreenWidth(editor) / 2, DEFAULT_TEXT_FIELD_WIDTH), fontHeight * 4)
+        minimumSize = preferredSize
+      }
+
+  private val llmDropdown =
       LlmDropdown(
-          modelUsage = ModelUsage.EDIT,
-          project = controller.project,
-          onSetSelectedItem = {},
-          chatModelProviderFromState = null)
+              modelUsage = ModelUsage.EDIT,
+              project = controller.project,
+              onSetSelectedItem = {},
+              this,
+              chatModelProviderFromState = null)
+          .apply {
+            foreground = boldLabelColor
+            background = textFieldBackground
+            addKeyListener(
+                object : KeyAdapter() {
+                  override fun keyPressed(e: KeyEvent) {
+                    if (e.keyCode == KeyEvent.VK_ESCAPE) {
+                      dialog?.performCancelAction()
+                    }
+                  }
+                })
+          }
 
   // History navigation helper
   private val historyCursor = HistoryCursor()
@@ -57,16 +115,23 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
   init {
     setupTextField()
     setupKeyListener()
+    UISettingsListener.TOPIC.subscribe(this, UISettingsListener { themeChanged = true })
   }
 
   fun displayPromptUI() {
     ApplicationManager.getApplication().invokeLater {
-      val dlg = dialog
-      if (dlg == null || dlg.isDisposed) {
-        dialog = InstructionsDialog()
+      val dialog = dialog ?: InstructionsDialog().apply { this@EditCommandPrompt.dialog = this }
+      dialog.apply {
+        pack()
+        shape = makeCornerShape(width, height)
+        setLocationRelativeTo(getFrameForEditor(editor) ?: editor.component.rootPane)
+        isVisible = true
       }
-      dialog?.show()
     }
+  }
+
+  private fun getFrameForEditor(editor: Editor): JFrame? {
+    return WindowManager.getInstance().getFrame(editor.project ?: return null)
   }
 
   fun getText(): String = instructionsField.text
@@ -98,16 +163,13 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
 
   @RequiresEdt
   private fun updateOkButtonState() {
-    dialog?.isOKActionEnabled = instructionsField.text.isNotBlank()
+    okButton.isEnabled = instructionsField.text.isNotBlank()
   }
 
   @RequiresEdt
   private fun checkForInterruptions() {
     if (editor.isDisposed || editor.isViewer || !editor.document.isWritable) {
-      dialog?.apply {
-        close(DialogWrapper.CANCEL_EXIT_CODE)
-        disposeIfNeeded()
-      }
+      dialog?.performCancelAction()
     }
   }
 
@@ -119,6 +181,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
             when (e.keyCode) {
               KeyEvent.VK_UP -> fetchPreviousHistoryItem()
               KeyEvent.VK_DOWN -> fetchNextHistoryItem()
+              KeyEvent.VK_ESCAPE -> {
+                dialog?.performCancelAction()
+              }
             }
             updateOkButtonState()
           }
@@ -159,23 +224,29 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     }
   }
 
-  private inner class InstructionsDialog :
-      DialogWrapper(editor.project, false, IdeModalityType.MODELESS) {
+  private inner class InstructionsDialog : JFrame() {
     init {
-      init()
       title = dialogTitle
+      isUndecorated = true
+      isAlwaysOnTop = true
+      isResizable = true
+      defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
+
       instructionsField.text = controller.getLastPrompt()
-      dialog = this
+
+      contentPane = generatePromptUI()
+      minimumSize = Dimension(DEFAULT_TEXT_FIELD_WIDTH, 0)
+
       updateOkButtonState()
+      val connection = ApplicationManager.getApplication().messageBus.connect()
+      connection.subscribe(UISettingsListener.TOPIC, UISettingsListener { onThemeChange() })
     }
 
-    override fun getPreferredFocusedComponent() = instructionsField
-
-    @RequiresEdt
-    override fun createCenterPanel(): JComponent {
-      val result = generatePromptUI(offset)
-      updateOkButtonState()
-      return result
+    private fun onThemeChange() {
+      _subduedLabelColor = null
+      _boldLabelColor = null
+      _textFieldBackground = null
+      SwingUtilities.invokeLater { repaintRecursively(this) }
     }
 
     @RequiresEdt
@@ -192,47 +263,204 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
         }
         controller.addSession(
             EditSession(controller, editor, project, editor.document, text, llmDropdown.item))
+
+    private fun repaintRecursively(component: Component) {
+      component.repaint()
+      if (component is Container) {
+        component.components.forEach { repaintRecursively(it) }
       }
     }
 
-    @RequiresEdt
-    override fun doCancelAction() {
-      super.doCancelAction()
-      dialog?.disposeIfNeeded()
+    override fun getRootPane(): JRootPane {
+      val rootPane = super.getRootPane()
+      val inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+      val actionMap = rootPane.actionMap
+
+      inputMap.put(escapeKeyStroke, "ESCAPE")
+      actionMap.put("ESCAPE", escapeAction)
+
+      return rootPane
+    }
+
+    fun performCancelAction() {
+      dialog?.dispose()
       dialog = null
     }
   } // InstructionsDialog
 
   @RequiresEdt
-  private fun generatePromptUI(offset: Int): JPanel {
-    val root = JPanel(BorderLayout())
+  private fun generatePromptUI(): JPanel {
+    return JPanel(BorderLayout()).apply {
+      add(createTopRow(), BorderLayout.NORTH)
+      add(createBottomRow(), BorderLayout.SOUTH)
+      add(createCenterPanel(), BorderLayout.CENTER)
+    }
+  }
 
-    val topRow = JPanel(BorderLayout())
-    val (line, col) = editor.offsetToLogicalPosition(offset).let { Pair(it.line, it.column) }
-    val file = FileDocumentManager.getInstance().getFile(editor.document)?.name ?: "unknown file"
-    topRow.add(JLabel("Editing $file at $line:$col"), BorderLayout.CENTER)
+  private fun createTopRow(): JPanel {
+    return JPanel(BorderLayout()).apply {
+      add(
+          JLabel(dialogTitle).apply {
+            setBorder(BorderFactory.createEmptyBorder(10, 30, 10, 10))
+            foreground = boldLabelColor
+          },
+          BorderLayout.WEST)
 
-    val southRow = JPanel(BorderLayout())
+      val (line, col) = editor.offsetToLogicalPosition(offset).let { Pair(it.line, it.column) }
+      val file = getFormattedFilePath(FileDocumentManager.getInstance().getFile(editor.document))
+      add(
+          JLabel("$file at $line:$col").apply {
+            setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
+          },
+          BorderLayout.CENTER)
+      object : MouseAdapter() {
+            var lastX: Int = 0
+            var lastY: Int = 0
 
-    val historyLabel =
+            override fun mousePressed(e: MouseEvent) {
+              lastX = e.xOnScreen
+              lastY = e.yOnScreen
+            }
+
+            override fun mouseDragged(e: MouseEvent) {
+              val x: Int = e.xOnScreen
+              val y: Int = e.yOnScreen
+              val loc = UIUtil.getLocationOnScreen(dialog!!.rootPane)!!
+              dialog?.setLocation(loc.x + x - lastX, loc.y + y - lastY)
+              lastX = x
+              lastY = y
+            }
+          }
+          .let {
+            addMouseListener(it)
+            addMouseMotionListener(it)
+          }
+    }
+  }
+
+  private fun getFormattedFilePath(file: VirtualFile?): String {
+    val maxLength = 70
+    val fileName = file?.name ?: FILE_PATH_404
+    val fullPath = file?.path ?: return fileName
+    val project = editor.project ?: return FILE_PATH_404
+
+    val projectRootPath = getProjectRootPath(project, file) ?: return fileName
+
+    val relativePath = fullPath.removePrefix(projectRootPath)
+    val truncatedPath =
+        if (relativePath.length > maxLength) {
+          "…${relativePath.takeLast(maxLength - 1)}"
+        } else {
+          relativePath
+        }
+
+    return truncatedPath.ifEmpty { fileName }
+  }
+
+  private fun getProjectRootPath(project: Project, file: VirtualFile?): String? {
+    val projectRootManager = ProjectRootManager.getInstance(project)
+    val contentRoots = projectRootManager.contentRoots
+
+    // Find the content root that contains the given file
+    val contentRoot =
+        file?.let { nonNullFile ->
+          contentRoots.firstOrNull { VfsUtilCore.isAncestor(it, nonNullFile, false) }
+        }
+
+    return contentRoot?.path
+  }
+
+  private fun createCenterPanel(): JPanel {
+    return JPanel().apply {
+      layout = BoxLayout(this, BoxLayout.Y_AXIS)
+      add(instructionsField)
+      add(
+          JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.X_AXIS)
+            isOpaque = true
+            background = textFieldBackground
+            add(Box.createHorizontalStrut(15))
+            add(llmDropdown)
+            add(Box.createHorizontalStrut(15))
+            preferredSize = Dimension(instructionsField.width, llmDropdown.preferredSize.height)
+          })
+      add( // spacer below the dropdown, making it appear as if it is inside the text field
+          JPanel().apply {
+            isOpaque = true
+            background = textFieldBackground
+            layout = BoxLayout(this, BoxLayout.X_AXIS)
+            add(Box.createHorizontalGlue())
+            minimumSize = Dimension(0, 10)
+            preferredSize = minimumSize
+          })
+    }
+  }
+
+  private fun createBottomRow(): JPanel {
+    return JPanel(BorderLayout()).apply {
+      add(
+          JLabel("[esc] to cancel").apply {
+            foreground = subduedLabelColor
+            border = BorderFactory.createEmptyBorder(0, 30, 0, 0)
+            cursor = Cursor(Cursor.HAND_CURSOR)
+            addMouseListener(
+                object : MouseAdapter() {
+                  override fun mouseClicked(e: MouseEvent) {
+                    dialog?.performCancelAction()
+                  }
+                })
+          },
+          BorderLayout.WEST)
+      add(
+          JLabel().apply {
+            text =
+                if (promptHistory.isNotEmpty()) {
+                  "↑↓ for history"
+                } else {
+                  ""
+                }
+          },
+          BorderLayout.CENTER)
+      add(createOKButtonGroup(), BorderLayout.EAST)
+    }
+  }
+
+  private fun createOKButtonGroup(): JPanel {
+    val box =
+        JPanel().apply {
+          border = JBUI.Borders.empty(5, 30)
+          isOpaque = false
+          background = textFieldBackground
+          putClientProperty("name", "outerMostChildOfContentPane")
+          layout = BoxLayout(this, BoxLayout.X_AXIS)
+        }
+    box.add(
         JLabel().apply {
           text =
-              if (promptHistory.isNotEmpty()) {
-                "↑↓ for history"
-              } else {
-                ""
+              when {
+                SystemInfoRt.isMac -> "⌘↵  "
+                SystemInfoRt.isWindows -> "Ctrl+Enter  "
+                else -> "^↵  "
               }
-          font = font.deriveFont(font.size - 1f)
-        }
-    southRow.add(historyLabel, BorderLayout.CENTER)
+        })
+    box.add(okButton)
+    return box
+  }
 
-    southRow.add(llmDropdown, BorderLayout.EAST)
-
-    root.add(topRow, BorderLayout.NORTH)
-    root.add(southRow, BorderLayout.SOUTH)
-    root.add(instructionsField, BorderLayout.CENTER)
-
-    return root
+  @RequiresEdt
+  fun performOKAction() {
+    val text = instructionsField.text
+    if (text.isNotBlank()) {
+      addToHistory(text)
+      val project = editor.project
+      // TODO: How do we show user feedback when an error like this happens?
+      if (project == null) {
+        logger.warn("Project was null when trying to add an edit session")
+        return
+      }
+      controller.setActiveSession(
+          EditSession(controller, editor, project, editor.document, text, llmDropdown.item))
+    }
   }
 
   private fun getScreenWidth(editor: Editor): Int {
@@ -243,45 +471,124 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
 
   inner class GhostTextField : ExpandableTextField(), FocusListener, Disposable {
 
+    private val unfocusedBorder: Border =
+        BorderFactory.createLineBorder(UIManager.getColor("Panel.background"), 1)
+    // TODO: Talk to Daniel about how to indicate the text field has the focus.
+    private val focusedBorder = unfocusedBorder
+    //    private val focusedBorder: Border =
+    //        BorderFactory.createLineBorder(UIManager.getColor("Component.focusedBorderColor"), 1)
+
     init {
-      // Disposer.register(this@EditCommandPrompt, this@GhostTextField)
+      Disposer.register(this@EditCommandPrompt, this@GhostTextField)
       addFocusListener(this)
+      border = JBUI.Borders.empty()
     }
 
     override fun paintComponent(g: Graphics) {
+      background = textFieldBackground
       super.paintComponent(g)
 
       if (text.isEmpty()) {
-        val g2 = g as Graphics2D
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-        g2.color = JBColor.GRAY
-        val fontMetrics = g2.fontMetrics
-        val x = insets.left + fontMetrics.charWidth('G')
-        val y =
-            insets.top +
-                (height - insets.top - insets.bottom - fontMetrics.height) / 2 +
-                fontMetrics.ascent
-        g2.drawString(GHOST_TEXT, x, y)
+        (g as Graphics2D).apply {
+          setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+          color = UIManager.getColor("Component.infoForeground")
+          val leftMargin = 30
+          drawString(GHOST_TEXT, leftMargin, (fontMetrics.height * 1.5).toInt())
+        }
       }
     }
 
     override fun focusGained(e: FocusEvent?) {
+      // TODO: Figure out what to do with Design.
+      // border = focusedBorder
       repaint()
     }
 
     override fun focusLost(e: FocusEvent?) {
+      // border = unfocusedBorder
       repaint()
     }
 
     override fun dispose() {
       removeFocusListener(this)
     }
+  } // GhostTextField
+
+  private fun makeCornerShape(width: Int, height: Int): RoundRectangle2D {
+    return RoundRectangle2D.Double(
+        0.0, 0.0, width.toDouble(), height.toDouble(), CORNER_RADIUS, CORNER_RADIUS)
+  }
+
+  override fun dispose() {
+    try {
+      dialog?.dispose()
+    } catch (t: Throwable) {
+      logger.warn("Error disposing instructions dialog", t)
+    }
   }
 
   companion object {
-    const val DEFAULT_TEXT_FIELD_WIDTH: Int = 620 // TODO: make this smarter
+    // This is a fallback for the rare case when the screen size computations fail.
+    const val DEFAULT_TEXT_FIELD_WIDTH: Int = 700
 
-    const val GHOST_TEXT = "Instructions (@ to include code)"
+    // TODO: Put this back when @-includes are in
+    // const val GHOST_TEXT = "Instructions (@ to include code)"
+    const val GHOST_TEXT = "Type what changes you want to make to this file..."
+
+    private const val CORNER_RADIUS = 15.0
+
+    // Used when the Editor/Document does not have an associated filename.
+    private const val FILE_PATH_404 = "unknown file"
+
+    private var themeChanged = false
+
+    private var _subduedLabelColor: Color? = null
+    var subduedLabelColor: Color
+      get() {
+        if (_subduedLabelColor == null || themeChanged) {
+          _subduedLabelColor =
+              UIManager.getColor("Label.disabledForeground").run {
+                if (ThemeUtil.isDarkTheme()) brighter() else darker()
+              }
+          themeChanged = false
+        }
+        return _subduedLabelColor!!
+      }
+      private set(value) {
+        _subduedLabelColor = value
+      }
+
+    private var _boldLabelColor: Color? = null
+    var boldLabelColor: Color
+      get() {
+        if (_boldLabelColor == null || themeChanged) {
+          _boldLabelColor =
+              UIManager.getColor("Label.foreground").run {
+                if (ThemeUtil.isDarkTheme()) brighter() else darker()
+              }
+          themeChanged = false
+        }
+        return _boldLabelColor!!
+      }
+      private set(value) {
+        _boldLabelColor = value
+      }
+
+    private var _textFieldBackground: Color? = null
+    var textFieldBackground: Color
+      get() {
+        if (_textFieldBackground == null || themeChanged) {
+          _textFieldBackground =
+              UIManager.getColor("TextField.background").run {
+                if (ThemeUtil.isDarkTheme()) darker() else brighter()
+              }
+          themeChanged = false
+        }
+        return _textFieldBackground!!
+      }
+      private set(value) {
+        _textFieldBackground = value
+      }
 
     // Going with a global history for now, shared across edit-code prompts.
     val promptHistory = mutableListOf<String>()
