@@ -15,7 +15,7 @@ class LensGroupFactory(val session: FixupSession) {
       addSpacer(this)
       addLabel(this, "Cody is working...")
       addSeparator(this)
-      addAction(this, "Cancel", FixupSession.COMMAND_CANCEL)
+      addAction(this, "Cancel", FixupSession.COMMAND_CANCEL, FixupSession.ACTION_CANCEL)
       registerWidgets()
     }
   }
@@ -24,13 +24,13 @@ class LensGroupFactory(val session: FixupSession) {
     return LensWidgetGroup(session, session.editor).apply {
       addLogo(this)
       addSpacer(this)
-      addAction(this, "Accept", FixupSession.COMMAND_ACCEPT)
+      addAction(this, "Accept", FixupSession.COMMAND_ACCEPT, FixupSession.ACTION_ACCEPT)
       addSeparator(this)
-      addAction(this, "Edit & Retry", FixupSession.COMMAND_RETRY)
+      addAction(this, "Edit & Retry", FixupSession.COMMAND_RETRY, FixupSession.ACTION_RETRY)
       addSeparator(this)
-      addAction(this, "Undo", FixupSession.COMMAND_UNDO)
+      addAction(this, "Undo", FixupSession.COMMAND_UNDO, FixupSession.ACTION_UNDO)
       addSeparator(this)
-      addAction(this, "Show Diff", FixupSession.COMMAND_DIFF)
+      addAction(this, "Show Diff", FixupSession.COMMAND_DIFF, FixupSession.ACTION_DIFF)
       registerWidgets()
     }
   }
@@ -58,7 +58,7 @@ class LensGroupFactory(val session: FixupSession) {
   private fun addAction(group: LensWidgetGroup, label: String, command: String, actionId: String) {
     val callback =
         session.commandCallbacks()[command] ?: { logger.warn("No callback for $command") }
-    group.addWidget(LensAction(group, label.uppercase(Locale.getDefault()), command, callback, actionId))
+    group.addWidget(LensAction(group, label.uppercase(Locale.getDefault()), command, actionId))
 
     val hotkey = FixupSession.getHotKey(command)
     if (hotkey.isNotEmpty()) {

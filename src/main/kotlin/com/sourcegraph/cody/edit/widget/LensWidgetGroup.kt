@@ -6,6 +6,8 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
+import com.intellij.openapi.editor.LogicalPosition
+import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.openapi.editor.event.EditorMouseListener
@@ -15,6 +17,7 @@ import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.FixupSession
 import org.jetbrains.annotations.NotNull
@@ -26,6 +29,7 @@ import java.awt.GradientPaint
 import java.awt.Graphics2D
 import java.awt.Point
 import java.awt.geom.Rectangle2D
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
 
@@ -43,6 +47,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   val editor = parentComponent as EditorImpl
 
   val isDisposed = AtomicBoolean(false)
+  private val addedListeners = AtomicBoolean(false)
+  private val removedListeners = AtomicBoolean(false)
 
   val widgets = mutableListOf<LensWidget>()
 
@@ -92,6 +98,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     Disposer.register(session, this)
     editor.addEditorMouseListener(mouseClickListener)
     editor.addEditorMouseMotionListener(mouseMotionListener)
+    addedListeners.set(true)
   }
 
   fun withListenersMuted(block: () -> Unit) {
@@ -103,15 +110,27 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     }
   }
 
-  fun show(range: Range) {
+  fun show(range: Range): CompletableFuture<Boolean> {
     commandCallbacks = session.commandCallbacks()
     val offset = range.start.toOffset(editor.document)
-    ApplicationManager.getApplication().invokeLater {
-      if (!isDisposed.get()) {
-        inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
-        Disposer.register(this, inlay!!)
+    val future = CompletableFuture<Boolean>()
+    onEventThread {
+      try {
+        if (isDisposed.get()) {
+          future.complete(false)
+        } else {
+          inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
+          Disposer.register(this, inlay!!)
+          // Make sure the lens is visible.
+          val logicalPosition = LogicalPosition(range.start.line, range.start.character)
+          editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+          future.complete(true)
+        }
+      } catch (ex: Throwable) {
+        future.completeExceptionally(ex)
       }
     }
+    return future
   }
 
   // Propagate repaint requests from widgets to the inlay.
@@ -157,7 +176,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       widgetFontMetrics = g.fontMetrics
     }
     val top = targetRegion.y.toFloat()
-
     // Draw all the widgets left to right, keeping track of their width.
     widgets.fold(targetRegion.x.toFloat()) { acc, widget ->
       try {
@@ -171,10 +189,10 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   @Suppress("UseJBColor")
   fun drawBackgroundRectangle(
-          g: Graphics2D,
-          targetRegion: Rectangle2D,
-          widget: LensWidget,
-          x: Float
+      g: Graphics2D,
+      targetRegion: Rectangle2D,
+      widget: LensWidget,
+      x: Float
   ) {
     val fontMetrics = g.fontMetrics
     val textWidth = widget.calcWidthInPixels(fontMetrics)
@@ -187,13 +205,14 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     val rectX = x - xPadding / 2
     val gradientLight = Color(0x99, 0xCC, 0x99)
     val gradientDark = Color(0x66, 0x99, 0x66)
-    g.paint = GradientPaint(
-        rectX,
-        rectY.toFloat(),
-        gradientLight,
-        rectX + rectWidth,
-        rectY.toFloat() + rectHeight,
-        gradientDark)
+    g.paint =
+        GradientPaint(
+            rectX,
+            rectY.toFloat(),
+            gradientLight,
+            rectX + rectWidth,
+            rectY.toFloat() + rectHeight,
+            gradientDark)
     g.fillRoundRect(rectX.toInt(), rectY.toInt(), rectWidth.toInt(), rectHeight.toInt(), 10, 10)
   }
 
@@ -226,7 +245,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   // Dispatch mouse click events to the appropriate widget.
   private fun handleMouseClick(e: EditorMouseEvent) {
     val (x, y) = e.mouseEvent.point
-    if (findWidgetAt(x, y)?.onClick(x, y) == true) {
+    if (findWidgetAt(x, y)?.onClick(e) == true) {
       e.consume()
     }
   }
@@ -257,13 +276,32 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   /** Immediately hides and discards this inlay and widget group. */
   override fun dispose() {
+    // We work extra hard to ensure this method is idempotent and robust,
+    // because IntelliJ (annoyingly) logs an assertion if you try to remove
+    // a nonexistent listener, and it pops up a user-visible exception.
+    if (isDisposed.get()) return
     isDisposed.set(true)
     if (editor.isDisposed) return
-    editor.removeEditorMouseListener(mouseClickListener)
-    editor.removeEditorMouseMotionListener(mouseMotionListener)
-    disposeInlay()
+    onEventThread {
+      if (editor.isDisposed) return@onEventThread
+      if (addedListeners.get() && !removedListeners.get()) {
+        try {
+          removedListeners.set(true)
+          editor.removeEditorMouseListener(mouseClickListener)
+          editor.removeEditorMouseMotionListener(mouseMotionListener)
+        } catch (t: Throwable) {
+          logger.warn("Error removing mouse listeners", t)
+        }
+      }
+      try {
+        disposeInlay()
+      } catch (t: Throwable) {
+        logger.warn("Error disposing inlay", t)
+      }
+    }
   }
 
+  @RequiresEdt
   private fun disposeInlay() {
     inlay?.apply {
       if (isValid) {
@@ -271,6 +309,24 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       }
       inlay = null
     }
+  }
+
+  private fun <T> onEventThread(handler: Supplier<T>): @NotNull CompletableFuture<T> {
+    val result = CompletableFuture<T>()
+    val executeAndComplete: () -> Unit = {
+      try {
+        val value = handler.get()
+        result.complete(value)
+      } catch (e: Exception) {
+        result.completeExceptionally(e)
+      }
+    }
+    if (ApplicationManager.getApplication().isDispatchThread) {
+      executeAndComplete()
+    } else {
+      ApplicationManager.getApplication().invokeLater { executeAndComplete() }
+    }
+    return result
   }
 
   companion object {

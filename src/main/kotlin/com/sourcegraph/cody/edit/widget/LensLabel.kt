@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.edit.widget
 
-import org.jetbrains.annotations.VisibleForTesting
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.geom.Rectangle2D
@@ -12,11 +11,6 @@ class LensLabel(group: LensWidgetGroup, private val text: String) : LensWidget(g
 
   override fun paint(g: Graphics2D, targetRegion: Rectangle2D, x: Float, y: Float) {
     g.drawString(text, x, y + g.fontMetrics.ascent)
-  }
-
-  override fun onClick(x: Int, y: Int): Boolean {
-    // Labels do nothing when clicked.
-    return true
   }
 
   override fun toString(): String {

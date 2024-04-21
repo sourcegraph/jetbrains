@@ -247,6 +247,37 @@
         <action id="cody.enableInlineEditsActions"
                 class="com.sourcegraph.cody.edit.EnableInlineEditsAction"/>
 
+        <!-- Lens widget actions -->
+        <action id="cody.inlineEditAcceptAction"
+                class="com.sourcegraph.cody.edit.EditAcceptAction"
+                text="Accept"
+                description="Accept the fixup">
+        </action>
+
+        <action id="cody.inlineEditCancelAction"
+                class="com.sourcegraph.cody.edit.EditCancelAction"
+                text="Cancel"
+                description="Cancel the fixup">
+        </action>
+
+        <action id="cody.inlineEditRetryAction"
+                class="com.sourcegraph.cody.edit.EditRetryAction"
+                text="Retry"
+                description="Retry the fixup">
+        </action>
+
+        <action id="cody.inlineEditUndoAction"
+                class="com.sourcegraph.cody.edit.EditUndoAction"
+                text="Undo"
+                description="Undo the fixup">
+        </action>
+
+        <action id="cody.inlineEditDiffAction"
+                class="com.sourcegraph.cody.edit.EditDiffAction"
+                text="Diff"
+                description="Show the diffs for the fixup">
+        </action>
+
         <group id="SourcegraphEditor" popup="true" searchable="false">
             <reference ref="sourcegraph.openFindPopup"/>
             <reference ref="sourcegraph.searchSelection"/>

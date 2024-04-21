@@ -112,7 +112,7 @@ private constructor(
                           ClientCapabilities(
                               edit = "enabled", editWorkspace = "enabled", codeLenses = "enabled")))
               .thenApply { info ->
-                logger.info("Connected to Cody agent " + info.name)
+                logger.warn("Connected to Cody agent " + info.name)
                 server.initialized()
                 CodyAgent(client, server, launcher, conn, listeningToJsonRpc)
               }
@@ -136,7 +136,7 @@ private constructor(
             val script = File(System.getenv("CODY_DIR"), "agent/dist/index.js")
             logger.info("using Cody agent script " + script.absolutePath)
             if (shouldSpawnDebuggableAgent()) {
-              listOf("node", "--inspect", "--enable-source-maps", script.absolutePath)
+              listOf("node", "--inspect-brk", "--enable-source-maps", script.absolutePath)
             } else {
               listOf("node", "--enable-source-maps", script.absolutePath)
             }
@@ -161,7 +161,10 @@ private constructor(
               .redirectErrorStream(false)
               .redirectError(ProcessBuilder.Redirect.PIPE)
               .start()
-      process.onExit().thenAccept { token.abort() }
+      process.onExit().thenAccept {
+        logger.warn("Cody agent process exited with code " + it.exitValue())
+        token.abort()
+      }
 
       // Redirect agent stderr into idea.log by buffering line by line into `logger.warn()`
       // statements. Without this logic, the stderr output of the agent process is lost if

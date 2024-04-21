@@ -46,16 +46,14 @@ class CodyAgentService(project: Project) : Disposable {
       }
 
       agent.client.onEditTaskDidUpdate = Consumer { task ->
-        FixupService.getInstance(project).getSessionForTask(task)?.update(task)
+        FixupService.getInstance(project).getActiveSession()?.update(task)
       }
 
-      agent.client.onEditTaskDidDelete = Consumer { task ->
-        FixupService.getInstance(project).getSessionForTask(task)?.taskDeleted()
+      agent.client.onEditTaskDidDelete = Consumer { _ ->
+        FixupService.getInstance(project).getActiveSession()?.taskDeleted()
       }
 
       agent.client.onWorkspaceEdit = Consumer { params ->
-        // TODO: We should change the protocol and send `taskId` as part of `WorkspaceEditParam`
-        // and then use method like `getSessionForTask` instead of this one
         FixupService.getInstance(project).getActiveSession()?.performWorkspaceEdit(params)
       }
 
@@ -85,29 +83,32 @@ class CodyAgentService(project: Project) : Disposable {
   fun startAgent(project: Project): CompletableFuture<CodyAgent> {
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
-        val agent = CodyAgent.create(project).get(45, TimeUnit.SECONDS)
+        val future =
+            CodyAgent.create(project).exceptionally { err ->
+              val msg = "Creating agent unsuccessful: ${err.localizedMessage}"
+              logger.error(msg)
+              throw (CodyAgentException(msg))
+            }
+        val agent = future.get(45, TimeUnit.SECONDS)
         if (!agent.isConnected()) {
           val msg = "Failed to connect to agent Cody agent"
           logger.error(msg)
-          codyAgent.completeExceptionally(CodyAgentException(msg))
+          throw CodyAgentException(msg) // This will be caught by the catch blocks below
         } else {
           synchronized(startupActions) { startupActions.forEach { action -> action(agent) } }
           codyAgent.complete(agent)
           CodyStatusService.resetApplication(project)
         }
-      } catch (e: TimeoutException) {
-        val msg = "Failed to start Cody agent in timely manner, please run any Cody action to retry"
-        logger.warn(msg, e)
-        setAgentError(project, msg)
-        codyAgent.completeExceptionally(CodyAgentException(msg, e))
       } catch (e: Exception) {
-        val msg = "Failed to start Cody agent"
+        val msg =
+            if (e is TimeoutException)
+                "Failed to start Cody agent in timely manner, please run any Cody action to retry"
+            else "Failed to start Cody agent"
         logger.error(msg, e)
         setAgentError(project, msg)
         codyAgent.completeExceptionally(CodyAgentException(msg, e))
       }
     }
-
     return codyAgent
   }
 
@@ -160,7 +161,8 @@ class CodyAgentService(project: Project) : Disposable {
         restartIfNeeded: Boolean,
         callback: Consumer<CodyAgent>,
         onFailure: Consumer<Exception> = Consumer {}
-    ) {
+    ): CompletableFuture<Boolean> {
+      val future = CompletableFuture<Boolean>()
       if (CodyApplicationSettings.instance.isCodyEnabled) {
         ApplicationManager.getApplication().executeOnPooledThread {
           runBlocking {
@@ -174,27 +176,29 @@ class CodyAgentService(project: Project) : Disposable {
             coWithAgent(project, restartIfNeeded, task)
           }
         }
+      } else {
+        future.complete(false) // Complete the future with false indicating Cody is disabled.
       }
+      return future
     }
 
     @JvmStatic
-    fun withAgent(
-        project: Project,
-        callback: Consumer<CodyAgent>,
-    ) = withAgent(project, restartIfNeeded = false, callback = callback)
+    fun withAgent(project: Project, callback: Consumer<CodyAgent>): CompletableFuture<Boolean> =
+        withAgent(project, restartIfNeeded = false, callback = callback)
 
     @JvmStatic
     fun withAgentRestartIfNeeded(
         project: Project,
-        callback: Consumer<CodyAgent>,
-    ) = withAgent(project, restartIfNeeded = true, callback = callback)
+        callback: Consumer<CodyAgent>
+    ): CompletableFuture<Boolean> = withAgent(project, restartIfNeeded = true, callback = callback)
 
     @JvmStatic
     fun withAgentRestartIfNeeded(
         project: Project,
         callback: Consumer<CodyAgent>,
         onFailure: Consumer<Exception>
-    ) = withAgent(project, restartIfNeeded = true, callback = callback, onFailure = onFailure)
+    ): CompletableFuture<Boolean> =
+        withAgent(project, restartIfNeeded = true, callback = callback, onFailure = onFailure)
 
     @JvmStatic
     fun isConnected(project: Project): Boolean {

@@ -249,21 +249,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
       SwingUtilities.invokeLater { repaintRecursively(this) }
     }
 
-    @RequiresEdt
-    override fun doOKAction() {
-      val text = instructionsField.text
-      super.doOKAction()
-      if (text.isNotBlank()) {
-        addToHistory(text)
-        val project = editor.project
-        // TODO: How do we show user feedback when an error like this happens?
-        if (project == null) {
-          logger.warn("Project was null when trying to add an edit session")
-          return
-        }
-        controller.addSession(
-            EditSession(controller, editor, project, editor.document, text, llmDropdown.item))
-
     private fun repaintRecursively(component: Component) {
       component.repaint()
       if (component is Container) {
@@ -283,7 +268,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     }
 
     fun performCancelAction() {
-      dialog?.dispose()
+      dispose()
       dialog = null
     }
   } // InstructionsDialog
@@ -473,8 +458,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
 
     private val unfocusedBorder: Border =
         BorderFactory.createLineBorder(UIManager.getColor("Panel.background"), 1)
+
     // TODO: Talk to Daniel about how to indicate the text field has the focus.
-    private val focusedBorder = unfocusedBorder
+    @Suppress("unused") private val focusedBorder = unfocusedBorder
     //    private val focusedBorder: Border =
     //        BorderFactory.createLineBorder(UIManager.getColor("Component.focusedBorderColor"), 1)
 
@@ -499,7 +485,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     }
 
     override fun focusGained(e: FocusEvent?) {
-      // TODO: Figure out what to do with Design.
       // border = focusedBorder
       repaint()
     }

@@ -36,6 +36,7 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Common functionality for commands that let the agent edit the code inline, such as adding a doc
@@ -55,11 +56,14 @@ abstract class FixupSession(
 
   private var performedEdits = false
 
-  private var lensGroup: LensWidgetGroup? = null
+  var lensGroup: LensWidgetGroup? = null
+    private set
 
-  private var selectionRange: Range? = null
+  var selectionRange: Range? = null
 
   private var rangeMarkers: MutableSet<RangeMarker> = mutableSetOf()
+
+  private val showedAcceptLens = AtomicBoolean(false)
 
   private val lensActionCallbacks =
       mapOf(
@@ -72,9 +76,27 @@ abstract class FixupSession(
 
   init {
     triggerDocumentCodeAsync()
+    // Kotlin doesn't like leaking 'this' before the constructors are finished.
+    ApplicationManager.getApplication().invokeLater { Disposer.register(controller, this) }
   }
 
   fun commandCallbacks(): Map<String, () -> Unit> = lensActionCallbacks
+
+  override fun dispose() {
+    try {
+      lensGroup?.dispose()
+      lensGroup = null
+    } catch (x: Exception) {
+      logger.warn("Error while disposing lenses", x)
+    }
+    rangeMarkers.forEach { it.dispose() }
+    rangeMarkers.clear()
+    try {
+      fixupService.clearActiveSession()
+    } catch (x: Exception) {
+      logger.warn("Error while removing session", x)
+    }
+  }
 
   @RequiresEdt
   private fun triggerDocumentCodeAsync() {
@@ -88,17 +110,17 @@ abstract class FixupSession(
       ensureSelectionRange(agent, textFile)
       showWorkingGroup()
       // All this because we can get the workspace/edit before the request returns!
-      fixupService.addSession(this) // puts in Pending
+      fixupService.setActiveSession(this)
       makeEditingRequest(agent)
           .handle { result, error ->
             if (error != null || result == null) {
               // TODO: Adapt logic from CodyCompletionsManager.handleError
               logger.warn("Error while generating doc string: $error")
-              fixupService.removeSession(this)
+              fixupService.clearActiveSession()
             } else {
               taskId = result.id
               selectionRange = result.selectionRange
-              fixupService.addSession(this)
+              fixupService.setActiveSession(this)
             }
             null
           }
@@ -106,7 +128,7 @@ abstract class FixupSession(
             if (!(error is CancellationException || error is CompletionException)) {
               logger.warn("Error while generating doc string: $error")
             }
-            fixupService.removeSession(this)
+            finish()
             null
           }
           .completeOnTimeout(null, 3, TimeUnit.SECONDS)
@@ -135,9 +157,11 @@ abstract class FixupSession(
   }
 
   fun update(task: EditTask) {
-    logger.warn("Task updated: $task")
     when (task.state) {
+      // This is an internal state (parked/ready tasks) and we should never see it.
       CodyTaskState.Idle -> {}
+      // These four may or may not all arrive, depending on the operation, testing, etc.
+      // They are all sent in quick succession and any one can substitute for another.
       CodyTaskState.Working,
       CodyTaskState.Inserting,
       CodyTaskState.Applying,
@@ -156,6 +180,9 @@ abstract class FixupSession(
     finish()
   }
 
+  // N.B. Blocks calling thread until the lens group is shown,
+  // which may require switching to the EDT. This is primarily to help smooth
+  // integration testing, but also because there's no real harm blocking pool threads.
   private fun showLensGroup(group: LensWidgetGroup) {
     lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
     lensGroup = group
@@ -170,11 +197,14 @@ abstract class FixupSession(
       val position = Position(range.start.line, 0)
       range = Range(start = position, end = position)
     }
-    group.show(range)
+    val future = group.show(range)
     // Make sure the lens is visible.
     ApplicationManager.getApplication().invokeLater {
       val logicalPosition = LogicalPosition(range.start.line, range.start.character)
       editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+    }
+    if (!ApplicationManager.getApplication().isDispatchThread) { // integration test
+      future.get()
     }
   }
 
@@ -188,13 +218,17 @@ abstract class FixupSession(
 
   fun finish() {
     try {
-      controller.removeSession(this)
+      controller.clearActiveSession()
       rangeMarkers.forEach { it.dispose() }
       rangeMarkers.clear()
     } catch (x: Exception) {
       logger.debug("Session cleanup error", x)
     }
-    Disposer.dispose(this)
+    try {
+      Disposer.dispose(this)
+    } catch (x: Exception) {
+      logger.warn("Error disposing fixup session $this", x)
+    }
   }
 
   /** Subclass sends a fixup command to the agent, and returns the initial task. */
@@ -341,6 +375,13 @@ abstract class FixupSession(
     const val COMMAND_RETRY = "cody.fixup.codelens.retry"
     const val COMMAND_DIFF = "cody.fixup.codelens.diff"
     const val COMMAND_UNDO = "cody.fixup.codelens.undo"
+
+    // JetBrains Actions that we fire when the lenses are clicked.
+    const val ACTION_ACCEPT = "cody.inlineEditAcceptAction"
+    const val ACTION_CANCEL = "cody.inlineEditCancelAction"
+    const val ACTION_RETRY = "cody.inlineEditRetryAction"
+    const val ACTION_DIFF = "cody.inlineEditDiffAction"
+    const val ACTION_UNDO = "cody.inlineEditUndoAction"
 
     // TODO: Register the hotkeys now that we are displaying them.
     fun getHotKey(command: String): String {
