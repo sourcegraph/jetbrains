@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.edit
 
-import com.intellij.application.subscribe
 import com.intellij.ide.ui.UISettingsListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -10,12 +9,14 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.messages.MessageBusConnection
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.ModelUsage
@@ -28,9 +29,11 @@ import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.awt.Toolkit
 import java.awt.event.ActionEvent
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
+import java.awt.event.InputEvent
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
@@ -65,6 +68,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private val escapeKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0)
 
+  private var connection: MessageBusConnection? = null
+
   private val escapeAction =
       object : AbstractAction() {
         override fun actionPerformed(e: ActionEvent?) {
@@ -75,8 +80,20 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   private var okButton =
       JButton().apply {
         text = "Edit Code"
-        foreground = boldLabelColor
+        foreground = boldLabelColor()
         addActionListener { performOKAction() }
+
+        val enterKeyStroke =
+            if (SystemInfo.isMac) {
+              // Mac: Command+Enter
+              KeyStroke.getKeyStroke(
+                  KeyEvent.VK_ENTER, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+            } else {
+              // Others: Control+Enter
+              KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK)
+            }
+        registerKeyboardAction(
+            { performOKAction() }, enterKeyStroke, JComponent.WHEN_IN_FOCUSED_WINDOW)
       }
 
   private val instructionsField =
@@ -95,8 +112,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
               this,
               chatModelProviderFromState = null)
           .apply {
-            foreground = boldLabelColor
-            background = textFieldBackground
+            foreground = boldLabelColor()
+            background = textFieldBackground()
             addKeyListener(
                 object : KeyAdapter() {
                   override fun keyPressed(e: KeyEvent) {
@@ -107,13 +124,47 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
                 })
           }
 
-  // History navigation helper
   private val historyCursor = HistoryCursor()
+
+  private val dropdownParent =
+      FakePanel().apply {
+        layout = BoxLayout(this, BoxLayout.X_AXIS)
+        isOpaque = true
+        background = textFieldBackground()
+        add(Box.createHorizontalStrut(10))
+        add(llmDropdown)
+        add(Box.createHorizontalStrut(10))
+        preferredSize = Dimension(instructionsField.width, llmDropdown.preferredSize.height)
+      }
+
+  // spacer below the dropdown, making it appear as if it is inside the text field
+  private val dropdownSpacer =
+      FakePanel().apply {
+        isOpaque = true
+        background = textFieldBackground()
+        layout = BoxLayout(this, BoxLayout.X_AXIS)
+        add(Box.createHorizontalGlue())
+        minimumSize = Dimension(0, 10)
+        preferredSize = minimumSize
+      }
+
+  private var titleLabel =
+      JLabel(dialogTitle).apply {
+        setBorder(BorderFactory.createEmptyBorder(10, LEFT_WIDGET_MARGIN, 10, 10))
+        foreground = boldLabelColor()
+      }
+
+  private var filePathLabel =
+      JLabel().apply {
+        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
+        foreground = subduedLabelColor()
+      }
 
   init {
     setupTextField()
     setupKeyListener()
-    UISettingsListener.TOPIC.subscribe(this, UISettingsListener { onThemeChange() })
+    connection = ApplicationManager.getApplication().messageBus.connect(this)
+    connection?.subscribe(UISettingsListener.TOPIC, UISettingsListener { onThemeChange() })
   }
 
   fun displayPromptUI() {
@@ -205,6 +256,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     updateOkButtonState()
   }
 
+  // A history navigation helper.
   private inner class HistoryCursor {
     private var historyIndex = -1
 
@@ -249,8 +301,10 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     }
 
     fun performCancelAction() {
-      dispose()
+      connection?.disconnect()
+      connection = null
       dialog = null
+      dispose()
     }
   } // InstructionsDialog
 
@@ -263,26 +317,19 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     }
   }
 
-  private var titleLabel =
-      JLabel(dialogTitle).apply {
-        setBorder(BorderFactory.createEmptyBorder(10, 30, 10, 10))
-        foreground = boldLabelColor
-      }
-
   private fun createTopRow(): JPanel {
     return JPanel(BorderLayout()).apply {
       add(titleLabel, BorderLayout.WEST)
 
       val (line, col) = editor.offsetToLogicalPosition(offset).let { Pair(it.line, it.column) }
       val file = getFormattedFilePath(FileDocumentManager.getInstance().getFile(editor.document))
-      add(
-          JLabel("$file at $line:$col").apply {
-            setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
-          },
-          BorderLayout.CENTER)
+      filePathLabel.text = "$file at $line:$col"
+      add(filePathLabel, BorderLayout.CENTER)
       object : MouseAdapter() {
             var lastX: Int = 0
             var lastY: Int = 0
+            // Debounce to mitigate jitter while dragging.
+            var lastUpdateTime = System.currentTimeMillis()
 
             override fun mousePressed(e: MouseEvent) {
               lastX = e.xOnScreen
@@ -290,12 +337,18 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
             }
 
             override fun mouseDragged(e: MouseEvent) {
-              val x: Int = e.xOnScreen
-              val y: Int = e.yOnScreen
-              val loc = UIUtil.getLocationOnScreen(dialog!!.rootPane)!!
-              dialog?.setLocation(loc.x + x - lastX, loc.y + y - lastY)
-              lastX = x
-              lastY = y
+              val currentTime = System.currentTimeMillis()
+              if (currentTime - lastUpdateTime > 16) { // about 60 fps
+                val x: Int = e.xOnScreen
+                val y: Int = e.yOnScreen
+                SwingUtilities.invokeLater {
+                  val loc = UIUtil.getLocationOnScreen(dialog!!.rootPane)!!
+                  dialog?.setLocation(loc.x + x - lastX, loc.y + y - lastY)
+                  lastX = x
+                  lastY = y
+                }
+                lastUpdateTime = currentTime
+              }
             }
           }
           .let {
@@ -337,28 +390,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     return contentRoot?.path
   }
 
-  private val dropdownParent =
-      FakePanel().apply {
-        layout = BoxLayout(this, BoxLayout.X_AXIS)
-        isOpaque = true
-        background = textFieldBackground
-        add(Box.createHorizontalStrut(15))
-        add(llmDropdown)
-        add(Box.createHorizontalStrut(15))
-        preferredSize = Dimension(instructionsField.width, llmDropdown.preferredSize.height)
-      }
-
-  // spacer below the dropdown, making it appear as if it is inside the text field
-  private val dropdownSpacer =
-      FakePanel().apply {
-        isOpaque = true
-        background = textFieldBackground
-        layout = BoxLayout(this, BoxLayout.X_AXIS)
-        add(Box.createHorizontalGlue())
-        minimumSize = Dimension(0, 10)
-        preferredSize = minimumSize
-      }
-
   private fun createCenterPanel(): JPanel {
     return FakePanel().apply {
       layout = BoxLayout(this, BoxLayout.Y_AXIS)
@@ -372,8 +403,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     return JPanel(BorderLayout()).apply {
       add(
           JLabel("[esc] to cancel").apply {
-            foreground = subduedLabelColor
-            border = BorderFactory.createEmptyBorder(0, 30, 0, 0)
+            foreground = subduedLabelColor()
+            border = BorderFactory.createEmptyBorder(0, LEFT_WIDGET_MARGIN, 0, 0)
             cursor = Cursor(Cursor.HAND_CURSOR)
             addMouseListener(
                 object : MouseAdapter() {
@@ -400,9 +431,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   private fun createOKButtonGroup(): JPanel {
     val box =
         JPanel().apply {
-          border = JBUI.Borders.empty(5, 30)
+          border = JBUI.Borders.empty(5, 10)
           isOpaque = false
-          background = textFieldBackground
+          background = textFieldBackground()
           putClientProperty("name", "outerMostChildOfContentPane")
           layout = BoxLayout(this, BoxLayout.X_AXIS)
         }
@@ -430,9 +461,11 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         logger.warn("Project was null when trying to add an edit session")
         return
       }
+      // Kick off the editing command.
       controller.setActiveSession(
           EditSession(controller, editor, project, editor.document, text, llmDropdown.item))
     }
+    dialog?.performCancelAction()
   }
 
   private fun getScreenWidth(editor: Editor): Int {
@@ -458,12 +491,12 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     }
 
     override fun paintComponent(g: Graphics) {
-      background = textFieldBackground
-      (g as Graphics2D).background = textFieldBackground
+      background = textFieldBackground()
+      (g as Graphics2D).background = textFieldBackground()
       super.paintComponent(g)
 
       if (text.isEmpty()) {
-        (g as Graphics2D).apply {
+        g.apply {
           setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
           color = UIManager.getColor("Component.infoForeground")
           val leftMargin = 30
@@ -503,14 +536,10 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   private fun onThemeChange() {
     SwingUtilities.invokeLater {
 
-    _subduedLabelColor = null
-    _boldLabelColor = null
-    _textFieldBackground = null
-
-    // These all have their own backgrounds, so we manage them ourselves.
-    dropdownSpacer.background = textFieldBackground
-    dropdownParent.background = textFieldBackground
-    titleLabel.foreground = boldLabelColor
+      // These all have their own backgrounds, so we manage them ourselves.
+      dropdownSpacer.background = textFieldBackground()
+      dropdownParent.background = textFieldBackground()
+      titleLabel.foreground = boldLabelColor()
 
       dialog?.apply {
         revalidate()
@@ -519,10 +548,12 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     }
   }
 
+  // A panel that pretends to be part of the TextField, below it, giving it
+  // the appearance of having the llm dropdown be "within" the TextField.
   inner class FakePanel : JPanel() {
     init {
       isOpaque = true
-      background = textFieldBackground
+      background = textFieldBackground()
     }
 
     override fun paintComponent(g: Graphics) {
@@ -536,59 +567,31 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     // This is a fallback for the rare case when the screen size computations fail.
     const val DEFAULT_TEXT_FIELD_WIDTH: Int = 700
 
+    const val LEFT_WIDGET_MARGIN = 12 // Left margin for top/bottom rows
+
     // TODO: Put this back when @-includes are in
     // const val GHOST_TEXT = "Instructions (@ to include code)"
     const val GHOST_TEXT = "Type what changes you want to make to this file..."
 
-    private const val CORNER_RADIUS = 15.0
+    private const val CORNER_RADIUS = 16.0
 
     // Used when the Editor/Document does not have an associated filename.
     private const val FILE_PATH_404 = "unknown file"
 
-    private var _subduedLabelColor: Color? = null
-    var subduedLabelColor: Color
-      get() {
-        if (_subduedLabelColor == null || true) {
-          _subduedLabelColor =
-              UIManager.getColor("Label.disabledForeground").run {
-                if (ThemeUtil.isDarkTheme()) brighter() else darker()
-              }
+    fun subduedLabelColor(): Color =
+        UIManager.getColor("Label.disabledForeground").run {
+          if (ThemeUtil.isDarkTheme()) this else darker()
         }
-        return _subduedLabelColor!!
-      }
-      private set(value) {
-        _subduedLabelColor = value
-      }
 
-    private var _boldLabelColor: Color? = null
-    var boldLabelColor: Color
-      get() {
-        if (_boldLabelColor == null || true) {
-          _boldLabelColor =
-              UIManager.getColor("Label.foreground").run {
-                if (ThemeUtil.isDarkTheme()) brighter() else darker()
-              }
+    fun boldLabelColor(): Color =
+        UIManager.getColor("Label.foreground").run {
+          if (ThemeUtil.isDarkTheme()) brighter() else darker()
         }
-        return _boldLabelColor!!
-      }
-      private set(value) {
-        _boldLabelColor = value
-      }
 
-    private var _textFieldBackground: Color? = null
-    var textFieldBackground: Color
-      get() {
-        if (_textFieldBackground == null || true) {
-          _textFieldBackground =
-              UIManager.getColor("TextField.background").run {
-                if (ThemeUtil.isDarkTheme()) darker() else brighter()
-              }
+    fun textFieldBackground(): Color =
+        UIManager.getColor("TextField.background").run {
+          if (ThemeUtil.isDarkTheme()) darker() else brighter()
         }
-        return _textFieldBackground!!
-      }
-      private set(value) {
-        _textFieldBackground = value
-      }
 
     // Going with a global history for now, shared across edit-code prompts.
     val promptHistory = mutableListOf<String>()

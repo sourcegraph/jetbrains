@@ -35,7 +35,7 @@ class LlmDropdown(
     isVisible = false
     if (parentDialog != null) {
       isOpaque = true
-      background = EditCommandPrompt.textFieldBackground
+      background = EditCommandPrompt.textFieldBackground()
     }
 
     if (chatModelProviderFromState != null) {

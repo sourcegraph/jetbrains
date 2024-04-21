@@ -40,7 +40,7 @@ class LlmComboBoxRenderer(private val llmDropdown: LlmDropdown) : DefaultListCel
     }
     val isInline = llmDropdown.parentDialog != null
     if (isInline) {
-      background = EditCommandPrompt.textFieldBackground
+      background = EditCommandPrompt.textFieldBackground()
     }
     if (llmDropdown.isEnabled) {
       textBadgePanel.background = if (isInline) background else component.background
