@@ -23,8 +23,6 @@ import com.sourcegraph.cody.chat.ui.LlmDropdown
 import com.sourcegraph.config.ThemeUtil
 import java.awt.BorderLayout
 import java.awt.Color
-import java.awt.Component
-import java.awt.Container
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
@@ -57,7 +55,7 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
 /** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
-class EditCommandPrompt(val controller: FixupService, val editor: Editor, val dialogTitle: String) :
+class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialogTitle: String) :
     Disposable {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
 
@@ -115,7 +113,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
   init {
     setupTextField()
     setupKeyListener()
-    UISettingsListener.TOPIC.subscribe(this, UISettingsListener { themeChanged = true })
+    UISettingsListener.TOPIC.subscribe(this, UISettingsListener { onThemeChange() })
   }
 
   fun displayPromptUI() {
@@ -226,7 +224,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
 
   private inner class InstructionsDialog : JFrame() {
     init {
-      title = dialogTitle
       isUndecorated = true
       isAlwaysOnTop = true
       isResizable = true
@@ -238,22 +235,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
       minimumSize = Dimension(DEFAULT_TEXT_FIELD_WIDTH, 0)
 
       updateOkButtonState()
-      val connection = ApplicationManager.getApplication().messageBus.connect()
-      connection.subscribe(UISettingsListener.TOPIC, UISettingsListener { onThemeChange() })
-    }
-
-    private fun onThemeChange() {
-      _subduedLabelColor = null
-      _boldLabelColor = null
-      _textFieldBackground = null
-      SwingUtilities.invokeLater { repaintRecursively(this) }
-    }
-
-    private fun repaintRecursively(component: Component) {
-      component.repaint()
-      if (component is Container) {
-        component.components.forEach { repaintRecursively(it) }
-      }
     }
 
     override fun getRootPane(): JRootPane {
@@ -282,14 +263,15 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     }
   }
 
+  private var titleLabel =
+      JLabel(dialogTitle).apply {
+        setBorder(BorderFactory.createEmptyBorder(10, 30, 10, 10))
+        foreground = boldLabelColor
+      }
+
   private fun createTopRow(): JPanel {
     return JPanel(BorderLayout()).apply {
-      add(
-          JLabel(dialogTitle).apply {
-            setBorder(BorderFactory.createEmptyBorder(10, 30, 10, 10))
-            foreground = boldLabelColor
-          },
-          BorderLayout.WEST)
+      add(titleLabel, BorderLayout.WEST)
 
       val (line, col) = editor.offsetToLogicalPosition(offset).let { Pair(it.line, it.column) }
       val file = getFormattedFilePath(FileDocumentManager.getInstance().getFile(editor.document))
@@ -355,29 +337,34 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     return contentRoot?.path
   }
 
+  private val dropdownParent =
+      FakePanel().apply {
+        layout = BoxLayout(this, BoxLayout.X_AXIS)
+        isOpaque = true
+        background = textFieldBackground
+        add(Box.createHorizontalStrut(15))
+        add(llmDropdown)
+        add(Box.createHorizontalStrut(15))
+        preferredSize = Dimension(instructionsField.width, llmDropdown.preferredSize.height)
+      }
+
+  // spacer below the dropdown, making it appear as if it is inside the text field
+  private val dropdownSpacer =
+      FakePanel().apply {
+        isOpaque = true
+        background = textFieldBackground
+        layout = BoxLayout(this, BoxLayout.X_AXIS)
+        add(Box.createHorizontalGlue())
+        minimumSize = Dimension(0, 10)
+        preferredSize = minimumSize
+      }
+
   private fun createCenterPanel(): JPanel {
-    return JPanel().apply {
+    return FakePanel().apply {
       layout = BoxLayout(this, BoxLayout.Y_AXIS)
       add(instructionsField)
-      add(
-          JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.X_AXIS)
-            isOpaque = true
-            background = textFieldBackground
-            add(Box.createHorizontalStrut(15))
-            add(llmDropdown)
-            add(Box.createHorizontalStrut(15))
-            preferredSize = Dimension(instructionsField.width, llmDropdown.preferredSize.height)
-          })
-      add( // spacer below the dropdown, making it appear as if it is inside the text field
-          JPanel().apply {
-            isOpaque = true
-            background = textFieldBackground
-            layout = BoxLayout(this, BoxLayout.X_AXIS)
-            add(Box.createHorizontalGlue())
-            minimumSize = Dimension(0, 10)
-            preferredSize = minimumSize
-          })
+      add(dropdownParent)
+      add(dropdownSpacer)
     }
   }
 
@@ -472,6 +459,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
 
     override fun paintComponent(g: Graphics) {
       background = textFieldBackground
+      (g as Graphics2D).background = textFieldBackground
       super.paintComponent(g)
 
       if (text.isEmpty()) {
@@ -512,6 +500,38 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     }
   }
 
+  private fun onThemeChange() {
+    SwingUtilities.invokeLater {
+
+    _subduedLabelColor = null
+    _boldLabelColor = null
+    _textFieldBackground = null
+
+    // These all have their own backgrounds, so we manage them ourselves.
+    dropdownSpacer.background = textFieldBackground
+    dropdownParent.background = textFieldBackground
+    titleLabel.foreground = boldLabelColor
+
+      dialog?.apply {
+        revalidate()
+        repaint()
+      }
+    }
+  }
+
+  inner class FakePanel : JPanel() {
+    init {
+      isOpaque = true
+      background = textFieldBackground
+    }
+
+    override fun paintComponent(g: Graphics) {
+      g.color = background
+      (g as Graphics2D).background = background
+      super.paintComponent(g)
+    }
+  }
+
   companion object {
     // This is a fallback for the rare case when the screen size computations fail.
     const val DEFAULT_TEXT_FIELD_WIDTH: Int = 700
@@ -525,17 +545,14 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     // Used when the Editor/Document does not have an associated filename.
     private const val FILE_PATH_404 = "unknown file"
 
-    private var themeChanged = false
-
     private var _subduedLabelColor: Color? = null
     var subduedLabelColor: Color
       get() {
-        if (_subduedLabelColor == null || themeChanged) {
+        if (_subduedLabelColor == null || true) {
           _subduedLabelColor =
               UIManager.getColor("Label.disabledForeground").run {
                 if (ThemeUtil.isDarkTheme()) brighter() else darker()
               }
-          themeChanged = false
         }
         return _subduedLabelColor!!
       }
@@ -546,12 +563,11 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     private var _boldLabelColor: Color? = null
     var boldLabelColor: Color
       get() {
-        if (_boldLabelColor == null || themeChanged) {
+        if (_boldLabelColor == null || true) {
           _boldLabelColor =
               UIManager.getColor("Label.foreground").run {
                 if (ThemeUtil.isDarkTheme()) brighter() else darker()
               }
-          themeChanged = false
         }
         return _boldLabelColor!!
       }
@@ -562,12 +578,11 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, val di
     private var _textFieldBackground: Color? = null
     var textFieldBackground: Color
       get() {
-        if (_textFieldBackground == null || themeChanged) {
+        if (_textFieldBackground == null || true) {
           _textFieldBackground =
               UIManager.getColor("TextField.background").run {
                 if (ThemeUtil.isDarkTheme()) darker() else brighter()
               }
-          themeChanged = false
         }
         return _textFieldBackground!!
       }
