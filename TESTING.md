@@ -484,7 +484,7 @@ To open the context menu:
 1. Login to the Cody Enterprise Gateway Instance
 2. Create a new chat
 3. User should not be able to change the LLM model on the chat window
-4. Ask Cody a question in the new chat window. 
+4. Ask Cody a question in the new chat window, Cody should respond. 
 
 #### Commands
 
