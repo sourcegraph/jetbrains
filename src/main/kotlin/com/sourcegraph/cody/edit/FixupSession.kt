@@ -116,7 +116,7 @@ abstract class FixupSession(
             if (error != null || result == null) {
               // TODO: Adapt logic from CodyCompletionsManager.handleError
               logger.warn("Error while generating doc string: $error")
-              fixupService.clearActiveSession()
+              fixupService.cancelActiveSession()
             } else {
               taskId = result.id
               selectionRange = result.selectionRange

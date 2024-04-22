@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
+import java.util.concurrent.atomic.AtomicReference
 
 /** Controller for commands that allow the LLM to edit the code directly. */
 @Service(Service.Level.PROJECT)
@@ -17,16 +18,21 @@ class FixupService(val project: Project) : Disposable {
 
   private var activeSession: FixupSession? = null
 
+  // We only have one editing session at a time in JetBrains, for now.
+  // This reference ensures we only have one inline-edit dialog active at a time.
+  val currentEditPrompt: AtomicReference<EditCommandPrompt?> = AtomicReference(null)
+
   /** Entry point for the inline edit command, called by the action handler. */
   fun startCodeEdit(editor: Editor) {
-    if (isEligibleForInlineEdit(editor)) {
-      EditCommandPrompt(this, editor, "Edit Code with Cody").displayPromptUI()
-    }
+    if (!isEligibleForInlineEdit(editor)) return
+    cancelActiveSession()
+    currentEditPrompt.set(EditCommandPrompt(this, editor, "Edit Code with Cody"))
   }
 
   /** Entry point for the document code command, called by the action handler. */
   fun startDocumentCode(editor: Editor) {
     if (!isEligibleForInlineEdit(editor)) return
+    activeSession?.finish()
     DocumentCodeSession(this, editor, editor.project ?: return, editor.document)
   }
 
@@ -46,14 +52,21 @@ class FixupService(val project: Project) : Disposable {
 
   fun setActiveSession(session: FixupSession) {
     if (session == activeSession) return
-    clearActiveSession()
+    cancelActiveSession()
     activeSession = session
   }
 
-  fun clearActiveSession() {
-    if (activeSession != null) {
-      logger.warn("Setting new session when previous session is active: $activeSession")
+  fun cancelActiveSession() {
+    try {
+      activeSession?.finish()
+    } catch (x: Exception) {
+      logger.warn("Error while disposing session", x)
     }
+    clearActiveSession()
+  }
+
+  fun clearActiveSession() {
+    // N.B. This cannot call back into the activeSession, or it will recurse.
     activeSession = null
   }
 

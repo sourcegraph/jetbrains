@@ -21,11 +21,9 @@ class DocumentCodeSession(
   }
 
   override fun retry() {
-    // TODO: The actual prompt we sent is displayed as ghost text in the text input field, in VS
-    // Code.
-    // E.g. "Write a brief documentation comment for the selected code <etc.>"
-    // We need to send the prompt along with the lenses, so that the client can display it.
-    EditCommandPrompt(controller, editor, "Edit instructions and Retry").displayPromptUI()
+    // TODO: Send original prompt ("instruction") from FixupController so we can use it here.
+    // TODO: Coordinate with FixupService to ensure singleton behavior.
+    EditCommandPrompt(controller, editor, "Edit instructions and Retry")
   }
 
   override fun diff() {

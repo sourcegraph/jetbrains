@@ -5,7 +5,13 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.event.BulkAwareDocumentListener
+import com.intellij.openapi.editor.event.EditorFactoryEvent
+import com.intellij.openapi.editor.event.EditorFactoryListener
+import com.intellij.openapi.editor.impl.EditorFactoryImpl
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent
+import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Disposer
@@ -30,6 +36,7 @@ import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.Toolkit
+import java.awt.Window
 import java.awt.event.ActionEvent
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
@@ -38,6 +45,8 @@ import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.WindowEvent
+import java.awt.event.WindowFocusListener
 import java.awt.geom.RoundRectangle2D
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
@@ -73,7 +82,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   private val escapeAction =
       object : AbstractAction() {
         override fun actionPerformed(e: ActionEvent?) {
-          dialog?.performCancelAction()
+          clearActivePrompt()
         }
       }
 
@@ -122,7 +131,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
                 object : KeyAdapter() {
                   override fun keyPressed(e: KeyEvent) {
                     if (e.keyCode == KeyEvent.VK_ESCAPE) {
-                      dialog?.performCancelAction()
+                      clearActivePrompt()
                     }
                   }
                 })
@@ -162,14 +171,43 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         foreground = subduedLabelColor()
       }
 
-  init {
-    setupTextField()
-    setupKeyListener()
-    connection = ApplicationManager.getApplication().messageBus.connect(this)
-    connection?.subscribe(UISettingsListener.TOPIC, UISettingsListener { onThemeChange() })
+  private val documentListener =
+      object : BulkAwareDocumentListener {
+        override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
+          clearActivePrompt()
+        }
+      }
+
+  private val editorFactoryListener = object : EditorFactoryListener {
+    override fun editorReleased(event: EditorFactoryEvent) {
+      if (editor != event.editor) return
+      // Document was closed.
+      clearActivePrompt()
+    }
   }
 
-  fun displayPromptUI() {
+  private val tabFocusListener =
+      object : FileEditorManagerListener {
+        override fun selectionChanged(event: FileEditorManagerEvent) {
+          val oldEditor = event.oldEditor ?: return
+          if (oldEditor != editor) return
+          // Our tab lost the focus.
+          clearActivePrompt()
+        }
+      }
+
+  private val ideFocusMonitor = FocusMonitor()
+
+  init {
+    connection = ApplicationManager.getApplication().messageBus.connect(this)
+    registerListeners()
+    // Don't reset the session, just any previous instructions dialog.
+    controller.currentEditPrompt.get()?.clearActivePrompt()
+
+    setupTextField()
+    setupKeyListener()
+    connection!!.subscribe(UISettingsListener.TOPIC, UISettingsListener { onThemeChange() })
+
     ApplicationManager.getApplication().invokeLater {
       val dialog = dialog ?: InstructionsDialog().apply { this@EditCommandPrompt.dialog = this }
       dialog.apply {
@@ -181,11 +219,31 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     }
   }
 
+  private fun registerListeners() {
+    // Close dialog on document changes (user edits).
+    editor.document.addDocumentListener(documentListener)
+    // Close dialog when user switches to a different ab.
+    connection?.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, tabFocusListener)
+    // Close dialog when user closes the document. This call makes the listener auto-release.
+    EditorFactoryImpl.getInstance().addEditorFactoryListener(editorFactoryListener, this)
+  }
+
+  private fun unregisterListeners() {
+    try {
+      editor.document.removeDocumentListener(documentListener)
+      // tab focus listener will unregister when we disconnect from the message bus.
+    } catch (x: Exception) {
+      logger.warn("Error removing listeners", x)
+    }
+  }
+
+  private fun clearActivePrompt() {
+    dialog?.performCancelAction()
+  }
+
   private fun getFrameForEditor(editor: Editor): JFrame? {
     return WindowManager.getInstance().getFrame(editor.project ?: return null)
   }
-
-  fun getText(): String = instructionsField.text
 
   @RequiresEdt
   private fun setupTextField() {
@@ -220,7 +278,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   @RequiresEdt
   private fun checkForInterruptions() {
     if (editor.isDisposed || editor.isViewer || !editor.document.isWritable) {
-      dialog?.performCancelAction()
+      clearActivePrompt()
     }
   }
 
@@ -233,7 +291,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
               KeyEvent.VK_UP -> instructionsField.setTextAndSelectAll(promptHistory.getPrevious())
               KeyEvent.VK_DOWN -> instructionsField.setTextAndSelectAll(promptHistory.getNext())
               KeyEvent.VK_ESCAPE -> {
-                dialog?.performCancelAction()
+                clearActivePrompt()
               }
             }
             updateOkButtonState()
@@ -266,11 +324,15 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     }
 
     fun performCancelAction() {
-      instructionsField.text?.let { lastPrompt = it }
-      connection?.disconnect()
-      connection = null
-      dialog = null
-      dispose()
+      try {
+        instructionsField.text?.let { lastPrompt = it }
+        connection?.disconnect()
+        connection = null
+        dialog = null
+        dispose()
+      } catch (x: Exception) {
+        logger.warn("Error cancelling edit command prompt", x)
+      }
     }
   } // InstructionsDialog
 
@@ -376,7 +438,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
             addMouseListener(
                 object : MouseAdapter() {
                   override fun mouseClicked(e: MouseEvent) {
-                    dialog?.performCancelAction()
+                    clearActivePrompt()
                   }
                 })
           })
@@ -428,7 +490,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       controller.setActiveSession(
           EditSession(controller, editor, project, editor.document, text, llmDropdown.item))
     }
-    dialog?.performCancelAction()
+    clearActivePrompt()
   }
 
   private fun getScreenWidth(editor: Editor): Int {
@@ -502,6 +564,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     } catch (t: Throwable) {
       logger.warn("Error disposing instructions dialog", t)
     }
+    unregisterListeners()
   }
 
   private fun onThemeChange() {
@@ -531,6 +594,49 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       g.color = background
       (g as Graphics2D).background = background
       super.paintComponent(g)
+    }
+  }
+
+  // Closes the dialog when the project window loses the focus.
+  // This is because it has a tendency to remain at the front of other apps.
+  private inner class FocusMonitor : Disposable {
+    private var creationTime = System.currentTimeMillis()
+    private val window: Window? = getFrameForEditor(editor)
+
+    private val focusListener =
+        object : FocusListener {
+          override fun focusGained(e: FocusEvent?) {}
+
+          override fun focusLost(e: FocusEvent?) {
+            if (isReady()) {
+              clearActivePrompt()
+            }
+          }
+        }
+
+    private val windowFocusListener =
+        object : WindowFocusListener {
+          override fun windowGainedFocus(e: WindowEvent?) {}
+
+          override fun windowLostFocus(e: WindowEvent?) {
+            if (isReady()) {
+              clearActivePrompt()
+            }
+          }
+        }
+
+    init {
+      Disposer.register(this@EditCommandPrompt, this)
+      window?.addWindowFocusListener(windowFocusListener)
+      window?.addFocusListener(focusListener)
+    }
+
+    // Slight debounce to keep it from closing as it's trying to open.
+    fun isReady() = System.currentTimeMillis() - creationTime > 1000
+
+    override fun dispose() {
+      window?.removeWindowFocusListener(windowFocusListener)
+      window?.removeFocusListener(focusListener)
     }
   }
 
