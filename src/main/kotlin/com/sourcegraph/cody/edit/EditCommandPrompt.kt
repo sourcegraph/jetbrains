@@ -46,9 +46,11 @@ import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.MouseMotionAdapter
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
 import java.awt.geom.RoundRectangle2D
+import java.awt.image.BufferedImage
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
@@ -168,10 +170,19 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       }
 
   private var filePathLabel =
-      JLabel().apply {
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
-        foreground = subduedLabelColor()
-      }
+      object : JLabel() {
+            override fun processMouseEvent(e: MouseEvent) {
+              parent.dispatchEvent(SwingUtilities.convertMouseEvent(this, e, parent))
+            }
+
+            override fun processMouseMotionEvent(e: MouseEvent) {
+              parent.dispatchEvent(SwingUtilities.convertMouseEvent(this, e, parent))
+            }
+          }
+          .apply {
+            setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
+            foreground = subduedLabelColor()
+          }
 
   private val documentListener =
       object : BulkAwareDocumentListener {
@@ -199,6 +210,10 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         }
       }
 
+  private var resizeDirection: ResizeDirection? = null
+  private var lastMouseX = 0
+  private var lastMouseY = 0
+
   // Note: Must be created on EDT, although we can't annotate it as such.
   init {
     connection = ApplicationManager.getApplication().messageBus.connect(this)
@@ -210,6 +225,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     setupKeyListener()
     connection!!.subscribe(UISettingsListener.TOPIC, UISettingsListener { onThemeChange() })
     FocusMonitor()
+    addFrameDragListeners()
 
     isUndecorated = true
     isAlwaysOnTop = true
@@ -217,7 +233,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
     minimumSize = Dimension(DEFAULT_TEXT_FIELD_WIDTH, 0)
 
-    contentPane = generatePromptUI()
+    contentPane = DoubleBufferedRootPane()
+    generatePromptUI()
     updateOkButtonState()
     pack()
 
@@ -249,6 +266,74 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     connection?.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, tabFocusListener)
     // Close dialog when user closes the document. This call makes the listener auto-release.
     EditorFactoryImpl.getInstance().addEditorFactoryListener(editorFactoryListener, this)
+  }
+
+  private fun addFrameDragListeners() {
+    addMouseListener(object : MouseAdapter() {
+      override fun mousePressed(e: MouseEvent) {
+        resizeDirection = getResizeDirection(e.point)
+        lastMouseX = e.xOnScreen
+        lastMouseY = e.yOnScreen
+        updateCursor()
+      }
+
+      override fun mouseReleased(e: MouseEvent) {
+        resizeDirection = null
+        cursor = Cursor.getDefaultCursor()
+      }
+
+      override fun mouseEntered(e: MouseEvent) {
+        updateCursor()
+      }
+
+      override fun mouseExited(e: MouseEvent) {
+        cursor = Cursor.getDefaultCursor()
+      }
+
+      override fun mouseMoved(e: MouseEvent) {
+        updateCursor()
+      }
+    })
+
+    addMouseMotionListener(object : MouseMotionAdapter() {
+      override fun mouseDragged(e: MouseEvent) {
+        val direction = resizeDirection
+        if (direction != null) {
+          val newX = e.xOnScreen
+          val newY = e.yOnScreen
+          val deltaX = newX - lastMouseX
+          val deltaY = newY - lastMouseY
+
+          val newWidth = width + (if (direction.isHorizontal) deltaX else 0)
+          val newHeight = height + (if (direction.isVertical) deltaY else 0)
+
+          setSize(newWidth, newHeight)
+
+          lastMouseX = newX
+          lastMouseY = newY
+        }
+      }
+    })
+  }
+
+  private fun updateCursor() {
+    val direction = resizeDirection
+    cursor = when (direction) {
+      ResizeDirection.NORTH_WEST -> Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR)
+      ResizeDirection.NORTH -> Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR)
+      ResizeDirection.NORTH_EAST -> Cursor.getPredefinedCursor(Cursor.NE_RESIZE_CURSOR)
+      ResizeDirection.WEST -> Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR)
+      ResizeDirection.EAST -> Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR)
+      ResizeDirection.SOUTH_WEST -> Cursor.getPredefinedCursor(Cursor.SW_RESIZE_CURSOR)
+      ResizeDirection.SOUTH -> Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR)
+      ResizeDirection.SOUTH_EAST -> Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR)
+      else -> Cursor.getDefaultCursor()
+    }
+  }
+
+  override fun setBounds(x: Int, y: Int, width: Int, height: Int) {
+    super.setBounds(x, y, width, height)
+    shape = makeCornerShape(width, height)
   }
 
   private fun unregisterListeners() {
@@ -346,8 +431,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   }
 
   @RequiresEdt
-  private fun generatePromptUI(): JPanel {
-    return JPanel(BorderLayout()).apply {
+  private fun generatePromptUI() {
+    contentPane.layout = BorderLayout()
+    contentPane.apply {
       add(createTopRow(), BorderLayout.NORTH)
       add(createBottomRow(), BorderLayout.SOUTH)
       add(createCenterPanel(), BorderLayout.CENTER)
@@ -357,14 +443,17 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   private fun createTopRow(): JPanel {
     return JPanel(BorderLayout()).apply {
       add(titleLabel, BorderLayout.WEST)
-
       val (line, col) = editor.offsetToLogicalPosition(offset).let { Pair(it.line, it.column) }
-      val file = getFormattedFilePath(FileDocumentManager.getInstance().getFile(editor.document))
+      val virtualFile = FileDocumentManager.getInstance().getFile(editor.document)
+      val file = getFormattedFilePath(virtualFile)
       filePathLabel.text = "$file at $line:$col"
+      filePathLabel.toolTipText = virtualFile?.path
       add(filePathLabel, BorderLayout.CENTER)
+      // Listen for mouse-drag in the title bar, and move the window.
       object : MouseAdapter() {
             var lastX: Int = 0
             var lastY: Int = 0
+
             // Debounce to mitigate jitter while dragging.
             var lastUpdateTime = System.currentTimeMillis()
 
@@ -643,6 +732,47 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     }
   }
 
+  private fun getResizeDirection(point: Point): ResizeDirection? {
+    val border = RESIZE_BORDER
+    if (point.x < border) {
+      if (point.y < border) return ResizeDirection.NORTH_WEST
+      else if (point.y >= height - border) return ResizeDirection.SOUTH_WEST
+      else return ResizeDirection.WEST
+    } else if (point.x >= width - border) {
+      if (point.y < border) return ResizeDirection.NORTH_EAST
+      else if (point.y >= height - border) return ResizeDirection.SOUTH_EAST
+      else return ResizeDirection.EAST
+    } else if (point.y < border) {
+      return ResizeDirection.NORTH
+    } else if (point.y >= height - border) {
+      return ResizeDirection.SOUTH
+    }
+    return null
+  }
+
+  private enum class ResizeDirection(val isHorizontal: Boolean, val isVertical: Boolean) {
+    NORTH_WEST(false, true), NORTH(true, true), NORTH_EAST(true, true),
+    WEST(false, true), EAST(true, true),
+    SOUTH_WEST(false, false), SOUTH(true, false), SOUTH_EAST(true, false)
+  }
+
+  // TODO: Was hoping this would help avoid flicker while resizing.
+  // Needs more work, but I think this is likely the right general approach.
+  class DoubleBufferedRootPane : JRootPane() {
+    private var offscreenImage: BufferedImage? = null
+
+    override fun paintComponent(g: Graphics) {
+      if (offscreenImage == null || offscreenImage!!.width != width || offscreenImage!!.height != height) {
+        offscreenImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+      }
+      val offscreenGraphics = offscreenImage!!.createGraphics()
+      super.paintComponent(offscreenGraphics)
+      offscreenGraphics.dispose()
+
+      (g as Graphics2D).drawImage(offscreenImage, 0, 0, null)
+    }
+  }
+
   companion object {
     // This is a fallback for the rare case when the screen size computations fail.
     const val DEFAULT_TEXT_FIELD_WIDTH: Int = 700
@@ -655,6 +785,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
     // Used when the Editor/Document does not have an associated filename.
     private const val FILE_PATH_404 = "unknown file"
+
+    private const val RESIZE_BORDER = 5
 
     // I don't cache these because it caused problems with theme switches.
     fun subduedLabelColor(): Color =
