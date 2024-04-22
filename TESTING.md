@@ -342,6 +342,8 @@ And all tests involving prompt history should end with
   -  Dialog is non-modal and you can put the focus back into the IDE without closing it.
   -  Dialog can be dragged by clicking and dragging in the "title bar" area.
   -  Dialog can be resized by carefully positioning the cursor at the corners and dragging.
+5. Close the dialog, and press Ctrl+Shift+Enter (Command+Shift+Enter on Mac)
+  - Dialog should appear, just as if it had been opened with the context menu
 
 #### Layout
 
