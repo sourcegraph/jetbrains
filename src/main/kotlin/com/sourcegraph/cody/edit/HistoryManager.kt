@@ -1,39 +1,37 @@
 package com.sourcegraph.cody.edit
 
-/**
- * Manages user prompt history in memory for a session (project lifetime).
- */
+/** Manages user prompt history in memory for a session (project lifetime). */
 class HistoryManager<T>(private val capacity: Int) {
-    private val history = mutableListOf<T>()
-    private var currentIndex = -1
+  private val history = mutableListOf<T>()
+  private var currentIndex = -1
 
-    fun add(item: T) {
-        history.remove(item) // avoid duplicates
+  fun add(item: T) {
+    history.remove(item) // avoid duplicates
 
-        history.add(item)  // new items go at the end
+    history.add(item) // new items go at the end
 
-        if (history.size > capacity) {
-            history.removeAt(0)
-        }
-
-        currentIndex = history.size - 1
+    if (history.size > capacity) {
+      history.removeAt(0)
     }
 
-    fun getPrevious(): T? {
-        if (currentIndex > 0) {
-            currentIndex--
-            return history[currentIndex]
-        }
-        return null
-    }
+    currentIndex = history.size - 1
+  }
 
-    fun getNext(): T? {
-        if (currentIndex < history.size - 1) {
-            currentIndex++
-            return history[currentIndex]
-        }
-        return null
+  fun getPrevious(): T? {
+    if (currentIndex > 0) {
+      currentIndex--
+      return history[currentIndex]
     }
+    return null
+  }
 
-    fun isNotEmpty() = history.isNotEmpty()
+  fun getNext(): T? {
+    if (currentIndex < history.size - 1) {
+      currentIndex++
+      return history[currentIndex]
+    }
+    return null
+  }
+
+  fun isNotEmpty() = history.isNotEmpty()
 }
