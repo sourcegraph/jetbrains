@@ -248,6 +248,15 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     treeRoot.add(contextRoot)
     treeModel.reload()
     resize()
+
+    // Update the extension-side state for this chat.
+    RemoteRepoUtils.resolveReposWithErrorNotification(project, repoNames.map{it -> CodebaseName(it)}) { repos ->
+      chatSession.sendWebviewMessage(
+        WebviewMessage(
+          command = "context/choose-remote-search-repo", explicitRepos=repos
+        )
+      )
+    }
   }
 
   @RequiresEdt
