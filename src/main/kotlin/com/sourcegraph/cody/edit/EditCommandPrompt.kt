@@ -49,6 +49,7 @@ import java.awt.event.MouseEvent
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
 import java.awt.geom.RoundRectangle2D
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
 import javax.swing.Box
@@ -69,16 +70,16 @@ import javax.swing.event.DocumentListener
 
 /** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
 class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialogTitle: String) :
-    Disposable {
+    JFrame(), Disposable {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
 
   private val offset = editor.caretModel.primaryCaret.offset
 
-  private var dialog: EditCommandPrompt.InstructionsDialog? = null
-
   private val escapeKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0)
 
   private var connection: MessageBusConnection? = null
+
+  private val isDisposed: AtomicBoolean = AtomicBoolean(false)
 
   private val escapeAction =
       object : AbstractAction() {
@@ -198,8 +199,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         }
       }
 
-  private val ideFocusMonitor = FocusMonitor()
-
+  // Note: Must be created on EDT, although we can't annotate it as such.
   init {
     connection = ApplicationManager.getApplication().messageBus.connect(this)
     registerListeners()
@@ -209,16 +209,21 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     setupTextField()
     setupKeyListener()
     connection!!.subscribe(UISettingsListener.TOPIC, UISettingsListener { onThemeChange() })
+    FocusMonitor()
 
-    ApplicationManager.getApplication().invokeLater {
-      val dialog = dialog ?: InstructionsDialog().apply { this@EditCommandPrompt.dialog = this }
-      dialog.apply {
-        pack()
-        shape = makeCornerShape(width, height)
-        updateDialogPosition()
-        isVisible = true
-      }
-    }
+    isUndecorated = true
+    isAlwaysOnTop = true
+    isResizable = true
+    defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
+    minimumSize = Dimension(DEFAULT_TEXT_FIELD_WIDTH, 0)
+
+    contentPane = generatePromptUI()
+    updateOkButtonState()
+    pack()
+
+    shape = makeCornerShape(width, height)
+    updateDialogPosition()
+    isVisible = true
   }
 
   private fun updateDialogPosition() {
@@ -231,9 +236,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       // Calculate the absolute screen position for the dialog, just below current line.
       val dialogX = locationOnScreen.x + 100 // Position it consistently for now.
       val dialogY = locationOnScreen.y + pointInEditor.y + editor.lineHeight
-      dialog?.location = Point(dialogX, dialogY)
+      location = Point(dialogX, dialogY)
     } else {
-      dialog?.setLocationRelativeTo(getFrameForEditor(editor) ?: editor.component.rootPane)
+      setLocationRelativeTo(getFrameForEditor(editor) ?: editor.component.rootPane)
     }
   }
 
@@ -256,7 +261,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   }
 
   private fun clearActivePrompt() {
-    dialog?.performCancelAction()
+    performCancelAction()
   }
 
   private fun getFrameForEditor(editor: Editor): JFrame? {
@@ -317,42 +322,28 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         })
   }
 
-  private inner class InstructionsDialog : JFrame() {
-    init {
-      isUndecorated = true
-      isAlwaysOnTop = true
-      isResizable = true
-      defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
+  override fun getRootPane(): JRootPane {
+    val rootPane = super.getRootPane()
+    val inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+    val actionMap = rootPane.actionMap
 
-      contentPane = generatePromptUI()
-      minimumSize = Dimension(DEFAULT_TEXT_FIELD_WIDTH, 0)
+    inputMap.put(escapeKeyStroke, "ESCAPE")
+    actionMap.put("ESCAPE", escapeAction)
 
-      updateOkButtonState()
+    return rootPane
+  }
+
+  private fun performCancelAction() {
+    try {
+      isVisible = false
+      instructionsField.text?.let { lastPrompt = it } // Save last thing they typed.
+      connection?.disconnect()
+      connection = null
+      dispose()
+    } catch (x: Exception) {
+      logger.warn("Error cancelling edit command prompt", x)
     }
-
-    override fun getRootPane(): JRootPane {
-      val rootPane = super.getRootPane()
-      val inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
-      val actionMap = rootPane.actionMap
-
-      inputMap.put(escapeKeyStroke, "ESCAPE")
-      actionMap.put("ESCAPE", escapeAction)
-
-      return rootPane
-    }
-
-    fun performCancelAction() {
-      try {
-        instructionsField.text?.let { lastPrompt = it }
-        connection?.disconnect()
-        connection = null
-        dialog = null
-        dispose()
-      } catch (x: Exception) {
-        logger.warn("Error cancelling edit command prompt", x)
-      }
-    }
-  } // InstructionsDialog
+  }
 
   @RequiresEdt
   private fun generatePromptUI(): JPanel {
@@ -388,8 +379,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
                 val x: Int = e.xOnScreen
                 val y: Int = e.yOnScreen
                 SwingUtilities.invokeLater {
-                  val loc = UIUtil.getLocationOnScreen(dialog!!.rootPane)!!
-                  dialog?.setLocation(loc.x + x - lastX, loc.y + y - lastY)
+                  val loc = UIUtil.getLocationOnScreen(rootPane)!!
+                  this@EditCommandPrompt.setLocation(loc.x + x - lastX, loc.y + y - lastY)
                   lastX = x
                   lastY = y
                 }
@@ -577,26 +568,20 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   }
 
   override fun dispose() {
-    try {
-      dialog?.dispose()
-    } catch (t: Throwable) {
-      logger.warn("Error disposing instructions dialog", t)
+    if (!isDisposed.get()) {
+      unregisterListeners()
+      isDisposed.set(true)
     }
-    unregisterListeners()
   }
 
   private fun onThemeChange() {
     SwingUtilities.invokeLater {
-
       // These all have their own backgrounds, so we manage them ourselves.
       dropdownSpacer.background = textFieldBackground()
       dropdownParent.background = textFieldBackground()
       titleLabel.foreground = boldLabelColor()
-
-      dialog?.apply {
-        revalidate()
-        repaint()
-      }
+      revalidate()
+      repaint()
     }
   }
 
