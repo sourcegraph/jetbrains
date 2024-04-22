@@ -34,6 +34,7 @@ import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
+import java.awt.Point
 import java.awt.RenderingHints
 import java.awt.Toolkit
 import java.awt.Window
@@ -178,13 +179,14 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         }
       }
 
-  private val editorFactoryListener = object : EditorFactoryListener {
-    override fun editorReleased(event: EditorFactoryEvent) {
-      if (editor != event.editor) return
-      // Document was closed.
-      clearActivePrompt()
-    }
-  }
+  private val editorFactoryListener =
+      object : EditorFactoryListener {
+        override fun editorReleased(event: EditorFactoryEvent) {
+          if (editor != event.editor) return
+          // Tab was closed.
+          clearActivePrompt()
+        }
+      }
 
   private val tabFocusListener =
       object : FileEditorManagerListener {
@@ -213,9 +215,25 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       dialog.apply {
         pack()
         shape = makeCornerShape(width, height)
-        setLocationRelativeTo(getFrameForEditor(editor) ?: editor.component.rootPane)
+        updateDialogPosition()
         isVisible = true
       }
+    }
+  }
+
+  private fun updateDialogPosition() {
+    // Convert caret position to screen coordinates.
+    val pointInEditor = editor.visualPositionToXY(editor.caretModel.visualPosition)
+
+    if (editor.scrollingModel.visibleArea.contains(pointInEditor)) { // caret is visible
+      val locationOnScreen = editor.contentComponent.locationOnScreen
+
+      // Calculate the absolute screen position for the dialog, just below current line.
+      val dialogX = locationOnScreen.x + 100 // Position it consistently for now.
+      val dialogY = locationOnScreen.y + pointInEditor.y + editor.lineHeight
+      dialog?.location = Point(dialogX, dialogY)
+    } else {
+      dialog?.setLocationRelativeTo(getFrameForEditor(editor) ?: editor.component.rootPane)
     }
   }
 
