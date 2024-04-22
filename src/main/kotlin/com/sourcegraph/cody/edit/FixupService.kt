@@ -17,9 +17,6 @@ class FixupService(val project: Project) : Disposable {
 
   private var activeSession: FixupSession? = null
 
-  // The last text the user typed in without saving it, for continuity.
-  private var lastPrompt: String = ""
-
   /** Entry point for the inline edit command, called by the action handler. */
   fun startCodeEdit(editor: Editor) {
     if (isEligibleForInlineEdit(editor)) {
@@ -44,8 +41,6 @@ class FixupService(val project: Project) : Disposable {
     }
     return true
   }
-
-  fun getLastPrompt(): String = lastPrompt
 
   fun getActiveSession(): FixupSession? = activeSession
 

@@ -102,6 +102,10 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         preferredSize =
             Dimension(minOf(getScreenWidth(editor) / 2, DEFAULT_TEXT_FIELD_WIDTH), fontHeight * 4)
         minimumSize = preferredSize
+        text = lastPrompt
+        if (text.isBlank() && promptHistory.isNotEmpty()) {
+          text = promptHistory.getPrevious()
+        }
       }
 
   private val llmDropdown =
@@ -123,8 +127,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
                   }
                 })
           }
-
-  private val historyCursor = HistoryCursor()
 
   private val dropdownParent =
       FakePanel().apply {
@@ -150,7 +152,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private var titleLabel =
       JLabel(dialogTitle).apply {
-        setBorder(BorderFactory.createEmptyBorder(10, LEFT_WIDGET_MARGIN, 10, 10))
+        setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 10))
         foreground = boldLabelColor()
       }
 
@@ -228,8 +230,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         object : KeyAdapter() {
           override fun keyPressed(e: KeyEvent) {
             when (e.keyCode) {
-              KeyEvent.VK_UP -> fetchPreviousHistoryItem()
-              KeyEvent.VK_DOWN -> fetchNextHistoryItem()
+              KeyEvent.VK_UP -> instructionsField.setTextAndSelectAll(promptHistory.getPrevious())
+              KeyEvent.VK_DOWN -> instructionsField.setTextAndSelectAll(promptHistory.getNext())
               KeyEvent.VK_ESCAPE -> {
                 dialog?.performCancelAction()
               }
@@ -239,49 +241,12 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         })
   }
 
-  @RequiresEdt
-  private fun fetchPreviousHistoryItem() {
-    updateTextFromHistory(historyCursor.getPreviousHistoryItem())
-  }
-
-  @RequiresEdt
-  private fun fetchNextHistoryItem() {
-    updateTextFromHistory(historyCursor.getNextHistoryItem())
-  }
-
-  @RequiresEdt
-  private fun updateTextFromHistory(text: String) {
-    instructionsField.text = text
-    instructionsField.caretPosition = text.length
-    updateOkButtonState()
-  }
-
-  // A history navigation helper.
-  private inner class HistoryCursor {
-    private var historyIndex = -1
-
-    fun getPreviousHistoryItem() = getHistoryItemByDelta(-1)
-
-    fun getNextHistoryItem() = getHistoryItemByDelta(1)
-
-    @RequiresEdt
-    private fun getHistoryItemByDelta(delta: Int): String {
-      if (promptHistory.isNotEmpty()) {
-        historyIndex = (historyIndex + delta).coerceIn(0, promptHistory.size - 1)
-        return promptHistory[historyIndex]
-      }
-      return ""
-    }
-  }
-
   private inner class InstructionsDialog : JFrame() {
     init {
       isUndecorated = true
       isAlwaysOnTop = true
       isResizable = true
       defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
-
-      instructionsField.text = controller.getLastPrompt()
 
       contentPane = generatePromptUI()
       minimumSize = Dimension(DEFAULT_TEXT_FIELD_WIDTH, 0)
@@ -301,6 +266,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     }
 
     fun performCancelAction() {
+      instructionsField.text?.let { lastPrompt = it }
       connection?.disconnect()
       connection = null
       dialog = null
@@ -400,11 +366,12 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   }
 
   private fun createBottomRow(): JPanel {
-    return JPanel(BorderLayout()).apply {
+    return JPanel().apply {
+      layout = BoxLayout(this, BoxLayout.X_AXIS)
+      border = BorderFactory.createEmptyBorder(0, 20, 0, 12)
       add(
           JLabel("[esc] to cancel").apply {
             foreground = subduedLabelColor()
-            border = BorderFactory.createEmptyBorder(0, LEFT_WIDGET_MARGIN, 0, 0)
             cursor = Cursor(Cursor.HAND_CURSOR)
             addMouseListener(
                 object : MouseAdapter() {
@@ -412,49 +379,45 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
                     dialog?.performCancelAction()
                   }
                 })
-          },
-          BorderLayout.WEST)
+          })
+
+      add(Box.createHorizontalGlue())
+
       add(
           JLabel().apply {
-            text =
-                if (promptHistory.isNotEmpty()) {
-                  "↑↓ for history"
-                } else {
-                  ""
-                }
-          },
-          BorderLayout.CENTER)
-      add(createOKButtonGroup(), BorderLayout.EAST)
+            text = if (promptHistory.isNotEmpty()) "↑↓ for history" else ""
+            horizontalAlignment = JLabel.CENTER
+          })
+
+      add(Box.createHorizontalGlue())
+      add(createOKButtonGroup())
     }
   }
 
   private fun createOKButtonGroup(): JPanel {
-    val box =
-        JPanel().apply {
-          border = JBUI.Borders.empty(5, 10)
-          isOpaque = false
-          background = textFieldBackground()
-          putClientProperty("name", "outerMostChildOfContentPane")
-          layout = BoxLayout(this, BoxLayout.X_AXIS)
-        }
-    box.add(
-        JLabel().apply {
-          text =
-              when {
-                SystemInfoRt.isMac -> "⌘↵  "
-                SystemInfoRt.isWindows -> "Ctrl+Enter  "
-                else -> "^↵  "
-              }
-        })
-    box.add(okButton)
-    return box
+    return JPanel().apply {
+      border = BorderFactory.createEmptyBorder(0, 5, 0, 5)
+      isOpaque = false
+      background = textFieldBackground()
+      layout = BoxLayout(this, BoxLayout.X_AXIS)
+      add(
+          JLabel().apply {
+            text =
+                when {
+                  SystemInfoRt.isMac -> "⌘↵  "
+                  SystemInfoRt.isWindows -> "Ctrl+Enter  "
+                  else -> "^↵  "
+                }
+          })
+      add(okButton)
+    }
   }
 
   @RequiresEdt
   fun performOKAction() {
     val text = instructionsField.text
     if (text.isNotBlank()) {
-      addToHistory(text)
+      promptHistory.add(text)
       val project = editor.project
       // TODO: How do we show user feedback when an error like this happens?
       if (project == null) {
@@ -502,6 +465,14 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           val leftMargin = 30
           drawString(GHOST_TEXT, leftMargin, (fontMetrics.height * 1.5).toInt())
         }
+      }
+    }
+
+    // This is used by the up/down arrow keys to insert a history item.
+    fun setTextAndSelectAll(newContents: String?) {
+      if (newContents != null) {
+        text = newContents
+        selectAll()
       }
     }
 
@@ -567,8 +538,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     // This is a fallback for the rare case when the screen size computations fail.
     const val DEFAULT_TEXT_FIELD_WIDTH: Int = 700
 
-    const val LEFT_WIDGET_MARGIN = 12 // Left margin for top/bottom rows
-
     // TODO: Put this back when @-includes are in
     // const val GHOST_TEXT = "Instructions (@ to include code)"
     const val GHOST_TEXT = "Type what changes you want to make to this file..."
@@ -578,6 +547,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     // Used when the Editor/Document does not have an associated filename.
     private const val FILE_PATH_404 = "unknown file"
 
+    // I don't cache these because it caused problems with theme switches.
     fun subduedLabelColor(): Color =
         UIManager.getColor("Label.disabledForeground").run {
           if (ThemeUtil.isDarkTheme()) this else darker()
@@ -593,14 +563,10 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           if (ThemeUtil.isDarkTheme()) darker() else brighter()
         }
 
-    // Going with a global history for now, shared across edit-code prompts.
-    val promptHistory = mutableListOf<String>()
+    // The last text the user typed in without saving it, for continuity.
+    var lastPrompt: String = ""
 
-    @RequiresEdt
-    fun addToHistory(prompt: String) {
-      if (prompt.isNotBlank() && !promptHistory.contains(prompt)) {
-        promptHistory.add(prompt)
-      }
-    }
+    private const val HISTORY_CAPACITY = 100
+    val promptHistory = HistoryManager<String>(HISTORY_CAPACITY)
   }
 }
