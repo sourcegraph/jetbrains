@@ -19,7 +19,7 @@ abstract class CodeLensAction : AnAction() {
       project = e.dataContext.getData(PlatformDataKeys.PROJECT.name) as? Project
     }
     if (project == null || project.isDisposed) {
-      logger.warn("Received EditCancelAction for null or disposed project: $project")
+      logger.warn("Received code lens action for null or disposed project: $e")
       return
     }
     performAction(e, project)

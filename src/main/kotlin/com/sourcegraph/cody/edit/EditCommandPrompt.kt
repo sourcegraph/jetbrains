@@ -2,6 +2,8 @@ package com.sourcegraph.cody.edit
 
 import com.intellij.ide.ui.UISettingsListener
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
@@ -12,11 +14,11 @@ import com.intellij.openapi.editor.impl.EditorFactoryImpl
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfo
-import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.WindowManager
@@ -90,21 +92,24 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         }
       }
 
+  // Key for activating the "Edit Code" button. It's not a globally registered action.
+  // We use a local action and just wire it up manually.
+  private val enterKeyStroke =
+          if (SystemInfo.isMac) {
+            // Mac: Command+Enter
+            KeyStroke.getKeyStroke(
+                    KeyEvent.VK_ENTER, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+          } else {
+            // Others: Control+Enter
+            KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK)
+          }
+
   private var okButton =
       JButton().apply {
         text = "Edit Code"
         foreground = boldLabelColor()
-        addActionListener { performOKAction() }
 
-        val enterKeyStroke =
-            if (SystemInfo.isMac) {
-              // Mac: Command+Enter
-              KeyStroke.getKeyStroke(
-                  KeyEvent.VK_ENTER, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
-            } else {
-              // Others: Control+Enter
-              KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK)
-            }
+        addActionListener { performOKAction() }
         registerKeyboardAction(
             { performOKAction() }, enterKeyStroke, JComponent.WHEN_IN_FOCUSED_WINDOW)
       }
@@ -562,12 +567,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       layout = BoxLayout(this, BoxLayout.X_AXIS)
       add(
           JLabel().apply {
-            text =
-                when {
-                  SystemInfoRt.isMac -> "⌘↵  "
-                  SystemInfoRt.isWindows -> "Ctrl+Enter  "
-                  else -> "^↵  "
-                }
+            text = KeymapUtil.getShortcutText(KeyboardShortcut(enterKeyStroke, null))
+            border = BorderFactory.createEmptyBorder(0, 0, 0, 12)
           })
       add(okButton)
     }
@@ -788,6 +789,12 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
     private const val RESIZE_BORDER = 5
 
+    private const val HISTORY_CAPACITY = 100
+    val promptHistory = HistoryManager<String>(HISTORY_CAPACITY)
+
+    // The last text the user typed in without saving it, for continuity.
+    var lastPrompt: String = ""
+
     // I don't cache these because it caused problems with theme switches.
     fun subduedLabelColor(): Color =
         UIManager.getColor("Label.disabledForeground").run {
@@ -804,10 +811,17 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           if (ThemeUtil.isDarkTheme()) darker() else brighter()
         }
 
-    // The last text the user typed in without saving it, for continuity.
-    var lastPrompt: String = ""
-
-    private const val HISTORY_CAPACITY = 100
-    val promptHistory = HistoryManager<String>(HISTORY_CAPACITY)
+    @JvmStatic
+    fun getShortcutText(actionId: String): String {
+      val action = ActionManager.getInstance().getAction(actionId)
+      action?.shortcutSet?.shortcuts?.forEach { shortcut ->
+        if (shortcut is KeyboardShortcut) {
+          // This will return the shortcut in a format suitable for display,
+          // including the correct symbols for the current OS.
+          return KeymapUtil.getShortcutText(shortcut)
+        }
+      }
+      return ""
+    }
   }
 }

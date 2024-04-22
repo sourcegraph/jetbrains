@@ -233,10 +233,13 @@
             <reference ref="cody.newChat"/>
         </group>
 
-        <!-- Inline editor actions -->
+        <!-- Inline editing actions -->
         <action id="cody.editCodeAction"
                 class="com.sourcegraph.cody.edit.EditCodeAction">
             <add-to-group group-id="CodyEditorActions" anchor="first"/>
+            <keyboard-shortcut first-keystroke="shift ctrl ENTER" keymap="$default"/>
+            <!-- shift command enter on MacOS -->
+            <keyboard-shortcut first-keystroke="meta shift ENTER" keymap="Mac OS X 10.5+"/>
         </action>
 
         <action id="cody.documentCodeAction"
