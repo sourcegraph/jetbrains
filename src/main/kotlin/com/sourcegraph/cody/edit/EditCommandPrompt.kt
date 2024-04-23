@@ -406,7 +406,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   override fun setBounds(x: Int, y: Int, width: Int, height: Int) {
     super.setBounds(x, y, width, height)
-    shape = makeCornerShape(width, height)
+    if (isUndecorated) {
+      shape = makeCornerShape(width, height)
+    }
   }
 
   private fun unregisterListeners() {
