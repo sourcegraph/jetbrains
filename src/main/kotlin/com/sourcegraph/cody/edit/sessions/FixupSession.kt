@@ -20,7 +20,6 @@ import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
@@ -49,7 +48,6 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Common functionality for commands that let the agent edit the code inline, such as adding a doc
@@ -65,7 +63,7 @@ abstract class FixupSession(
   private val fixupService = FixupService.getInstance(project)
 
   // This is passed back by the Agent when we initiate the editing task.
-  var taskId: String? = null
+  private var taskId: String? = null
 
   private var lensGroup: LensWidgetGroup? = null
 
@@ -73,30 +71,17 @@ abstract class FixupSession(
 
   private val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
 
-  protected fun createDiffSession() =
+  private fun createDiffSession() =
       DiffSession(
           project = project,
           document = EditorFactory.getInstance().createDocument(document.text),
           performedActions = performedActions)
-
-  private val showedAcceptLens = AtomicBoolean(false)
-
-  private val lensActionCallbacks =
-      mapOf(
-          COMMAND_ACCEPT to { accept() },
-          COMMAND_CANCEL to { cancel() },
-          COMMAND_RETRY to { retry() },
-          COMMAND_DIFF to { diff() },
-          COMMAND_UNDO to { undo() },
-      )
 
   init {
     triggerDocumentCodeAsync()
     // Kotlin doesn't like leaking 'this' before constructors are finished.
     ApplicationManager.getApplication().invokeLater { Disposer.register(controller, this) }
   }
-
-  fun commandCallbacks(): Map<String, () -> Unit> = lensActionCallbacks
 
   override fun dispose() {
     fixupService.clearActiveSession()
@@ -404,18 +389,5 @@ abstract class FixupSession(
     const val ACTION_RETRY = "cody.inlineEditRetryAction"
     const val ACTION_DIFF = "cody.inlineEditDiffAction"
     const val ACTION_UNDO = "cody.inlineEditUndoAction"
-
-    // TODO: Register the hotkeys now that we are displaying them.
-    fun getHotKey(command: String): String {
-      val mac = SystemInfoRt.isMac
-      return when (command) {
-        COMMAND_ACCEPT -> if (mac) "⌥⌘A" else "Ctrl+Alt+A"
-        COMMAND_CANCEL -> if (mac) "⌥⌘R" else "Ctrl+Alt+R"
-        COMMAND_DIFF -> if (mac) "⌘D" else "Ctrl+D" // JB default
-        COMMAND_RETRY -> if (mac) "⌘Z" else "Ctrl+Z" // JB default
-        COMMAND_UNDO -> if (mac) "⌥⌘C" else "Alt+Ctrl+C"
-        else -> ""
-      }
-    }
   }
 }

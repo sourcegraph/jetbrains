@@ -20,6 +20,7 @@ import com.intellij.ui.Gray
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.sessions.FixupSession
+import org.jetbrains.annotations.NotNull
 import java.awt.Color
 import java.awt.Cursor
 import java.awt.Font
@@ -31,7 +32,6 @@ import java.awt.geom.Rectangle2D
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
-import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
@@ -51,8 +51,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private val removedListeners = AtomicBoolean(false)
 
   val widgets = mutableListOf<LensWidget>()
-
-  private lateinit var commandCallbacks: Map<String, () -> Unit>
 
   private val mouseClickListener =
       object : EditorMouseListener {
@@ -111,7 +109,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   }
 
   fun show(range: Range): CompletableFuture<Boolean> {
-    commandCallbacks = session.commandCallbacks()
     val offset = range.start.toOffset(editor.document)
     val future = CompletableFuture<Boolean>()
     onEventThread {
