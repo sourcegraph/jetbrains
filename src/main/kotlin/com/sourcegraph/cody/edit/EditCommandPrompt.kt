@@ -26,12 +26,14 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.MessageBusConnection
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ModelUsage
 import com.sourcegraph.cody.chat.ui.LlmDropdown
 import com.sourcegraph.cody.edit.sessions.EditCodeSession
 import com.sourcegraph.config.ThemeUtil
 import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.Component
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
@@ -61,11 +63,13 @@ import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JFrame
 import javax.swing.JLabel
+import javax.swing.JList
 import javax.swing.JPanel
 import javax.swing.JRootPane
 import javax.swing.JScrollPane
 import javax.swing.JTextArea
 import javax.swing.KeyStroke
+import javax.swing.ListCellRenderer
 import javax.swing.SwingUtilities
 import javax.swing.UIManager
 import javax.swing.WindowConstants
@@ -116,10 +120,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private val instructionsField =
       GhostTextField().apply {
-        minimumSize =
-            Dimension(
-                minOf(getScreenWidth(editor) / 2, DEFAULT_TEXT_FIELD_WIDTH),
-                getFontMetrics(font).height * 4)
         text = lastPrompt
         if (text.isBlank() && promptHistory.isNotEmpty()) {
           text = promptHistory.getPrevious()
@@ -136,6 +136,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           .apply {
             foreground = boldLabelColor()
             background = textFieldBackground()
+            border = BorderFactory.createLineBorder(subduedLabelColor(), 1, true)
             addKeyListener(
                 object : KeyAdapter() {
                   override fun keyPressed(e: KeyEvent) {
@@ -144,29 +145,24 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
                     }
                   }
                 })
+            renderer = object : ListCellRenderer<ChatModelsResponse.ChatModelProvider> {
+              private val defaultRenderer = renderer
+
+              override fun getListCellRendererComponent(
+                      list: JList<out ChatModelsResponse.ChatModelProvider>?,
+                      value: ChatModelsResponse.ChatModelProvider?,
+                      index: Int,
+                      isSelected: Boolean,
+                      cellHasFocus: Boolean
+              ): Component {
+                val renderer = defaultRenderer.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
+                if (renderer is JComponent) {
+                  renderer.border = BorderFactory.createLineBorder(background, 2, true)
+                }
+                return renderer
+              }
+            }
           }
-
-  private val dropdownParent =
-      TextAreaPanel().apply {
-        layout = BoxLayout(this, BoxLayout.X_AXIS)
-        isOpaque = true
-        background = textFieldBackground()
-        add(Box.createHorizontalStrut(10))
-        add(llmDropdown)
-        add(Box.createHorizontalStrut(10))
-        preferredSize = Dimension(instructionsField.width, llmDropdown.preferredSize.height)
-      }
-
-  // spacer below the dropdown, making it appear as if it is inside the text field
-  private val dropdownSpacer =
-      TextAreaPanel().apply {
-        isOpaque = true
-        background = textFieldBackground()
-        layout = BoxLayout(this, BoxLayout.X_AXIS)
-        add(Box.createHorizontalGlue())
-        minimumSize = Dimension(0, 10)
-        preferredSize = minimumSize
-      }
 
   private var titleLabel =
       JLabel(dialogTitle).apply {
@@ -253,7 +249,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     isAlwaysOnTop = true
     isResizable = true
     defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
-    minimumSize = Dimension(DEFAULT_TEXT_FIELD_WIDTH, 0)
+    minimumSize = Dimension(DEFAULT_TEXT_FIELD_WIDTH, DIALOG_MINIMUM_HEIGHT)
 
     contentPane = DoubleBufferedRootPane()
     generatePromptUI()
@@ -595,17 +591,31 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private fun createCenterPanel(): JPanel {
     return TextAreaPanel().apply {
-      layout = BoxLayout(this, BoxLayout.Y_AXIS)
       add(
-          JScrollPane(instructionsField).apply {
+          JScrollPane().apply {
             verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
             horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
             border = JBUI.Borders.empty()
             viewport.setOpaque(false)
             setViewportView(instructionsField)
-          })
-      add(dropdownParent)
-      add(dropdownSpacer)
+          },
+          BorderLayout.CENTER)
+      add(
+          JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.X_AXIS)
+            isOpaque = false
+            border = JBUI.Borders.empty()
+            add(Box.createHorizontalStrut(15))
+            add(Box.createVerticalBox().apply {
+              isOpaque = false
+              border = JBUI.Borders.empty()
+              add(llmDropdown)
+              add(Box.createVerticalStrut(10))
+            })
+            isOpaque = false
+            add(Box.createHorizontalStrut(15))
+          },
+          BorderLayout.SOUTH)
     }
   }
 
@@ -678,7 +688,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   }
 
   // TODO: Refactor this into a standalone class.
-  private inner class GhostTextField : JTextArea(5, 20), FocusListener, Disposable {
+  private inner class GhostTextField : JTextArea(), FocusListener, Disposable {
 
     private inner class GhostTextDocumentListener : DocumentListener {
       private var previousTextEmpty = true
@@ -714,7 +724,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
       lineWrap = true
       wrapStyleWord = true
-      border = JBUI.Borders.empty()
+      border = JBUI.Borders.empty(JBUI.insets(5))
     }
 
     override fun paintComponent(g: Graphics) {
@@ -726,7 +736,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         g.apply {
           setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
           color = UIManager.getColor("Component.infoForeground")
-          val leftMargin = 25
+          val leftMargin = 15
           drawString(GHOST_TEXT, leftMargin, (fontMetrics.height * 1.5).toInt())
         }
       }
@@ -770,21 +780,18 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private fun onThemeChange() {
     SwingUtilities.invokeLater {
-      // These all have their own backgrounds, so we manage them ourselves.
-      dropdownSpacer.background = textFieldBackground()
-      dropdownParent.background = textFieldBackground()
-      titleLabel.foreground = boldLabelColor()
+      titleLabel.foreground = boldLabelColor() // custom background we manage ourselves
       revalidate()
       repaint()
     }
   }
 
-  // A panel that pretends to be part of the TextField, below it, giving it
-  // the appearance of having the llm dropdown be "within" the TextField.
+  // Background for the panel containing the text field and the dropdown.
   inner class TextAreaPanel : JPanel() {
     init {
       isOpaque = true
       background = textFieldBackground()
+      layout = BorderLayout()
     }
 
     override fun paintComponent(g: Graphics) {
@@ -844,6 +851,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   companion object {
     // This is a fallback for the rare case when the screen size computations fail.
     const val DEFAULT_TEXT_FIELD_WIDTH: Int = 700
+
+    const val DIALOG_MINIMUM_HEIGHT = 200
 
     // TODO: Put this back when @-includes are in
     // const val GHOST_TEXT = "Instructions (@ to include code)"

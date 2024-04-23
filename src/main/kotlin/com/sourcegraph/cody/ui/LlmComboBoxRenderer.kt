@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.ui
 
 import com.intellij.ui.CellRendererPanel
+import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.chat.ui.LlmDropdown
@@ -41,6 +42,7 @@ class LlmComboBoxRenderer(private val llmDropdown: LlmDropdown) : DefaultListCel
     val isInline = llmDropdown.parentDialog != null
     if (isInline) {
       background = EditCommandPrompt.textFieldBackground()
+      iconLabel.border = JBUI.Borders.empty()
     }
     if (llmDropdown.isEnabled) {
       textBadgePanel.background = if (isInline) background else component.background

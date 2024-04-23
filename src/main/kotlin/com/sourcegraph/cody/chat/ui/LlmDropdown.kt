@@ -33,10 +33,7 @@ class LlmDropdown(
   init {
     renderer = LlmComboBoxRenderer(this)
     isVisible = false
-    if (parentDialog != null) {
-      isOpaque = true
-      background = EditCommandPrompt.textFieldBackground()
-    }
+    isOpaque = false
 
     if (chatModelProviderFromState != null) {
       updateModelsInUI(listOf(chatModelProviderFromState))
