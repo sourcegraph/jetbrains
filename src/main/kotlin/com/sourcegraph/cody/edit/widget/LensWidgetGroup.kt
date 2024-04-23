@@ -21,7 +21,6 @@ import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.config.ThemeUtil
-import org.jetbrains.annotations.NotNull
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -32,6 +31,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
 import kotlin.math.roundToInt
+import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
@@ -174,10 +174,15 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     val top = targetRegion.y + VERTICAL_PADDING / 2
     val left = targetRegion.x + LEFT_MARGIN
 
-    g.color = EditCommandPrompt.textFieldBackground().run {
-      if (ThemeUtil.isDarkTheme()) darker() else brighter()
-    }
-    g.fillRect(targetRegion.x.roundToInt(), top.roundToInt(), calcWidthInPixels(inlay), calcHeightInPixels(inlay))
+    g.color =
+        EditCommandPrompt.textFieldBackground().run {
+          if (ThemeUtil.isDarkTheme()) darker() else brighter()
+        }
+    g.fillRect(
+        targetRegion.x.roundToInt(),
+        top.roundToInt(),
+        calcWidthInPixels(inlay),
+        calcHeightInPixels(inlay))
 
     // Draw all the widgets left to right, keeping track of their width.
     widgets.fold(left) { acc, widget ->

@@ -145,23 +145,26 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
                     }
                   }
                 })
-            renderer = object : ListCellRenderer<ChatModelsResponse.ChatModelProvider> {
-              private val defaultRenderer = renderer
+            renderer =
+                object : ListCellRenderer<ChatModelsResponse.ChatModelProvider> {
+                  private val defaultRenderer = renderer
 
-              override fun getListCellRendererComponent(
+                  override fun getListCellRendererComponent(
                       list: JList<out ChatModelsResponse.ChatModelProvider>?,
                       value: ChatModelsResponse.ChatModelProvider?,
                       index: Int,
                       isSelected: Boolean,
                       cellHasFocus: Boolean
-              ): Component {
-                val renderer = defaultRenderer.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
-                if (renderer is JComponent) {
-                  renderer.border = BorderFactory.createLineBorder(background, 2, true)
+                  ): Component {
+                    val renderer =
+                        defaultRenderer.getListCellRendererComponent(
+                            list, value, index, isSelected, cellHasFocus)
+                    if (renderer is JComponent) {
+                      renderer.border = BorderFactory.createLineBorder(background, 2, true)
+                    }
+                    return renderer
+                  }
                 }
-                return renderer
-              }
-            }
           }
 
   private var titleLabel =
@@ -608,12 +611,13 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
             isOpaque = false
             border = JBUI.Borders.empty()
             add(Box.createHorizontalStrut(15))
-            add(Box.createVerticalBox().apply {
-              isOpaque = false
-              border = JBUI.Borders.empty()
-              add(llmDropdown)
-              add(Box.createVerticalStrut(10))
-            })
+            add(
+                Box.createVerticalBox().apply {
+                  isOpaque = false
+                  border = JBUI.Borders.empty()
+                  add(llmDropdown)
+                  add(Box.createVerticalStrut(10))
+                })
             isOpaque = false
             add(Box.createHorizontalStrut(15))
           },

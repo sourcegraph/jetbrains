@@ -40,7 +40,7 @@ class LensGroupFactory(val session: FixupSession) {
     group.addWidget(LensLabel(group, SEPARATOR))
   }
 
-  private fun addLabel(group: LensWidgetGroup, label: String, isHotkey: Boolean=false) {
+  private fun addLabel(group: LensWidgetGroup, label: String, isHotkey: Boolean = false) {
     group.addWidget(LensLabel(group, label, isHotkey))
   }
 

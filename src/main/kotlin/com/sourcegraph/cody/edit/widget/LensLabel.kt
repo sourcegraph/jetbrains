@@ -27,11 +27,12 @@ class LensLabel(
       val textHeight = g.fontMetrics.height
       highlight.drawHighlight(g, x, y, textWidth, textHeight)
     }
-    g.color = when {
-      isHotkey -> EditCommandPrompt.subduedLabelColor()
-      text == LensGroupFactory.SEPARATOR -> UIManager.getColor("TextField.background")
-      else -> EditCommandPrompt.boldLabelColor()
-    }
+    g.color =
+        when {
+          isHotkey -> EditCommandPrompt.subduedLabelColor()
+          text == LensGroupFactory.SEPARATOR -> UIManager.getColor("TextField.background")
+          else -> EditCommandPrompt.boldLabelColor()
+        }
     g.drawString(text, x, y + g.fontMetrics.ascent)
   }
 

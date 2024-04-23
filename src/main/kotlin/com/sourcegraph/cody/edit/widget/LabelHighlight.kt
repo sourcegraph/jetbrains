@@ -13,13 +13,7 @@ class LabelHighlight(private val color: Color, private val xPadding: Float = 4f)
    * @param textWidth the width of the text.
    * @param textHeight the height of the text.
    */
-  fun drawHighlight(
-      g: Graphics2D,
-      x: Float,
-      y: Float,
-      textWidth: Int,
-      textHeight: Int
-  ) {
+  fun drawHighlight(g: Graphics2D, x: Float, y: Float, textWidth: Int, textHeight: Int) {
     val rectX = x - xPadding / 2
     val rectWidth = textWidth + xPadding
     g.color = color
