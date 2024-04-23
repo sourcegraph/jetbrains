@@ -219,7 +219,7 @@ automatically.
 ### Edit
 
 #### Editing code
-<!-- unhide after full edit command is implemented -->
+<!-- TODO: unhide after full edit command is implemented -->
 <!-- - Verify that the option to run the `Edit Code` command is available from the sidebar, right-click menu, the command palette (option+c, /edit), or Option+K keyboard shortcut. -->
 1. Verify that the option to run the `Edit Code` command is available from the right-click menu.
 1. Highlight a section of code.
