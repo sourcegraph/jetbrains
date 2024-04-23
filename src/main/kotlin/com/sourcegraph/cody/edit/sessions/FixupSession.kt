@@ -1,12 +1,17 @@
-package com.sourcegraph.cody.edit
+package com.sourcegraph.cody.edit.sessions
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.editor.ScrollType
@@ -30,6 +35,14 @@ import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.agent.protocol.WorkspaceEditParams
+import com.sourcegraph.cody.edit.DocumentMarkerSession
+import com.sourcegraph.cody.edit.EditCommandPrompt
+import com.sourcegraph.cody.edit.EditShowDiffAction
+import com.sourcegraph.cody.edit.EditShowDiffAction.Companion.DIFF_SESSION_DATA_KEY
+import com.sourcegraph.cody.edit.FixupService
+import com.sourcegraph.cody.edit.FixupUndoableAction
+import com.sourcegraph.cody.edit.InsertUndoableAction
+import com.sourcegraph.cody.edit.ReplaceUndoableAction
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import java.util.concurrent.CancellationException
@@ -44,24 +57,27 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 abstract class FixupSession(
     val controller: FixupService,
-    val editor: Editor,
     val project: Project,
-    val document: Document
-) : Disposable {
+    val editor: Editor
+) : DocumentMarkerSession(editor.document), Disposable {
+
   private val logger = Logger.getInstance(FixupSession::class.java)
   private val fixupService = FixupService.getInstance(project)
 
   // This is passed back by the Agent when we initiate the editing task.
   var taskId: String? = null
 
-  private var performedEdits = false
-
-  var lensGroup: LensWidgetGroup? = null
-    private set
+  private var lensGroup: LensWidgetGroup? = null
 
   var selectionRange: Range? = null
 
-  private var rangeMarkers: MutableSet<RangeMarker> = mutableSetOf()
+  private val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
+
+  protected fun createDiffSession() =
+      DiffSession(
+          project = project,
+          document = EditorFactory.getInstance().createDocument(document.text),
+          performedActions = performedActions)
 
   private val showedAcceptLens = AtomicBoolean(false)
 
@@ -76,26 +92,14 @@ abstract class FixupSession(
 
   init {
     triggerDocumentCodeAsync()
-    // Kotlin doesn't like leaking 'this' before the constructors are finished.
+    // Kotlin doesn't like leaking 'this' before constructors are finished.
     ApplicationManager.getApplication().invokeLater { Disposer.register(controller, this) }
   }
 
   fun commandCallbacks(): Map<String, () -> Unit> = lensActionCallbacks
 
   override fun dispose() {
-    try {
-      lensGroup?.dispose()
-      lensGroup = null
-    } catch (x: Exception) {
-      logger.warn("Error while disposing lenses", x)
-    }
-    rangeMarkers.forEach { it.dispose() }
-    rangeMarkers.clear()
-    try {
-      fixupService.clearActiveSession()
-    } catch (x: Exception) {
-      logger.warn("Error while removing session", x)
-    }
+    fixupService.clearActiveSession()
   }
 
   @RequiresEdt
@@ -216,11 +220,10 @@ abstract class FixupSession(
     showLensGroup(LensGroupFactory(this).createAcceptGroup())
   }
 
-  fun finish() {
+  override fun finish() {
     try {
       controller.clearActiveSession()
-      rangeMarkers.forEach { it.dispose() }
-      rangeMarkers.clear()
+      super.finish()
     } catch (x: Exception) {
       logger.debug("Session cleanup error", x)
     }
@@ -245,16 +248,40 @@ abstract class FixupSession(
     CodyAgentService.withAgent(project) { agent ->
       agent.server.cancelEditTask(TaskIdParam(taskId!!))
     }
-    if (performedEdits) {
+    if (performedActions.isNotEmpty()) {
       undo()
     } else {
       finish()
     }
   }
 
-  abstract fun retry()
+  fun retry() {
+    // TODO: The actual prompt we sent is displayed as ghost text in the text input field, in VS
+    // Code.
+    // E.g. "Write a brief documentation comment for the selected code <etc.>"
+    // We need to send the prompt along with the lenses, so that the client can display it.
+    EditCommandPrompt(controller, editor, "Edit instructions and Retry")
+  }
 
-  abstract fun diff()
+  fun diff() {
+    val editShowDiffAction = ActionManager.getInstance().getAction("cody.editShowDiffAction")
+
+    editShowDiffAction.actionPerformed(
+        AnActionEvent(
+            /* inputEvent = */ null,
+            /* dataContext = */ { dataId ->
+              when (dataId) {
+                CommonDataKeys.PROJECT.name -> project
+                EditShowDiffAction.EDITOR_DATA_KEY.name -> editor
+                DIFF_SESSION_DATA_KEY.name -> createDiffSession()
+                else -> null
+              }
+            },
+            /* place = */ ActionPlaces.UNKNOWN,
+            /* presentation = */ Presentation(),
+            /* actionManager = */ ActionManager.getInstance(),
+            /* modifiers = */ 0))
+  }
 
   fun undo() {
     CodyAgentService.withAgent(project) { agent ->
@@ -308,8 +335,16 @@ abstract class FixupSession(
         for ((edit, marker) in sortedEdits) {
           when (edit.type) {
             "replace",
-            "delete" -> ReplaceUndoableAction(this, edit, marker)
-            "insert" -> InsertUndoableAction(this, edit, marker)
+            "delete" -> {
+              val action = ReplaceUndoableAction(project, session = this, edit, marker)
+              this.performedActions.add(action)
+              action.apply()
+            }
+            "insert" -> {
+              val action = InsertUndoableAction(project, session = this, edit, marker)
+              this.performedActions.add(action)
+              action.apply()
+            }
             else -> logger.warn("Unknown edit type: ${edit.type}")
           }
         }
@@ -335,19 +370,6 @@ abstract class FixupSession(
       else -> return null
     }
     return createMarker(startOffset, endOffset)
-  }
-
-  fun createMarker(startOffset: Int, endOffset: Int): RangeMarker {
-    return document.createRangeMarker(startOffset, endOffset).apply { rangeMarkers.add(this) }
-  }
-
-  fun removeMarker(marker: RangeMarker) {
-    try {
-      marker.dispose()
-      rangeMarkers.remove(marker)
-    } catch (x: Exception) {
-      logger.debug("Error disposing marker $marker", x)
-    }
   }
 
   private fun undoEdits() {

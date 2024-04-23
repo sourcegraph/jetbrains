@@ -29,6 +29,7 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.ModelUsage
 import com.sourcegraph.cody.chat.ui.LlmDropdown
+import com.sourcegraph.cody.edit.sessions.EditCodeSession
 import com.sourcegraph.config.ThemeUtil
 import java.awt.BorderLayout
 import java.awt.Color
@@ -95,14 +96,14 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   // Key for activating the "Edit Code" button. It's not a globally registered action.
   // We use a local action and just wire it up manually.
   private val enterKeyStroke =
-          if (SystemInfo.isMac) {
-            // Mac: Command+Enter
-            KeyStroke.getKeyStroke(
-                    KeyEvent.VK_ENTER, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
-          } else {
-            // Others: Control+Enter
-            KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK)
-          }
+      if (SystemInfo.isMac) {
+        // Mac: Command+Enter
+        KeyStroke.getKeyStroke(
+            KeyEvent.VK_ENTER, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+      } else {
+        // Others: Control+Enter
+        KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK)
+      }
 
   private var okButton =
       JButton().apply {
@@ -274,66 +275,69 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   }
 
   private fun addFrameDragListeners() {
-    addMouseListener(object : MouseAdapter() {
-      override fun mousePressed(e: MouseEvent) {
-        resizeDirection = getResizeDirection(e.point)
-        lastMouseX = e.xOnScreen
-        lastMouseY = e.yOnScreen
-        updateCursor()
-      }
+    addMouseListener(
+        object : MouseAdapter() {
+          override fun mousePressed(e: MouseEvent) {
+            resizeDirection = getResizeDirection(e.point)
+            lastMouseX = e.xOnScreen
+            lastMouseY = e.yOnScreen
+            updateCursor()
+          }
 
-      override fun mouseReleased(e: MouseEvent) {
-        resizeDirection = null
-        cursor = Cursor.getDefaultCursor()
-      }
+          override fun mouseReleased(e: MouseEvent) {
+            resizeDirection = null
+            cursor = Cursor.getDefaultCursor()
+          }
 
-      override fun mouseEntered(e: MouseEvent) {
-        updateCursor()
-      }
+          override fun mouseEntered(e: MouseEvent) {
+            updateCursor()
+          }
 
-      override fun mouseExited(e: MouseEvent) {
-        cursor = Cursor.getDefaultCursor()
-      }
+          override fun mouseExited(e: MouseEvent) {
+            cursor = Cursor.getDefaultCursor()
+          }
 
-      override fun mouseMoved(e: MouseEvent) {
-        updateCursor()
-      }
-    })
+          override fun mouseMoved(e: MouseEvent) {
+            updateCursor()
+          }
+        })
 
-    addMouseMotionListener(object : MouseMotionAdapter() {
-      override fun mouseDragged(e: MouseEvent) {
-        val direction = resizeDirection
-        if (direction != null) {
-          val newX = e.xOnScreen
-          val newY = e.yOnScreen
-          val deltaX = newX - lastMouseX
-          val deltaY = newY - lastMouseY
+    addMouseMotionListener(
+        object : MouseMotionAdapter() {
+          override fun mouseDragged(e: MouseEvent) {
+            val direction = resizeDirection
+            if (direction != null) {
+              val newX = e.xOnScreen
+              val newY = e.yOnScreen
+              val deltaX = newX - lastMouseX
+              val deltaY = newY - lastMouseY
 
-          val newWidth = width + (if (direction.isHorizontal) deltaX else 0)
-          val newHeight = height + (if (direction.isVertical) deltaY else 0)
+              val newWidth = width + (if (direction.isHorizontal) deltaX else 0)
+              val newHeight = height + (if (direction.isVertical) deltaY else 0)
 
-          setSize(newWidth, newHeight)
+              setSize(newWidth, newHeight)
 
-          lastMouseX = newX
-          lastMouseY = newY
-        }
-      }
-    })
+              lastMouseX = newX
+              lastMouseY = newY
+            }
+          }
+        })
   }
 
   private fun updateCursor() {
     val direction = resizeDirection
-    cursor = when (direction) {
-      ResizeDirection.NORTH_WEST -> Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR)
-      ResizeDirection.NORTH -> Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR)
-      ResizeDirection.NORTH_EAST -> Cursor.getPredefinedCursor(Cursor.NE_RESIZE_CURSOR)
-      ResizeDirection.WEST -> Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR)
-      ResizeDirection.EAST -> Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR)
-      ResizeDirection.SOUTH_WEST -> Cursor.getPredefinedCursor(Cursor.SW_RESIZE_CURSOR)
-      ResizeDirection.SOUTH -> Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR)
-      ResizeDirection.SOUTH_EAST -> Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR)
-      else -> Cursor.getDefaultCursor()
-    }
+    cursor =
+        when (direction) {
+          ResizeDirection.NORTH_WEST -> Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR)
+          ResizeDirection.NORTH -> Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR)
+          ResizeDirection.NORTH_EAST -> Cursor.getPredefinedCursor(Cursor.NE_RESIZE_CURSOR)
+          ResizeDirection.WEST -> Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR)
+          ResizeDirection.EAST -> Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR)
+          ResizeDirection.SOUTH_WEST -> Cursor.getPredefinedCursor(Cursor.SW_RESIZE_CURSOR)
+          ResizeDirection.SOUTH -> Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR)
+          ResizeDirection.SOUTH_EAST -> Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR)
+          else -> Cursor.getDefaultCursor()
+        }
   }
 
   override fun setBounds(x: Int, y: Int, width: Int, height: Int) {
@@ -586,8 +590,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         return
       }
       // Kick off the editing command.
-      controller.setActiveSession(
-          EditSession(controller, editor, project, editor.document, text, llmDropdown.item))
+      controller.setActiveSession(EditCodeSession(controller, editor, text, llmDropdown.item))
     }
     clearActivePrompt()
   }
@@ -752,9 +755,14 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   }
 
   private enum class ResizeDirection(val isHorizontal: Boolean, val isVertical: Boolean) {
-    NORTH_WEST(false, true), NORTH(true, true), NORTH_EAST(true, true),
-    WEST(false, true), EAST(true, true),
-    SOUTH_WEST(false, false), SOUTH(true, false), SOUTH_EAST(true, false)
+    NORTH_WEST(false, true),
+    NORTH(true, true),
+    NORTH_EAST(true, true),
+    WEST(false, true),
+    EAST(true, true),
+    SOUTH_WEST(false, false),
+    SOUTH(true, false),
+    SOUTH_EAST(true, false)
   }
 
   // TODO: Was hoping this would help avoid flicker while resizing.
@@ -763,7 +771,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     private var offscreenImage: BufferedImage? = null
 
     override fun paintComponent(g: Graphics) {
-      if (offscreenImage == null || offscreenImage!!.width != width || offscreenImage!!.height != height) {
+      if (offscreenImage == null ||
+          offscreenImage!!.width != width ||
+          offscreenImage!!.height != height) {
         offscreenImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
       }
       val offscreenGraphics = offscreenImage!!.createGraphics()

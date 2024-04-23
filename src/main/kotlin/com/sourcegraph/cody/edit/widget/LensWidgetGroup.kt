@@ -19,7 +19,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.Range
-import com.sourcegraph.cody.edit.FixupSession
+import com.sourcegraph.cody.edit.sessions.FixupSession
 import java.awt.Color
 import java.awt.Cursor
 import java.awt.Font

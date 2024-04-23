@@ -8,7 +8,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.ui.Gray
 import com.intellij.ui.JBColor
-import com.sourcegraph.cody.edit.FixupSession
+import com.sourcegraph.cody.edit.sessions.FixupSession
 import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics2D
