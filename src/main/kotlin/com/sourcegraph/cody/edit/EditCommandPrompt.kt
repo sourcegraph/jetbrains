@@ -22,7 +22,6 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.WindowManager
-import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.MessageBusConnection
 import com.intellij.util.ui.JBUI
@@ -64,11 +63,12 @@ import javax.swing.JFrame
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JRootPane
+import javax.swing.JScrollPane
+import javax.swing.JTextArea
 import javax.swing.KeyStroke
 import javax.swing.SwingUtilities
 import javax.swing.UIManager
 import javax.swing.WindowConstants
-import javax.swing.border.Border
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
@@ -147,7 +147,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           }
 
   private val dropdownParent =
-      FakePanel().apply {
+      TextAreaPanel().apply {
         layout = BoxLayout(this, BoxLayout.X_AXIS)
         isOpaque = true
         background = textFieldBackground()
@@ -159,7 +159,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   // spacer below the dropdown, making it appear as if it is inside the text field
   private val dropdownSpacer =
-      FakePanel().apply {
+      TextAreaPanel().apply {
         isOpaque = true
         background = textFieldBackground()
         layout = BoxLayout(this, BoxLayout.X_AXIS)
@@ -468,8 +468,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     contentPane.layout = BorderLayout()
     contentPane.apply {
       add(createTopRow(), BorderLayout.NORTH)
-      add(createBottomRow(), BorderLayout.SOUTH)
       add(createCenterPanel(), BorderLayout.CENTER)
+      add(createBottomRow(), BorderLayout.SOUTH)
     }
   }
 
@@ -539,20 +539,22 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   private fun getProjectRootPath(project: Project, file: VirtualFile?): String? {
     val projectRootManager = ProjectRootManager.getInstance(project)
     val contentRoots = projectRootManager.contentRoots
-
     // Find the content root that contains the given file
     val contentRoot =
         file?.let { nonNullFile ->
           contentRoots.firstOrNull { VfsUtilCore.isAncestor(it, nonNullFile, false) }
         }
-
     return contentRoot?.path
   }
 
   private fun createCenterPanel(): JPanel {
-    return FakePanel().apply {
+    return TextAreaPanel().apply {
       layout = BoxLayout(this, BoxLayout.Y_AXIS)
-      add(instructionsField)
+      add(
+          JScrollPane(instructionsField).apply {
+            verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+            horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+          })
       add(dropdownParent)
       add(dropdownSpacer)
     }
@@ -626,19 +628,43 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     return screenSize?.width ?: DEFAULT_TEXT_FIELD_WIDTH
   }
 
-  inner class GhostTextField : ExpandableTextField(), FocusListener, Disposable {
+  // TODO: Refactor this into a standalone class.
+  private inner class GhostTextField : JTextArea(5, 20), FocusListener, Disposable {
 
-    private val unfocusedBorder: Border =
-        BorderFactory.createLineBorder(UIManager.getColor("Panel.background"), 1)
+    private inner class GhostTextDocumentListener : DocumentListener {
+      private var previousTextEmpty = true
 
-    // TODO: Talk to Daniel about how to indicate the text field has the focus.
-    @Suppress("unused") private val focusedBorder = unfocusedBorder
-    //    private val focusedBorder: Border =
-    //        BorderFactory.createLineBorder(UIManager.getColor("Component.focusedBorderColor"), 1)
+      override fun insertUpdate(e: DocumentEvent) {
+        handleDocumentChange(e)
+      }
+
+      override fun removeUpdate(e: DocumentEvent) {
+        handleDocumentChange(e)
+      }
+
+      override fun changedUpdate(e: DocumentEvent) {
+        // Ignore changedUpdate events
+      }
+
+      private fun handleDocumentChange(e: DocumentEvent) {
+        val currentTextEmpty = e.document.getText(0, e.document.length).isNullOrBlank()
+        if (currentTextEmpty != previousTextEmpty) {
+          previousTextEmpty = currentTextEmpty
+          repaint()
+        }
+      }
+    }
+
+    private val ghostTextDocumentListener = GhostTextDocumentListener()
 
     init {
       Disposer.register(this@EditCommandPrompt, this@GhostTextField)
+
       addFocusListener(this)
+      document.addDocumentListener(ghostTextDocumentListener)
+
+      lineWrap = true
+      wrapStyleWord = true
       border = JBUI.Borders.empty()
     }
 
@@ -647,7 +673,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       (g as Graphics2D).background = textFieldBackground()
       super.paintComponent(g)
 
-      if (text.isEmpty()) {
+      if (text.isNullOrBlank()) {
         g.apply {
           setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
           color = UIManager.getColor("Component.infoForeground")
@@ -665,18 +691,19 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       }
     }
 
+    // Focus tracking ensures the ghost text is hidden or shown on focus change.
+    // The superclass has a tendency to hide the text when we lose the focus.
     override fun focusGained(e: FocusEvent?) {
-      // border = focusedBorder
       repaint()
     }
 
     override fun focusLost(e: FocusEvent?) {
-      // border = unfocusedBorder
       repaint()
     }
 
     override fun dispose() {
       removeFocusListener(this)
+      document.removeDocumentListener(ghostTextDocumentListener)
     }
   } // GhostTextField
 
@@ -705,7 +732,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   // A panel that pretends to be part of the TextField, below it, giving it
   // the appearance of having the llm dropdown be "within" the TextField.
-  inner class FakePanel : JPanel() {
+  inner class TextAreaPanel : JPanel() {
     init {
       isOpaque = true
       background = textFieldBackground()
