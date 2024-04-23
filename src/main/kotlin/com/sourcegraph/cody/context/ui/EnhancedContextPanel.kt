@@ -230,7 +230,10 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   init {
     val contextState = getContextState()
 
-    rawSpec = contextState?.remoteRepositories?.map { it.codebaseName }?.joinToString("\n") ?: ""
+    val cleanedRepos =
+        contextState?.remoteRepositories?.filter { it.codebaseName != null }?.toSet()?.toList()
+            ?: emptyList()
+    rawSpec = cleanedRepos.map { it.codebaseName }.joinToString("\n")
 
     val endpoint =
         CodyAuthenticationManager.getInstance(project).getActiveAccount()?.server?.displayName
@@ -238,10 +241,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     contextRoot.endpointName = endpoint
     contextRoot.add(remotesNode)
 
-    val repoNames =
-        contextState?.remoteRepositories?.filter { it.isEnabled }?.mapNotNull { it.codebaseName }
-            ?: listOf()
-    updateTree(repoNames)
+    val enabledRepoNames = cleanedRepos.filter { it.isEnabled }.mapNotNull { it.codebaseName }
+    updateTree(enabledRepoNames)
 
     treeRoot.add(contextRoot)
     treeModel.reload()
@@ -249,7 +250,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
     // Update the extension-side state for this chat.
     RemoteRepoUtils.resolveReposWithErrorNotification(
-        project, repoNames.map { it -> CodebaseName(it) }) { repos ->
+        project, enabledRepoNames.map { it -> CodebaseName(it) }) { repos ->
           chatSession.sendWebviewMessage(
               WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos))
         }
