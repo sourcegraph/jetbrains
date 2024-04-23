@@ -4,7 +4,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.sessions.FixupSession
-import java.util.*
 
 /** Handles assembling standard groups of lenses. */
 class LensGroupFactory(val session: FixupSession) {
@@ -14,7 +13,7 @@ class LensGroupFactory(val session: FixupSession) {
     return LensWidgetGroup(session, session.editor).apply {
       addSpinner(this)
       addSpacer(this)
-      addLabel(this, "Cody is working...")
+      addLabel(this, "Generating Code Edits")
       addSeparator(this)
       addAction(this, "Cancel", FixupSession.COMMAND_CANCEL, FixupSession.ACTION_CANCEL)
       registerWidgets()
@@ -27,9 +26,9 @@ class LensGroupFactory(val session: FixupSession) {
       addSpacer(this)
       addAction(this, "Accept", FixupSession.COMMAND_ACCEPT, FixupSession.ACTION_ACCEPT)
       addSeparator(this)
-      addAction(this, "Edit & Retry", FixupSession.COMMAND_RETRY, FixupSession.ACTION_RETRY)
-      addSeparator(this)
       addAction(this, "Undo", FixupSession.COMMAND_UNDO, FixupSession.ACTION_UNDO)
+      addSeparator(this)
+      addAction(this, "Edit & Retry", FixupSession.COMMAND_RETRY, FixupSession.ACTION_RETRY)
       addSeparator(this)
       addAction(this, "Show Diff", FixupSession.COMMAND_DIFF, FixupSession.ACTION_DIFF)
       registerWidgets()
@@ -41,8 +40,8 @@ class LensGroupFactory(val session: FixupSession) {
     group.addWidget(LensLabel(group, SEPARATOR))
   }
 
-  private fun addLabel(group: LensWidgetGroup, label: String) {
-    group.addWidget(LensLabel(group, label))
+  private fun addLabel(group: LensWidgetGroup, label: String, isHotkey: Boolean=false) {
+    group.addWidget(LensLabel(group, label, isHotkey))
   }
 
   private fun addSpinner(group: LensWidgetGroup) {
@@ -58,11 +57,11 @@ class LensGroupFactory(val session: FixupSession) {
   }
 
   private fun addAction(group: LensWidgetGroup, label: String, command: String, actionId: String) {
-    group.addWidget(LensAction(group, label.uppercase(Locale.getDefault()), command, actionId))
+    group.addWidget(LensAction(group, label, command, actionId))
 
     val hotkey = EditCommandPrompt.getShortcutText(actionId)
     if (!hotkey.isNullOrEmpty()) {
-      addLabel(group, " ($hotkey)")
+      addLabel(group, " $hotkey ", true)
     }
   }
 

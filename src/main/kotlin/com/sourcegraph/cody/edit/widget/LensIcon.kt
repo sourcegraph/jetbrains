@@ -3,7 +3,6 @@ package com.sourcegraph.cody.edit.widget
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.Image
-import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.Icon
 import javax.swing.ImageIcon
@@ -31,7 +30,7 @@ class LensIcon(group: LensWidgetGroup, val icon: Icon) : LensWidget(group) {
     return fontMetrics.height
   }
 
-  override fun paint(g: Graphics2D, targetRegion: Rectangle2D, x: Float, y: Float) {
+  override fun paint(g: Graphics2D, x: Float, y: Float) {
     val fontMetrics = g.fontMetrics
     val textCenterLine = y + (fontMetrics.ascent + fontMetrics.descent) / 2.0f
 

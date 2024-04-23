@@ -96,9 +96,11 @@ abstract class FixupSession(
 
     CodyAgentService.withAgent(project) { agent ->
       workAroundUninitializedCodebase()
+
       // Force a round-trip to get folding ranges before showing lenses.
       ensureSelectionRange(agent, textFile)
       showWorkingGroup()
+
       // All this because we can get the workspace/edit before the request returns!
       fixupService.setActiveSession(this)
       makeEditingRequest(agent)

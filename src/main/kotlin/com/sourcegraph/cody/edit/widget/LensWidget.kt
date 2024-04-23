@@ -33,7 +33,7 @@ abstract class LensWidget(val parentGroup: LensWidgetGroup) : Disposable {
 
   abstract fun calcHeightInPixels(fontMetrics: FontMetrics): Int
 
-  abstract fun paint(g: Graphics2D, targetRegion: Rectangle2D, x: Float, y: Float)
+  abstract fun paint(g: Graphics2D, x: Float, y: Float)
 
   /** Optional method for updating the widget state, useful for animations. */
   open fun update() {}

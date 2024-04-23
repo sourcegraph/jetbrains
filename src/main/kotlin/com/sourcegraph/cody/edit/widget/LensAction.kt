@@ -6,47 +6,67 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorMouseEvent
-import com.intellij.ui.Gray
-import com.intellij.ui.JBColor
 import com.sourcegraph.cody.edit.EditCommandPrompt
+import com.sourcegraph.cody.edit.sessions.FixupSession
+import com.sourcegraph.config.ThemeUtil
+import java.awt.Color
 import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.event.MouseEvent
 import java.awt.font.TextAttribute
 import java.awt.geom.Rectangle2D
+import javax.swing.UIManager
 
 class LensAction(
     val group: LensWidgetGroup,
-    private val text: String,
+    labelText: String,
     val command: String,
-    private val actionId: String,
+    private val actionId: String
 ) : LensWidget(group) {
 
   private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
+
+  private val text = " $labelText "
+
+  // TODO: Put in resources
+  val actionColor = Color(44, 45, 50)
+  val acceptColor = Color(37, 92, 53)
+  val undoColor = Color(114, 38, 38)
+
+  private val highlight =
+      LabelHighlight(
+          when (actionId) {
+            FixupSession.ACTION_ACCEPT -> acceptColor
+            FixupSession.ACTION_UNDO -> undoColor
+            else -> actionColor
+          })
 
   override fun calcWidthInPixels(fontMetrics: FontMetrics): Int = fontMetrics.stringWidth(text)
 
   override fun calcHeightInPixels(fontMetrics: FontMetrics): Int = fontMetrics.height
 
-  override fun paint(g: Graphics2D, targetRegion: Rectangle2D, x: Float, y: Float) {
+  override fun paint(g: Graphics2D, x: Float, y: Float) {
     val originalFont = g.font
     val originalColor = g.color
     try {
+      g.background =
+          UIManager.getColor("Panel.background").run {
+            if (ThemeUtil.isDarkTheme()) darker() else brighter()
+          }
       val metrics = g.fontMetrics
       val textWidth = metrics.stringWidth(text)
       val textHeight = metrics.height
-      // val rectBounds = Rectangle2D(targetRegion.x - metrics.stringWidth(" ", targetRegion.y))
-      group.drawBackgroundRectangle(g, targetRegion, this, x)
+      highlight.drawHighlight(g, x, y, textWidth, textHeight)
 
+      val linkColor = UIManager.getColor("Link.hoverForeground")
       if (mouseInBounds) {
         g.font = g.font.deriveFont(underline)
-        g.color = JBColor.BLUE // TODO: use theme link rollover color
+        g.color = linkColor
       } else {
         g.font = g.font.deriveFont(Font.PLAIN)
-        g.color = JBColor(Gray._240, Gray._240)
+        g.color = EditCommandPrompt.boldLabelColor()
       }
-      if (mouseInBounds) g.color = JBColor.BLUE // TODO: use theme link rollover color
       g.drawString(text, x, y + g.fontMetrics.ascent)
 
       lastPaintedBounds =
