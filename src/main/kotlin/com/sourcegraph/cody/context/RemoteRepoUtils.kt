@@ -38,18 +38,23 @@ object RemoteRepoUtils {
   }
 
   /**
-   * Resolves the repositories named in `repos` and runs `callback` with the first `MAX_REMOTE_REPOSITORY_COUNT` of
-   * them. If remote repo resolution fails, displays an error message instead.
+   * Resolves the repositories named in `repos` and runs `callback` with the first
+   * `MAX_REMOTE_REPOSITORY_COUNT` of them. If remote repo resolution fails, displays an error
+   * message instead.
    */
-  fun resolveReposWithErrorNotification(project: Project, repos: List<CodebaseName>, callback: (List<Repo>) -> Unit): CompletableFuture<Unit> {
+  fun resolveReposWithErrorNotification(
+      project: Project,
+      repos: List<CodebaseName>,
+      callback: (List<Repo>) -> Unit
+  ): CompletableFuture<Unit> {
     return getRepositories(project, repos)
-      .completeOnTimeout(null, 15, TimeUnit.SECONDS)
-      .thenApply { resolvedRepos ->
-        if (resolvedRepos == null || (resolvedRepos.isEmpty() && repos.isNotEmpty())) {
-          runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
-          return@thenApply
+        .completeOnTimeout(null, 15, TimeUnit.SECONDS)
+        .thenApply { resolvedRepos ->
+          if (resolvedRepos == null || (resolvedRepos.isEmpty() && repos.isNotEmpty())) {
+            runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
+            return@thenApply
+          }
+          callback(resolvedRepos.take(MAX_REMOTE_REPOSITORY_COUNT))
         }
-        callback(resolvedRepos.take(MAX_REMOTE_REPOSITORY_COUNT))
-      }
   }
 }

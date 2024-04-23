@@ -13,7 +13,6 @@ import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.vcs.commit.NonModalCommitPanel.Companion.showAbove
 import com.sourcegraph.cody.agent.WebviewMessage
-import com.sourcegraph.cody.agent.protocol.Repo
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.RemoteRepo
@@ -24,7 +23,6 @@ import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.vcs.CodebaseName
 import java.awt.Dimension
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.BorderFactory
@@ -250,13 +248,11 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     resize()
 
     // Update the extension-side state for this chat.
-    RemoteRepoUtils.resolveReposWithErrorNotification(project, repoNames.map{it -> CodebaseName(it)}) { repos ->
-      chatSession.sendWebviewMessage(
-        WebviewMessage(
-          command = "context/choose-remote-search-repo", explicitRepos=repos
-        )
-      )
-    }
+    RemoteRepoUtils.resolveReposWithErrorNotification(
+        project, repoNames.map { it -> CodebaseName(it) }) { repos ->
+          chatSession.sendWebviewMessage(
+              WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos))
+        }
   }
 
   @RequiresEdt
@@ -285,30 +281,31 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   // context settings.
   private fun applyRepoSpec(spec: String) {
     val repos = spec.split(Regex("""\s+""")).toSet()
-    RemoteRepoUtils.resolveReposWithErrorNotification(project, repos.map { it -> CodebaseName(it) }.toList()) { trimmedRepos ->
-      runInEdt {
-        // Update the plugin's copy of the state.
-        updateContextState { state ->
-          state.remoteRepositories.clear()
-          state.remoteRepositories.addAll(
-            trimmedRepos.map { repo ->
-              RemoteRepositoryState().apply {
-                codebaseName = repo.name
-                isEnabled = true
-              }
-            })
+    RemoteRepoUtils.resolveReposWithErrorNotification(
+        project, repos.map { it -> CodebaseName(it) }.toList()) { trimmedRepos ->
+          runInEdt {
+            // Update the plugin's copy of the state.
+            updateContextState { state ->
+              state.remoteRepositories.clear()
+              state.remoteRepositories.addAll(
+                  trimmedRepos.map { repo ->
+                    RemoteRepositoryState().apply {
+                      codebaseName = repo.name
+                      isEnabled = true
+                    }
+                  })
+            }
+
+            // Update the UI.
+            updateTree(trimmedRepos.map { it -> it.name })
+            resize()
+
+            // Update the extension state.
+            chatSession.sendWebviewMessage(
+                WebviewMessage(
+                    command = "context/choose-remote-search-repo", explicitRepos = trimmedRepos))
+          }
         }
-
-        // Update the UI.
-        updateTree(trimmedRepos.map { it -> it.name })
-        resize()
-
-        // Update the extension state.
-        chatSession.sendWebviewMessage(
-          WebviewMessage(
-            command = "context/choose-remote-search-repo", explicitRepos=trimmedRepos))
-      }
-    }
   }
 
   private fun setRepoEnabledInContextState(repoName: String, enabled: Boolean) {

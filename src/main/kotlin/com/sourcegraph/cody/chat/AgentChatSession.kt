@@ -256,11 +256,18 @@ private constructor(
     // Update the extension-side state.
     val remoteRepos = state.enhancedContext?.remoteRepositories
     if (remoteRepos != null) {
-      RemoteRepoUtils.resolveReposWithErrorNotification(project, remoteRepos.filter { it -> it.isEnabled && it.codebaseName != null }.map { it -> CodebaseName(it.codebaseName!!) }.toList()) { resolvedRepos ->
-        sendWebviewMessage(
-          WebviewMessage(
-            command = "context/choose-remote-search-repo", explicitRepos=resolvedRepos))
-      }.join()
+      RemoteRepoUtils.resolveReposWithErrorNotification(
+              project,
+              remoteRepos
+                  .filter { it -> it.isEnabled && it.codebaseName != null }
+                  .map { it -> CodebaseName(it.codebaseName!!) }
+                  .toList()) { resolvedRepos ->
+                sendWebviewMessage(
+                    WebviewMessage(
+                        command = "context/choose-remote-search-repo",
+                        explicitRepos = resolvedRepos))
+              }
+          .join()
     }
   }
 
