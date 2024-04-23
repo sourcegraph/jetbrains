@@ -92,6 +92,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var prevCursor: Cursor? = null
 
+  var isAcceptGroup = false
+
   init {
     Disposer.register(session, this)
     editor.addEditorMouseListener(mouseClickListener)

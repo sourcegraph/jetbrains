@@ -4,7 +4,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.edit.FixupService
 
-class EditUndoAction : CodeLensAction() {
+class EditUndoAction : InlineEditAction() {
   override fun performAction(e: AnActionEvent, project: Project) {
     FixupService.getInstance(project).getActiveSession()?.undo()
   }

@@ -65,6 +65,7 @@ abstract class FixupSession(
   // This is passed back by the Agent when we initiate the editing task.
   private var taskId: String? = null
 
+  // The current lens group. Changes as the state machine proceeds.
   private var lensGroup: LensWidgetGroup? = null
 
   var selectionRange: Range? = null
@@ -97,7 +98,8 @@ abstract class FixupSession(
       workAroundUninitializedCodebase()
       // Force a round-trip to get folding ranges before showing lenses.
       ensureSelectionRange(agent, textFile)
-      showWorkingGroup()
+      //showWorkingGroup()
+      showAcceptGroup()
       // All this because we can get the workspace/edit before the request returns!
       fixupService.setActiveSession(this)
       makeEditingRequest(agent)
@@ -373,6 +375,13 @@ abstract class FixupSession(
 
   private fun getCurrentFileEditor(file: VirtualFile): FileEditor? {
     return FileEditorManager.getInstance(project).getEditors(file).firstOrNull()
+  }
+
+  /**
+   * Returns true if the Accept lens group is currently active.
+   */
+  fun isShowingAcceptLens(): Boolean {
+    return lensGroup?.isAcceptGroup == true
   }
 
   companion object {

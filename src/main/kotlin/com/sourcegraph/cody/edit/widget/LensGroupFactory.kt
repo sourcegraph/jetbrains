@@ -2,6 +2,7 @@ package com.sourcegraph.cody.edit.widget
 
 import com.intellij.openapi.diagnostic.Logger
 import com.sourcegraph.cody.Icons
+import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import java.util.*
 
@@ -32,6 +33,7 @@ class LensGroupFactory(val session: FixupSession) {
       addSeparator(this)
       addAction(this, "Show Diff", FixupSession.COMMAND_DIFF, FixupSession.ACTION_DIFF)
       registerWidgets()
+      isAcceptGroup = true
     }
   }
 
@@ -58,7 +60,7 @@ class LensGroupFactory(val session: FixupSession) {
   private fun addAction(group: LensWidgetGroup, label: String, command: String, actionId: String) {
     group.addWidget(LensAction(group, label.uppercase(Locale.getDefault()), command, actionId))
 
-    val hotkey = FixupSession.getHotKey(command)
+    val hotkey = EditCommandPrompt.getShortcutText(actionId)
     if (hotkey.isNotEmpty()) {
       addLabel(group, " ($hotkey)")
     }

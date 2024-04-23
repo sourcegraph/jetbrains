@@ -565,13 +565,14 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private fun createOKButtonGroup(): JPanel {
     return JPanel().apply {
-      border = BorderFactory.createEmptyBorder(0, 5, 0, 5)
+      border = BorderFactory.createEmptyBorder(4, 0, 4, 4)
       isOpaque = false
       background = textFieldBackground()
       layout = BoxLayout(this, BoxLayout.X_AXIS)
       add(
           JLabel().apply {
             text = KeymapUtil.getShortcutText(KeyboardShortcut(enterKeyStroke, null))
+            // Spacing between key shortcut and button.
             border = BorderFactory.createEmptyBorder(0, 0, 0, 12)
           })
       add(okButton)
@@ -739,13 +740,11 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   private fun getResizeDirection(point: Point): ResizeDirection? {
     val border = RESIZE_BORDER
     if (point.x < border) {
-      if (point.y < border) return ResizeDirection.NORTH_WEST
-      else if (point.y >= height - border) return ResizeDirection.SOUTH_WEST
-      else return ResizeDirection.WEST
+      return if (point.y < border) ResizeDirection.NORTH_WEST
+      else if (point.y >= height - border) ResizeDirection.SOUTH_WEST else ResizeDirection.WEST
     } else if (point.x >= width - border) {
-      if (point.y < border) return ResizeDirection.NORTH_EAST
-      else if (point.y >= height - border) return ResizeDirection.SOUTH_EAST
-      else return ResizeDirection.EAST
+      return if (point.y < border) ResizeDirection.NORTH_EAST
+      else if (point.y >= height - border) ResizeDirection.SOUTH_EAST else ResizeDirection.EAST
     } else if (point.y < border) {
       return ResizeDirection.NORTH
     } else if (point.y >= height - border) {
@@ -767,6 +766,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   // TODO: Was hoping this would help avoid flicker while resizing.
   // Needs more work, but I think this is likely the right general approach.
+  @Suppress("deprecation")
   class DoubleBufferedRootPane : JRootPane() {
     private var offscreenImage: BufferedImage? = null
 
@@ -774,7 +774,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       if (offscreenImage == null ||
           offscreenImage!!.width != width ||
           offscreenImage!!.height != height) {
-        offscreenImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+        offscreenImage = UIUtil.createImage(width, height, BufferedImage.TYPE_INT_ARGB)
       }
       val offscreenGraphics = offscreenImage!!.createGraphics()
       super.paintComponent(offscreenGraphics)
