@@ -280,7 +280,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   // Given a textual list of repos, extract a best effort list of repositories from it and update
   // context settings.
   private fun applyRepoSpec(spec: String) {
-    val repos = spec.split(Regex("""\s+""")).toSet()
+    val repos = spec.split(Regex("""\s+""")).filter { it -> it != "" }.toSet()
     RemoteRepoUtils.resolveReposWithErrorNotification(
         project, repos.map { it -> CodebaseName(it) }.toList()) { trimmedRepos ->
           runInEdt {

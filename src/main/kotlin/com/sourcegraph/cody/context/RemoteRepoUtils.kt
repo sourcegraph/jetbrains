@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.context
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
@@ -47,10 +48,18 @@ object RemoteRepoUtils {
       repos: List<CodebaseName>,
       callback: (List<Repo>) -> Unit
   ): CompletableFuture<Unit> {
+    if (repos.isEmpty()) {
+      val completion = CompletableFuture<Unit>()
+      ApplicationManager.getApplication().executeOnPooledThread {
+        callback(emptyList())
+        completion.complete(Unit)
+      }
+      return completion
+    }
     return getRepositories(project, repos)
-        .completeOnTimeout(null, 15, TimeUnit.SECONDS)
+        .completeOnTimeout(emptyList(), 15, TimeUnit.SECONDS)
         .thenApply { resolvedRepos ->
-          if (resolvedRepos == null || (resolvedRepos.isEmpty() && repos.isNotEmpty())) {
+          if (resolvedRepos.isEmpty() && repos.isNotEmpty()) {
             runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
             return@thenApply
           }
