@@ -226,9 +226,9 @@ automatically.
 1. Run the `Edit Code` command with instructions for how Cody should edit the selected code.
 1. Verify that Cody automatically applies edits to the selected code, per the user’s instructions.
 1. Verify that there is a notification that "Cody is working..." while edits are being applied.
-1. Verify that you can see a list of code lenses with a Cody icon above the generated code: `Show diff`, `Accept`, `Retry`, and `Undo`.
-<!-- 1. Verify that you can see a diff view of the edit in a new tab by clicking `Show diff`. -->
-1. Verify that you can prompt Cody to retry the command by clicking `Retry` and entering new instructions.
+1. Verify that you can see a list of code lenses with a Cody icon above the generated code, with shortcuts: `Accept`, `Edit & Retry`, `Undo` and `Show Diff`.
+1. Verify that you can see a diff view of the edit in a new tab by clicking `Show Diff`.
+1. Verify that you can prompt Cody to retry the command by clicking `Edit & Retry` and entering new instructions.
 1. Verify that you can undo the edit by clicking `Undo`.
 1. Verify that the ghost text disappears by clicking `Accept`.
 
