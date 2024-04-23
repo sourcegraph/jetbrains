@@ -116,10 +116,10 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private val instructionsField =
       GhostTextField().apply {
-        val fontHeight = getFontMetrics(font).height
-        preferredSize =
-            Dimension(minOf(getScreenWidth(editor) / 2, DEFAULT_TEXT_FIELD_WIDTH), fontHeight * 4)
-        minimumSize = preferredSize
+        minimumSize =
+            Dimension(
+                minOf(getScreenWidth(editor) / 2, DEFAULT_TEXT_FIELD_WIDTH),
+                getFontMetrics(font).height * 4)
         text = lastPrompt
         if (text.isBlank() && promptHistory.isNotEmpty()) {
           text = promptHistory.getPrevious()
@@ -316,7 +316,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           }
 
           override fun mouseExited(e: MouseEvent) {
-            cursor = Cursor.getDefaultCursor()
+            updateCursor()
           }
 
           override fun mouseMoved(e: MouseEvent) {
@@ -325,31 +325,77 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         })
 
     addMouseMotionListener(
+        // TODO: This can make the window larger, but not smaller after that.
         object : MouseMotionAdapter() {
           override fun mouseDragged(e: MouseEvent) {
-            val direction = resizeDirection
-            if (direction != null) {
+            val border = RESIZE_BORDER
+            val x = e.x
+            val y = e.y
+
+            val resizeDirection =
+                when {
+                  x < border && y < border -> ResizeDirection.NORTH_WEST
+                  x < border && y > height - border -> ResizeDirection.SOUTH_WEST
+                  x > width - border && y < border -> ResizeDirection.NORTH_EAST
+                  x > width - border && y > height - border -> ResizeDirection.SOUTH_EAST
+                  x < border -> ResizeDirection.WEST
+                  x > width - border -> ResizeDirection.EAST
+                  y < border -> ResizeDirection.NORTH
+                  y > height - border -> ResizeDirection.SOUTH
+                  else -> null
+                }
+
+            if (resizeDirection != null) {
               val newX = e.xOnScreen
               val newY = e.yOnScreen
               val deltaX = newX - lastMouseX
               val deltaY = newY - lastMouseY
 
-              val newWidth = width + (if (direction.isHorizontal) deltaX else 0)
-              val newHeight = height + (if (direction.isVertical) deltaY else 0)
+              var newWidth = width
+              var newHeight = height
+
+              when (resizeDirection) {
+                ResizeDirection.EAST,
+                ResizeDirection.NORTH_EAST,
+                ResizeDirection.SOUTH_EAST -> {
+                  newWidth = Math.max(minimumSize.width, width + deltaX)
+                }
+                ResizeDirection.WEST,
+                ResizeDirection.NORTH_WEST,
+                ResizeDirection.SOUTH_WEST -> {
+                  newWidth = minimumSize.width.coerceAtLeast(width - deltaX)
+                  setLocation(x + deltaX, y)
+                }
+                else -> {}
+              }
+
+              when (resizeDirection) {
+                ResizeDirection.SOUTH,
+                ResizeDirection.SOUTH_EAST,
+                ResizeDirection.SOUTH_WEST -> {
+                  newHeight = minimumSize.height.coerceAtLeast(height + deltaY)
+                }
+                ResizeDirection.NORTH,
+                ResizeDirection.NORTH_EAST,
+                ResizeDirection.NORTH_WEST -> {
+                  newHeight = minimumSize.height.coerceAtLeast(height - deltaY)
+                  setLocation(x, y + deltaY)
+                }
+                else -> {}
+              }
 
               setSize(newWidth, newHeight)
-
               lastMouseX = newX
               lastMouseY = newY
             }
+            this@EditCommandPrompt.updateCursor()
           }
         })
   }
 
   private fun updateCursor() {
-    val direction = resizeDirection
     cursor =
-        when (direction) {
+        when (resizeDirection) {
           ResizeDirection.NORTH_WEST -> Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR)
           ResizeDirection.NORTH -> Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR)
           ResizeDirection.NORTH_EAST -> Cursor.getPredefinedCursor(Cursor.NE_RESIZE_CURSOR)
@@ -554,6 +600,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           JScrollPane(instructionsField).apply {
             verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
             horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+            border = JBUI.Borders.empty()
+            viewport.setOpaque(false)
+            setViewportView(instructionsField)
           })
       add(dropdownParent)
       add(dropdownSpacer)
@@ -677,7 +726,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         g.apply {
           setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
           color = UIManager.getColor("Component.infoForeground")
-          val leftMargin = 30
+          val leftMargin = 25
           drawString(GHOST_TEXT, leftMargin, (fontMetrics.height * 1.5).toInt())
         }
       }
@@ -763,13 +812,13 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private enum class ResizeDirection(val isHorizontal: Boolean, val isVertical: Boolean) {
     NORTH_WEST(false, true),
-    NORTH(true, true),
+    NORTH(false, true),
     NORTH_EAST(true, true),
     WEST(false, true),
     EAST(true, true),
     SOUTH_WEST(false, false),
-    SOUTH(true, false),
-    SOUTH_EAST(true, false)
+    SOUTH(false, true),
+    SOUTH_EAST(true, true)
   }
 
   // TODO: Was hoping this would help avoid flicker while resizing.
