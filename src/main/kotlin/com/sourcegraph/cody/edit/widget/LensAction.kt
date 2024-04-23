@@ -65,7 +65,7 @@ class LensAction(
 
   override fun onMouseEnter(e: EditorMouseEvent) {
     mouseInBounds = true
-    showTooltip(EditCommandPrompt.getShortcutText(actionId), e.mouseEvent)
+    showTooltip(EditCommandPrompt.getShortcutText(actionId) ?: return, e.mouseEvent)
   }
 
   private fun triggerAction(actionId: String, editor: Editor, mouseEvent: MouseEvent) {

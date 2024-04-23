@@ -20,7 +20,6 @@ import com.intellij.ui.Gray
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.sessions.FixupSession
-import org.jetbrains.annotations.NotNull
 import java.awt.Color
 import java.awt.Cursor
 import java.awt.Font
@@ -32,6 +31,7 @@ import java.awt.geom.Rectangle2D
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
+import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 

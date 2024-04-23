@@ -5,14 +5,13 @@ import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.edit.FixupService
 
 /**
- * Programmatically dispatches the key sequence for either opening
- * the Edit Code dialog, or if the Accept lens group is being displayed,
- * delegating to the Accept action.
+ * Programmatically dispatches the key sequence for either opening the Edit Code dialog, or if the
+ * Accept lens group is being displayed, delegating to the Accept action.
  */
-class EditOpenOrAcceptAction : InlineEditAction() {
+class EditOpenOrRetryAction : InlineEditAction() {
   override fun performAction(e: AnActionEvent, project: Project) {
     if (FixupService.getInstance(project).getActiveSession()?.isShowingAcceptLens() == true) {
-      EditAcceptAction().actionPerformed(e)
+      EditRetryAction().actionPerformed(e)
     } else {
       EditCodeAction().actionPerformed(e)
     }

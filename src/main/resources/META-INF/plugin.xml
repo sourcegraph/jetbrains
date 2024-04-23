@@ -255,6 +255,9 @@
                 class="com.sourcegraph.cody.edit.actions.EditAcceptAction"
                 text="Accept Edit"
                 description="Accept the fixup">
+          <!-- Intended as ctrl shift PLUS but that is not recognized by IntelliJ. -->
+          <keyboard-shortcut first-keystroke="ctrl shift EQUALS" keymap="$default"/>
+          <keyboard-shortcut first-keystroke="ctrl shift EQUALS" keymap="Mac OS X 10.5+"/>
         </action>
 
         <action id="cody.inlineEditCancelAction"
@@ -279,24 +282,24 @@
                 class="com.sourcegraph.cody.edit.EditShowDiffAction"
                 text="Show Diff"
                 description="Show a diff view of the fixup">
-            <!--            <keyboard-shortcut first-keystroke="ctrl shift BACKSLASH" keymap="$default"/>-->
-            <!--            <keyboard-shortcut first-keystroke="meta shift BACKSLASH" keymap="Mac OS X 10.5+"/>-->
+          <keyboard-shortcut first-keystroke="ctrl shift QUOTE" keymap="$default"/>
+          <keyboard-shortcut first-keystroke="ctrl shift QUOTE" keymap="Mac OS X 10.5+"/>
         </action>
 
-        <action id="cody.editOpenOrAcceptAction"
-                class="com.sourcegraph.cody.edit.actions.EditOpenOrAcceptAction"
-                text="Edit Code or Accept Edit"
-                description="Fires an Accept Edit action if Accept is showing, else Edit Code">
+        <action id="cody.editOpenOrRetryAction"
+                class="com.sourcegraph.cody.edit.actions.EditOpenOrRetryAction"
+                text="Edit Code or Retry Edit"
+                description="Opens the Edit Code dialog">
             <keyboard-shortcut first-keystroke="ctrl shift ENTER" keymap="$default"/>
             <keyboard-shortcut first-keystroke="ctrl shift ENTER" keymap="Mac OS X 10.5+"/>
         </action>
 
         <action id="cody.editCancelOrUndoAction"
                 class="com.sourcegraph.cody.edit.actions.EditCancelOrUndoAction"
-                text="Cancel or Undo current edit"
-                description="Fires an Undo Edit action if Accept is showing, else Cancel Edit">
-            <keyboard-shortcut first-keystroke="ctrl shift BACKSPACE" keymap="$default"/>
-            <keyboard-shortcut first-keystroke="ctrl shift BACKSPACE" keymap="Mac OS X 10.5+"/>
+                text="Cancel or Undo Current Edit"
+                description="Activates the cancel or undo lens, whichever is showing.">
+            <keyboard-shortcut first-keystroke="ctrl shift BACK_SPACE" keymap="$default"/>
+            <keyboard-shortcut first-keystroke="ctrl shift BACK_SPACE" keymap="Mac OS X 10.5+"/>
         </action>
 
         <group id="SourcegraphEditor" popup="true" searchable="false">

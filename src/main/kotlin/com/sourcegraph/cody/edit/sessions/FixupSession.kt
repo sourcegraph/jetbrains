@@ -98,8 +98,7 @@ abstract class FixupSession(
       workAroundUninitializedCodebase()
       // Force a round-trip to get folding ranges before showing lenses.
       ensureSelectionRange(agent, textFile)
-      //showWorkingGroup()
-      showAcceptGroup()
+      showWorkingGroup()
       // All this because we can get the workspace/edit before the request returns!
       fixupService.setActiveSession(this)
       makeEditingRequest(agent)
@@ -247,7 +246,11 @@ abstract class FixupSession(
     // Code.
     // E.g. "Write a brief documentation comment for the selected code <etc.>"
     // We need to send the prompt along with the lenses, so that the client can display it.
-    EditCommandPrompt(controller, editor, "Edit instructions and Retry")
+    ApplicationManager.getApplication().invokeLater {
+      // This starts an entirely new session, independent of this one.
+      EditCommandPrompt(controller, editor, "Edit instructions and Retry")
+    }
+    controller.cancelActiveSession()
   }
 
   fun diff() {
@@ -377,9 +380,7 @@ abstract class FixupSession(
     return FileEditorManager.getInstance(project).getEditors(file).firstOrNull()
   }
 
-  /**
-   * Returns true if the Accept lens group is currently active.
-   */
+  /** Returns true if the Accept lens group is currently active. */
   fun isShowingAcceptLens(): Boolean {
     return lensGroup?.isAcceptGroup == true
   }
@@ -396,7 +397,7 @@ abstract class FixupSession(
     const val ACTION_ACCEPT = "cody.inlineEditAcceptAction"
     const val ACTION_CANCEL = "cody.inlineEditCancelAction"
     const val ACTION_RETRY = "cody.inlineEditRetryAction"
-    const val ACTION_DIFF = "cody.inlineEditDiffAction"
+    const val ACTION_DIFF = "cody.editShowDiffAction"
     const val ACTION_UNDO = "cody.inlineEditUndoAction"
   }
 }

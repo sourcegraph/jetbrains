@@ -58,6 +58,7 @@ class FixupService(val project: Project) : Disposable {
     activeSession = session
   }
 
+  // Fully cancels/retracts any current session.
   fun cancelActiveSession() {
     try {
       activeSession?.finish()
@@ -67,6 +68,7 @@ class FixupService(val project: Project) : Disposable {
     clearActiveSession()
   }
 
+  // Just clear the service's reference to an active session.
   fun clearActiveSession() {
     // N.B. This cannot call back into the activeSession, or it will recurse.
     activeSession = null

@@ -61,7 +61,7 @@ class LensGroupFactory(val session: FixupSession) {
     group.addWidget(LensAction(group, label.uppercase(Locale.getDefault()), command, actionId))
 
     val hotkey = EditCommandPrompt.getShortcutText(actionId)
-    if (hotkey.isNotEmpty()) {
+    if (!hotkey.isNullOrEmpty()) {
       addLabel(group, " ($hotkey)")
     }
   }

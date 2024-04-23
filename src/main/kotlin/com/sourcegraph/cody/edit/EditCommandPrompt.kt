@@ -40,7 +40,6 @@ import java.awt.Graphics2D
 import java.awt.Point
 import java.awt.RenderingHints
 import java.awt.Toolkit
-import java.awt.Window
 import java.awt.event.ActionEvent
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
@@ -93,7 +92,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         }
       }
 
-  // Key for activating the "Edit Code" button. It's not a globally registered action.
+  // Key for activating the OK button. It's not a globally registered action.
   // We use a local action and just wire it up manually.
   private val enterKeyStroke =
       if (SystemInfo.isMac) {
@@ -216,6 +215,24 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         }
       }
 
+  private val focusListener =
+      object : FocusListener {
+        override fun focusGained(e: FocusEvent?) {}
+
+        override fun focusLost(e: FocusEvent?) {
+          clearActivePrompt()
+        }
+      }
+
+  private val windowFocusListener =
+      object : WindowFocusListener {
+        override fun windowGainedFocus(e: WindowEvent?) {}
+
+        override fun windowLostFocus(e: WindowEvent?) {
+          clearActivePrompt()
+        }
+      }
+
   private var resizeDirection: ResizeDirection? = null
   private var lastMouseX = 0
   private var lastMouseY = 0
@@ -230,7 +247,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     setupTextField()
     setupKeyListener()
     connection!!.subscribe(UISettingsListener.TOPIC, UISettingsListener { onThemeChange() })
-    FocusMonitor()
     addFrameDragListeners()
 
     isUndecorated = true
@@ -268,10 +284,16 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   private fun registerListeners() {
     // Close dialog on document changes (user edits).
     editor.document.addDocumentListener(documentListener)
+
     // Close dialog when user switches to a different ab.
     connection?.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, tabFocusListener)
+
     // Close dialog when user closes the document. This call makes the listener auto-release.
     EditorFactoryImpl.getInstance().addEditorFactoryListener(editorFactoryListener, this)
+
+    // Close dialog if window loses focus.
+    addWindowFocusListener(windowFocusListener)
+    addFocusListener(focusListener)
   }
 
   private fun addFrameDragListeners() {
@@ -348,6 +370,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   private fun unregisterListeners() {
     try {
       editor.document.removeDocumentListener(documentListener)
+      removeWindowFocusListener(windowFocusListener)
+      removeFocusListener(focusListener)
       // tab focus listener will unregister when we disconnect from the message bus.
     } catch (x: Exception) {
       logger.warn("Error removing listeners", x)
@@ -694,49 +718,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     }
   }
 
-  // Closes the dialog when the project window loses the focus.
-  // This is because it has a tendency to remain at the front of other apps.
-  private inner class FocusMonitor : Disposable {
-    private var creationTime = System.currentTimeMillis()
-    private val window: Window? = getFrameForEditor(editor)
-
-    private val focusListener =
-        object : FocusListener {
-          override fun focusGained(e: FocusEvent?) {}
-
-          override fun focusLost(e: FocusEvent?) {
-            if (isReady()) {
-              clearActivePrompt()
-            }
-          }
-        }
-
-    private val windowFocusListener =
-        object : WindowFocusListener {
-          override fun windowGainedFocus(e: WindowEvent?) {}
-
-          override fun windowLostFocus(e: WindowEvent?) {
-            if (isReady()) {
-              clearActivePrompt()
-            }
-          }
-        }
-
-    init {
-      Disposer.register(this@EditCommandPrompt, this)
-      window?.addWindowFocusListener(windowFocusListener)
-      window?.addFocusListener(focusListener)
-    }
-
-    // Slight debounce to keep it from closing as it's trying to open.
-    fun isReady() = System.currentTimeMillis() - creationTime > 1000
-
-    override fun dispose() {
-      window?.removeWindowFocusListener(windowFocusListener)
-      window?.removeFocusListener(focusListener)
-    }
-  }
-
   private fun getResizeDirection(point: Point): ResizeDirection? {
     val border = RESIZE_BORDER
     if (point.x < border) {
@@ -805,7 +786,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     // The last text the user typed in without saving it, for continuity.
     var lastPrompt: String = ""
 
-    // I don't cache these because it caused problems with theme switches.
+    // Caching these caused problems with theme switches, even when we
+    // updated the cached values on theme-switch notifications.
     fun subduedLabelColor(): Color =
         UIManager.getColor("Label.disabledForeground").run {
           if (ThemeUtil.isDarkTheme()) this else darker()
@@ -821,8 +803,10 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           if (ThemeUtil.isDarkTheme()) darker() else brighter()
         }
 
+    /** Returns a compact symbol representation of the action's keyboard shortcut, if any. */
     @JvmStatic
-    fun getShortcutText(actionId: String): String {
+    fun getShortcutText(actionId: String): String? {
+      // If the keystroke has a registered shortcut, use that text.
       val action = ActionManager.getInstance().getAction(actionId)
       action?.shortcutSet?.shortcuts?.forEach { shortcut ->
         if (shortcut is KeyboardShortcut) {
@@ -831,7 +815,52 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           return KeymapUtil.getShortcutText(shortcut)
         }
       }
-      return ""
+      // We have a few actions that share the same keystroke, because
+      // they are similar operations in different contexts. They cannot be
+      // registered in plugin.xml directly, because of collisions; instead,
+      // we create intermediate actions to dispatch based on the mode.
+      // Here, we just have to hardwire what we know the original sequence is.
+      // TODO: There must be a way to convert a KeyStroke to these programmatically.
+      // IntelliJ's Settings keymap viewer/editor shows them.
+      return when (actionId) {
+        "cody.editCodeAction",
+        "cody.inlineEditRetryAction" ->
+            getKeyStrokeDisplayString(
+                KeyStroke.getKeyStroke(
+                    KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK))
+        "cody.inlineEditCancelAction",
+        "cody.inlineEditUndoAction" ->
+            getKeyStrokeDisplayString(
+                KeyStroke.getKeyStroke(
+                    KeyEvent.VK_BACK_SPACE,
+                    InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK))
+        else -> null
+      }
+    }
+
+    private fun getKeyStrokeDisplayString(keyStroke: KeyStroke): String {
+      val sb = StringBuilder()
+
+      if (keyStroke.modifiers and InputEvent.CTRL_DOWN_MASK != 0) {
+        sb.append("^")
+      }
+      if (keyStroke.modifiers and InputEvent.META_DOWN_MASK != 0) {
+        sb.append("⌘")
+      }
+      if (keyStroke.modifiers and InputEvent.ALT_DOWN_MASK != 0) {
+        sb.append("⌥")
+      }
+      if (keyStroke.modifiers and InputEvent.SHIFT_DOWN_MASK != 0) {
+        sb.append("⇧")
+      }
+
+      when (keyStroke.keyCode) {
+        KeyEvent.VK_ENTER -> sb.append("⏎")
+        KeyEvent.VK_BACK_SPACE -> sb.append("⌫")
+        else -> sb.append(KeyEvent.getKeyText(keyStroke.keyCode))
+      }
+
+      return sb.toString()
     }
   }
 }

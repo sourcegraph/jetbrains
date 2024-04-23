@@ -324,9 +324,10 @@ Unless otherwise specified, all tests for the dialog begin with
 
 1. Open any source file.
 2. Right-click in the file to bring up the code context menu.
+   - alternatively, position your caret in the editor and type ctrl+shift+enter
 3. Choose Cody, then Edit Code. Confirm that the dialog appears.
 
-And all tests involving prompt history should end with
+All tests involving prompt history should end with
 
 1. Close and reopen the current Project to clear prompt history.
 
@@ -400,7 +401,18 @@ And all tests involving prompt history should end with
 
 1. Click the model dropdown.
   - Ensure that it shows the same models as the dropdown in the Chat window.
+  
+### Code Lenses
 
+1. Open Inline Edit, enter a valid instruction such as "add comment", and press Edit Code.
+2. While the Cancel lens group is showing, hover over the lens.
+3. While the Accept group is showing, hover over Accept, Retry, Undo, and Diff.
+4. Go through each lens above and, with a fresh instruction, type the key sequence.
+
+#### Expected behavior
+
+1. Each Action should have a valid tooltip.
+2. Typing that action's advertised key sequence activates the lens.
 
 ## Multi-repo context
 
