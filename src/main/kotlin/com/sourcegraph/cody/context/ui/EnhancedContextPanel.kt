@@ -241,16 +241,18 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     contextRoot.endpointName = endpoint
     contextRoot.add(remotesNode)
 
-    val enabledRepoNames = cleanedRepos.filter { it.isEnabled }.mapNotNull { it.codebaseName }
-    updateTree(enabledRepoNames)
-
     treeRoot.add(contextRoot)
     treeModel.reload()
     resize()
 
     // Update the extension-side state for this chat.
+    val enabledRepos = cleanedRepos.filter { it.isEnabled }.mapNotNull { it.codebaseName }
     RemoteRepoUtils.resolveReposWithErrorNotification(
-        project, enabledRepoNames.map { it -> CodebaseName(it) }) { repos ->
+        project, enabledRepos.map { it -> CodebaseName(it) }) { repos ->
+          runInEdt {
+            updateTree(repos.map { it.name })
+            resize()
+          }
           chatSession.sendWebviewMessage(
               WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos))
         }
