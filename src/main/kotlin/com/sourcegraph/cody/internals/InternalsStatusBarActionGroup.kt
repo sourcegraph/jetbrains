@@ -17,6 +17,7 @@ class InternalsStatusBarActionGroup : DefaultActionGroup() {
     if (e.project != null) {
       addAll(
           IgnoreOverrideAction(e.project!!),
+          UIPreviewAction(e.project!!),
       )
     }
   }
