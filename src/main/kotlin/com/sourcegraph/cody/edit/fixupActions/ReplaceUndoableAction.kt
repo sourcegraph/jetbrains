@@ -23,22 +23,15 @@ class ReplaceUndoableAction(
       document: Document
   ) : this(other.project, other.edit, document) {
     this.beforeMarker =
-        if (other.beforeMarker == null) null
-        else
-            document.createRangeMarker(
-                other.beforeMarker!!.startOffset, other.beforeMarker!!.endOffset)
+        other.beforeMarker?.let { document.createRangeMarker(it.startOffset, it.endOffset) }
     this.afterMarker =
-        if (other.afterMarker == null) null
-        else
-            document.createRangeMarker(
-                other.afterMarker!!.startOffset, other.afterMarker!!.endOffset)
+        other.beforeMarker?.let { document.createRangeMarker(it.startOffset, it.endOffset) }
     this.originalText = other.originalText
   }
 
   override fun apply() {
     val (start, end) =
-        if (beforeMarker != null) Pair(beforeMarker!!.startOffset, beforeMarker!!.endOffset)
-        else Pair(0, document.textLength)
+        beforeMarker?.let { Pair(it.startOffset, it.endOffset) } ?: Pair(0, document.textLength)
     originalText = document.getText(TextRange(start, end))
     document.replaceString(start, end, replacementText)
     afterMarker =
