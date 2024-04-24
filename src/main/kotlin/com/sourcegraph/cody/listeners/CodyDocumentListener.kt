@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.listeners
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -28,10 +29,10 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
     }
   }
 
-  override fun documentChangedNonBulk(event: DocumentEvent) {
+  override fun documentChangedNonBulk(event: DocumentEvent) = runInEdt {
     val editor = FileEditorManager.getInstance(project).selectedTextEditor
     if (editor?.document != event.document) {
-      return
+      return@runInEdt
     }
 
     logCodeCopyPastedFromChat(event)
