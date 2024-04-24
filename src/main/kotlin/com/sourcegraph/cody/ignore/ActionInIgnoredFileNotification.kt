@@ -1,7 +1,6 @@
 package com.sourcegraph.cody.context.ui
 
 import com.intellij.ide.BrowserUtil
-import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
@@ -13,24 +12,23 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.NotificationGroups
 
 class ActionInIgnoredFileNotification :
-  Notification(
-    NotificationGroups.SOURCEGRAPH_ERRORS,
-    "",
-    CodyBundle.getString("ignore.action-in-ignored-file.detail"),
-    NotificationType.INFORMATION),
-  NotificationFullContent {
+    Notification(
+        NotificationGroups.SOURCEGRAPH_ERRORS,
+        "",
+        CodyBundle.getString("ignore.action-in-ignored-file.detail"),
+        NotificationType.INFORMATION),
+    NotificationFullContent {
 
   init {
     icon = Icons.CodyLogoSlash
 
     addAction(
-      object :
-        NotificationAction(
-          CodyBundle.getString(
-            "ignore.action-in-ignored-file.learn-more-cta")) {
-        override fun actionPerformed(event: AnActionEvent, notification: Notification) {
-          BrowserUtil.browse(CODY_IGNORE_DOCS_URL)
-        }
-      })
+        object :
+            NotificationAction(
+                CodyBundle.getString("ignore.action-in-ignored-file.learn-more-cta")) {
+          override fun actionPerformed(event: AnActionEvent, notification: Notification) {
+            BrowserUtil.browse(CODY_IGNORE_DOCS_URL)
+          }
+        })
   }
 }
