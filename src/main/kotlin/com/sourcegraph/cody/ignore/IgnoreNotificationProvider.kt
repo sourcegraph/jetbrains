@@ -12,9 +12,6 @@ import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import java.util.function.Function
 import javax.swing.JComponent
 
-// TODO: Update notifications when the policy changes
-//       EditorNotifications.getInstance(project).updateAllNotifications()
-
 const val CODY_IGNORE_DOCS_URL = "https://sourcegraph.com/docs/cody/capabilities/ignore-context"
 
 class IgnoreNotificationProvider : EditorNotificationProvider, DumbAware {
