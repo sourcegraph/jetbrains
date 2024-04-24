@@ -115,8 +115,8 @@ interface CodyAgentServer {
   @JsonRequest("remoteRepo/list")
   fun remoteRepoList(params: RemoteRepoListParams): CompletableFuture<RemoteRepoListResponse>
 
-  @JsonRequest("ignore/forUri")
-  fun ignoreForUri(params: IgnoreForUriParams): CompletableFuture<IgnoreForUriResponse>
+  @JsonRequest("ignore/test")
+  fun ignoreTest(params: IgnoreTestParams): CompletableFuture<IgnoreTestResponse>
 
   @JsonRequest("testing/ignore/overridePolicy")
   fun testingIgnoreOverridePolicy(
