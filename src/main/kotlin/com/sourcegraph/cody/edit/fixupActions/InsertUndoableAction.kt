@@ -17,15 +17,9 @@ class InsertUndoableAction(project: Project, edit: TextEdit, document: Document)
       document: Document
   ) : this(other.project, other.edit, document) {
     this.beforeMarker =
-        if (other.beforeMarker == null) null
-        else
-            document.createRangeMarker(
-                other.beforeMarker!!.startOffset, other.beforeMarker!!.endOffset)
+        other.beforeMarker?.let { document.createRangeMarker(it.startOffset, it.endOffset) }
     this.afterMarker =
-        if (other.afterMarker == null) null
-        else
-            document.createRangeMarker(
-                other.afterMarker!!.startOffset, other.afterMarker!!.endOffset)
+        other.afterMarker?.let { document.createRangeMarker(it.startOffset, it.endOffset) }
   }
 
   private fun createBeforeMarker(): RangeMarker? {
@@ -39,13 +33,14 @@ class InsertUndoableAction(project: Project, edit: TextEdit, document: Document)
     if (isUndoInProgress() || beforeMarker == null) return
     document.insertString(beforeMarker!!.startOffset, insertText)
     afterMarker =
-        document.createRangeMarker(
-            beforeMarker!!.startOffset, beforeMarker!!.startOffset + insertText.length)
+        beforeMarker?.let {
+          document.createRangeMarker(it.startOffset, it.startOffset + insertText.length)
+        }
   }
 
   override fun undo() {
     if (isUndoInProgress() || afterMarker == null) return
-    document.deleteString(afterMarker!!.startOffset, afterMarker!!.endOffset)
+    afterMarker?.let { document.deleteString(it.startOffset, it.endOffset) }
   }
 
   override fun dispose() {

@@ -4,5 +4,5 @@ import com.sourcegraph.cody.edit.fixupActions.FixupUndoableAction
 
 class EditExecutionException(action: FixupUndoableAction, cause: Throwable) :
     RuntimeException(cause) {
-  override val message: String = "Edit application failed for $action"
+  override val message: String = "Failed to apply edit from: $action"
 }

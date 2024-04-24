@@ -363,6 +363,7 @@ abstract class FixupSession(
   }
 
   private fun adjustToDocumentRange(r: Range): Range {
+    // Negative values of the start/end line are used to mark beginning/end of the document
     val start = if (r.start.line < 0) Position(line = 0, character = r.start.character) else r.start
     val endLine = document.getLineNumber(document.textLength)
     val endLineLength = document.getLineEndOffset(endLine) - document.getLineStartOffset(endLine)

@@ -25,7 +25,7 @@ class ReplaceUndoableAction(
     this.beforeMarker =
         other.beforeMarker?.let { document.createRangeMarker(it.startOffset, it.endOffset) }
     this.afterMarker =
-        other.beforeMarker?.let { document.createRangeMarker(it.startOffset, it.endOffset) }
+        other.afterMarker?.let { document.createRangeMarker(it.startOffset, it.endOffset) }
     this.originalText = other.originalText
   }
 
@@ -35,14 +35,12 @@ class ReplaceUndoableAction(
     originalText = document.getText(TextRange(start, end))
     document.replaceString(start, end, replacementText)
     afterMarker =
-        if (beforeMarker == null) null
-        else document.createRangeMarker(start, start + replacementText.length)
+        beforeMarker?.let { document.createRangeMarker(start, start + replacementText.length) }
   }
 
   override fun undo() {
     val (start, end) =
-        if (afterMarker == null) Pair(0, document.textLength)
-        else Pair(afterMarker!!.startOffset, afterMarker!!.endOffset)
+        afterMarker?.let { Pair(it.startOffset, it.endOffset) } ?: Pair(0, document.textLength)
     document.replaceString(start, end, originalText!!)
   }
 
