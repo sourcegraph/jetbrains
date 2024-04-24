@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.agent.protocol
 
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.sourcegraph.cody.agent.protocol.util.Rfc3986UriEncoder
@@ -9,6 +10,7 @@ class ProtocolTextDocument
 private constructor(
     var uri: String,
     var content: String?,
+    var jetbrainsDocumentEvent: JetbrainsDocumentEvent?,
     var selection: Range?,
 ) {
 
@@ -32,19 +34,29 @@ private constructor(
     }
 
     @JvmStatic
-    fun fromEditor(editor: Editor): ProtocolTextDocument? {
+    fun fromEditor(editor: Editor, event: DocumentEvent? = null): ProtocolTextDocument? {
       val file = FileDocumentManager.getInstance().getFile(editor.document)
-      return if (file != null) fromVirtualFile(editor, file) else null
+      return if (file != null) fromVirtualFile(editor, file, event) else null
     }
 
     @JvmStatic
     fun fromVirtualFile(
         editor: Editor,
         file: VirtualFile,
+        event: DocumentEvent? = null,
     ): ProtocolTextDocument {
       val text = FileDocumentManager.getInstance().getDocument(file)?.text
       val selection = getSelection(editor)
-      return ProtocolTextDocument(uriFor(file), text, selection)
+
+      val jetbrainsDocumentEvent =
+          if (event != null) {
+            JetbrainsDocumentEvent(
+                content = event.newFragment.toString(),
+                oldLength = event.oldLength,
+                offset = event.offset)
+          } else null
+
+      return ProtocolTextDocument(uriFor(file), text, jetbrainsDocumentEvent, selection)
     }
 
     fun uriFor(file: VirtualFile): String {

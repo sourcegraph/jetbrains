@@ -41,7 +41,7 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
         CodyEditorUtil.isEditorValidForAutocomplete(editor) &&
         !CommandProcessor.getInstance().isUndoTransparentActionInProgress) {
 
-      ProtocolTextDocument.fromEditor(editor)?.let { textDocument ->
+      ProtocolTextDocument.fromEditor(editor, event)?.let { textDocument ->
         CodyAgentService.withAgent(project) { agent ->
           agent.server.textDocumentDidChange(textDocument)
 
