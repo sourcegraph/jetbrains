@@ -119,7 +119,5 @@ interface CodyAgentServer {
   fun ignoreForUri(params: IgnoreForUriParams): CompletableFuture<IgnoreForUriResponse>
 
   @JsonRequest("testing/ignore/overridePolicy")
-  fun testingIgnoreOverridePolicy(
-      params: TestingIgnoreOverridePolicy?
-  ): CompletableFuture<Unit>
+  fun testingIgnoreOverridePolicy(params: TestingIgnoreOverridePolicy?): CompletableFuture<Unit>
 }

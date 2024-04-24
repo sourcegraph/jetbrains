@@ -43,14 +43,14 @@ class IgnoreOverrideDialog(val project: Project) : DialogWrapper(project) {
   override fun doOKAction() {
     CodyAgentService.withAgent(project) { agent ->
       agent.server.testingIgnoreOverridePolicy(
-              if (ignoreOverrideModel.enabled) {
-                TestingIgnoreOverridePolicy(
-                    uriRe = ignoreOverrideModel.uriRe,
-                    repoRe = ignoreOverrideModel.repoRe,
-                )
-              } else {
-                null
-              })
+          if (ignoreOverrideModel.enabled) {
+            TestingIgnoreOverridePolicy(
+                uriRe = ignoreOverrideModel.uriRe,
+                repoRe = ignoreOverrideModel.repoRe,
+            )
+          } else {
+            null
+          })
     }
     super.doOKAction()
   }
