@@ -4,10 +4,12 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.ui.EditorNotifications
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.containers.SLRUMap
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.IgnoreForUriParams
+import com.sourcegraph.cody.statusbar.CodyStatusService
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
 
@@ -31,6 +33,25 @@ class IgnoreOracle(private val project: Project) {
   private val logger = LoggerFactory.getLogger(IgnoreOracle::class.java)
   private val listeners = mutableListOf<IgnorePolicyListener>()
   private val cache = SLRUMap<String, IgnorePolicy>(100, 100)
+  @Volatile
+  private var focusedPolicy: IgnorePolicy? = null
+  @Volatile
+  private var willFocusUri: String? = null
+
+  val isEditingIgnoredFile: Boolean get() {
+    return focusedPolicy == IgnorePolicy.IGNORE
+  }
+
+  fun focusedFileDidChange(uri: String) {
+    willFocusUri = uri
+    ApplicationManager.getApplication().executeOnPooledThread {
+      val policy = policyForUri(uri).get()
+      if (focusedPolicy != policy && willFocusUri == uri) {
+        focusedPolicy = policy
+        CodyStatusService.resetApplication(project)
+      }
+    }
+  }
 
   /**
    * Notifies the IgnoreOracle that the ignore policy has changed. Called by CodyAgentService's client callbacks.
@@ -39,6 +60,17 @@ class IgnoreOracle(private val project: Project) {
     synchronized(cache) {
       cache.clear()
     }
+
+    // Update editor notifications to refresh IgnoreNotificationProvider banners. We don't use a listener for this
+    // so that the IgnoreNotificationProvider does not have to register with each project's IgnoreOracle.
+    EditorNotifications.getInstance(project).updateAllNotifications()
+
+    // Re-set the focused file URI to update the status bar
+    val uri = willFocusUri
+    if (uri != null) {
+      focusedFileDidChange(uri)
+    }
+
     firePolicyChange()
   }
 
@@ -47,13 +79,10 @@ class IgnoreOracle(private val project: Project) {
    */
   fun policyForUri(uri: String): CompletableFuture<IgnorePolicy> {
     val completable = CompletableFuture<IgnorePolicy>()
-    synchronized (cache) {
-      try {
-        completable.complete(cache[uri])
-        return completable
-      } catch (e: NoSuchElementException) {
-        // ignore, fall through
-      }
+    val result = synchronized (cache) { cache[uri] }
+    if (result != null) {
+      completable.complete(result)
+      return completable
     }
     CodyAgentService.withAgent(project) { agent ->
       val policy = when (agent.server.ignoreForUri(IgnoreForUriParams(uri)).get().policy) {
