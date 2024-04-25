@@ -161,8 +161,12 @@ private constructor(
               .redirectErrorStream(false)
               .redirectError(ProcessBuilder.Redirect.PIPE)
               .start()
-      process.onExit().thenAccept {
-        logger.warn("Cody agent process exited with code " + it.exitValue())
+      process.onExit().thenAccept { finishedProcess ->
+        finishedProcess.exitValue().let {
+          if (it != 0) {
+            logger.warn("Cody agent process exited with code $it")
+          }
+        }
         token.abort()
       }
 
