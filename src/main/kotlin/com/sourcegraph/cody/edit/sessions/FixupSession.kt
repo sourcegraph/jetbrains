@@ -106,7 +106,6 @@ abstract class FixupSession(
       makeEditingRequest(agent)
           .handle { result, error ->
             if (error != null || result == null) {
-              // TODO: Adapt logic from CodyCompletionsManager.handleError
               showErrorGroup("Error while generating doc string: $error")
               fixupService.cancelActiveSession()
             } else {
