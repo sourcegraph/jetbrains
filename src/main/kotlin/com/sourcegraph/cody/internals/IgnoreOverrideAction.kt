@@ -11,15 +11,12 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.*
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.IgnorePolicySpec
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonObject
 import javax.swing.JComponent
 
 data object ignoreOverrideModel {
   var enabled: Boolean = false
-  var policy: String = """{
+  var policy: String =
+      """{
  "exclude": [
   { "repoNamePattern": "github\\.com/sourcegraph/cody" }
  ]
@@ -41,19 +38,19 @@ class IgnoreOverrideDialog(val project: Project) : DialogWrapper(project) {
       }
       row {
         textArea()
-          .label("Policy JSON:")
-          .columns(40)
-          .rows(15)
-          .bindText(ignoreOverrideModel::policy)
-          .validation { textArea ->
-            try {
-              Gson().fromJson(textArea.text, IgnorePolicySpec::class.java);
-              null
-            } catch (e: JsonSyntaxException) {
-              ValidationInfo("JSON error: ${e.message}", textArea)
+            .label("Policy JSON:")
+            .columns(40)
+            .rows(15)
+            .bindText(ignoreOverrideModel::policy)
+            .validation { textArea ->
+              try {
+                Gson().fromJson(textArea.text, IgnorePolicySpec::class.java)
+                null
+              } catch (e: JsonSyntaxException) {
+                ValidationInfo("JSON error: ${e.message}", textArea)
+              }
             }
-          }
-          .enabledIf(overrideCheckbox.selected)
+            .enabledIf(overrideCheckbox.selected)
       }
     }
   }
@@ -62,7 +59,7 @@ class IgnoreOverrideDialog(val project: Project) : DialogWrapper(project) {
     CodyAgentService.withAgent(project) { agent ->
       agent.server.testingIgnoreOverridePolicy(
           if (ignoreOverrideModel.enabled) {
-            Gson().fromJson(ignoreOverrideModel.policy, IgnorePolicySpec::class.java);
+            Gson().fromJson(ignoreOverrideModel.policy, IgnorePolicySpec::class.java)
           } else {
             null
           })
