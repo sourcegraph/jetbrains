@@ -150,5 +150,5 @@ interface CodyAgentServer {
   fun ignoreTest(params: IgnoreTestParams): CompletableFuture<IgnoreTestResponse>
 
   @JsonRequest("testing/ignore/overridePolicy")
-  fun testingIgnoreOverridePolicy(params: TestingIgnoreOverridePolicy?): CompletableFuture<Unit>
+  fun testingIgnoreOverridePolicy(params: Map<String,Any>?): CompletableFuture<Unit>
 }
