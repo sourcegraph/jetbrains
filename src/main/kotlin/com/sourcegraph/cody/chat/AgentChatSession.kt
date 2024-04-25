@@ -256,7 +256,9 @@ private constructor(
 
     // Update the extension-side state.
     val remoteRepos = state.enhancedContext?.remoteRepositories
-    if (remoteRepos != null && CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() == false) {
+    if (remoteRepos != null &&
+        CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ==
+            false) {
       RemoteRepoUtils.resolveReposWithErrorNotification(
               project,
               remoteRepos
