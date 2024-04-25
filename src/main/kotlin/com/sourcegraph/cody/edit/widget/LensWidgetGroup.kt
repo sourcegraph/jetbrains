@@ -93,6 +93,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private var prevCursor: Cursor? = null
 
   var isAcceptGroup = false
+  var isErrorGroup = false
 
   init {
     Disposer.register(session, this)
@@ -167,9 +168,10 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     val top = targetRegion.y + VERTICAL_PADDING / 2
     val left = targetRegion.x + LEFT_MARGIN
 
+    // Draw the inlay background across the width of the Editor.
     g.color =
         EditCommandPrompt.textFieldBackground().run {
-          if (ThemeUtil.isDarkTheme()) darker() else brighter()
+          if (ThemeUtil.isDarkTheme()) darker() else this
         }
     g.fillRect(
         targetRegion.x.roundToInt(),
@@ -301,7 +303,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   }
 
   override fun toString(): String {
-    val render = widgets.joinToString { it.toString() }
+    val render = widgets.joinToString(separator = ",") { it.toString() }
     return "LensWidgetGroup: {$render}"
   }
 

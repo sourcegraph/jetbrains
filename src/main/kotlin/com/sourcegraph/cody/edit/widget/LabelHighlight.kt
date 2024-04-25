@@ -3,7 +3,8 @@ package com.sourcegraph.cody.edit.widget
 import java.awt.Color
 import java.awt.Graphics2D
 
-class LabelHighlight(private val color: Color, private val xPadding: Float = 4f) {
+class LabelHighlight(private val color: Color) {
+
   /**
    * Draws a highlighted background around the text centered in the widget.
    *
@@ -14,9 +15,11 @@ class LabelHighlight(private val color: Color, private val xPadding: Float = 4f)
    * @param textHeight the height of the text.
    */
   fun drawHighlight(g: Graphics2D, x: Float, y: Float, textWidth: Int, textHeight: Int) {
-    val rectX = x - xPadding / 2
-    val rectWidth = textWidth + xPadding
     g.color = color
-    g.fillRoundRect(rectX.toInt(), y.toInt(), rectWidth.toInt(), textHeight, 10, 10)
+    g.fillRoundRect(x.toInt(), y.toInt(), textWidth, textHeight, RADIUS, RADIUS)
+  }
+
+  companion object {
+    const val RADIUS = 6
   }
 }

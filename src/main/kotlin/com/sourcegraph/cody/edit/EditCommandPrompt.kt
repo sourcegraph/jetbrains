@@ -70,7 +70,6 @@ import javax.swing.JTextArea
 import javax.swing.KeyStroke
 import javax.swing.ListCellRenderer
 import javax.swing.SwingUtilities
-import javax.swing.UIManager
 import javax.swing.WindowConstants
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
@@ -135,7 +134,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           .apply {
             foreground = boldLabelColor()
             background = textFieldBackground()
-            border = BorderFactory.createLineBorder(subduedLabelColor(), 1, true)
+            border = BorderFactory.createLineBorder(mutedLabelColor(), 1, true)
             addKeyListener(
                 object : KeyAdapter() {
                   override fun keyPressed(e: KeyEvent) {
@@ -184,7 +183,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
           }
           .apply {
             setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
-            foreground = subduedLabelColor()
+            foreground = mutedLabelColor()
           }
 
   private val documentListener =
@@ -630,7 +629,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       border = BorderFactory.createEmptyBorder(0, 20, 0, 12)
       add(
           JLabel("[esc] to cancel").apply {
-            foreground = subduedLabelColor()
+            foreground = mutedLabelColor()
             cursor = Cursor(Cursor.HAND_CURSOR)
             addMouseListener(
                 object : MouseAdapter() {
@@ -740,7 +739,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       if (text.isNullOrBlank()) {
         g.apply {
           setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-          color = UIManager.getColor("Component.infoForeground")
+          color = EditUtil.getThemeColor("Component.infoForeground")
           val leftMargin = 15
           drawString(GHOST_TEXT, leftMargin, (fontMetrics.height * 1.5).toInt())
         }
@@ -880,7 +879,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     // updated the cached values on theme-switch notifications.
     fun subduedLabelColor(): Color = EditUtil.getMutedThemeColor("Label.disabledForeground")!!
 
-    fun boldLabelColor(): Color = EditUtil.getSubduedThemeColor("Label.foreground")!!
+    fun mutedLabelColor(): Color = EditUtil.getMutedThemeColor("Label.disabledForeground")!!
+
+    fun boldLabelColor(): Color = EditUtil.getEnhancedThemeColor("Label.foreground")!!
 
     fun textFieldBackground(): Color = EditUtil.getEnhancedThemeColor("TextField.background")!!
 
@@ -910,7 +911,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
                 KeyStroke.getKeyStroke(
                     KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK))
         "cody.inlineEditCancelAction",
-        "cody.inlineEditUndoAction" ->
+        "cody.inlineEditUndoAction",
+        "cody.inlineEditDismissAction" ->
             getKeyStrokeDisplayString(
                 KeyStroke.getKeyStroke(
                     KeyEvent.VK_BACK_SPACE,

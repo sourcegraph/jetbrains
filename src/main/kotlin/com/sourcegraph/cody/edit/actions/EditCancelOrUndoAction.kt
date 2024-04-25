@@ -6,14 +6,16 @@ import com.sourcegraph.cody.edit.FixupService
 
 /**
  * Programmatically dispatches the key sequence for either opening the Edit Code dialog, or if the
- * Accept lens group is being displayed, delegating to the Accept action.
+ * Accept lens group is being displayed, delegating to the Accept action. Similarly, closes the
+ * Error lens group if showing.
  */
 class EditCancelOrUndoAction : InlineEditAction() {
   override fun performAction(e: AnActionEvent, project: Project) {
-    if (FixupService.getInstance(project).getActiveSession()?.isShowingAcceptLens() == true) {
-      EditUndoAction().actionPerformed(e)
-    } else {
-      EditCancelAction().actionPerformed(e)
+    val session = FixupService.getInstance(project).getActiveSession() ?: return
+    when {
+      session.isShowingAcceptLens() -> EditUndoAction().actionPerformed(e)
+      session.isShowingErrorLens() -> EditDismissAction().actionPerformed(e)
+      else -> EditCancelAction().actionPerformed(e)
     }
   }
 }

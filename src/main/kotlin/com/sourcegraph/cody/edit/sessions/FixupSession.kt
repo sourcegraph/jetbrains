@@ -107,7 +107,7 @@ abstract class FixupSession(
           .handle { result, error ->
             if (error != null || result == null) {
               // TODO: Adapt logic from CodyCompletionsManager.handleError
-              logger.warn("Error while generating doc string: $error")
+              showErrorGroup("Error while generating doc string: $error")
               fixupService.cancelActiveSession()
             } else {
               taskId = result.id
@@ -176,7 +176,7 @@ abstract class FixupSession(
   // which may require switching to the EDT. This is primarily to help smooth
   // integration testing, but also because there's no real harm blocking pool threads.
   private fun showLensGroup(group: LensWidgetGroup) {
-    lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
+    // lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
     lensGroup = group
     var range = selectionRange
     if (range == null) {
@@ -206,6 +206,10 @@ abstract class FixupSession(
 
   private fun showAcceptGroup() {
     showLensGroup(LensGroupFactory(this).createAcceptGroup())
+  }
+
+  private fun showErrorGroup(hoverText: String) {
+    showLensGroup(LensGroupFactory(this).createErrorGroup(hoverText))
   }
 
   override fun finish() {
@@ -275,11 +279,16 @@ abstract class FixupSession(
             /* modifiers = */ 0))
   }
 
+  // Action handler for FixupSession.ACTION_UNDO.
   fun undo() {
     CodyAgentService.withAgent(project) { agent ->
       agent.server.undoEditTask(TaskIdParam(taskId!!))
     }
     undoEdits()
+    finish()
+  }
+
+  fun dismiss() {
     finish()
   }
 
@@ -387,19 +396,17 @@ abstract class FixupSession(
     return lensGroup?.isAcceptGroup == true
   }
 
-  companion object {
-    // Lens actions the user can take; we notify the Agent when they are taken.
-    const val COMMAND_ACCEPT = "cody.fixup.codelens.accept"
-    const val COMMAND_CANCEL = "cody.fixup.codelens.cancel"
-    const val COMMAND_RETRY = "cody.fixup.codelens.retry"
-    const val COMMAND_DIFF = "cody.fixup.codelens.diff"
-    const val COMMAND_UNDO = "cody.fixup.codelens.undo"
+  fun isShowingErrorLens(): Boolean {
+    return lensGroup?.isErrorGroup == true
+  }
 
+  companion object {
     // JetBrains Actions that we fire when the lenses are clicked.
     const val ACTION_ACCEPT = "cody.inlineEditAcceptAction"
     const val ACTION_CANCEL = "cody.inlineEditCancelAction"
     const val ACTION_RETRY = "cody.inlineEditRetryAction"
     const val ACTION_DIFF = "cody.editShowDiffAction"
     const val ACTION_UNDO = "cody.inlineEditUndoAction"
+    const val ACTION_DISMISS = "cody.inlineEditDismissAction"
   }
 }

@@ -21,14 +21,11 @@ import javax.swing.UIManager
 @Suppress("UseJBColor")
 class LensAction(
     val group: LensWidgetGroup,
-    labelText: String,
-    val command: String,
+    private val text: String,
     private val actionId: String
 ) : LensWidget(group) {
 
   private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
-
-  private val text = " $labelText "
 
   // TODO: Put in resources
   private val actionColor = Color(44, 45, 50)
@@ -43,7 +40,9 @@ class LensAction(
             else -> actionColor
           })
 
-  override fun calcWidthInPixels(fontMetrics: FontMetrics): Int = fontMetrics.stringWidth(text)
+  override fun calcWidthInPixels(fontMetrics: FontMetrics): Int {
+    return fontMetrics.stringWidth(text) + 2 * SIDE_MARGIN
+  }
 
   override fun calcHeightInPixels(fontMetrics: FontMetrics): Int = fontMetrics.height
 
@@ -53,22 +52,21 @@ class LensAction(
     try {
       g.background = EditUtil.getEnhancedThemeColor("Panel.background")
       val metrics = g.fontMetrics
-      val textWidth = metrics.stringWidth(text)
+      val width = calcWidthInPixels(metrics)
       val textHeight = metrics.height
-      highlight.drawHighlight(g, x, y, textWidth, textHeight)
+      highlight.drawHighlight(g, x, y, width, textHeight)
 
-      val linkColor = UIManager.getColor("Link.hoverForeground")
       if (mouseInBounds) {
         g.font = g.font.deriveFont(underline)
-        g.color = linkColor
+        g.color = UIManager.getColor("Link.hoverForeground")
       } else {
         g.font = g.font.deriveFont(Font.PLAIN)
-        g.color = EditCommandPrompt.boldLabelColor()
+        g.color = baseTextColor
       }
-      g.drawString(text, x, y + g.fontMetrics.ascent)
+      g.drawString(text, x + SIDE_MARGIN, y + g.fontMetrics.ascent)
 
       lastPaintedBounds =
-          Rectangle2D.Float(x, y - metrics.ascent, textWidth.toFloat(), textHeight.toFloat())
+          Rectangle2D.Float(x, y - metrics.ascent, width.toFloat(), textHeight.toFloat())
     } finally {
       // Other lenses are using the same Graphics2D.
       g.font = originalFont
@@ -115,5 +113,9 @@ class LensAction(
 
   override fun toString(): String {
     return "LensAction(text=$text)"
+  }
+
+  companion object {
+    const val SIDE_MARGIN = 5
   }
 }

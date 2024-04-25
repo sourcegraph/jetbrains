@@ -286,6 +286,20 @@
           <keyboard-shortcut first-keystroke="ctrl shift QUOTE" keymap="Mac OS X 10.5+"/>
         </action>
 
+        <action id="cody.inlineEditDismissAction"
+                class="com.sourcegraph.cody.edit.actions.EditDismissAction"
+                text="Dismiss"
+                description="Dismisses the inline error message">
+        </action>
+
+        <action id="cody.openLogAction"
+                class="com.sourcegraph.cody.statusbar.OpenLogAction"
+                text="Open Log"
+                description="Opens Cody log">
+          <keyboard-shortcut first-keystroke="ctrl shift L" keymap="$default"/>
+          <keyboard-shortcut first-keystroke="ctrl shift L" keymap="Mac OS X 10.5+"/>
+        </action>
+
         <action id="cody.editOpenOrRetryAction"
                 class="com.sourcegraph.cody.edit.actions.EditOpenOrRetryAction"
                 text="Edit Code or Retry Edit"
