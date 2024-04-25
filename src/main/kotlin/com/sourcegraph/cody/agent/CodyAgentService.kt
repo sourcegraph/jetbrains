@@ -15,13 +15,13 @@ import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.utils.CodyEditorUtil
-import kotlinx.coroutines.runBlocking
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 import java.util.function.Function
+import kotlinx.coroutines.runBlocking
 
 @Service(Service.Level.PROJECT)
 class CodyAgentService(project: Project) : Disposable {

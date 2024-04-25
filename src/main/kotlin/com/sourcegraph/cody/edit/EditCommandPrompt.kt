@@ -355,7 +355,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
                 ResizeDirection.EAST,
                 ResizeDirection.NORTH_EAST,
                 ResizeDirection.SOUTH_EAST -> {
-                  newWidth = Math.max(minimumSize.width, width + deltaX)
+                  newWidth = minimumSize.width.coerceAtLeast(width + deltaX)
                 }
                 ResizeDirection.WEST,
                 ResizeDirection.NORTH_WEST,
@@ -685,12 +685,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     clearActivePrompt()
   }
 
-  private fun getScreenWidth(editor: Editor): Int {
-    val frame = WindowManager.getInstance().getIdeFrame(editor.project)
-    val screenSize = frame?.component?.let { SwingUtilities.getWindowAncestor(it).size }
-    return screenSize?.width ?: DEFAULT_TEXT_FIELD_WIDTH
-  }
-
   // TODO: Refactor this into a standalone class.
   private inner class GhostTextField : JTextArea(), FocusListener, Disposable {
 
@@ -834,7 +828,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   // TODO: Was hoping this would help avoid flicker while resizing.
   // Needs more work, but I think this is likely the right general approach.
-  @Suppress("deprecation")
   class DoubleBufferedRootPane : JRootPane() {
     private var offscreenImage: BufferedImage? = null
 
@@ -842,6 +835,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
       if (offscreenImage == null ||
           offscreenImage!!.width != width ||
           offscreenImage!!.height != height) {
+        @Suppress("DEPRECATION")
         offscreenImage = UIUtil.createImage(width, height, BufferedImage.TYPE_INT_ARGB)
       }
       val offscreenGraphics = offscreenImage!!.createGraphics()
@@ -877,7 +871,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
     // Caching these caused problems with theme switches, even when we
     // updated the cached values on theme-switch notifications.
-    fun subduedLabelColor(): Color = EditUtil.getMutedThemeColor("Label.disabledForeground")!!
 
     fun mutedLabelColor(): Color = EditUtil.getMutedThemeColor("Label.disabledForeground")!!
 
