@@ -6,6 +6,7 @@ import java.awt.FontMetrics
 import java.awt.Graphics2D
 import javax.swing.UIManager
 
+@Suppress("UseJBColor")
 class LensLabel(
     group: LensWidgetGroup,
     private val text: String,

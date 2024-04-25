@@ -112,24 +112,17 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   fun show(range: Range): CompletableFuture<Boolean> {
     val offset = range.start.toOffset(editor.document)
-    val future = CompletableFuture<Boolean>()
-    onEventThread {
-      try {
-        if (isDisposed.get()) {
-          future.complete(false)
-        } else {
-          inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
-          Disposer.register(this, inlay!!)
-          // Make sure the lens is visible.
-          val logicalPosition = LogicalPosition(range.start.line, range.start.character)
-          editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
-          future.complete(true)
-        }
-      } catch (ex: Throwable) {
-        future.completeExceptionally(ex)
+    return onEventThread {
+      if (isDisposed.get()) {
+        throw IllegalStateException("Request to show disposed inlay: $this")
       }
+      inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
+      Disposer.register(this, inlay!!)
+      // Make sure the lens is visible.
+      val logicalPosition = LogicalPosition(range.start.line, range.start.character)
+      editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+      true
     }
-    return future
   }
 
   // Propagate repaint requests from widgets to the inlay.
@@ -305,6 +298,11 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       ApplicationManager.getApplication().invokeLater { executeAndComplete() }
     }
     return result
+  }
+
+  override fun toString(): String {
+    val render = widgets.joinToString { it.toString() }
+    return "LensWidgetGroup: {$render}"
   }
 
   companion object {

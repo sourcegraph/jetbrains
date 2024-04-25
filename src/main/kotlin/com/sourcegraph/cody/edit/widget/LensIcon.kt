@@ -50,8 +50,9 @@ class LensIcon(group: LensWidgetGroup, val icon: Icon) : LensWidget(group) {
         if (icon is ImageIcon) {
           icon.image
         } else {
-          // Note that hovering over this shows "Please use UIUtil.createImage() instead".
-          // And that is also deprecated. If you know the right way, please fix this.
+          // We get a "Please use UIUtil.createImage() instead" warning here. But that
+          // method is also deprecated, which just makes a new warning.
+          @Suppress("WARNINGS")
           val bufferedImage =
               BufferedImage(icon.iconWidth, icon.iconHeight, BufferedImage.TYPE_INT_ARGB)
           val g = bufferedImage.createGraphics()

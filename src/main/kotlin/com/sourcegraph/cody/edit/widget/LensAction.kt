@@ -7,8 +7,8 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.sourcegraph.cody.edit.EditCommandPrompt
+import com.sourcegraph.cody.edit.EditUtil
 import com.sourcegraph.cody.edit.sessions.FixupSession
-import com.sourcegraph.config.ThemeUtil
 import java.awt.Color
 import java.awt.Font
 import java.awt.FontMetrics
@@ -18,6 +18,7 @@ import java.awt.font.TextAttribute
 import java.awt.geom.Rectangle2D
 import javax.swing.UIManager
 
+@Suppress("UseJBColor")
 class LensAction(
     val group: LensWidgetGroup,
     labelText: String,
@@ -30,9 +31,9 @@ class LensAction(
   private val text = " $labelText "
 
   // TODO: Put in resources
-  val actionColor = Color(44, 45, 50)
-  val acceptColor = Color(37, 92, 53)
-  val undoColor = Color(114, 38, 38)
+  private val actionColor = Color(44, 45, 50)
+  private val acceptColor = Color(37, 92, 53)
+  private val undoColor = Color(114, 38, 38)
 
   private val highlight =
       LabelHighlight(
@@ -50,10 +51,7 @@ class LensAction(
     val originalFont = g.font
     val originalColor = g.color
     try {
-      g.background =
-          UIManager.getColor("Panel.background").run {
-            if (ThemeUtil.isDarkTheme()) darker() else brighter()
-          }
+      g.background = EditUtil.getEnhancedThemeColor("Panel.background")
       val metrics = g.fontMetrics
       val textWidth = metrics.stringWidth(text)
       val textHeight = metrics.height

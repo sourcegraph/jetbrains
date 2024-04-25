@@ -11,6 +11,7 @@ class LensGroupFactory(val session: FixupSession) {
 
   fun createTaskWorkingGroup(): LensWidgetGroup {
     return LensWidgetGroup(session, session.editor).apply {
+      addLogo(this)
       addSpinner(this)
       addSpacer(this)
       addLabel(this, "Generating Code Edits")

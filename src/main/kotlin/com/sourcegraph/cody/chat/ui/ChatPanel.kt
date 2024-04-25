@@ -36,7 +36,7 @@ class ChatPanel(
           ModelUsage.CHAT,
           project,
           onSetSelectedItem = ::setLlmForAgentSession,
-          null,
+          parentDialog = null,
           chatModelProviderFromState)
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)

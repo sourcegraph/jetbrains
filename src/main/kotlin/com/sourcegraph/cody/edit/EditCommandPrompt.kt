@@ -30,7 +30,6 @@ import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ModelUsage
 import com.sourcegraph.cody.chat.ui.LlmDropdown
 import com.sourcegraph.cody.edit.sessions.EditCodeSession
-import com.sourcegraph.config.ThemeUtil
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
@@ -879,20 +878,11 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
     // Caching these caused problems with theme switches, even when we
     // updated the cached values on theme-switch notifications.
-    fun subduedLabelColor(): Color =
-        UIManager.getColor("Label.disabledForeground").run {
-          if (ThemeUtil.isDarkTheme()) this else darker()
-        }
+    fun subduedLabelColor(): Color = EditUtil.getMutedThemeColor("Label.disabledForeground")!!
 
-    fun boldLabelColor(): Color =
-        UIManager.getColor("Label.foreground").run {
-          if (ThemeUtil.isDarkTheme()) brighter() else darker()
-        }
+    fun boldLabelColor(): Color = EditUtil.getSubduedThemeColor("Label.foreground")!!
 
-    fun textFieldBackground(): Color =
-        UIManager.getColor("TextField.background").run {
-          if (ThemeUtil.isDarkTheme()) darker() else brighter()
-        }
+    fun textFieldBackground(): Color = EditUtil.getEnhancedThemeColor("TextField.background")!!
 
     /** Returns a compact symbol representation of the action's keyboard shortcut, if any. */
     @JvmStatic
