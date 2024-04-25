@@ -13,16 +13,12 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.WebviewReceiveMessageParams
-import com.sourcegraph.cody.agent.protocol.ChatError
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
-import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
-import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
-import com.sourcegraph.cody.agent.protocol.ContextItem
-import com.sourcegraph.cody.agent.protocol.Speaker
+import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
+import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.RateLimitStateManager
+import com.sourcegraph.cody.context.RemoteRepoUtils
 import com.sourcegraph.cody.error.CodyErrorSubmitter
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.ChatState
@@ -31,6 +27,7 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.telemetry.GraphQlLogger
+import com.sourcegraph.vcs.CodebaseName
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
@@ -256,6 +253,25 @@ private constructor(
     val newConnectionId =
         restoreChatSession(agent, chatMessages, chatModelProviderFromState, state.internalId!!)
     connectionId.getAndSet(newConnectionId)
+
+    // Update the extension-side state.
+    val remoteRepos = state.enhancedContext?.remoteRepositories
+    if (remoteRepos != null &&
+        CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ==
+            false) {
+      RemoteRepoUtils.resolveReposWithErrorNotification(
+              project,
+              remoteRepos
+                  .filter { it -> it.isEnabled && it.codebaseName != null }
+                  .map { it -> CodebaseName(it.codebaseName!!) }
+                  .toList()) { resolvedRepos ->
+                sendWebviewMessage(
+                    WebviewMessage(
+                        command = "context/choose-remote-search-repo",
+                        explicitRepos = resolvedRepos))
+              }
+          .join()
+    }
   }
 
   companion object {
@@ -276,9 +292,9 @@ private constructor(
       val connectionId =
           createNewPanel(project) { agent: CodyAgent ->
             when (commandId) {
-              CommandId.Explain -> agent.server.commandsExplain()
-              CommandId.Smell -> agent.server.commandsSmell()
-              CommandId.Test -> agent.server.commandsTest()
+              CommandId.Explain -> agent.server.legacyCommandsExplain()
+              CommandId.Smell -> agent.server.legacyCommandsSmell()
+              CommandId.Test -> agent.server.legacyCommandsTest()
             }
           }
 

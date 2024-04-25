@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.sourcegraph.cody.edit.sessions.DocumentCodeSession
 import com.sourcegraph.cody.edit.sessions.FixupSession
+import com.sourcegraph.cody.edit.sessions.TestCodeSession
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
 import java.util.concurrent.atomic.AtomicReference
@@ -36,6 +37,12 @@ class FixupService(val project: Project) : Disposable {
     if (!isEligibleForInlineEdit(editor)) return
     activeSession?.finish()
     DocumentCodeSession(this, editor, editor.project ?: return)
+  }
+
+  /** Entry point for the test code command, called by the action handler. */
+  fun startTestCode(editor: Editor) {
+    if (!isEligibleForInlineEdit(editor)) return
+    TestCodeSession(this, editor, editor.project ?: return)
   }
 
   fun isEligibleForInlineEdit(editor: Editor): Boolean {

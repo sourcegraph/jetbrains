@@ -23,6 +23,7 @@
 
     <incompatible-with>com.intellij.jetbrains.client</incompatible-with>
 
+    <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.platform</depends>
     <depends optional="true" config-file="plugin-git.xml">Git4Idea</depends>
     <depends optional="true" config-file="plugin-perforce.xml">
@@ -86,7 +87,9 @@
         <errorHandler
                 implementation="com.sourcegraph.cody.error.CodyErrorSubmitter"/>
 
-        <!-- status bar -->
+        <!-- status bar widgets -->
+        <statusBarWidgetFactory order="first" id="cody.internalsStatusBarWidget"
+                                implementation="com.sourcegraph.cody.internals.InternalsStatusBarWidgetFactory"/>
         <statusBarWidgetFactory order="first" id="cody.statusBarWidget"
                                 implementation="com.sourcegraph.cody.statusbar.CodyWidgetFactory"/>
         <actionPromoter order="last"
@@ -107,6 +110,9 @@
                                 order="first, before commitCompletion"/>
         <annotator language="SourcegraphRemoteRepoList"
                    implementationClass="com.sourcegraph.cody.context.RemoteRepoAnnotator"/>
+
+        <!-- Cody Ignore -->
+        <editorNotificationProvider implementation="com.sourcegraph.cody.ignore.IgnoreNotificationProvider" />
     </extensions>
 
     <applicationListeners>
@@ -247,6 +253,11 @@
             <add-to-group group-id="CodyEditorActions" anchor="first"/>
         </action>
 
+        <action id="cody.testCodeAction"
+                class="com.sourcegraph.cody.edit.actions.TestCodeAction">
+            <add-to-group group-id="CodyEditorActions" anchor="first"/>
+        </action>
+
         <action id="cody.enableInlineEditsActions"
                 class="com.sourcegraph.cody.edit.EnableInlineEditsAction"/>
 
@@ -327,6 +338,10 @@
 
         <group id="CodyStatusBarActions" popup="true" searchable="false"
                class="com.sourcegraph.cody.statusbar.CodyStatusBarActionGroup">
+        </group>
+
+        <group id="InternalsStatusBarActions" popup="true" searchable="false"
+               class="com.sourcegraph.cody.internals.InternalsStatusBarActionGroup">
         </group>
 
         <group id="Cody.Accounts.AddAccount">

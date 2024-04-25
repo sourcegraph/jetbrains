@@ -10,21 +10,30 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.InlayModel
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.wm.ToolWindowId
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.GotItTooltip
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.*
+import com.sourcegraph.cody.agent.protocol.AutocompleteItem
+import com.sourcegraph.cody.agent.protocol.AutocompleteParams
+import com.sourcegraph.cody.agent.protocol.AutocompleteResult
+import com.sourcegraph.cody.agent.protocol.AutocompleteTriggerKind
+import com.sourcegraph.cody.agent.protocol.CompletionItemParams
+import com.sourcegraph.cody.agent.protocol.ErrorCode
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
+import com.sourcegraph.cody.agent.protocol.SelectedCompletionInfo
 import com.sourcegraph.cody.autocomplete.render.AutocompleteRendererType
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteBlockElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
@@ -34,8 +43,11 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.statusbar.CodyStatus
 import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.notifyApplication
 import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.resetApplication
-import com.sourcegraph.cody.vscode.*
+import com.sourcegraph.cody.vscode.CancellationToken
+import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
+import com.sourcegraph.cody.vscode.IntelliJTextDocument
 import com.sourcegraph.cody.vscode.Range
+import com.sourcegraph.cody.vscode.TextDocument
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification
@@ -406,7 +418,14 @@ class CodyAutocompleteManager {
       }
     }
 
-    if (inlay?.bounds?.location != null) {
+    if (inlay?.bounds?.location != null && project != null) {
+      val isProjectViewVisible =
+          ToolWindowManager.getInstance(project).getToolWindow(ToolWindowId.PROJECT_VIEW)?.isVisible
+              ?: false
+      val position =
+          if (isProjectViewVisible) Balloon.Position.atLeft
+          else if (inlay.bounds!!.location.y < 150) Balloon.Position.below
+          else Balloon.Position.above
       val gotit =
           GotItTooltip(
                   "cody.autocomplete.gotIt",
@@ -417,15 +436,31 @@ class CodyAutocompleteManager {
                           KeymapUtil.getShortcutText("cody.cycleBackAutocompleteAction")),
                   inlay /* dispose tooltip alongside inlay */)
               .withHeader(CodyBundle.getString("gotit.autocomplete.header"))
-              .withPosition(Balloon.Position.above)
+              .withPosition(position)
               .withIcon(Icons.CodyLogo)
               .andShowCloseShortcut()
       try {
-        gotit.show(editor.contentComponent) { _, _ -> inlay.bounds!!.location }
+        gotit.show(editor.contentComponent) { _, _ ->
+          val location = inlay.bounds!!.location
+          if (position == Balloon.Position.below) {
+            val lineHeight = getLineHeight()
+            location.setLocation(location.x, location.y + lineHeight)
+          }
+          location
+        }
       } catch (e: Exception) {
         logger.info("Failed to display gotit tooltip", e)
       }
     }
+  }
+
+  private fun getLineHeight(): Int {
+    val colorsManager = EditorColorsManager.getInstance()
+    val fontPreferences = colorsManager.globalScheme.fontPreferences
+    val fontSize = fontPreferences.getSize(fontPreferences.fontFamily)
+    val lineSpacing = fontPreferences.lineSpacing.toInt()
+    val extraMargin = 4
+    return fontSize + lineSpacing + extraMargin
   }
 
   private fun findLastCommonSuffixElementPosition(

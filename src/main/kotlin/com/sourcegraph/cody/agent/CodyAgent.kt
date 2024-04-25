@@ -110,7 +110,10 @@ private constructor(
                       extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
                       capabilities =
                           ClientCapabilities(
-                              edit = "enabled", editWorkspace = "enabled", codeLenses = "enabled")))
+                              edit = "enabled",
+                              editWorkspace = "enabled",
+                              codeLenses = "enabled",
+                              showDocument = "enabled")))
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)
                 server.initialized()
