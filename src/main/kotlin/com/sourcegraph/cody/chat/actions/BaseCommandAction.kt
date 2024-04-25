@@ -17,8 +17,8 @@ abstract class BaseCommandAction : BaseChatAction() {
   abstract val myCommandId: CommandId
 
   override fun doAction(project: Project) {
+    ApplicationManager.getApplication().assertIsDispatchThread()
     FileEditorManager.getInstance(project).selectedTextEditor?.let { editor ->
-      ApplicationManager.getApplication().assertIsDispatchThread()
       val file = FileDocumentManager.getInstance().getFile(editor.document)
       val protocolFile = file?.let { ProtocolTextDocument.fromVirtualFile(editor, it) } ?: return
 

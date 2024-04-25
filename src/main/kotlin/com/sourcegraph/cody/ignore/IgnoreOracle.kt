@@ -78,7 +78,7 @@ class IgnoreOracle(private val project: Project) {
           when (agent.server.ignoreTest(IgnoreTestParams(uri)).get().policy) {
             "ignore" -> IgnorePolicy.IGNORE
             "use" -> IgnorePolicy.USE
-            else -> throw Exception("invalid ignore policy value")
+            else -> throw IllegalStateException("invalid ignore policy value")
           }
       synchronized(cache) { cache.put(uri, policy) }
       completable.complete(policy)
