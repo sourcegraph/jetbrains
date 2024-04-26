@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "name": "features",
+  "description": "Queries features.json5 to summarize features in Cody",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "features": "pnpm npx ts-node index.ts"
+  },
+  "dependencies": {
+    "@types/argparse": "^2.0.16",
+    "@types/node": "^20.12.7",
+    "argparse": "^2.0.1",
+    "json5": "^2.2.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
