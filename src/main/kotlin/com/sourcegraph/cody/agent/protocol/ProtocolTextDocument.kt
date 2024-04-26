@@ -10,7 +10,7 @@ class ProtocolTextDocument
 private constructor(
     var uri: String,
     var content: String?,
-    var jetbrainsDocumentEvent: JetbrainsDocumentEvent?,
+    var textDocumentContentChangeEvents: List<TextDocumentContentChangeEvent>?,
     var selection: Range?,
 ) {
 
@@ -48,15 +48,16 @@ private constructor(
       val text = FileDocumentManager.getInstance().getDocument(file)?.text
       val selection = getSelection(editor)
 
-      val jetbrainsDocumentEvent =
+      val textDocumentContentChangeEvent =
           if (event != null) {
-            JetbrainsDocumentEvent(
-                content = event.newFragment.toString(),
-                oldLength = event.oldLength,
-                offset = event.offset)
+            TextDocumentContentChangeEvent(
+                text = event.newFragment.toString(),
+                rangeLength = event.oldLength,
+                rangeOffset = event.offset)
           } else null
 
-      return ProtocolTextDocument(uriFor(file), text, jetbrainsDocumentEvent, selection)
+      return ProtocolTextDocument(
+          uriFor(file), text, listOfNotNull(textDocumentContentChangeEvent), selection)
     }
 
     fun uriFor(file: VirtualFile): String {
