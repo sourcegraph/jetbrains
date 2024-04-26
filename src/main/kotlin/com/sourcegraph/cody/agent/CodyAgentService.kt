@@ -176,8 +176,7 @@ class CodyAgentService(project: Project) : Disposable {
         restartIfNeeded: Boolean,
         callback: Consumer<CodyAgent>,
         onFailure: Consumer<Exception> = Consumer {}
-    ): CompletableFuture<Boolean> {
-      val future = CompletableFuture<Boolean>()
+    ) {
       if (CodyApplicationSettings.instance.isCodyEnabled) {
         ApplicationManager.getApplication().executeOnPooledThread {
           runBlocking {
@@ -191,29 +190,27 @@ class CodyAgentService(project: Project) : Disposable {
             coWithAgent(project, restartIfNeeded, task)
           }
         }
-      } else {
-        future.complete(false) // Complete the future with false indicating Cody is disabled.
       }
-      return future
     }
 
     @JvmStatic
-    fun withAgent(project: Project, callback: Consumer<CodyAgent>): CompletableFuture<Boolean> =
-        withAgent(project, restartIfNeeded = false, callback = callback)
+    fun withAgent(
+        project: Project,
+        callback: Consumer<CodyAgent>,
+    ) = withAgent(project, restartIfNeeded = false, callback = callback)
 
     @JvmStatic
     fun withAgentRestartIfNeeded(
         project: Project,
-        callback: Consumer<CodyAgent>
-    ): CompletableFuture<Boolean> = withAgent(project, restartIfNeeded = true, callback = callback)
+        callback: Consumer<CodyAgent>,
+    ) = withAgent(project, restartIfNeeded = true, callback = callback)
 
     @JvmStatic
     fun withAgentRestartIfNeeded(
         project: Project,
         callback: Consumer<CodyAgent>,
         onFailure: Consumer<Exception>
-    ): CompletableFuture<Boolean> =
-        withAgent(project, restartIfNeeded = true, callback = callback, onFailure = onFailure)
+    ) = withAgent(project, restartIfNeeded = true, callback = callback, onFailure = onFailure)
 
     @JvmStatic
     fun isConnected(project: Project): Boolean {
@@ -236,7 +233,7 @@ class CodyAgentService(project: Project) : Disposable {
         throw Exception("Cody is not enabled")
       }
       try {
-        val instance = getInstance(project)
+        val instance = CodyAgentService.getInstance(project)
         val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
         val agent =
             if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
