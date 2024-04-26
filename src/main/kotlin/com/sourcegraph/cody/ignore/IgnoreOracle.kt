@@ -4,7 +4,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.ui.EditorNotifications
 import com.intellij.util.containers.SLRUMap
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.IgnoreTestParams
@@ -88,17 +87,15 @@ class IgnoreOracle(private val project: Project) {
   }
 
   /**
-   * Gets whether `uri` should be ignored for autocomplete, etc. If the result is not available quickly, returns null
-   * and invokes `orElse` on a pooled thread when the result is available.
+   * Gets whether `uri` should be ignored for autocomplete, etc. If the result is not available
+   * quickly, returns null and invokes `orElse` on a pooled thread when the result is available.
    */
   fun policyForUriOrElse(uri: String, orElse: (policy: IgnorePolicy) -> Unit): IgnorePolicy? {
     val completable = policyForUri(uri)
     try {
       return completable.get(16, TimeUnit.MILLISECONDS)
     } catch (timedOut: TimeoutException) {
-      ApplicationManager.getApplication().executeOnPooledThread {
-        orElse(completable.get())
-      }
+      ApplicationManager.getApplication().executeOnPooledThread { orElse(completable.get()) }
       return null
     }
   }

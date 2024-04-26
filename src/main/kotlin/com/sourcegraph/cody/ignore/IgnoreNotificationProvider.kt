@@ -25,11 +25,7 @@ class IgnoreNotificationProvider : EditorNotificationProvider, DumbAware {
   ): Function<in FileEditor, out JComponent?> {
     val uri = ProtocolTextDocument.uriFor(file)
     val oracle = IgnoreOracle.getInstance(project)
-    val policy = oracle.policyForUriOrElse(uri) {
-      runInEdt {
-        updateNotifications(project)
-      }
-    }
+    val policy = oracle.policyForUriOrElse(uri) { runInEdt { updateNotifications(project) } }
     if (policy == IgnorePolicy.USE || policy == null) {
       // This file is allowed, or the policy is indeterminate.
       return Function { null }
@@ -42,16 +38,13 @@ class IgnoreNotificationProvider : EditorNotificationProvider, DumbAware {
         text = "Cody ignores this file because of your admin policy"
 
         createActionLabel(
-          "Learn more", Runnable { BrowserUtil.browse(CODY_IGNORE_DOCS_URL) }, false
-        )
+            "Learn more", Runnable { BrowserUtil.browse(CODY_IGNORE_DOCS_URL) }, false)
       }
     }
   }
 
   companion object {
-    /**
-     * Update editor notifications to refresh banners.
-     */
+    /** Update editor notifications to refresh banners. */
     fun updateNotifications(project: Project) {
       ApplicationManager.getApplication().assertReadAccessAllowed()
       if (!project.isDisposed) {
