@@ -18,12 +18,13 @@ class SignInWithEnterpriseInstanceAction(
     val accountsHost = CodyPersistentAccountsHost(project)
     val dialog =
         signInWithSourcegrapDialog(
-            project,
-            e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT),
-            accountsHost::isAccountUnique).apply {
-          contentPane.minimumSize = Dimension(MIN_DIALOG_WIDTH, MIN_DIALOG_HEIGHT)
-          setServer(defaultServer)
-        }
+                project,
+                e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT),
+                accountsHost::isAccountUnique)
+            .apply {
+              contentPane.minimumSize = Dimension(MIN_DIALOG_WIDTH, MIN_DIALOG_HEIGHT)
+              setServer(defaultServer)
+            }
     if (dialog.showAndGet()) {
       accountsHost.addAccount(
           dialog.server, dialog.login, dialog.displayName, dialog.token, dialog.id)
