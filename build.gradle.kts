@@ -17,7 +17,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
-val isLdidSign = properties("ldidSign") == "true"
 val isForceBuild = properties("forceBuild") == "true"
 val isForceAgentBuild =
     isForceBuild ||
@@ -211,9 +210,9 @@ tasks {
     val url = "https://github.com/sourcegraph/node-binaries/archive/$nodeCommit.zip"
     val zipFile = githubArchiveCache.resolve("$nodeCommit.zip")
     download(url, zipFile)
-    val destination = githubArchiveCache.resolve("cody").resolve("cody-$nodeCommit")
+    val destination = githubArchiveCache.resolve("node").resolve("node-binaries-$nodeCommit")
     unzip(zipFile, destination.parentFile)
-    return destination.resolve("nodeVersion")
+    return destination.resolve(nodeVersion)
   }
 
   fun downloadCody(): File {
@@ -260,11 +259,6 @@ tasks {
         include("index.js.map")
         include("*.wasm")
       }
-      into(buildCodyDir)
-    }
-
-    copy {
-      from(downloadNodeBinaries())
       into(buildCodyDir)
     }
 
@@ -326,6 +320,8 @@ tasks {
     ) {
       into("agent/")
     }
+
+    from(fileTree(downloadNodeBinaries())) { into("agent/") }
 
     doLast {
       // Assert that agent binaries are included in the plugin
