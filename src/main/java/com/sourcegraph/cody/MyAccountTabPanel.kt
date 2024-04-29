@@ -9,6 +9,7 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.config.AccountTier
+import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.UpgradeToCodyProNotification
@@ -17,6 +18,7 @@ import com.sourcegraph.config.ThemeUtil
 import java.awt.BorderLayout
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
+import java.net.URLEncoder;
 
 class MyAccountTabPanel(val project: Project) : JPanel() {
 
@@ -79,7 +81,10 @@ class MyAccountTabPanel(val project: Project) : JPanel() {
             button("Upgrade") { BrowserUtil.browse(ConfigUtil.DOTCOM_URL + "cody/subscription") }
         upgradeButton.component.putClientProperty(DarculaButtonUI.DEFAULT_STYLE_KEY, true)
       }
-      button("Check Usage") { BrowserUtil.browse(ConfigUtil.DOTCOM_URL + "cody/manage") }
+      button("Manage Account") {
+          val username = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.let(CodyAccount::username)
+          BrowserUtil.browse(ConfigUtil.DOTCOM_URL + "cody/manage?cody_client_user=" + URLEncoder.encode(username, "UTF-8"))
+      }
     }
     if (accountTier == AccountTier.DOTCOM_FREE) {
       row { text(CodyBundle.getString("my-account-tab.already-pro")) }
