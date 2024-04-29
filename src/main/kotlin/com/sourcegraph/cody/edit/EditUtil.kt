@@ -21,8 +21,10 @@ object EditUtil {
   }
 
   fun namedButton(name: String): JButton = setComponentName(JButton(), name)
+
   fun namedLabel(name: String): JLabel = setComponentName(JLabel(), name)
-  fun namedPanel(name: String): JPanel= setComponentName(JPanel(), name)
+
+  fun namedPanel(name: String): JPanel = setComponentName(JPanel(), name)
 
   fun removeAllListeners(component: JComponent) {
     // Remove Mouse Listeners
