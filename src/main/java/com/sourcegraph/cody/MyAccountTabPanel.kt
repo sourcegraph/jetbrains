@@ -16,9 +16,9 @@ import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.config.ThemeUtil
 import java.awt.BorderLayout
+import java.net.URLEncoder
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
-import java.net.URLEncoder;
 
 class MyAccountTabPanel(val project: Project) : JPanel() {
 
@@ -82,8 +82,14 @@ class MyAccountTabPanel(val project: Project) : JPanel() {
         upgradeButton.component.putClientProperty(DarculaButtonUI.DEFAULT_STYLE_KEY, true)
       }
       button("Manage Account") {
-          val username = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.let(CodyAccount::name)
-          BrowserUtil.browse(ConfigUtil.DOTCOM_URL + "cody/manage?cody_client_user=" + URLEncoder.encode(username, "UTF-8"))
+        val username =
+            CodyAuthenticationManager.getInstance(project)
+                .getActiveAccount()
+                ?.let(CodyAccount::name)
+        BrowserUtil.browse(
+            ConfigUtil.DOTCOM_URL +
+                "cody/manage?cody_client_user=" +
+                URLEncoder.encode(username, "UTF-8"))
       }
     }
     if (accountTier == AccountTier.DOTCOM_FREE) {
