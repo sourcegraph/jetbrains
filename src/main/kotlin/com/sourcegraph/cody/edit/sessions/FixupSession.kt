@@ -208,10 +208,12 @@ abstract class FixupSession(
     } catch (x: Exception) {
       logger.debug("Session cleanup error", x)
     }
-    try {
-      Disposer.dispose(this)
-    } catch (x: Exception) {
-      logger.warn("Error disposing fixup session $this", x)
+    ApplicationManager.getApplication().invokeLater {
+      try { // Disposing inlay requires EDT.
+        Disposer.dispose(this)
+      } catch (x: Exception) {
+        logger.warn("Error disposing fixup session $this", x)
+      }
     }
   }
 
