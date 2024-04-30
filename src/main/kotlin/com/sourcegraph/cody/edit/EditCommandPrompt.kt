@@ -590,10 +590,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
     const val DIALOG_MINIMUM_HEIGHT = 200
 
-    // TODO: Put this back when @-includes are in
-    // const val GHOST_TEXT = "Instructions (@ to include code)"
-    const val GHOST_TEXT = "Type what changes you want to make to this file..."
-
     private const val CORNER_RADIUS = 16.0
 
     // Used when the Editor/Document does not have an associated filename.
