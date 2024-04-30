@@ -90,10 +90,7 @@ abstract class FixupSession(
       // Spend a turn to get folding ranges before showing lenses.
       ensureSelectionRange(agent, textFile)
 
-      showErrorGroup("TODO DELETE THIS LINE OF CODE BEFORE MERGING")
-
-      // And uncomment this!
-      // showWorkingGroup()
+      showWorkingGroup()
 
       // All this because we can get the workspace/edit before the request returns!
       fixupService.setActiveSession(this)

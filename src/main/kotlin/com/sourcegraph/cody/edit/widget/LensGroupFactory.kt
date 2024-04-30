@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.edit.widget
 
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.diagnostic.Logger
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.edit.EditCommandPrompt
@@ -85,7 +84,7 @@ class LensGroupFactory(val session: FixupSession) {
   }
 
   private fun addErrorIcon(group: LensWidgetGroup) {
-    addIcon(group, AllIcons.General.Error)
+    addIcon(group, Icons.Edit.Error)
   }
 
   private fun addIcon(group: LensWidgetGroup, icon: Icon) {
