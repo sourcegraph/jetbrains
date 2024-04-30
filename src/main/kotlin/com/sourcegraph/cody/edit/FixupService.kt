@@ -28,14 +28,12 @@ class FixupService(val project: Project) : Disposable {
   /** Entry point for the inline edit command, called by the action handler. */
   fun startCodeEdit(editor: Editor) {
     if (!isEligibleForInlineEdit(editor)) return
-    cancelActiveSession()
     currentEditPrompt.set(EditCommandPrompt(this, editor, "Edit Code with Cody"))
   }
 
   /** Entry point for the document code command, called by the action handler. */
   fun startDocumentCode(editor: Editor) {
     if (!isEligibleForInlineEdit(editor)) return
-    activeSession?.finish()
     DocumentCodeSession(this, editor, editor.project ?: return)
   }
 
@@ -61,18 +59,7 @@ class FixupService(val project: Project) : Disposable {
 
   fun setActiveSession(session: FixupSession) {
     if (session == activeSession) return
-    cancelActiveSession()
     activeSession = session
-  }
-
-  // Fully cancels/retracts any current session.
-  fun cancelActiveSession() {
-    try {
-      activeSession?.finish()
-    } catch (x: Exception) {
-      logger.warn("Error while disposing session", x)
-    }
-    clearActiveSession()
   }
 
   // Just clear the service's reference to an active session.
