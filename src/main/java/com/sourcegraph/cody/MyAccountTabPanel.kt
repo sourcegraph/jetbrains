@@ -9,7 +9,6 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.config.AccountTier
-import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.UpgradeToCodyProNotification
@@ -82,10 +81,7 @@ class MyAccountTabPanel(val project: Project) : JPanel() {
         upgradeButton.component.putClientProperty(DarculaButtonUI.DEFAULT_STYLE_KEY, true)
       }
       button("Manage Account") {
-        val username =
-            CodyAuthenticationManager.getInstance(project)
-                .getActiveAccount()
-                ?.let(CodyAccount::name)
+        val username = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.name
         BrowserUtil.browse(
             ConfigUtil.DOTCOM_URL +
                 "cody/manage?cody_client_user=" +
