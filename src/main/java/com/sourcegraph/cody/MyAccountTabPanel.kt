@@ -81,11 +81,14 @@ class MyAccountTabPanel(val project: Project) : JPanel() {
         upgradeButton.component.putClientProperty(DarculaButtonUI.DEFAULT_STYLE_KEY, true)
       }
       button("Manage Account") {
-        val username = CodyAuthenticationManager.getInstance(project).getActiveAccount()?.name
-        BrowserUtil.browse(
-            ConfigUtil.DOTCOM_URL +
-                "cody/manage?cody_client_user=" +
-                URLEncoder.encode(username, "UTF-8"))
+        val account = CodyAuthenticationManager.getInstance(project).getActiveAccount()
+        val url =
+            "${ConfigUtil.DOTCOM_URL}" +
+                "cody/manage" +
+                (if (account !== null)
+                    "?cody_client_user=${URLEncoder.encode(account.name, "UTF-8")}"
+                else null)
+        BrowserUtil.browse(url)
       }
     }
     if (accountTier == AccountTier.DOTCOM_FREE) {
