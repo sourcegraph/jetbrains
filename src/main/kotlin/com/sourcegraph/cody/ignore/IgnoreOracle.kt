@@ -1,14 +1,19 @@
 package com.sourcegraph.cody.ignore
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.util.containers.SLRUMap
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.IgnoreTestParams
+import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.statusbar.CodyStatusService
+import com.sourcegraph.utils.CodyEditorUtil
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -34,6 +39,19 @@ class IgnoreOracle(private val project: Project) {
   @Volatile private var focusedPolicy: IgnorePolicy? = null
   @Volatile private var willFocusUri: String? = null
   private val fileListeners: MutableList<FocusedFileIgnorePolicyListener> = mutableListOf()
+
+  init {
+    // Synthesize a focus event for the current editor, if any, to fetch and cache ignore state for it.
+    runInEdt {
+      val editor = FileEditorManager.getInstance(project).selectedTextEditor
+      if (willFocusUri == null && editor != null) {
+        val uri = ProtocolTextDocument.fromEditor(editor)?.uri
+        if (uri != null) {
+          focusedFileDidChange(uri)
+        }
+      }
+    }
+  }
 
   val isEditingIgnoredFile: Boolean
     get() {

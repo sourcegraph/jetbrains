@@ -1,44 +1,39 @@
 package com.sourcegraph.cody.commands.ui
 
-import com.intellij.ide.BrowserUtil
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
 import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.ex.ActionManagerEx
 import com.intellij.openapi.actionSystem.ex.ActionUtil
-import com.intellij.openapi.editor.colors.EditorColors
-import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.ui.EditorNotificationPanel
-import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBPanelWithEmptyText
-import com.intellij.ui.components.panels.NonOpaquePanel
-import com.sourcegraph.Icons
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.CodyApplicationSettings
-import com.sourcegraph.cody.ignore.CODY_IGNORE_DOCS_URL
 import com.sourcegraph.cody.ignore.CommandPanelIgnoreBanner
-import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.cody.ignore.IgnoreOracle
+import com.sourcegraph.cody.ignore.IgnorePolicy
 import com.sourcegraph.config.ConfigUtil
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.GridLayout
 import javax.swing.BoxLayout
 import javax.swing.JButton
+import javax.swing.JComponent
 import javax.swing.plaf.ButtonUI
 
 class CommandsTabPanel(
     private val project: Project,
     private val executeCommand: (CommandId) -> Unit
-) : JBPanelWithEmptyText(GridLayout(/* rows = */ 0, /* cols = */ 1)) {
+) : JBPanelWithEmptyText(GridLayout(/* rows = */ 0, /* cols = */ 1)), IgnoreOracle.FocusedFileIgnorePolicyListener {
+  private val ignoreBanner = CommandPanelIgnoreBanner()
+  private val buttons = mutableListOf<JComponent>()
 
   init {
     layout = BoxLayout(this, BoxLayout.Y_AXIS)
-
-    add(CommandPanelIgnoreBanner(project))
 
     CommandId.values().forEach { command -> addCommandButton(command) }
 
@@ -47,6 +42,16 @@ class CommandsTabPanel(
       addInlineEditActionButton("cody.editCodeAction")
       addInlineEditActionButton("cody.documentCodeAction")
       addInlineEditActionButton("cody.testCodeAction")
+    }
+
+    addHierarchyListener {
+      if (!project.isDisposed) {
+        if (it.component.isShowing) {
+          IgnoreOracle.getInstance(project).addListener(this)
+        } else {
+          IgnoreOracle.getInstance(project).removeListener(this)
+        }
+      }
     }
   }
 
@@ -76,5 +81,30 @@ class CommandsTabPanel(
     button.setUI(buttonUI)
     button.addActionListener { action() }
     add(button)
+
+    buttons.add(button)
+  }
+
+  private fun update(policy: IgnorePolicy) {
+    // Dis/enable all the buttons.
+    for (button in buttons) {
+      button.isEnabled = policy == IgnorePolicy.USE
+    }
+    when (policy) {
+      IgnorePolicy.USE -> {
+        remove(ignoreBanner)
+      }
+      IgnorePolicy.IGNORE -> {
+        add(ignoreBanner, 0)
+      }
+    }
+    revalidate()
+    repaint()
+  }
+
+  override fun focusedFileIgnorePolicyChanged(policy: IgnorePolicy) {
+    runInEdt {
+      update(policy)
+    }
   }
 }
