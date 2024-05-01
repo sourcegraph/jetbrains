@@ -5,6 +5,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.util.containers.SLRUMap
+import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.IgnoreTestParams
 import com.sourcegraph.cody.statusbar.CodyStatusService
@@ -72,16 +73,23 @@ class IgnoreOracle(private val project: Project) {
       return completable
     }
     CodyAgentService.withAgent(project) { agent ->
-      val policy =
-          when (agent.server.ignoreTest(IgnoreTestParams(uri)).get().policy) {
-            "ignore" -> IgnorePolicy.IGNORE
-            "use" -> IgnorePolicy.USE
-            else -> throw IllegalStateException("invalid ignore policy value")
-          }
-      synchronized(cache) { cache.put(uri, policy) }
-      completable.complete(policy)
+      policyForUri(uri, agent).thenAccept(completable::complete)
     }
     return completable
+  }
+
+  /** Like `policyForUri(String)` but reuses the current thread and supplied Agent handle. */
+  fun policyForUri(uri: String, agent: CodyAgent): CompletableFuture<IgnorePolicy> {
+    return agent.server.ignoreTest(IgnoreTestParams(uri)).thenApply {
+      val policy =
+        when (it.policy) {
+          "ignore" -> IgnorePolicy.IGNORE
+          "use" -> IgnorePolicy.USE
+          else -> throw IllegalStateException("invalid ignore policy value")
+        }
+      synchronized(cache) { cache.put(uri, policy) };
+      policy
+    }
   }
 
   /**

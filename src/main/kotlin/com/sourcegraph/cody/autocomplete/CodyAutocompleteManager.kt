@@ -2,6 +2,7 @@ package com.sourcegraph.cody.autocomplete
 
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
@@ -34,6 +35,9 @@ import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteSingleLineRenderer
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil.getAllInlaysForEditor
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.ignore.ActionInIgnoredFileNotification
+import com.sourcegraph.cody.ignore.IgnoreOracle
+import com.sourcegraph.cody.ignore.IgnorePolicy
 import com.sourcegraph.cody.statusbar.CodyStatus
 import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.notifyApplication
 import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.resetApplication
@@ -234,19 +238,27 @@ class CodyAutocompleteManager {
 
     val resultOuter = CompletableFuture<Void?>()
     CodyAgentService.withAgent(project) { agent ->
-      val completions = agent.server.autocompleteExecute(params)
+      if (triggerKind == InlineCompletionTriggerKind.INVOKE &&
+          IgnoreOracle.getInstance(project).policyForUri(virtualFile.url, agent).get() != IgnorePolicy.USE) {
+        runInEdt {
+          ActionInIgnoredFileNotification().notify(project)
+        }
+        null
+      } else {
+        val completions = agent.server.autocompleteExecute(params)
 
-      // Important: we have to `.cancel()` the original `CompletableFuture<T>` from lsp4j. As soon
-      // as we use `thenAccept()` we get a new instance of `CompletableFuture<Void>` which does not
-      // correctly propagate the cancellation to the agent.
-      cancellationToken.onCancellationRequested { completions.cancel(true) }
+        // Important: we have to `.cancel()` the original `CompletableFuture<T>` from lsp4j. As soon
+        // as we use `thenAccept()` we get a new instance of `CompletableFuture<Void>` which does not
+        // correctly propagate the cancellation to the agent.
+        cancellationToken.onCancellationRequested { completions.cancel(true) }
 
-      ApplicationManager.getApplication().executeOnPooledThread {
-        completions
+        ApplicationManager.getApplication().executeOnPooledThread {
+          completions
             .handle { result, error ->
               if (error != null) {
                 if (triggerKind == InlineCompletionTriggerKind.INVOKE ||
-                    !UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown) {
+                  !UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown
+                ) {
                   handleError(project, error)
                 }
               } else if (result != null && result.items.isNotEmpty()) {
@@ -270,6 +282,7 @@ class CodyAutocompleteManager {
               resetApplication(project)
               resultOuter.complete(null)
             }
+        }
       }
     }
     cancellationToken.onCancellationRequested { resultOuter.cancel(true) }
