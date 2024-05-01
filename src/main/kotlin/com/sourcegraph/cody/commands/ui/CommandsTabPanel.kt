@@ -1,17 +1,26 @@
 package com.sourcegraph.cody.commands.ui
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI
 import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.ex.ActionManagerEx
 import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.editor.colors.EditorColors
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
+import com.intellij.ui.EditorNotificationPanel
+import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBPanelWithEmptyText
+import com.intellij.ui.components.panels.NonOpaquePanel
+import com.sourcegraph.Icons
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.CodyApplicationSettings
+import com.sourcegraph.cody.ignore.CODY_IGNORE_DOCS_URL
+import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.config.ConfigUtil
 import java.awt.Component
 import java.awt.Dimension
@@ -27,6 +36,30 @@ class CommandsTabPanel(
 
   init {
     layout = BoxLayout(this, BoxLayout.Y_AXIS)
+
+    add(object : NonOpaquePanel() {
+      init {
+        add(EditorNotificationPanel().apply {
+          text = CodyBundle.getString("ignore.sidebar-panel-ignored-file.text")
+          createActionLabel(CodyBundle.getString("ignore.sidebar-panel-ignored-file.learn-more-cta"),
+            { BrowserUtil.browse(CODY_IGNORE_DOCS_URL) }, false)
+          icon(Icons.CodyLogoSlash)
+        })
+
+        // These colors cribbed from EditorComposite, createTopBottomSideBorder
+        val scheme = EditorColorsManager.getInstance().globalScheme
+        val borderColor =
+          scheme.getColor(EditorColors.SEPARATOR_ABOVE_COLOR) ?: scheme.getColor(EditorColors.TEARLINE_COLOR)
+        border = SideBorder(borderColor, SideBorder.TOP or SideBorder.BOTTOM)
+      }
+
+      override fun getMaximumSize(): Dimension {
+        val size = super.getMaximumSize()
+        size.height = preferredSize.height
+        return size
+      }
+    })
+
     CommandId.values().forEach { command -> addCommandButton(command) }
 
     if (ConfigUtil.isFeatureFlagEnabled("cody.feature.inline-edits") ||
