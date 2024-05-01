@@ -56,8 +56,6 @@ class IgnoreOracle(private val project: Project) {
   fun onIgnoreDidChange() {
     synchronized(cache) { cache.clear() }
 
-    IgnoreNotificationProvider.updateNotifications(project)
-
     // Re-set the focused file URI to update the status bar.
     val uri = willFocusUri
     if (uri != null) {
