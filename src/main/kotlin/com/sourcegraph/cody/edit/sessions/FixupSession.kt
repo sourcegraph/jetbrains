@@ -239,15 +239,11 @@ abstract class FixupSession(
   }
 
   fun retry() {
-    // TODO: The actual prompt we sent is displayed as ghost text in the text input field, in VS
-    // Code.
-    // E.g. "Write a brief documentation comment for the selected code <etc.>"
-    // We need to send the prompt along with the lenses, so that the client can display it.
     ApplicationManager.getApplication().invokeLater {
-      // This starts an entirely new session, independent of this one.
+      // This starts a brand-new session; the Edit dialog remembers your last prompt.
       EditCommandPrompt(controller, editor, "Edit instructions and Retry")
     }
-    controller.cancelActiveSession()
+    undo()
   }
 
   // Action handler for FixupSession.ACTION_UNDO.
@@ -365,8 +361,24 @@ abstract class FixupSession(
 
   private fun undoEdits() {
     if (project.isDisposed) return
-    WriteCommandAction.runWriteCommandAction(project) {
-      performedActions.reversed().forEach { it.undo() }
+
+    // Scroll back to starting position, since Undo puts us at top of document.
+    val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return
+    val document = editor.document
+    val currentOffset = editor.caretModel.offset
+    val lineStartOffset = document.getLineStartOffset(document.getLineNumber(currentOffset))
+
+    try {
+      WriteCommandAction.runWriteCommandAction(project) {
+        performedActions.reversed().forEach { it.undo() }
+      }
+    } finally {
+      ApplicationManager.getApplication().invokeLater {
+        val validOffset = minOf(lineStartOffset, document.textLength)
+        val validPosition = editor.offsetToLogicalPosition(validOffset)
+        editor.caretModel.moveToLogicalPosition(validPosition)
+        editor.scrollingModel.scrollTo(validPosition, ScrollType.CENTER)
+      }
     }
   }
 
