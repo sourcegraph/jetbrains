@@ -54,16 +54,16 @@ import kotlin.io.path.toPath
  * with FixupTask instances in the Agent.
  */
 abstract class FixupSession(
-  val controller: FixupService,
-  val project: Project,
-  var editor: Editor
+    val controller: FixupService,
+    val project: Project,
+    var editor: Editor
 ) : Disposable {
 
   private val logger = Logger.getInstance(FixupSession::class.java)
   private val fixupService = FixupService.getInstance(project)
 
   // This is passed back by the Agent when we initiate the editing task.
-  private var taskId: String? = null
+  var taskId: String? = null
 
   // The current lens group. Changes as the state machine proceeds.
   private var lensGroup: LensWidgetGroup? = null
@@ -94,32 +94,32 @@ abstract class FixupSession(
     CodyAgentService.withAgent(project) { agent ->
       workAroundUninitializedCodebase()
 
+      // All this because we can get the workspace/edit before the request returns!
+      fixupService.setActiveSession(this)
+
       // Spend a turn to get folding ranges before showing lenses.
       ensureSelectionRange(agent, textFile)
 
       showWorkingGroup()
 
-      // All this because we can get the workspace/edit before the request returns!
-      fixupService.setActiveSession(this)
       makeEditingRequest(agent)
-        .handle { result, error ->
-          if (error != null || result == null) {
-            showErrorGroup("Error while generating doc string: $error")
-          } else {
-            taskId = result.id
-            selectionRange = adjustToDocumentRange(result.selectionRange)
-            fixupService.setActiveSession(this)
+          .handle { result, error ->
+            if (error != null || result == null) {
+              showErrorGroup("Error while generating doc string: $error")
+            } else {
+              taskId = result.id
+              selectionRange = adjustToDocumentRange(result.selectionRange)
+            }
+            null
           }
-          null
-        }
-        .exceptionally { error: Throwable? ->
-          if (!(error is CancellationException || error is CompletionException)) {
-            showErrorGroup("Error while generating code: ${error?.localizedMessage}")
+          .exceptionally { error: Throwable? ->
+            if (!(error is CancellationException || error is CompletionException)) {
+              showErrorGroup("Error while generating code: ${error?.localizedMessage}")
+            }
+            cancel()
+            null
           }
-          cancel()
-          null
-        }
-        .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+          .completeOnTimeout(null, 3, TimeUnit.SECONDS)
     }
   }
 
@@ -139,9 +139,9 @@ abstract class FixupSession(
     val selection = textFile.selection ?: return
     selectionRange = selection
     agent.server
-      .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
-      .thenApply { result -> selectionRange = result.range }
-      .get()
+        .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
+        .thenApply { result -> selectionRange = result.range }
+        .get()
   }
 
   fun update(task: EditTask) {
@@ -154,8 +154,7 @@ abstract class FixupSession(
       CodyTaskState.Working,
       CodyTaskState.Inserting,
       CodyTaskState.Applying,
-      CodyTaskState.Formatting -> {
-      }
+      CodyTaskState.Formatting -> {}
       // Tasks remain in this state until explicit accept/undo/cancel.
       CodyTaskState.Applied -> showAcceptGroup()
       // Then they transition to finished.
@@ -241,6 +240,7 @@ abstract class FixupSession(
   }
 
   fun undo() {
+    runInEdt { showWorkingGroup() }
     CodyAgentService.withAgent(project) { agent ->
       agent.server.undoEditTask(TaskIdParam(taskId!!))
     }
@@ -248,12 +248,12 @@ abstract class FixupSession(
 
   fun retry() {
     val instruction = instruction
+
     undo()
-    // Don't queue this up until undo() finishes above, so that the scrolling is
-    // finished before we open this dialog (or it will immediately close).
-    ApplicationManager.getApplication().invokeLater {
-      // This starts a brand-new session; the Edit dialog remembers your last prompt.
-      EditCommandPrompt(controller, editor, "Edit instructions and Retry", instruction)
+
+    ApplicationManager.getApplication().executeOnPooledThread {
+      FixupService.getInstance(project).waitUntilActiveSessionIsFinished()
+      runInEdt { EditCommandPrompt(controller, editor, "Edit instructions and Retry", instruction) }
     }
   }
 
@@ -272,15 +272,12 @@ abstract class FixupSession(
         "create-file" -> {
           logger.warn("Workspace edit operation created a file: ${op.uri}")
         }
-
         "rename-file" -> {
           logger.warn("Workspace edit operation renamed a file: ${op.oldUri} -> ${op.newUri}")
         }
-
         "delete-file" -> {
           logger.warn("Workspace edit operation deleted a file: ${op.uri}")
         }
-
         "edit-file" -> {
           if (op.edits == null) {
             logger.warn("Workspace edit operation has no edits")
@@ -289,11 +286,9 @@ abstract class FixupSession(
             performInlineEdits(op.edits)
           }
         }
-
         else ->
-          logger.warn(
-            "DocumentCommand session received unknown workspace edit operation: ${op.type}"
-          )
+            logger.warn(
+                "DocumentCommand session received unknown workspace edit operation: ${op.type}")
       }
     }
   }
@@ -328,22 +323,21 @@ abstract class FixupSession(
 
       WriteCommandAction.runWriteCommandAction(project) {
         val currentActions =
-          edits.mapNotNull { edit ->
-            try {
-              when (edit.type) {
-                "replace",
-                "delete" -> ReplaceUndoableAction(project, edit, document)
-
-                "insert" -> InsertUndoableAction(project, edit, document)
-                else -> {
-                  logger.warn("Unknown edit type: ${edit.type}")
-                  null
+            edits.mapNotNull { edit ->
+              try {
+                when (edit.type) {
+                  "replace",
+                  "delete" -> ReplaceUndoableAction(project, edit, document)
+                  "insert" -> InsertUndoableAction(project, edit, document)
+                  else -> {
+                    logger.warn("Unknown edit type: ${edit.type}")
+                    null
+                  }
                 }
+              } catch (e: RuntimeException) {
+                throw EditCreationException(edit, e)
               }
-            } catch (e: RuntimeException) {
-              throw EditCreationException(edit, e)
             }
-          }
 
         currentActions.forEach { action ->
           try {
@@ -366,30 +360,6 @@ abstract class FixupSession(
     val end = if (r.end.line < 0) Position(line = endLine, character = endLineLength) else r.end
     return Range(start, end)
   }
-
-//  private fun undoEdits() {
-//    if (project.isDisposed) return
-//
-//    // Scroll back to starting position, since Undo puts us at top of document.
-//    val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return
-//    val document = editor.document
-//    val currentOffset = editor.caretModel.offset
-//    val lineStartOffset = document.getLineStartOffset(document.getLineNumber(currentOffset))
-//
-//    try {
-//      WriteCommandAction.runWriteCommandAction(project) {
-//        performedActions.reversed().forEach { it.undo() }
-//      }
-//    } finally {
-//      // Queue this up and don't execute immediately (don't use runInEdt).
-//      ApplicationManager.getApplication().invokeLater {
-//        val validOffset = minOf(lineStartOffset, document.textLength)
-//        val validPosition = editor.offsetToLogicalPosition(validOffset)
-//        editor.caretModel.moveToLogicalPosition(validPosition)
-//        editor.scrollingModel.scrollTo(validPosition, ScrollType.CENTER)
-//      }
-//    }
-//  }
 
   fun createDiffDocument(): Document {
     val document = EditorFactory.getInstance().createDocument(document.text)

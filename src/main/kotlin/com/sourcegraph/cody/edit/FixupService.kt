@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicReference
 class FixupService(val project: Project) : Disposable {
   private val logger = Logger.getInstance(FixupService::class.java)
 
-  private var activeSession: FixupSession? = null
+  @Volatile private var activeSession: FixupSession? = null
 
   // We only have one editing session at a time in JetBrains, for now.
   // This reference ensures we only have one inline-edit dialog active at a time.
@@ -58,11 +58,17 @@ class FixupService(val project: Project) : Disposable {
   fun getActiveSession(): FixupSession? = activeSession
 
   fun setActiveSession(session: FixupSession) {
-    if (session == activeSession) return
+    activeSession?.let { if (it.isShowingAcceptLens()) it.accept() else it.cancel() }
+    waitUntilActiveSessionIsFinished()
     activeSession = session
   }
 
-  // Just clear the service's reference to an active session.
+  fun waitUntilActiveSessionIsFinished() {
+    while (activeSession != null) {
+      Thread.sleep(100)
+    }
+  }
+
   fun clearActiveSession() {
     // N.B. This cannot call back into the activeSession, or it will recurse.
     activeSession = null
