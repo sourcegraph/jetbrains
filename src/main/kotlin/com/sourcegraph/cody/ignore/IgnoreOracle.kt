@@ -6,14 +6,12 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.util.containers.SLRUMap
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.IgnoreTestParams
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.statusbar.CodyStatusService
-import com.sourcegraph.utils.CodyEditorUtil
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -41,7 +39,8 @@ class IgnoreOracle(private val project: Project) {
   private val fileListeners: MutableList<FocusedFileIgnorePolicyListener> = mutableListOf()
 
   init {
-    // Synthesize a focus event for the current editor, if any, to fetch and cache ignore state for it.
+    // Synthesize a focus event for the current editor, if any, to fetch and cache ignore state for
+    // it.
     runInEdt {
       val editor = FileEditorManager.getInstance(project).selectedTextEditor
       if (willFocusUri == null && editor != null) {
@@ -68,9 +67,7 @@ class IgnoreOracle(private val project: Project) {
         // Update the status bar.
         CodyStatusService.resetApplication(project)
 
-        val listeners = synchronized(fileListeners) {
-          fileListeners.toList()
-        }
+        val listeners = synchronized(fileListeners) { fileListeners.toList() }
         for (listener in listeners) {
           listener.focusedFileIgnorePolicyChanged(policy)
         }
@@ -79,17 +76,13 @@ class IgnoreOracle(private val project: Project) {
   }
 
   fun addListener(listener: FocusedFileIgnorePolicyListener) {
-    synchronized(fileListeners) {
-      fileListeners.add(listener)
-    }
+    synchronized(fileListeners) { fileListeners.add(listener) }
     // Invoke the listener with the focused file policy to set initial state.
     listener.focusedFileIgnorePolicyChanged(focusedPolicy ?: IgnorePolicy.USE)
   }
 
   fun removeListener(listener: FocusedFileIgnorePolicyListener) {
-    synchronized(fileListeners) {
-      fileListeners.remove(listener)
-    }
+    synchronized(fileListeners) { fileListeners.remove(listener) }
   }
 
   /**
@@ -124,12 +117,12 @@ class IgnoreOracle(private val project: Project) {
   fun policyForUri(uri: String, agent: CodyAgent): CompletableFuture<IgnorePolicy> {
     return agent.server.ignoreTest(IgnoreTestParams(uri)).thenApply {
       val policy =
-        when (it.policy) {
-          "ignore" -> IgnorePolicy.IGNORE
-          "use" -> IgnorePolicy.USE
-          else -> throw IllegalStateException("invalid ignore policy value")
-        }
-      synchronized(cache) { cache.put(uri, policy) };
+          when (it.policy) {
+            "ignore" -> IgnorePolicy.IGNORE
+            "use" -> IgnorePolicy.USE
+            else -> throw IllegalStateException("invalid ignore policy value")
+          }
+      synchronized(cache) { cache.put(uri, policy) }
       policy
     }
   }

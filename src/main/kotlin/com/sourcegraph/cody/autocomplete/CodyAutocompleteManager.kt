@@ -239,49 +239,50 @@ class CodyAutocompleteManager {
     val resultOuter = CompletableFuture<Void?>()
     CodyAgentService.withAgent(project) { agent ->
       if (triggerKind == InlineCompletionTriggerKind.INVOKE &&
-          IgnoreOracle.getInstance(project).policyForUri(virtualFile.url, agent).get() != IgnorePolicy.USE) {
-        runInEdt {
-          ActionInIgnoredFileNotification().notify(project)
-        }
+          IgnoreOracle.getInstance(project).policyForUri(virtualFile.url, agent).get() !=
+              IgnorePolicy.USE) {
+        runInEdt { ActionInIgnoredFileNotification().notify(project) }
+        resetApplication(project)
+        resultOuter.cancel(true)
         null
       } else {
         val completions = agent.server.autocompleteExecute(params)
 
         // Important: we have to `.cancel()` the original `CompletableFuture<T>` from lsp4j. As soon
-        // as we use `thenAccept()` we get a new instance of `CompletableFuture<Void>` which does not
+        // as we use `thenAccept()` we get a new instance of `CompletableFuture<Void>` which does
+        // not
         // correctly propagate the cancellation to the agent.
         cancellationToken.onCancellationRequested { completions.cancel(true) }
 
         ApplicationManager.getApplication().executeOnPooledThread {
           completions
-            .handle { result, error ->
-              if (error != null) {
-                if (triggerKind == InlineCompletionTriggerKind.INVOKE ||
-                  !UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown
-                ) {
-                  handleError(project, error)
+              .handle { result, error ->
+                if (error != null) {
+                  if (triggerKind == InlineCompletionTriggerKind.INVOKE ||
+                      !UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown) {
+                    handleError(project, error)
+                  }
+                } else if (result != null && result.items.isNotEmpty()) {
+                  UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = false
+                  UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
+                  CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
+                    refreshMyAccountTab()
+                  }
+                  processAutocompleteResult(editor, offset, triggerKind, result, cancellationToken)
                 }
-              } else if (result != null && result.items.isNotEmpty()) {
-                UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = false
-                UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
-                CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
-                  refreshMyAccountTab()
+                null
+              }
+              .exceptionally { error: Throwable? ->
+                if (!(error is CancellationException || error is CompletionException)) {
+                  logger.warn("failed autocomplete request $params", error)
                 }
-                processAutocompleteResult(editor, offset, triggerKind, result, cancellationToken)
+                null
               }
-              null
-            }
-            .exceptionally { error: Throwable? ->
-              if (!(error is CancellationException || error is CompletionException)) {
-                logger.warn("failed autocomplete request $params", error)
+              .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+              .thenRun { // This is a terminal operation, so we needn't call get().
+                resetApplication(project)
+                resultOuter.complete(null)
               }
-              null
-            }
-            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
-            .thenRun { // This is a terminal operation, so we needn't call get().
-              resetApplication(project)
-              resultOuter.complete(null)
-            }
         }
       }
     }

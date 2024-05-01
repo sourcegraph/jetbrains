@@ -28,7 +28,9 @@ import javax.swing.plaf.ButtonUI
 class CommandsTabPanel(
     private val project: Project,
     private val executeCommand: (CommandId) -> Unit
-) : JBPanelWithEmptyText(GridLayout(/* rows = */ 0, /* cols = */ 1)), IgnoreOracle.FocusedFileIgnorePolicyListener {
+) :
+    JBPanelWithEmptyText(GridLayout(/* rows = */ 0, /* cols = */ 1)),
+    IgnoreOracle.FocusedFileIgnorePolicyListener {
   private val ignoreBanner = CommandPanelIgnoreBanner()
   private val buttons = mutableListOf<JComponent>()
 
@@ -103,8 +105,6 @@ class CommandsTabPanel(
   }
 
   override fun focusedFileIgnorePolicyChanged(policy: IgnorePolicy) {
-    runInEdt {
-      update(policy)
-    }
+    runInEdt { update(policy) }
   }
 }
