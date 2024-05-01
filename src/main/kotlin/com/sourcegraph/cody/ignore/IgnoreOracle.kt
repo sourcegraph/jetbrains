@@ -33,6 +33,7 @@ class IgnoreOracle(private val project: Project) {
   private val cache = SLRUMap<String, IgnorePolicy>(100, 100)
   @Volatile private var focusedPolicy: IgnorePolicy? = null
   @Volatile private var willFocusUri: String? = null
+  private val fileListeners: MutableList<FocusedFileIgnorePolicyListener> = mutableListOf()
 
   val isEditingIgnoredFile: Boolean
     get() {
@@ -45,8 +46,31 @@ class IgnoreOracle(private val project: Project) {
       val policy = policyForUri(uri).get()
       if (focusedPolicy != policy && willFocusUri == uri) {
         focusedPolicy = policy
+
+        // Update the status bar.
         CodyStatusService.resetApplication(project)
+
+        val listeners = synchronized(fileListeners) {
+          fileListeners.toList()
+        }
+        for (listener in listeners) {
+          listener.focusedFileIgnorePolicyChanged(policy)
+        }
       }
+    }
+  }
+
+  fun addListener(listener: FocusedFileIgnorePolicyListener) {
+    synchronized(fileListeners) {
+      fileListeners.add(listener)
+    }
+    // Invoke the listener with the focused file policy to set initial state.
+    listener.focusedFileIgnorePolicyChanged(focusedPolicy ?: IgnorePolicy.USE)
+  }
+
+  fun removeListener(listener: FocusedFileIgnorePolicyListener) {
+    synchronized(fileListeners) {
+      fileListeners.remove(listener)
     }
   }
 
@@ -104,5 +128,9 @@ class IgnoreOracle(private val project: Project) {
       ApplicationManager.getApplication().executeOnPooledThread { orElse(completable.get()) }
       return null
     }
+  }
+
+  interface FocusedFileIgnorePolicyListener {
+    fun focusedFileIgnorePolicyChanged(policy: IgnorePolicy)
   }
 }
