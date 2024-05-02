@@ -41,8 +41,8 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
       CodyAutocompleteManager.instance.clearAutocompleteSuggestions(editor)
 
       if (CodyEditorUtil.isImplicitAutocompleteEnabledForEditor(editor) &&
-              CodyEditorUtil.isEditorValidForAutocomplete(editor) &&
-              !CommandProcessor.getInstance().isUndoTransparentActionInProgress) {
+          CodyEditorUtil.isEditorValidForAutocomplete(editor) &&
+          !CommandProcessor.getInstance().isUndoTransparentActionInProgress) {
 
         ProtocolTextDocument.fromEditor(editor)?.let { textDocument ->
           CodyAgentService.withAgent(project) { agent ->
@@ -59,7 +59,7 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
         val changeOffset = event.offset + event.newLength
         if (editor.caretModel.offset == changeOffset) {
           CodyAutocompleteManager.instance.triggerAutocomplete(
-                  editor, changeOffset, InlineCompletionTriggerKind.AUTOMATIC)
+              editor, changeOffset, InlineCompletionTriggerKind.AUTOMATIC)
         }
       }
     }
