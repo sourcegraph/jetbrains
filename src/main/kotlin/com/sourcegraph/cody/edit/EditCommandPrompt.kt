@@ -75,8 +75,12 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
 /** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
-class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialogTitle: String) :
-    JFrame(), Disposable {
+class EditCommandPrompt(
+    val controller: FixupService,
+    val editor: Editor,
+    dialogTitle: String,
+    instruction: String? = null
+) : JFrame(), Disposable {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
 
   private val offset = editor.caretModel.primaryCaret.offset
@@ -124,8 +128,12 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private val instructionsField =
       InstructionsInputTextArea(this).apply {
-        text = controller.getActiveSession()?.instruction ?: lastPrompt
-        if (text.isBlank() && promptHistory.isNotEmpty()) {
+        if (instruction != null) {
+          text = instruction
+        } else {
+          text = lastPrompt
+        }
+        if (text.isNullOrBlank() && promptHistory.isNotEmpty()) {
           text = promptHistory.getPrevious()
         }
       }

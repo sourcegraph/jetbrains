@@ -247,10 +247,13 @@ abstract class FixupSession(
   }
 
   fun retry() {
+    val instruction = instruction
     undo()
+    // Don't queue this up until undo() finishes above, so that the scrolling is
+    // finished before we open this dialog (or it will immediately close).
     ApplicationManager.getApplication().invokeLater {
       // This starts a brand-new session; the Edit dialog remembers your last prompt.
-      EditCommandPrompt(controller, editor, "Edit instructions and Retry")
+      EditCommandPrompt(controller, editor, "Edit instructions and Retry", instruction)
     }
   }
 
