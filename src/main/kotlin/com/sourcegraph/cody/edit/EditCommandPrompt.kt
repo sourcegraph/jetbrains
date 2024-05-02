@@ -124,7 +124,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private val instructionsField =
       InstructionsInputTextArea(this).apply {
-        text = lastPrompt
+        text = controller.getActiveSession()?.instruction ?: lastPrompt
         if (text.isBlank() && promptHistory.isNotEmpty()) {
           text = promptHistory.getPrevious()
         }
@@ -252,8 +252,9 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         }
       }
 
-  // Note: Must be created on EDT, although we can't annotate it as such.
   init {
+    ApplicationManager.getApplication().assertIsDispatchThread()
+
     // Register with FixupService as a failsafe if the project closes. Normally we're disposed
     // sooner, when the dialog is closed or focus is lost.
     Disposer.register(controller, this)
