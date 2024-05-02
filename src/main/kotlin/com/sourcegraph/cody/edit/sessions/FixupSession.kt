@@ -189,7 +189,7 @@ abstract class FixupSession(
     }
     val future = group.show(range)
     // Make sure the lens is visible.
-    runInEdt {
+    ApplicationManager.getApplication().invokeLater {
       val logicalPosition = LogicalPosition(range.start.line, range.start.character)
       editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
     }
@@ -247,11 +247,11 @@ abstract class FixupSession(
   }
 
   fun retry() {
-    runInEdt {
+    undo()
+    ApplicationManager.getApplication().invokeLater {
       // This starts a brand-new session; the Edit dialog remembers your last prompt.
       EditCommandPrompt(controller, editor, "Edit instructions and Retry")
     }
-    undo()
   }
 
   // Action handler for FixupSession.ACTION_UNDO.
