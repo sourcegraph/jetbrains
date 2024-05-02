@@ -5,6 +5,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
@@ -69,7 +70,6 @@ import javax.swing.JRootPane
 import javax.swing.JScrollPane
 import javax.swing.KeyStroke
 import javax.swing.ListCellRenderer
-import javax.swing.SwingUtilities
 import javax.swing.WindowConstants
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
@@ -201,7 +201,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         }
 
         private fun handleDocumentChange() {
-          ApplicationManager.getApplication().invokeLater {
+          runInEdt {
             updateOkButtonState()
             checkForInterruptions()
           }
@@ -566,7 +566,7 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
   }
 
   private fun onThemeChange() {
-    SwingUtilities.invokeLater {
+    runInEdt {
       titleLabel.foreground = boldLabelColor() // custom background we manage ourselves
       revalidate()
       repaint()

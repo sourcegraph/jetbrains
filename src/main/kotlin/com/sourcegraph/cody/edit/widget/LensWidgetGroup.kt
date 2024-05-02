@@ -2,6 +2,7 @@ package com.sourcegraph.cody.edit.widget
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
@@ -21,6 +22,7 @@ import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.config.ThemeUtil
+import org.jetbrains.annotations.NotNull
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -31,7 +33,6 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
 import kotlin.math.roundToInt
-import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
@@ -297,7 +298,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     if (ApplicationManager.getApplication().isDispatchThread) {
       executeAndComplete()
     } else {
-      ApplicationManager.getApplication().invokeLater { executeAndComplete() }
+      runInEdt { executeAndComplete() }
     }
     return result
   }

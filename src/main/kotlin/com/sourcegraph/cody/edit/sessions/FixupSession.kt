@@ -2,6 +2,7 @@ package com.sourcegraph.cody.edit.sessions
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
@@ -78,7 +79,7 @@ abstract class FixupSession(
 
   init {
     triggerFixupAsync()
-    ApplicationManager.getApplication().invokeLater { Disposer.register(controller, this) }
+    runInEdt { Disposer.register(controller, this) }
   }
 
   private val document
@@ -188,7 +189,7 @@ abstract class FixupSession(
     }
     val future = group.show(range)
     // Make sure the lens is visible.
-    ApplicationManager.getApplication().invokeLater {
+    runInEdt {
       val logicalPosition = LogicalPosition(range.start.line, range.start.character)
       editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
     }
@@ -215,7 +216,7 @@ abstract class FixupSession(
     } catch (x: Exception) {
       logger.debug("Session cleanup error", x)
     }
-    ApplicationManager.getApplication().invokeLater {
+    runInEdt {
       try { // Disposing inlay requires EDT.
         Disposer.dispose(this)
       } catch (x: Exception) {
@@ -246,7 +247,7 @@ abstract class FixupSession(
   }
 
   fun retry() {
-    ApplicationManager.getApplication().invokeLater {
+    runInEdt {
       // This starts a brand-new session; the Edit dialog remembers your last prompt.
       EditCommandPrompt(controller, editor, "Edit instructions and Retry")
     }
@@ -313,7 +314,7 @@ abstract class FixupSession(
 
     CodyAgentService.withAgent(project) { agent ->
       ensureSelectionRange(agent, textFile)
-      ApplicationManager.getApplication().invokeLater { showWorkingGroup() }
+      runInEdt { showWorkingGroup() }
     }
   }
 
@@ -380,7 +381,7 @@ abstract class FixupSession(
         performedActions.reversed().forEach { it.undo() }
       }
     } finally {
-      ApplicationManager.getApplication().invokeLater {
+      runInEdt {
         val validOffset = minOf(lineStartOffset, document.textLength)
         val validPosition = editor.offsetToLogicalPosition(validOffset)
         editor.caretModel.moveToLogicalPosition(validPosition)
