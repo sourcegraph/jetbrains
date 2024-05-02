@@ -381,7 +381,8 @@ abstract class FixupSession(
         performedActions.reversed().forEach { it.undo() }
       }
     } finally {
-      runInEdt {
+      // Queue this up and don't execute immediately (don't use runInEdt).
+      ApplicationManager.getApplication().invokeLater {
         val validOffset = minOf(lineStartOffset, document.textLength)
         val validPosition = editor.offsetToLogicalPosition(validOffset)
         editor.caretModel.moveToLogicalPosition(validPosition)
