@@ -21,7 +21,6 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
-import java.awt.Color
 import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JPanel
@@ -32,8 +31,8 @@ class ChatPanel(
     chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?
 ) : JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
 
-  private val bottomSplitter = OnePixelSplitter(true, )
-  private val chatSplitter = OnePixelSplitter(true, )
+  private val bottomSplitter = OnePixelSplitter(true)
+  private val chatSplitter = OnePixelSplitter(true, 0.9f)
 
 
   val promptPanel: PromptPanel = PromptPanel(project, chatSession)
@@ -63,6 +62,7 @@ class ChatPanel(
     layout = BorderLayout()
     border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
 
+
     val topWrapper = JPanel(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true))
       topWrapper.add(llmDropdown)
       topWrapper.add(chatPanel)
@@ -74,12 +74,17 @@ class ChatPanel(
     val bottomWrapper = JPanel(VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, true))
       bottomSplitter.firstComponent = promptPanel
       bottomSplitter.secondComponent = contextView
+
       bottomWrapper.add(bottomSplitter)
 
     chatSplitter.firstComponent = topWrapper
     chatSplitter.secondComponent = bottomWrapper
-
     add(chatSplitter, BorderLayout.CENTER)
+
+    //Set minimum sizes
+    contextView.minimumSize = Dimension(bottomWrapper.width, 60)
+    bottomWrapper.minimumSize = Dimension(bottomWrapper.width, 200)
+
 
     //debug
     //bottomWrapper.border = BorderFactory.createLineBorder(Color.RED, 1)

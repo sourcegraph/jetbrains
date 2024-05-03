@@ -247,7 +247,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
     treeRoot.add(contextRoot)
     treeModel.reload()
-    tree.border = JBUI.Borders.empty(6, 0, 0, 0)
+    tree.border = JBUI.Borders.empty(8, 0, 0, 0)
 
     resize()
 
