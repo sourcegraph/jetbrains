@@ -3,6 +3,7 @@ package com.sourcegraph.cody.statusbar
 import com.intellij.util.ui.PresentableEnum
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.common.CodyBundle
 import javax.swing.Icon
 
 interface WithIcon {
@@ -22,6 +23,12 @@ enum class CodyStatus : PresentableEnum, WithIcon {
   },
   AutocompleteDisabled {
     override fun getPresentableText(): String = "Cody autocomplete is disabled"
+
+    override val icon: Icon = Icons.StatusBar.CodyAutocompleteDisabled
+  },
+  InIgnoredFile {
+    override fun getPresentableText(): String =
+        CodyBundle.getString("ignore.status-bar-ignored-file.tooltip")
 
     override val icon: Icon = Icons.StatusBar.CodyAutocompleteDisabled
   },

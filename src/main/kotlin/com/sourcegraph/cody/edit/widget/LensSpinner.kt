@@ -60,6 +60,6 @@ class LensSpinner(group: LensWidgetGroup, private val icon: Icon) : LensWidget(g
   }
 
   override fun toString(): String {
-    return "LensSpinner(rotationDegrees=$rotationDegrees, animationDelay=$animationDelay)"
+    return "LensSpinner($rotationDegrees°,$animationDelay ms)"
   }
 }

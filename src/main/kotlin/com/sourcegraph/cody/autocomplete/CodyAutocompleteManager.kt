@@ -2,44 +2,50 @@ package com.sourcegraph.cody.autocomplete
 
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.InlayModel
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.wm.ToolWindowId
+import com.intellij.openapi.wm.ToolWindowManager
+import com.intellij.ui.GotItTooltip
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.CodyToolWindowContent
+import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.AutocompleteItem
-import com.sourcegraph.cody.agent.protocol.AutocompleteParams
-import com.sourcegraph.cody.agent.protocol.AutocompleteResult
-import com.sourcegraph.cody.agent.protocol.AutocompleteTriggerKind
-import com.sourcegraph.cody.agent.protocol.CompletionItemParams
-import com.sourcegraph.cody.agent.protocol.ErrorCode
+import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
-import com.sourcegraph.cody.agent.protocol.SelectedCompletionInfo
 import com.sourcegraph.cody.autocomplete.render.AutocompleteRendererType
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteBlockElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteSingleLineRenderer
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil.getAllInlaysForEditor
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.ignore.ActionInIgnoredFileNotification
+import com.sourcegraph.cody.ignore.IgnoreOracle
+import com.sourcegraph.cody.ignore.IgnorePolicy
 import com.sourcegraph.cody.statusbar.CodyStatus
 import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.notifyApplication
 import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.resetApplication
-import com.sourcegraph.cody.vscode.CancellationToken
-import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
-import com.sourcegraph.cody.vscode.IntelliJTextDocument
+import com.sourcegraph.cody.vscode.*
 import com.sourcegraph.cody.vscode.Range
 import com.sourcegraph.cody.vscode.TextDocument
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.config.UserLevelConfig
@@ -232,42 +238,52 @@ class CodyAutocompleteManager {
 
     val resultOuter = CompletableFuture<Void?>()
     CodyAgentService.withAgent(project) { agent ->
-      val completions = agent.server.autocompleteExecute(params)
+      if (triggerKind == InlineCompletionTriggerKind.INVOKE &&
+          IgnoreOracle.getInstance(project).policyForUri(virtualFile.url, agent).get() !=
+              IgnorePolicy.USE) {
+        runInEdt { ActionInIgnoredFileNotification().notify(project) }
+        resetApplication(project)
+        resultOuter.cancel(true)
+        null
+      } else {
+        val completions = agent.server.autocompleteExecute(params)
 
-      // Important: we have to `.cancel()` the original `CompletableFuture<T>` from lsp4j. As soon
-      // as we use `thenAccept()` we get a new instance of `CompletableFuture<Void>` which does not
-      // correctly propagate the cancellation to the agent.
-      cancellationToken.onCancellationRequested { completions.cancel(true) }
+        // Important: we have to `.cancel()` the original `CompletableFuture<T>` from lsp4j. As soon
+        // as we use `thenAccept()` we get a new instance of `CompletableFuture<Void>` which does
+        // not
+        // correctly propagate the cancellation to the agent.
+        cancellationToken.onCancellationRequested { completions.cancel(true) }
 
-      ApplicationManager.getApplication().executeOnPooledThread {
-        completions
-            .handle { result, error ->
-              if (error != null) {
-                if (triggerKind == InlineCompletionTriggerKind.INVOKE ||
-                    !UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown) {
-                  handleError(project, error)
+        ApplicationManager.getApplication().executeOnPooledThread {
+          completions
+              .handle { result, error ->
+                if (error != null) {
+                  if (triggerKind == InlineCompletionTriggerKind.INVOKE ||
+                      !UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown) {
+                    handleError(project, error)
+                  }
+                } else if (result != null && result.items.isNotEmpty()) {
+                  UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = false
+                  UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
+                  CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
+                    refreshMyAccountTab()
+                  }
+                  processAutocompleteResult(editor, offset, triggerKind, result, cancellationToken)
                 }
-              } else if (result != null && result.items.isNotEmpty()) {
-                UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = false
-                UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
-                CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
-                  refreshMyAccountTab()
+                null
+              }
+              .exceptionally { error: Throwable? ->
+                if (!(error is CancellationException || error is CompletionException)) {
+                  logger.warn("failed autocomplete request $params", error)
                 }
-                processAutocompleteResult(editor, offset, triggerKind, result, cancellationToken)
+                null
               }
-              null
-            }
-            .exceptionally { error: Throwable? ->
-              if (!(error is CancellationException || error is CompletionException)) {
-                logger.warn("failed autocomplete request $params", error)
+              .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+              .thenRun { // This is a terminal operation, so we needn't call get().
+                resetApplication(project)
+                resultOuter.complete(null)
               }
-              null
-            }
-            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
-            .thenRun { // This is a terminal operation, so we needn't call get().
-              resetApplication(project)
-              resultOuter.complete(null)
-            }
+        }
       }
     }
     cancellationToken.onCancellationRequested { resultOuter.cancel(true) }
@@ -384,24 +400,94 @@ class CodyAutocompleteManager {
     val lineBreaks = listOf("\r\n", "\n", "\r")
     val startsInline = lineBreaks.none { separator -> completionText.startsWith(separator) }
 
+    var inlay: Inlay<*>? = null
     if (startsInline) {
       val renderer =
           CodyAutocompleteSingleLineRenderer(
               completionText.lines().first(), items, editor, AutocompleteRendererType.INLINE)
-      inlayModel.addInlineElement(offset, /* relatesToPrecedingText = */ true, renderer)
+      inlay = inlayModel.addInlineElement(offset, /* relatesToPrecedingText = */ true, renderer)
     }
     val lines = completionText.lines()
     if (lines.size > 1) {
       val text =
           (if (startsInline) lines.drop(1) else lines).dropWhile { it.isBlank() }.joinToString("\n")
       val renderer = CodyAutocompleteBlockElementRenderer(text, items, editor)
-      inlayModel.addBlockElement(
-          /* offset = */ offset,
-          /* relatesToPrecedingText = */ true,
-          /* showAbove = */ false,
-          /* priority = */ Int.MAX_VALUE,
-          /* renderer = */ renderer)
+      val inlay2 =
+          inlayModel.addBlockElement(
+              /* offset = */ offset,
+              /* relatesToPrecedingText = */ true,
+              /* showAbove = */ false,
+              /* priority = */ Int.MAX_VALUE,
+              /* renderer = */ renderer)
+      if (inlay == null) {
+        inlay = inlay2
+      }
     }
+
+    if (inlay?.bounds?.location != null) {
+      val gotit =
+          GotItTooltip(
+                  "cody.autocomplete.gotIt",
+                  CodyBundle.getString("gotit.autocomplete.message")
+                      .fmt(
+                          KeymapUtil.getShortcutText("cody.acceptAutocompleteAction"),
+                          KeymapUtil.getShortcutText("cody.cycleForwardAutocompleteAction"),
+                          KeymapUtil.getShortcutText("cody.cycleBackAutocompleteAction")),
+                  inlay /* dispose tooltip alongside inlay */)
+              .withHeader(CodyBundle.getString("gotit.autocomplete.header"))
+              .withPosition(Balloon.Position.above)
+              .withIcon(Icons.CodyLogo)
+              .andShowCloseShortcut()
+      try {
+        gotit.show(editor.contentComponent) { _, _ -> inlay.bounds!!.location }
+      } catch (e: Exception) {
+        logger.info("Failed to display gotit tooltip", e)
+      }
+    }
+
+    if (inlay?.bounds?.location != null && project != null) {
+      val isProjectViewVisible =
+          ToolWindowManager.getInstance(project).getToolWindow(ToolWindowId.PROJECT_VIEW)?.isVisible
+              ?: false
+      val position =
+          if (isProjectViewVisible) Balloon.Position.atLeft
+          else if (inlay.bounds!!.location.y < 150) Balloon.Position.below
+          else Balloon.Position.above
+      val gotit =
+          GotItTooltip(
+                  "cody.autocomplete.gotIt",
+                  CodyBundle.getString("gotit.autocomplete.message")
+                      .fmt(
+                          KeymapUtil.getShortcutText("cody.acceptAutocompleteAction"),
+                          KeymapUtil.getShortcutText("cody.cycleForwardAutocompleteAction"),
+                          KeymapUtil.getShortcutText("cody.cycleBackAutocompleteAction")),
+                  inlay /* dispose tooltip alongside inlay */)
+              .withHeader(CodyBundle.getString("gotit.autocomplete.header"))
+              .withPosition(position)
+              .withIcon(Icons.CodyLogo)
+              .andShowCloseShortcut()
+      try {
+        gotit.show(editor.contentComponent) { _, _ ->
+          val location = inlay.bounds!!.location
+          if (position == Balloon.Position.below) {
+            val lineHeight = getLineHeight()
+            location.setLocation(location.x, location.y + lineHeight)
+          }
+          location
+        }
+      } catch (e: Exception) {
+        logger.info("Failed to display gotit tooltip", e)
+      }
+    }
+  }
+
+  private fun getLineHeight(): Int {
+    val colorsManager = EditorColorsManager.getInstance()
+    val fontPreferences = colorsManager.globalScheme.fontPreferences
+    val fontSize = fontPreferences.getSize(fontPreferences.fontFamily)
+    val lineSpacing = fontPreferences.lineSpacing.toInt()
+    val extraMargin = 4
+    return fontSize + lineSpacing + extraMargin
   }
 
   private fun findLastCommonSuffixElementPosition(

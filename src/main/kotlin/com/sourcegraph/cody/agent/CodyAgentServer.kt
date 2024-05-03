@@ -68,22 +68,30 @@ interface CodyAgentServer {
   @JsonRequest("webview/receiveMessage")
   fun webviewReceiveMessage(params: WebviewReceiveMessageParams): CompletableFuture<Any?>
 
+  @JsonRequest("editTask/accept") fun acceptEditTask(params: TaskIdParam): CompletableFuture<Void?>
+
+  @JsonRequest("editTask/undo") fun undoEditTask(params: TaskIdParam): CompletableFuture<Void?>
+
+  @JsonRequest("editTask/cancel") fun cancelEditTask(params: TaskIdParam): CompletableFuture<Void?>
+
   @JsonRequest("editTask/getFoldingRanges")
   fun getFoldingRanges(params: GetFoldingRangeParams): CompletableFuture<GetFoldingRangeResult>
 
   @JsonRequest("command/execute")
   fun commandExecute(params: CommandExecuteParams): CompletableFuture<Any?>
 
-  @JsonRequest("commands/explain") fun commandsExplain(): CompletableFuture<ConnectionId>
+  @JsonRequest("commands/explain") fun legacyCommandsExplain(): CompletableFuture<ConnectionId>
 
-  @JsonRequest("commands/test") fun commandsTest(): CompletableFuture<ConnectionId>
+  @JsonRequest("commands/test") fun legacyCommandsTest(): CompletableFuture<ConnectionId>
 
-  @JsonRequest("commands/smell") fun commandsSmell(): CompletableFuture<ConnectionId>
+  @JsonRequest("commands/smell") fun legacyCommandsSmell(): CompletableFuture<ConnectionId>
 
   @JsonRequest("editCommands/document") fun commandsDocument(): CompletableFuture<EditTask>
 
   @JsonRequest("editCommands/code")
   fun commandsEdit(params: InlineEditParams): CompletableFuture<EditTask>
+
+  @JsonRequest("editCommands/test") fun commandsTest(): CompletableFuture<EditTask>
 
   @JsonRequest("chat/new") fun chatNew(): CompletableFuture<String>
 
@@ -102,4 +110,16 @@ interface CodyAgentServer {
   fun attributionSearch(
       params: AttributionSearchParams
   ): CompletableFuture<AttributionSearchResponse>
+
+  @JsonRequest("remoteRepo/has")
+  fun remoteRepoHas(params: RemoteRepoHasParams): CompletableFuture<RemoteRepoHasResponse>
+
+  @JsonRequest("remoteRepo/list")
+  fun remoteRepoList(params: RemoteRepoListParams): CompletableFuture<RemoteRepoListResponse>
+
+  @JsonRequest("ignore/test")
+  fun ignoreTest(params: IgnoreTestParams): CompletableFuture<IgnoreTestResponse>
+
+  @JsonRequest("testing/ignore/overridePolicy")
+  fun testingIgnoreOverridePolicy(params: IgnorePolicySpec?): CompletableFuture<Unit>
 }

@@ -7,7 +7,10 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Tag("chat")
-class ChatState : BaseState() {
+class ChatState() : BaseState() {
+  constructor(internalId: String) : this() {
+    this.internalId = internalId
+  }
 
   @get:OptionTag(tag = "internalId", nameAttribute = "") var internalId: String? by string()
 
@@ -22,7 +25,9 @@ class ChatState : BaseState() {
 
   @get:OptionTag(tag = "llm", nameAttribute = "") var llm: LLMState? by property()
 
-  @get:OptionTag(tag = "accountId", nameAttribute = "") var accountId: String? by string()
+  @Deprecated("")
+  @get:OptionTag(tag = "accountId", nameAttribute = "")
+  var accountId: String? by string()
 
   @get:OptionTag(tag = "enhancedContext", nameAttribute = "")
   var enhancedContext: EnhancedContextState? by property()
@@ -45,12 +50,5 @@ class ChatState : BaseState() {
   companion object {
 
     private val DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE_TIME
-
-    fun create(accountId: String?, internalId: String): ChatState {
-      val chat = ChatState()
-      chat.accountId = accountId
-      chat.internalId = internalId
-      return chat
-    }
   }
 }

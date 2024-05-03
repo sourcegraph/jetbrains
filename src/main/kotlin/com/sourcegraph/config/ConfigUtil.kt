@@ -69,8 +69,6 @@ object ConfigUtil {
         accessToken = serverAuth.accessToken,
         customHeaders = getCustomRequestHeadersAsMap(serverAuth.customRequestHeaders),
         proxy = UserLevelConfig.getProxy(),
-        autocompleteAdvancedServerEndpoint = UserLevelConfig.getAutocompleteServerEndpoint(),
-        autocompleteAdvancedAccessToken = UserLevelConfig.getAutocompleteAccessToken(),
         autocompleteAdvancedProvider =
             UserLevelConfig.getAutocompleteProviderType()?.vscodeSettingString(),
         debug = isCodyDebugEnabled(),

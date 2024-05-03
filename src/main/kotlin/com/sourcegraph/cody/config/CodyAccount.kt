@@ -6,11 +6,12 @@ import com.intellij.util.xmlb.annotations.Property
 import com.intellij.util.xmlb.annotations.Tag
 import com.sourcegraph.cody.auth.ServerAccount
 import com.sourcegraph.config.ConfigUtil
+import java.io.File
 
 @Tag("account")
 data class CodyAccount(
     @NlsSafe @Attribute("name") override var name: String = "",
-    @Attribute("displayName") var displayName: String? = null,
+    @Attribute("displayName") var displayName: String? = name,
     @Property(style = Property.Style.ATTRIBUTE, surroundWithTag = false)
     override val server: SourcegraphServerPath =
         SourcegraphServerPath.from(ConfigUtil.DOTCOM_URL, ""),
@@ -21,18 +22,7 @@ data class CodyAccount(
 
   fun isEnterpriseAccount(): Boolean = isDotcomAccount().not()
 
-  override fun toString(): String = "$server/$name"
-
-  companion object {
-    fun create(
-        username: String,
-        displayName: String?,
-        server: SourcegraphServerPath,
-        id: String = generateId(),
-    ): CodyAccount {
-      return CodyAccount(username, displayName ?: username, server, id)
-    }
-  }
+  override fun toString(): String = File(server.toString(), name).path
 }
 
 fun Collection<CodyAccount>.getFirstAccountOrNull() =

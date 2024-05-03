@@ -16,6 +16,7 @@ import com.sourcegraph.cody.CodyToolWindowFactory
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
 import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.history.state.AccountData
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.LLMState
@@ -43,6 +44,9 @@ class SettingsMigration : Activity {
     RunOnceUtil.runOnceForProject(project, "CodyHistoryLlmMigration") { migrateLlms(project) }
     RunOnceUtil.runOnceForProject(project, "CodyConvertUrlToCodebaseName") {
       migrateUrlsToCodebaseNames(project)
+    }
+    RunOnceUtil.runOnceForProject(project, "CodyAccountHistoryMigration") {
+      organiseChatsByAccount(project)
     }
     RunOnceUtil.runOnceForApp("CodyApplicationSettingsMigration") { migrateApplicationSettings() }
     RunOnceUtil.runOnceForApp("ToggleCodyToolWindowAfterMigration") {
@@ -215,7 +219,7 @@ class SettingsMigration : Activity {
       progressIndicator: EmptyProgressIndicator,
   ) {
     loadUserDetails(requestExecutorFactory, accessToken, progressIndicator, server) {
-      addAccount(project, CodyAccount.create(it.name, it.displayName, server, it.id), accessToken)
+      addAccount(project, CodyAccount(it.name, it.displayName, server, it.id), accessToken)
     }
   }
 
@@ -227,7 +231,7 @@ class SettingsMigration : Activity {
       progressIndicator: EmptyProgressIndicator,
   ) {
     loadUserDetails(requestExecutorFactory, accessToken, progressIndicator, server) {
-      val codyAccount = CodyAccount.create(it.name, it.displayName, server, it.id)
+      val codyAccount = CodyAccount(it.name, it.displayName, server, it.id)
       addAccount(project, codyAccount, accessToken)
       if (CodyAuthenticationManager.getInstance(project).hasNoActiveAccount())
           CodyAuthenticationManager.getInstance(project).setActiveAccount(codyAccount)
@@ -434,6 +438,23 @@ class SettingsMigration : Activity {
               .distinctBy { it.codebaseName }
               .toMutableList()
       enhancedContextState.remoteRepositories = remoteRepositories
+    }
+
+    fun organiseChatsByAccount(project: Project) {
+      val historyService = HistoryService.getInstance(project)
+      val historyState = historyService.state
+      historyState.chats.forEach { oldState ->
+        val accountId = oldState.accountId
+        if (accountId == null) return@forEach
+        val newState =
+            historyState.accountData.find { it.accountId == accountId }
+                ?: (AccountData(accountId).also { historyState.accountData += it })
+        newState.defaultLlm = historyState.defaultLlm
+        newState.defaultEnhancedContext = historyState.defaultEnhancedContext
+        if (newState.chats.find { it.internalId == oldState.internalId } == null) {
+          newState.chats.add(oldState)
+        }
+      }
     }
   }
 }

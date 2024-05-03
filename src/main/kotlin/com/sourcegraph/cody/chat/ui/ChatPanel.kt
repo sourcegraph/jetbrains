@@ -36,11 +36,12 @@ class ChatPanel(
           ModelUsage.CHAT,
           project,
           onSetSelectedItem = ::setLlmForAgentSession,
+          parentDialog = null,
           chatModelProviderFromState)
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)
 
-  private val contextView: EnhancedContextPanel = EnhancedContextPanel(project, chatSession)
+  private val contextView: EnhancedContextPanel = EnhancedContextPanel.create(project, chatSession)
 
   private val stopGeneratingButton =
       object : JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend)) {
@@ -75,7 +76,7 @@ class ChatPanel(
     promptPanel.focus()
   }
 
-  fun isEnhancedContextEnabled(): Boolean = contextView.isEnhancedContextEnabled.get()
+  fun isEnhancedContextEnabled(): Boolean = contextView.isEnhancedContextEnabled
 
   @RequiresEdt
   fun addOrUpdateMessage(message: ChatMessage, index: Int) {

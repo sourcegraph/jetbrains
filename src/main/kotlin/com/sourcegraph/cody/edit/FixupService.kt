@@ -7,8 +7,12 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.sourcegraph.cody.edit.sessions.DocumentCodeSession
+import com.sourcegraph.cody.edit.sessions.FixupSession
+import com.sourcegraph.cody.edit.sessions.TestCodeSession
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
+import java.util.concurrent.atomic.AtomicReference
 
 /** Controller for commands that allow the LLM to edit the code directly. */
 @Service(Service.Level.PROJECT)
@@ -17,20 +21,28 @@ class FixupService(val project: Project) : Disposable {
 
   private var activeSession: FixupSession? = null
 
-  // The last text the user typed in without saving it, for continuity.
-  private var lastPrompt: String = ""
+  // We only have one editing session at a time in JetBrains, for now.
+  // This reference ensures we only have one inline-edit dialog active at a time.
+  val currentEditPrompt: AtomicReference<EditCommandPrompt?> = AtomicReference(null)
 
   /** Entry point for the inline edit command, called by the action handler. */
   fun startCodeEdit(editor: Editor) {
-    if (isEligibleForInlineEdit(editor)) {
-      EditCommandPrompt(this, editor, "Edit Code with Cody").displayPromptUI()
-    }
+    if (!isEligibleForInlineEdit(editor)) return
+    cancelActiveSession()
+    currentEditPrompt.set(EditCommandPrompt(this, editor, "Edit Code with Cody"))
   }
 
   /** Entry point for the document code command, called by the action handler. */
   fun startDocumentCode(editor: Editor) {
     if (!isEligibleForInlineEdit(editor)) return
-    DocumentCodeSession(this, editor, editor.project ?: return, editor.document)
+    activeSession?.finish()
+    DocumentCodeSession(this, editor, editor.project ?: return)
+  }
+
+  /** Entry point for the test code command, called by the action handler. */
+  fun startTestCode(editor: Editor) {
+    if (!isEligibleForInlineEdit(editor)) return
+    TestCodeSession(this, editor, editor.project ?: return)
   }
 
   fun isEligibleForInlineEdit(editor: Editor): Boolean {
@@ -45,25 +57,43 @@ class FixupService(val project: Project) : Disposable {
     return true
   }
 
-  fun getLastPrompt(): String = lastPrompt
-
   fun getActiveSession(): FixupSession? = activeSession
 
   fun setActiveSession(session: FixupSession) {
     if (session == activeSession) return
-    clearActiveSession()
+    cancelActiveSession()
     activeSession = session
   }
 
-  fun clearActiveSession() {
-    if (activeSession != null) {
-      logger.warn("Setting new session when previous session is active: $activeSession")
+  // Fully cancels/retracts any current session.
+  fun cancelActiveSession() {
+    try {
+      activeSession?.finish()
+    } catch (x: Exception) {
+      logger.warn("Error while disposing session", x)
     }
+    clearActiveSession()
+  }
+
+  fun clearActiveSession() {
     activeSession = null
   }
 
   override fun dispose() {
-    activeSession?.let { Disposer.dispose(it) }
+    activeSession?.let {
+      try {
+        Disposer.dispose(it)
+      } catch (x: Exception) {
+        logger.warn("Error disposing session", x)
+      }
+    }
+    currentEditPrompt.get()?.let {
+      try {
+        Disposer.dispose(it)
+      } catch (x: Exception) {
+        logger.warn("Error disposing prompt", x)
+      }
+    }
   }
 
   companion object {

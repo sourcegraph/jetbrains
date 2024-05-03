@@ -1,17 +1,17 @@
 package com.sourcegraph.cody.initialization
 
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.Constraints
-import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.ex.EditorEventMulticasterEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
-import com.sourcegraph.cody.CodyFocusChangeListener
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.auth.SelectOneOfTheAccountsAsActive
 import com.sourcegraph.cody.config.SettingsMigration
 import com.sourcegraph.cody.config.ui.CheckUpdatesTask
+import com.sourcegraph.cody.listeners.CodyCaretListener
+import com.sourcegraph.cody.listeners.CodyDocumentListener
+import com.sourcegraph.cody.listeners.CodyFocusChangeListener
+import com.sourcegraph.cody.listeners.CodySelectionListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.config.CodyAuthNotificationActivity
 import com.sourcegraph.config.ConfigUtil
@@ -24,7 +24,6 @@ import com.sourcegraph.telemetry.TelemetryInitializerActivity
  *   compatibility.
  */
 class PostStartupActivity : StartupActivity.DumbAware {
-  private val logger = Logger.getInstance(PostStartupActivity::class.java)
 
   override fun runActivity(project: Project) {
     TelemetryInitializerActivity().runActivity(project)
@@ -34,43 +33,13 @@ class PostStartupActivity : StartupActivity.DumbAware {
     CheckUpdatesTask(project).queue()
     if (ConfigUtil.isCodyEnabled()) CodyAgentService.getInstance(project).startAgent(project)
     CodyStatusService.resetApplication(project)
-    CodyFocusChangeListener().runActivity(project)
     EndOfTrialNotificationScheduler.createAndStart(project)
-    initializeInlineEdits()
-  }
 
-  // TODO: This should go away (along with the feature flag) once Inline Edits are stable/released.
-  private fun initializeInlineEdits() {
-    ApplicationManager.getApplication().invokeLater {
-      if (ConfigUtil.isFeatureFlagEnabled("cody.feature.inline-edits")) {
-        try {
-          val actionManager = ActionManager.getInstance()
-          (actionManager.getAction("CodyEditorActions") as? DefaultActionGroup)?.apply {
-            pushFrontAction(actionManager, "cody.documentCodeAction", this)
-            pushFrontAction(actionManager, "cody.editCodeAction", this)
-          }
-        } catch (x: Exception) {
-          // We should still start up gracefully, so just log a warning.
-          logger.warn("Failed to initialize inline edits", x)
-        }
-      }
-    }
-  }
-
-  private fun pushFrontAction(
-      actionManager: ActionManager,
-      actionId: String,
-      group: DefaultActionGroup
-  ) {
-    try {
-      // We get called multiple times on startup, so make it idempotent.
-      actionManager.getAction(actionId)?.let {
-        if (!group.getChildren(null).contains(it)) {
-          group.add(it, Constraints.FIRST)
-        }
-      }
-    } catch (x: Exception) {
-      logger.warn("Failed to add action $actionId to group $group", x)
-    }
+    val multicaster = EditorFactory.getInstance().eventMulticaster as EditorEventMulticasterEx
+    val disposable = CodyAgentService.getInstance(project)
+    multicaster.addFocusChangeListener(CodyFocusChangeListener(project), disposable)
+    multicaster.addCaretListener(CodyCaretListener(project), disposable)
+    multicaster.addSelectionListener(CodySelectionListener(project), disposable)
+    multicaster.addDocumentListener(CodyDocumentListener(project), disposable)
   }
 }

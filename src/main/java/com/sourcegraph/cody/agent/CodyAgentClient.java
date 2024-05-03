@@ -2,12 +2,10 @@ package com.sourcegraph.cody.agent;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.sourcegraph.cody.agent.protocol.DebugMessage;
-import com.sourcegraph.cody.agent.protocol.EditTask;
-import com.sourcegraph.cody.agent.protocol.TextDocumentEditParams;
-import com.sourcegraph.cody.agent.protocol.WorkspaceEditParams;
+import com.sourcegraph.cody.agent.protocol.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +39,9 @@ public class CodyAgentClient {
   // Callback for the "textDocument/edit" request from the agent.
   @Nullable public Consumer<TextDocumentEditParams> onTextDocumentEdit;
 
+  // Callback for the "textDocument/show" request from the agent.
+  @Nullable Function<TextDocumentShowParams, Boolean> onTextDocumentShow;
+
   // Callback for the "workspace/edit" request from the agent.
   @Nullable public Consumer<WorkspaceEditParams> onWorkspaceEdit;
 
@@ -54,9 +55,41 @@ public class CodyAgentClient {
     return acceptOnEventThread("editTask/didDelete", onEditTaskDidDelete, params);
   }
 
+  @Nullable Consumer<Void> onRemoteRepoDidChange;
+
+  @JsonNotification("remoteRepo/didChange")
+  public void remoteRepoDidChange() {
+    if (onRemoteRepoDidChange != null) {
+      onRemoteRepoDidChange.accept(null);
+    }
+  }
+
+  @Nullable Consumer<RemoteRepoFetchState> onRemoteRepoDidChangeState;
+
+  @JsonNotification("remoteRepo/didChangeState")
+  public void remoteRepoDidChangeState(RemoteRepoFetchState state) {
+    if (onRemoteRepoDidChangeState != null) {
+      onRemoteRepoDidChangeState.accept(state);
+    }
+  }
+
+  @Nullable Consumer<Void> onIgnoreDidChange;
+
+  @JsonNotification("ignore/didChange")
+  public void ignoreDidChange() {
+    if (onIgnoreDidChange != null) {
+      onIgnoreDidChange.accept(null);
+    }
+  }
+
   @JsonRequest("textDocument/edit")
   public CompletableFuture<Void> textDocumentEdit(TextDocumentEditParams params) {
     return acceptOnEventThread("textDocument/edit", onTextDocumentEdit, params);
+  }
+
+  @JsonRequest("textDocument/show")
+  public CompletableFuture<Boolean> textDocumentShow(TextDocumentShowParams params) {
+    return acceptOnEventThread("textDocument/show", onTextDocumentShow, params);
   }
 
   @JsonRequest("workspace/edit")
@@ -69,16 +102,15 @@ public class CodyAgentClient {
    * helper for handlers that require access to the IntelliJ editor, for example to read the text
    * contents of the open editor.
    */
-  private <T> @NotNull CompletableFuture<Void> acceptOnEventThread(
-      String name, @Nullable Consumer<T> callback, T params) {
-    CompletableFuture<Void> result = new CompletableFuture<>();
+  private <T, R> @NotNull CompletableFuture<R> acceptOnEventThread(
+      String name, @Nullable Function<T, R> callback, T params) {
+    CompletableFuture<R> result = new CompletableFuture<>();
     ApplicationManager.getApplication()
         .invokeLater(
             () -> {
               try {
                 if (callback != null) {
-                  callback.accept(params);
-                  result.complete(null);
+                  result.complete(callback.apply(params));
                 } else {
                   result.completeExceptionally(new Exception("No callback registered for " + name));
                 }
@@ -87,6 +119,18 @@ public class CodyAgentClient {
               }
             });
     return result;
+  }
+
+  private <T> @NotNull CompletableFuture<Void> acceptOnEventThread(
+      String name, @Nullable Consumer<T> callback, T params) {
+    Function<T, Void> fun =
+        callback == null
+            ? null
+            : t -> {
+              callback.accept(params);
+              return null;
+            };
+    return acceptOnEventThread(name, fun, params);
   }
 
   // Webviews

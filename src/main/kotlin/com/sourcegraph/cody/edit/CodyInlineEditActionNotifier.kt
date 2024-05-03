@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.edit
 
 import com.intellij.util.messages.Topic
+import com.sourcegraph.cody.edit.sessions.FixupSession
 
 /** Pubsub interface shared by all inline edit notifications that accept a FixupSession. */
 interface CodyInlineEditActionNotifier {
@@ -11,7 +12,6 @@ interface CodyInlineEditActionNotifier {
   fun afterAction(context: Context)
 
   companion object {
-    /** Sent once we have established the selection range, after fetching folding ranges. */
     @JvmStatic
     @Topic.ProjectLevel
     val TOPIC_FOLDING_RANGES =
@@ -31,24 +31,34 @@ interface CodyInlineEditActionNotifier {
         Topic.create(
             "Sourcegraph Cody: Accept lens shown", CodyInlineEditActionNotifier::class.java)
 
-    /** Sent when the user selects the Undo action and the edits are discarded. */
     @JvmStatic
     @Topic.ProjectLevel
     val TOPIC_PERFORM_UNDO =
         Topic.create("Sourcegraph Cody: Undo Inline Edit", CodyInlineEditActionNotifier::class.java)
 
-    /** Sent when the user performs the Accept action and the edits are kept. */
     @JvmStatic
     @Topic.ProjectLevel
     val TOPIC_PERFORM_ACCEPT =
         Topic.create(
             "Sourcegraph Cody: Accept Inline Edit", CodyInlineEditActionNotifier::class.java)
 
-    /** Sent after a workspace/edit is applied. */
+    @JvmStatic
+    @Topic.ProjectLevel
+    val TOPIC_PERFORM_CANCEL =
+        Topic.create(
+            "Sourcegraph Cody: Cancel Inline Edit", CodyInlineEditActionNotifier::class.java)
+
     @JvmStatic
     @Topic.ProjectLevel
     val TOPIC_WORKSPACE_EDIT =
         Topic.create(
-            "Sourcegraph Cody: Inline Edit completed", CodyInlineEditActionNotifier::class.java)
+            "Sourcegraph Cody: workspace/edit completed", CodyInlineEditActionNotifier::class.java)
+
+    @JvmStatic
+    @Topic.ProjectLevel
+    val TOPIC_TEXT_DOCUMENT_EDIT =
+        Topic.create(
+            "Sourcegraph Cody: textDocument/edit completed",
+            CodyInlineEditActionNotifier::class.java)
   }
 }

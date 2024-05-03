@@ -19,9 +19,12 @@
     - [ ] [Read chat history without interruptions](#read-chat-history-without-interruptions)
     - [ ] [Organize multiple chats](#organize-multiple-chats)
     - [ ] [Isolate multiple chats](#isolate-multiple-chats)
+    - [ ] [Up Down Arrow Keys](#up-down-arrow-keys)
+- Inline Edit
+    - [ ] [Instructions dialog](#instructions-dialog)
 - Multi-repo context
-    - [] [Free/pro accounts:](#freepro-accounts)
-    - [] [Enterprise accounts:](#enterprise-accounts)
+    - [ ] [Free/pro accounts:](#freepro-accounts)
+    - [ ] [Enterprise accounts:](#enterprise-accounts)
 - Sourcegraph Code Search
     - [ ] [Find with Sourcegraph...](#find-with-sourcegraph)
     - [ ] [Search Selection on Sourcegraph Web](#search-selection-on-sourcegraph-web)
@@ -42,6 +45,8 @@
     - [ ] [Free Account](#free-account)
     - [ ] [Pro Account after trial](#pro-account-after-trial)
     - [ ] [Enterprise account](#enterprise-account)
+- Inline Edit
+    - [ ] [Show Diff](#show-diff)
 
 ## Onboarding
 
@@ -303,6 +308,112 @@ You should also be able to switch between accounts while tokens are still being 
 
 Note: It's important to test performance on large repos here.
 
+#### Up Down arrow keys
+
+1. Start new chat
+2. Submit message "Hello". Confirm you get a reply and that the chat input is empty.
+3. Press `Up` arrow. Confirm that the chat input is populated with the message "Hello".
+4. Empty chat input and type multiline message "A\n\nB"
+5. Press `Up` arrow. Confirm that the caret is positioned in the empty line between A and B.
+
+## Inline Edit
+
+### Instructions Dialog
+
+Unless otherwise specified, all tests for the dialog begin with
+
+1. Open any source file.
+2. Right-click in the file to bring up the code context menu.
+   - alternatively, position your caret in the editor and type ctrl+shift+enter
+3. Choose Cody, then Edit Code. Confirm that the dialog appears.
+
+All tests involving prompt history should end with
+
+1. Close and reopen the current Project to clear prompt history.
+
+#### Appearance and behavior
+
+1. Open the dialog and check its position.
+  -  Dialog should always appear beneath the line you chose/clicked on.
+  -  The horizontal position of the dialog is always the same, indented a bit from the left edge.
+  -  Dialog always remains floating on top of the IDE and is not obsured by other IDE windows.
+2. Observe the dialog's appearance.
+  -  Dialog has rounded corners.
+3. Switch IDE themes by going to Settings and choosing a new theme.
+  -  Dialog's colors should change to match the new theme.
+4. Check the dialog's mouse interaction and modality:
+  -  Dialog is non-modal and you can put the focus back into the IDE without closing it.
+  -  Dialog can be dragged by clicking and dragging in the "title bar" area.
+  -  Dialog can be resized by carefully positioning the cursor at the corners and dragging.
+5. Close the dialog, and press Ctrl+Shift+Enter (Command+Shift+Enter on Mac)
+  - Dialog should appear, just as if it had been opened with the context menu
+
+#### Layout
+
+1. Open the dialog and check the layout.
+  - The file path suffix is displayed, truncated with ellipsis if needed.
+  - The instructions field is empty and is displaying the "ghost text" help.
+  - The history widget is not shown in the bottom center.
+  - The Edit Code button is initially disabled.
+2. Type some non-whitespace text into the text field.
+   - The Edit Code button is enabled.
+3. Delete all the text in the text field.
+   - The Edit Code button is disabled.
+4. Click the expansion icon at the right of the text field.
+  - The text field expands to allow more of your instructions to be visible.
+  - You can collapse it to return to the regular view.
+
+#### File Path
+
+1. Open a project file with a pathname of 80+ characters, then the Instructions dialog.
+   - The tail end of the path should be displayed, with the first part replaced with "…".
+2. Hover over the truncated file path.
+   - It should pop up a tooltip with the full/absolute file path.
+
+#### Closing
+
+1. Press the ESC key while the dialog has the focus.
+   - Dialog should always close, no matter which component in the dialog has the focus.
+2. Mouse-click the "[esc] to cancel" label in the lower left.
+   - Dialog should close.
+3. Close the editor tab from which the dialog was opened.
+   - Dialog should close along with the tab.
+4. With text in the instructions field, press the OS-specific hotkey shown next to Edit Code.
+  - The dialog should close and initiate an Edit request.
+
+#### History
+
+1. Type "one" into the text field (or anything you like as the first history item).
+2. Click Edit Code to submit the edit command, which closes the dialog.
+   - Then cancel the running command with the Cancel code lens.
+3. Reopen the instructions dialog anywhere in the document (or even another tab).
+   - The text field should now contain the text "one".
+   - The `↑↓ for history` label should now appear at the bottom of the dialog.
+   - Typing the up/down the arrows at this point only moves the cursor.
+4. Replace the text with "two", then oncce again Edit Code, cancel op, and reopen dialog.
+   - Text field contents should now be "two".
+   - Up/down arrows should cycle between "one" and "two".
+5. Type "my long instruction" into the text field. (Anything longer than 10 characters.)
+   - Up-arrow should take you to the most recent history item.
+   - Cycling the arrows, you should now also find "my long instruction" in the history.
+
+#### Model dropdown
+
+1. Click the model dropdown.
+  - Ensure that it shows the same models as the dropdown in the Chat window.
+  
+### Code Lenses
+
+1. Open Inline Edit, enter a valid instruction such as "add comment", and press Edit Code.
+2. While the Cancel lens group is showing, hover over the lens.
+3. While the Accept group is showing, hover over Accept, Retry, Undo, and Diff.
+4. Go through each lens above and, with a fresh instruction, type the key sequence.
+
+#### Expected behavior
+
+1. Each Action should have a valid tooltip.
+2. Typing that action's advertised key sequence activates the lens.
+
 ## Multi-repo context
 
 ### Free/pro accounts:
@@ -321,9 +432,10 @@ Note: It's important to test performance on large repos here.
 
 1. Open `sourcegraph/cody` project with enterprise account.
 2. Re-do all check from `Testing free/pro accounts` section but now with enterprise account.
-3. Click [+] button in the context panel and type sourcegraph repo url (`github.com/sourcegraph/sourcegraph`)
+3. Click [✏️] button in the context panel and type sourcegraph repo url (`github.com/sourcegraph/sourcegraph`)
     - Validator should block accepting incomplete or invalid URL.
-    - Add the `sourcegraph/sourcegraph` repo by hitting Add button.
+    - Validator should highlight any repos added past a list of 10.
+    - Add the `sourcegraph/sourcegraph` repo by hitting [CMD + Enter] (mac) [CTRL + ENTER] (windows) .
 4. Open new chat and ask question about squirrel - assistant should describe you an HTTP server, **NOT** animal.
 5. Open new chat and disable `sourcegraph/sourcegraph` remote repo context.
 7. Ask question about squirrel. It should again describe you an animal or have no context.
@@ -331,8 +443,7 @@ Note: It's important to test performance on large repos here.
     - Go to Chat History tab and open previous chats one by one. Check if both history and context settings are properly
       preserved.
     - Open new chat and check if it properly inherits all setting from previously opened historical chat
-    - If `sourcegraph/sourcegraph` repo was previously added please remove it by selecting it, and then clicking [-]
-      button.
+    - If `sourcegraph/sourcegraph` repo was previously added please remove it clicking the [✏️] (pencil) icon and removing the 'sourcegraph/sourcegraph' line
     - Ask question about squirrel. It should again describe you an animal or have no context.
 
 ## Code Search
@@ -444,7 +555,7 @@ To open the context menu:
 1. Login to Cody Pro account
 2. Create new chat
 3. Default model for new Pro users is Claude 3 Sonnet
-   - Default model for existing Pro users is their previously selected model
+    - Default model for existing Pro users is their previously selected model
 4. User is able to change default LLM
 5. Change model to ChatGPT 4
 6. Send message
@@ -453,7 +564,7 @@ To open the context menu:
 8. Change account to different one and then back to your pro account
 9. Open `What model are you?` chat from the history
 10. Send again message
-   > What model are you?
+> What model are you?
 11. User should again get the response that model is ChatGPT
 
 #### Commands
@@ -531,3 +642,59 @@ Repeat the above starting from different themes.
 #### Expected behaviour
 
 Changing theme should lead to full repaint of the colours according to the current theme.
+
+## Inline Edit
+
+Select some code and right-click on it. Got to `Cody > Edit Code`.
+Write a prompt and click "OK".
+
+### Show Diff
+
+The "Show Diff" feature should present two sides:
+- Right-Hand Side: This should display the current state of the editor, including all changes made by Cody and any user edits.
+- Left-Hand Side: This should display the state of the editor including all user changes made at various stages:
+  - Before triggering Cody's inline edit.
+  - After triggering Cody's inline edit but before Cody started writing.
+  - While Cody is writing (before Cody finished).
+  - After Cody has finished writing.
+
+In other words, the left-hand side should show the right hand side WITHOUT Cody Inline Edit changes. 
+
+#### Scenario 1: User Adds/Removes a Line Above the Selected Area Before Triggering the Inline Edit
+
+**Steps**:
+1. Above the area that you want to apply the inline edit, add or remove one or more lines.
+2. Trigger the `Cody Inline Edit`.
+3. Trigger the `Show Diff`.
+
+#### Scenario 2: User Adds/Removes a Line Above the Selected Area After Triggering the Inline Edit But Before Cody Starts Writing
+
+**Steps**:
+1. Trigger the `Cody Inline Edit`.
+2. Before Cody starts writing, add or remove lines above the selected area.
+3. Allow Cody to complete its edits.
+4. Activate the `Show Diff`.
+
+#### Scenario 3: User Adds/Removes a Line Above the Selected Area After Cody Starts Writing But Before It Finishes
+
+**Steps**:
+1. Trigger the `Cody Inline Edit`.
+2. While Cody is writing, add or remove lines above the targeted edit area.
+3. Allow Cody to complete its edits.
+4. Trigger the `Show Diff`.
+
+#### Scenario 4: User Adds/Removes a Line Above the Selected Area After Cody Finishes Writing
+
+**Steps**:
+1. Trigger the `Cody Inline Edit`.
+2. After Cody's edits are done, add or remove lines above the edited area.
+3. Trigger the `Show Diff`.
+
+#### Scenario 5: Scenarios 1, 2, 3, 4 But With Lines Addition/Removal Between the Inline Edit Changed lines
+
+`Inline Edit` can modify some particular line in the selected "target" area but leave the other lines unchanged (in that area). 
+The changes to the lines unmodified by Cody should not be reflected in the `Show Diff`.
+
+#### Scenario 6: Scenarios 1, 2, 3, 4 But With Lines Addition/Removal After the Inline Edit Changed lines
+
+Similarly, the changes after the selected "target" area should not be reflected in the `Show Diff`.
