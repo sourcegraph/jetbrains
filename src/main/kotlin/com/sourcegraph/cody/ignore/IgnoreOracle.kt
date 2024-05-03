@@ -4,6 +4,8 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.containers.SLRUMap
@@ -124,6 +126,17 @@ class IgnoreOracle(private val project: Project) {
           }
       synchronized(cache) { cache.put(uri, policy) }
       policy
+    }
+  }
+
+  /** Like `policyForUri(String)` but fetches the uri from the passed Editor's Document. */
+  fun policyForEditor(editor: Editor): IgnorePolicy? {
+    val url = FileDocumentManager.getInstance().getFile(editor.document)?.url ?: return null
+    val completable = policyForUri(url)
+    return try {
+      completable.get(16, TimeUnit.MILLISECONDS)
+    } catch (timedOut: TimeoutException) {
+      null
     }
   }
 

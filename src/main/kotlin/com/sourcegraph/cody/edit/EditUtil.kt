@@ -1,7 +1,15 @@
 package com.sourcegraph.cody.edit
 
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.project.Project
+import com.sourcegraph.cody.ignore.IgnoreOracle
+import com.sourcegraph.cody.ignore.IgnorePolicy
 import com.sourcegraph.config.ThemeUtil
 import java.awt.Color
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import javax.swing.AbstractButton
 import javax.swing.JButton
 import javax.swing.JComponent
@@ -10,6 +18,7 @@ import javax.swing.JPanel
 import javax.swing.UIManager
 
 object EditUtil {
+  private val logger = Logger.getInstance(EditUtil::class.java)
 
   // Puts `name` as a client property on a component.
   // This can be very useful for debugging mouse, keyboard and focus issues,
@@ -89,6 +98,30 @@ object EditUtil {
       color
     } else {
       color.darker()
+    }
+  }
+
+  /**
+   * Return true if the currently selected text editor for `project` is
+   * visiting a file that is currently ignored by CodyIgnore.
+   */
+  fun currentlySelectedFileIsIgnored(project: Project?): Boolean {
+    if (project == null || project.isDisposed) {
+      return false
+    }
+    val editor = FileEditorManager.getInstance(project).selectedTextEditor
+    if (editor == null || editor.isDisposed) {
+      return false
+    }
+    val virtualFileUrl =
+            FileDocumentManager.getInstance().getFile(editor.document)?.url ?: return false
+    return try {
+      val policy =
+              IgnoreOracle.getInstance(project).policyForUri(virtualFileUrl).get(30, TimeUnit.SECONDS)
+      policy == IgnorePolicy.IGNORE
+    } catch (x: TimeoutException) {
+      logger.warn("Timed out getting ignore policy for $virtualFileUrl", x)
+      false
     }
   }
 }
