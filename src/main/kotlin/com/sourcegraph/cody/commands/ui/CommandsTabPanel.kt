@@ -94,12 +94,10 @@ class CommandsTabPanel(
     }
     when (policy) {
       IgnorePolicy.USE -> {
-        //remove(ignoreBanner)
-        ignoreBanner.isVisible = false
+        remove(ignoreBanner)
       }
       IgnorePolicy.IGNORE -> {
-        //add(ignoreBanner, 0)
-        ignoreBanner.isVisible = true
+        add(ignoreBanner, 0)
       }
     }
     revalidate()
