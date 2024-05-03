@@ -11,6 +11,7 @@ import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.ui.JBUI
 import com.intellij.vcs.commit.NonModalCommitPanel.Companion.showAbove
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.chat.ChatSession
@@ -22,6 +23,7 @@ import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.vcs.CodebaseName
+import java.awt.Color
 import java.awt.Dimension
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -136,8 +138,9 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
   }
 
   init {
-    layout = VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, false)
+    layout = VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, true)
     tree.model = treeModel
+
   }
 
   /** Creates the component with the enhanced context panel UI. */
@@ -165,6 +168,7 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
         })
 
     add(panel)
+    panel.border = JBUI.Borders.empty(0, 2);
   }
 
   /**

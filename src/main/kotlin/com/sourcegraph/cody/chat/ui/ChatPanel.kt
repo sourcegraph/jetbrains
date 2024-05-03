@@ -3,6 +3,7 @@ package com.sourcegraph.cody.chat.ui
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
+import com.intellij.ui.OnePixelSplitter
 import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.PromptPanel
@@ -20,6 +21,7 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
+import java.awt.Color
 import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JPanel
@@ -29,6 +31,10 @@ class ChatPanel(
     val chatSession: ChatSession,
     chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?
 ) : JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
+
+  private val bottomSplitter = OnePixelSplitter(true, )
+  private val chatSplitter = OnePixelSplitter(true, )
+
 
   val promptPanel: PromptPanel = PromptPanel(project, chatSession)
   private val llmDropdown =
@@ -55,20 +61,29 @@ class ChatPanel(
 
   init {
     layout = BorderLayout()
-    border = BorderFactory.createEmptyBorder(0, 0, 0, 10)
-    add(chatPanel, BorderLayout.CENTER)
+    border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
 
-    val lowerPanel = JPanel(VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 10, 10, true, false))
-    lowerPanel.add(stopGeneratingButton)
-    lowerPanel.add(promptPanel)
-    lowerPanel.add(contextView)
+    val topWrapper = JPanel(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true))
+      topWrapper.add(llmDropdown)
+      topWrapper.add(chatPanel)
 
-    val wrapper = JPanel()
-    wrapper.add(llmDropdown)
-    wrapper.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 12, 12, true, false)
+    val promptGroup = JPanel(VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, false))
+      promptGroup.add(stopGeneratingButton)
+      promptGroup.add(promptPanel)
 
-    add(lowerPanel, BorderLayout.SOUTH)
-    add(wrapper, BorderLayout.NORTH)
+    val bottomWrapper = JPanel(VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, true))
+      bottomSplitter.firstComponent = promptPanel
+      bottomSplitter.secondComponent = contextView
+      bottomWrapper.add(bottomSplitter)
+
+    chatSplitter.firstComponent = topWrapper
+    chatSplitter.secondComponent = bottomWrapper
+
+    add(chatSplitter, BorderLayout.CENTER)
+
+    //debug
+    //bottomWrapper.border = BorderFactory.createLineBorder(Color.RED, 1)
+   // topWrapper.border = BorderFactory.createLineBorder(Color.PINK, 1)
   }
 
   fun setAsActive() {
