@@ -9,10 +9,14 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.messages.MessageBusConnection
 import com.sourcegraph.cody.edit.sessions.DocumentCodeSession
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.cody.edit.sessions.TestCodeSession
 import com.sourcegraph.cody.ignore.ActionInIgnoredFileNotification
+import com.sourcegraph.cody.ignore.IgnoreMessageBus
+import com.sourcegraph.cody.ignore.IgnoreMessageBus.Companion.TOPIC_IGNORE_POLICY_UPDATE
+import com.sourcegraph.cody.ignore.IgnoreMessageBusAdapter
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.ignore.IgnorePolicy
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
@@ -29,6 +33,23 @@ class FixupService(val project: Project) : Disposable {
   // We only have one editing session at a time in JetBrains, for now.
   // This reference ensures we only have one inline-edit dialog active at a time.
   val currentEditPrompt: AtomicReference<EditCommandPrompt?> = AtomicReference(null)
+
+  private val connection: MessageBusConnection
+
+  private var lastCodyIgnoreUserNotification: Long = 0
+
+  init {
+    connection =
+        project.messageBus.connect().apply {
+          subscribe(
+              TOPIC_IGNORE_POLICY_UPDATE,
+              object : IgnoreMessageBusAdapter() {
+                override fun afterAction(context: IgnoreMessageBus.Context) {
+                  handlePolicyChange(context)
+                }
+              })
+        }
+  }
 
   /** Entry point for the inline edit command, called by the action handler. */
   fun startCodeEdit(editor: Editor) {
@@ -97,6 +118,20 @@ class FixupService(val project: Project) : Disposable {
     activeSession = null
   }
 
+  private fun handlePolicyChange(context: IgnoreMessageBus.Context) {
+    if (context.policy != IgnorePolicy.IGNORE) return
+
+    // Try not to spam the user with the same message.
+    val now = System.currentTimeMillis()
+    if (lastCodyIgnoreUserNotification + NOTIFICATION_DEBOUNCE_MILLIS > now) return
+
+    currentEditPrompt.get()?.dispose()
+    cancelActiveSession()
+    ActionInIgnoredFileNotification().notify(project)
+
+    lastCodyIgnoreUserNotification = now
+  }
+
   override fun dispose() {
     activeSession?.let {
       try {
@@ -112,9 +147,12 @@ class FixupService(val project: Project) : Disposable {
         logger.warn("Error disposing prompt", x)
       }
     }
+    connection.disconnect()
   }
 
   companion object {
+    private const val NOTIFICATION_DEBOUNCE_MILLIS = 1000L * 10
+
     @JvmStatic
     fun getInstance(project: Project): FixupService {
       return project.service<FixupService>()

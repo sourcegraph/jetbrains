@@ -102,8 +102,8 @@ object EditUtil {
   }
 
   /**
-   * Return true if the currently selected text editor for `project` is
-   * visiting a file that is currently ignored by CodyIgnore.
+   * Return true if the currently selected text editor for `project` is visiting a file that is
+   * currently ignored by CodyIgnore.
    */
   fun currentlySelectedFileIsIgnored(project: Project?): Boolean {
     if (project == null || project.isDisposed) {
@@ -114,10 +114,10 @@ object EditUtil {
       return false
     }
     val virtualFileUrl =
-            FileDocumentManager.getInstance().getFile(editor.document)?.url ?: return false
+        FileDocumentManager.getInstance().getFile(editor.document)?.url ?: return false
     return try {
       val policy =
-              IgnoreOracle.getInstance(project).policyForUri(virtualFileUrl).get(30, TimeUnit.SECONDS)
+          IgnoreOracle.getInstance(project).policyForUri(virtualFileUrl).get(30, TimeUnit.SECONDS)
       policy == IgnorePolicy.IGNORE
     } catch (x: TimeoutException) {
       logger.warn("Timed out getting ignore policy for $virtualFileUrl", x)
