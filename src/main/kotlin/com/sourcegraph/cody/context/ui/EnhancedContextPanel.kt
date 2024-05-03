@@ -176,7 +176,7 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
    */
   @RequiresEdt
   protected fun resize() {
-    val padding = 5
+    val padding = 10
     // Set the minimum size to accommodate at least one toolbar button and an overflow ellipsis.
     // Because the buttons
     // are approximately square, use the toolbar width as a proxy for the button height.
@@ -247,6 +247,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
     treeRoot.add(contextRoot)
     treeModel.reload()
+    tree.border = JBUI.Borders.empty(6, 0, 0, 0)
+
     resize()
 
     // Update the extension-side state for this chat.
