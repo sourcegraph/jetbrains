@@ -36,12 +36,16 @@ class LensGroupFactory(val session: FixupSession) {
     }
   }
 
-  fun createErrorGroup(tooltip: String, isDocumentCode: Boolean = false): LensWidgetGroup {
+  fun createErrorGroup(
+      message: String, // The message to show in the error lens; should be short.
+      tooltip: String? = null  // Can show more detail here.
+  ): LensWidgetGroup {
     return LensWidgetGroup(session, session.editor).apply {
       addLogo(this)
       addErrorIcon(this)
-      val verb = if (isDocumentCode) "document" else "edit"
-      addLabel(this, "Cody failed to $verb this code").apply { hoverText = tooltip }
+      if (tooltip != null) {
+        addLabel(this, message).apply { hoverText = tooltip }
+      }
       addSeparator(this)
       addAction(this, "Dismiss", FixupSession.ACTION_DISMISS)
       addSeparator(this)

@@ -81,8 +81,6 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
 
   private val offset = editor.caretModel.primaryCaret.offset
 
-  private val escapeKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0)
-
   private var connection: MessageBusConnection? = null
 
   private val isDisposed: AtomicBoolean = AtomicBoolean(false)
@@ -98,6 +96,8 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
         // Others: Control+Enter
         KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK)
       }
+
+  private val escapeKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0)
 
   private val okButton =
       namedButton("ok-button").apply {
@@ -536,9 +536,10 @@ class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialog
     val text = instructionsField.text
     if (text.isNotBlank()) {
       promptHistory.add(text)
-      val project = editor.project
-      // TODO: How do we show user feedback when an error like this happens?
-      if (project == null) {
+      if (editor.project == null) {
+        controller
+                .getActiveSession()
+                ?.displayError("Error initiating Code Edit", "Could not find current Project")
         logger.warn("Project was null when trying to add an edit session")
         return
       }

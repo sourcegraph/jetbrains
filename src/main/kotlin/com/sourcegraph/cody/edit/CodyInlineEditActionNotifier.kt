@@ -33,6 +33,12 @@ interface CodyInlineEditActionNotifier {
 
     @JvmStatic
     @Topic.ProjectLevel
+    val TOPIC_DISPLAY_ERROR_GROUP =
+            Topic.create(
+                    "Sourcegraph Cody: Error lens shown", CodyInlineEditActionNotifier::class.java)
+
+    @JvmStatic
+    @Topic.ProjectLevel
     val TOPIC_PERFORM_UNDO =
         Topic.create("Sourcegraph Cody: Undo Inline Edit", CodyInlineEditActionNotifier::class.java)
 
