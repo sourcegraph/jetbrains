@@ -6,7 +6,7 @@ import java.awt.FontMetrics
 import java.awt.Graphics2D
 
 @Suppress("UseJBColor")
-class LensHotkey(group: LensWidgetGroup, private val text: String) : LensLabel(group, text) {
+class LensHotkey(group: LensWidgetGroup, text: String) : LensLabel(group, text) {
 
   private val hotkeyHighlightColor = Color(49, 51, 56) // TODO: Put this in resources
 

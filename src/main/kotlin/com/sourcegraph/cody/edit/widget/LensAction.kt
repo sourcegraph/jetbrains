@@ -22,7 +22,7 @@ import javax.swing.UIManager
 class LensAction(
     val group: LensWidgetGroup,
     private val text: String,
-    private val actionId: String
+    val actionId: String
 ) : LensWidget(group) {
 
   private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)

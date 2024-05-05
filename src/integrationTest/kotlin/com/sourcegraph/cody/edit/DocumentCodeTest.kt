@@ -9,14 +9,15 @@ import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.util.messages.Topic
+import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.cody.edit.widget.LensAction
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
+import org.mockito.Mockito.mock
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import org.mockito.Mockito.mock
 
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)
@@ -117,22 +118,22 @@ class DocumentCodeTest : BasePlatformTestCase() {
     assertNotNull(
         "Lens group should contain Accept action",
         widgets.find { widget ->
-          widget is LensAction && widget.command == FixupSession.COMMAND_ACCEPT
+          widget is LensAction && widget.actionId == FixupSession.ACTION_ACCEPT
         })
     assertNotNull(
         "Lens group should contain Show Diff action",
         widgets.find { widget ->
-          widget is LensAction && widget.command == FixupSession.COMMAND_DIFF
+          widget is LensAction && widget.actionId == FixupSession.ACTION_DIFF
         })
     assertNotNull(
         "Lens group should contain Show Undo action",
         widgets.find { widget ->
-          widget is LensAction && widget.command == FixupSession.COMMAND_UNDO
+          widget is LensAction && widget.actionId == FixupSession.ACTION_UNDO
         })
     assertNotNull(
         "Lens group should contain Show Retry action",
         widgets.find { widget ->
-          widget is LensAction && widget.command == FixupSession.COMMAND_RETRY
+          widget is LensAction && widget.actionId == FixupSession.ACTION_RETRY
         })
 
     // Make sure a doc comment was inserted.
