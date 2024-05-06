@@ -26,9 +26,9 @@ class RoundedJBTextArea(minRows: Int, private val cornerRadius: Int) : JBTextAre
             (this.height - 1).toFloat(),
             cornerRadius.toFloat(),
             cornerRadius.toFloat())
-    g2.color = JBColor.namedColor("background")
+    g2.color = JBColor.namedColor("Editor.SearchField.background")
     g2.fill(roundRect)
-    g2.color = JBColor.namedColor("background")
+    g2.color = JBColor.namedColor("Editor.SearchField.background")
     g2.draw(roundRect)
     g2.dispose()
     super.paintComponent(g)

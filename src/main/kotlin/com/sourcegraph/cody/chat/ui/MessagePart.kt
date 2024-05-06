@@ -20,6 +20,7 @@ sealed interface MessagePart
 class TextPart(val component: JEditorPane) : MessagePart {
   fun updateText(text: String) {
     SwingHelper.setHtml(component, text, null)
+      println(text)
   }
 }
 

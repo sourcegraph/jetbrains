@@ -76,11 +76,12 @@ class ChatPanel(
     // this wrapper is needed to apply padding. Can't apply padding directly to the promptPanel.
     // Also it makes it aligned with the default padding of the stopGeneratingButton
     val textAreaWrapper = JPanel(BorderLayout())
+    textAreaWrapper.background = JBColor.namedColor("Editor.SearchField.background")
     textAreaWrapper.border = BorderFactory.createEmptyBorder(4, 4, 0, 4)
     textAreaWrapper.add(promptPanel)
 
 
-    promptWrapper.background = Color.GREEN
+    promptWrapper.background = JBColor.namedColor("Editor.SearchField.background")
       promptWrapper.border = BorderFactory.createCompoundBorder(
             //adds separator at the top
             BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.border()),

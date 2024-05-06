@@ -4,6 +4,7 @@ import com.intellij.ide.ui.LafManagerListener
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.ui.ColorUtil
+import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.Speaker
@@ -30,14 +31,13 @@ open class PanelWithGradientBorder(private val gradientWidth: Int, speaker: Spea
 
   private fun computeLayout() {
     val panelBackground = UIUtil.getPanelBackground()
-    val separatorForeground = JBUI.CurrentTheme.CustomFrameDecorations.separatorForeground()
-    val topBorder: Border = BorderFactory.createMatteBorder(1, 0, 0, 0, separatorForeground)
-    val bottomBorder: Border =
-        BorderFactory.createMatteBorder(0, 0, 1, 0, ColorUtil.brighter(separatorForeground, 1))
-    val topAndBottomBorder: Border = BorderFactory.createCompoundBorder(topBorder, bottomBorder)
-    val emptyBorder = BorderFactory.createEmptyBorder(0, 0, 0, 0)
+    //val separatorForeground = JBUI.CurrentTheme.CustomFrameDecorations.separatorForeground()
+    //val topBorder: Border = BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.namedColor("borderColor"))
+    //val bottomBorder: Border = BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.namedColor("borderColor"))
+    //val topAndBottomBorder: Border = BorderFactory.createCompoundBorder(topBorder, bottomBorder)
+    //val emptyBorder = BorderFactory.createEmptyBorder(0, 0, 0, 0)
 
-    this.border = if (isHuman) emptyBorder else topAndBottomBorder
+   // this.border = if (isHuman) emptyBorder else topAndBottomBorder
     this.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, false)
     this.background = if (isHuman) ColorUtil.darker(panelBackground, 2) else panelBackground
   }
@@ -48,7 +48,7 @@ open class PanelWithGradientBorder(private val gradientWidth: Int, speaker: Spea
   }
 
   private fun paintLeftBorderGradient(g: Graphics) {
-    if (isHuman) return
+    if (!isHuman) return
     val halfOfHeight = height / 2
     val firstPartGradient =
         GradientPaint(0f, 0f, Colors.PURPLE, 0f, halfOfHeight.toFloat(), Colors.ORANGE)
