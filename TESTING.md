@@ -427,7 +427,7 @@ Ensure that if the file is ignored, no inline edits can be performed.
 3. Check the box to override for testing.
 4. Change the repo to match whatever repo the source file is in.
 5. Close the submenu.
-6. Click somewhere in the code and initiate an Inline Edit (control-shift-enter0
+6. Click somewhere in the code and initiate an Inline Edit (control-shift-enter)
 7. Observe that it tells you the file is ignored in a notification, and no Edit dialog appears.
 
 Ensure that if you have an active edit, an ignore update makes it go away.
