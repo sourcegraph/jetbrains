@@ -13,6 +13,7 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.TextRange
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
@@ -37,6 +38,7 @@ import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.utils.CodyEditorUtil
+import com.sourcegraph.utils.CodyFormatter
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
@@ -351,6 +353,20 @@ abstract class FixupSession(
           } catch (e: RuntimeException) {
             throw EditExecutionException(action, e)
           }
+        }
+
+        // TODO: Can selection range actually be null at this point?
+        selectionRange!!.let {
+          val tr = TextRange(it.start.toOffset(document), it.end.toOffset(document))
+          val input = document.getText(tr)
+          val formatted =
+              CodyFormatter.formatStringBasedOnDocument(
+                  input, project, document, tr, editor.caretModel.offset)
+          if (input.replace(Regex("\\s"), "") != formatted.replace(Regex("\\s"), "")) {
+            logger.error(
+                "Skipped internal formatting because the formatted text is different from the original text")
+          }
+          document.replaceString(tr.startOffset, tr.endOffset, formatted)
         }
 
         performedActions += currentActions
