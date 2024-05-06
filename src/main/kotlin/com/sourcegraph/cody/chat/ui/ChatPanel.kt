@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.PromptPanel
@@ -21,7 +22,9 @@ import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.vscode.CancellationToken
 import java.awt.BorderLayout
 import com.intellij.ui.JBColor
+import com.intellij.ui.JBColor.namedColor
 import com.jgoodies.forms.factories.Borders.EmptyBorder
+import java.awt.Color
 import java.awt.Dimension
 import java.awt.FlowLayout
 import javax.swing.BorderFactory
@@ -48,6 +51,7 @@ class ChatPanel(
           chatModelProviderFromState)
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)
+  private val promptWrapper = JBPanelWithEmptyText(BorderLayout())
 
   private val contextView: EnhancedContextPanel = EnhancedContextPanel.create(project, chatSession)
 
@@ -69,20 +73,23 @@ class ChatPanel(
     val contextContainer = JBScrollPane(contextView)
     contextContainer.border = BorderFactory.createEmptyBorder()
 
-      // this wrapper is needed to apply padding. Can't apply padding directly to the promptPanel.
-      // Also it makes it aligned with the default padding of the stopGeneratingButton
-      val textAreaWrapper = JPanel(BorderLayout())
-      textAreaWrapper.border = BorderFactory.createEmptyBorder(4, 4, 0, 4)
-      textAreaWrapper.add(promptPanel)
+    // this wrapper is needed to apply padding. Can't apply padding directly to the promptPanel.
+    // Also it makes it aligned with the default padding of the stopGeneratingButton
+    val textAreaWrapper = JPanel(BorderLayout())
+    textAreaWrapper.border = BorderFactory.createEmptyBorder(4, 4, 0, 4)
+    textAreaWrapper.add(promptPanel)
 
-    val promptWrapper = JPanel(BorderLayout())
-        promptWrapper.border = BorderFactory.createEmptyBorder(8, 4, 8, 4)
-        promptWrapper.border = BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.border()),
-                promptWrapper.border
-            )
+
+    promptWrapper.background = Color.GREEN
+      promptWrapper.border = BorderFactory.createCompoundBorder(
+            //adds separator at the top
+            BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.border()),
+            //adds padding
+            BorderFactory.createEmptyBorder(8, 4, 8, 4)
+        )
         promptWrapper.add(textAreaWrapper, BorderLayout.SOUTH)
         promptWrapper.add(stopGeneratingButton, BorderLayout.NORTH)
+
 
     val topWrapper = JPanel(BorderLayout())
       topWrapper.add(llmDropdown, BorderLayout.NORTH)

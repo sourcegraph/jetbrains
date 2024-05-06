@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.ui
 
 import com.intellij.ui.ColorUtil
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBTextArea
 import java.awt.Graphics
 import java.awt.Graphics2D
@@ -25,9 +26,9 @@ class RoundedJBTextArea(minRows: Int, private val cornerRadius: Int) : JBTextAre
             (this.height - 1).toFloat(),
             cornerRadius.toFloat(),
             cornerRadius.toFloat())
-    g2.color = background
+    g2.color = JBColor.namedColor("background")
     g2.fill(roundRect)
-    g2.color = ColorUtil.brighter(background, 4)
+    g2.color = JBColor.namedColor("background")
     g2.draw(roundRect)
     g2.dispose()
     super.paintComponent(g)
