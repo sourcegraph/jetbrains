@@ -27,7 +27,7 @@ class RoundedJBTextArea(minRows: Int, private val cornerRadius: Int) : JBTextAre
             cornerRadius.toFloat())
     g2.color = background
     g2.fill(roundRect)
-    g2.color = ColorUtil.brighter(background, 2)
+    g2.color = ColorUtil.brighter(background, 4)
     g2.draw(roundRect)
     g2.dispose()
     super.paintComponent(g)

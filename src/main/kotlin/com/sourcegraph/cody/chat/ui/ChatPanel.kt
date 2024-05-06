@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.PromptPanel
@@ -19,11 +20,14 @@ import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.vscode.CancellationToken
 import java.awt.BorderLayout
+import com.intellij.ui.JBColor
+import com.jgoodies.forms.factories.Borders.EmptyBorder
 import java.awt.Dimension
 import java.awt.FlowLayout
 import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JPanel
+
 
 class ChatPanel(
     val project: Project,
@@ -31,7 +35,6 @@ class ChatPanel(
     chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?
 ) : JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
 
-  private val bottomSplitter = OnePixelSplitter(true)
   private val chatSplitter = OnePixelSplitter(true, 0.9f)
 
 
@@ -52,38 +55,44 @@ class ChatPanel(
       object : JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend)) {
         init {
           isVisible = false
-          layout = FlowLayout(FlowLayout.CENTER)
+          layout = FlowLayout(FlowLayout.CENTER, 0, 0)
           minimumSize = Dimension(Short.MAX_VALUE.toInt(), 0)
           isOpaque = false
         }
       }
 
+
   init {
     layout = BorderLayout()
     border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
 
+    val contextContainer = JBScrollPane(contextView)
+    contextContainer.border = BorderFactory.createEmptyBorder()
 
-    val topWrapper = JPanel(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, true))
-      topWrapper.add(llmDropdown)
-      topWrapper.add(chatPanel)
+      // this wrapper is needed to apply padding. Can't apply padding directly to the promptPanel.
+      // Also it makes it aligned with the default padding of the stopGeneratingButton
+      val textAreaWrapper = JPanel(BorderLayout())
+      textAreaWrapper.border = BorderFactory.createEmptyBorder(4, 4, 0, 4)
+      textAreaWrapper.add(promptPanel)
 
-    val promptGroup = JPanel(VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, false))
-      promptGroup.add(stopGeneratingButton)
-      promptGroup.add(promptPanel)
+    val promptWrapper = JPanel(BorderLayout())
+        promptWrapper.border = BorderFactory.createEmptyBorder(8, 4, 8, 4)
+        promptWrapper.border = BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.border()),
+                promptWrapper.border
+            )
+        promptWrapper.add(textAreaWrapper, BorderLayout.SOUTH)
+        promptWrapper.add(stopGeneratingButton, BorderLayout.NORTH)
 
-    val bottomWrapper = JPanel(VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, true))
-      bottomSplitter.firstComponent = promptPanel
-      bottomSplitter.secondComponent = contextView
+    val topWrapper = JPanel(BorderLayout())
+      topWrapper.add(llmDropdown, BorderLayout.NORTH)
+      topWrapper.add(chatPanel, BorderLayout.CENTER)
+      topWrapper.add(promptWrapper, BorderLayout.SOUTH)
 
-      bottomWrapper.add(bottomSplitter)
 
     chatSplitter.firstComponent = topWrapper
-    chatSplitter.secondComponent = bottomWrapper
+    chatSplitter.secondComponent = contextContainer
     add(chatSplitter, BorderLayout.CENTER)
-
-    //Set minimum sizes
-    contextView.minimumSize = Dimension(bottomWrapper.width, 60)
-    bottomWrapper.minimumSize = Dimension(bottomWrapper.width, 200)
 
 
     //debug
