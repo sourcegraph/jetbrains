@@ -64,12 +64,12 @@ abstract class FixupSession(
   // The current lens group. Changes as the state machine proceeds.
   private var lensGroup: LensWidgetGroup? = null
 
-  var selectionRange: Range? = null
+  private var selectionRange: Range? = null
 
   // The prompt that the Agent used for this task. For Edit, it's the same as
   // the most recent prompt the user sent, which we already have. But for Document Code,
   // it enables us to show the user what we sent and let them hand-edit it.
-  var instruction: String? = null
+  private var instruction: String? = null
 
   private val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
 
