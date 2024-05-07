@@ -77,8 +77,8 @@ abstract class FixupSession(
   private val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
 
   private val defaultErrorText by lazy {
-      "Cody failed to ${if (this is DocumentCodeSession) "document" else "edit"} this code"
-    }
+    "Cody failed to ${if (this is DocumentCodeSession) "document" else "edit"} this code"
+  }
 
   init {
     triggerFixupAsync()
@@ -107,8 +107,7 @@ abstract class FixupSession(
       makeEditingRequest(agent)
           .handle { result, error ->
             if (error != null || result == null) {
-              showErrorGroup("Error while generating doc string: $error")
-              fixupService.cancelActiveSession()
+              displayError(defaultErrorText, error?.localizedMessage)
             } else {
               taskId = result.id
               selectionRange = adjustToDocumentRange(result.selectionRange)
@@ -118,7 +117,7 @@ abstract class FixupSession(
           }
           .exceptionally { error: Throwable? ->
             if (!(error is CancellationException || error is CompletionException)) {
-              showErrorGroup("Error while generating code: ${error?.localizedMessage}")
+              displayError(defaultErrorText, error?.localizedMessage)
             }
             finish()
             null
@@ -222,12 +221,12 @@ abstract class FixupSession(
   }
 
   /**
-   *  Puts up the error lens group with the specified message and optional hover-text.
-   *  The message should be short, no more than about 60 characters.
-   *  The hover text can be longer and include more diagnostic information.
+   * Puts up the error lens group with the specified message and optional hover-text. The message
+   * should be short, no more than about 60 characters. The hover text can be longer and include
+   * more diagnostic information.
    */
   fun displayError(text: String, hoverText: String? = null) {
-    showErrorGroup(text, hoverText)
+    showErrorGroup(text, hoverText ?: "No additional info from Agent")
   }
 
   // TODO: Have the current editor's DocumentListener call us.
