@@ -314,11 +314,12 @@ data class DisplayedContextFile(val contextItem: ContextItem) {
     val contextItemFile = contextItem as? ContextItemFile
     val isIgnored = contextItemFile?.isIgnored == true
     val isTooLarge = contextItemFile?.title == "large-file" || contextItemFile?.isTooLarge == true
-    val warnIfNeeded = when {
-      isIgnored -> "<i> - ⚠ Ignored by an admin setting.</i>"
-      isTooLarge -> "<i> - ⚠ File too large</i>"
-      else -> ""
-    }
+    val warnIfNeeded =
+        when {
+          isIgnored -> "<i> - ⚠ Ignored by an admin setting.</i>"
+          isTooLarge -> "<i> - ⚠ File too large</i>"
+          else -> ""
+        }
     return "<html>${contextItem.displayPath()}$warnIfNeeded</html>"
   }
 }

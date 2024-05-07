@@ -114,7 +114,9 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
   /** The tree component. */
   protected val tree = run {
     val checkPolicy = createCheckboxPolicy()
-    object : CheckboxTree(ContextRepositoriesCheckboxRenderer(enhancedContextEnabled), treeRoot, checkPolicy) {
+    object :
+        CheckboxTree(
+            ContextRepositoriesCheckboxRenderer(enhancedContextEnabled), treeRoot, checkPolicy) {
       // When collapsed, the horizontal scrollbar obscures the Chat Context summary & checkbox.
       // Prefer to clip. Users
       // can resize the sidebar if desired.
@@ -220,11 +222,11 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   }
 
   override fun createCheckboxPolicy(): CheckboxTreeBase.CheckPolicy =
-    CheckboxTreeBase.CheckPolicy(
-      /* checkChildrenWithCheckedParent = */ false,
-      /* uncheckChildrenWithUncheckedParent = */ false,
-      /* checkParentWithCheckedChild = */ false,
-      /* uncheckParentWithUncheckedChild = */ false)
+      CheckboxTreeBase.CheckPolicy(
+          /* checkChildrenWithCheckedParent = */ false,
+          /* uncheckChildrenWithUncheckedParent = */ false,
+          /* checkParentWithCheckedChild = */ false,
+          /* uncheckParentWithUncheckedChild = */ false)
 
   override fun updateFromExtension(enhancedContextStatus: EnhancedContextContextT) {
     val repos = mutableListOf<RemoteRepo>()
@@ -234,12 +236,13 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       val name = group.displayName
       val enabled = provider.state == "ready"
       val ignored = provider.isIgnored == true
-      val inclusion = when (provider.inclusion) {
-        "auto" -> RepoInclusion.AUTO
-        "explicit" -> RepoInclusion.MANUAL
-        else -> null
-      }
-      repos.add(RemoteRepo(name, isEnabled=enabled, isIgnored=ignored, inclusion=inclusion))
+      val inclusion =
+          when (provider.inclusion) {
+            "auto" -> RepoInclusion.AUTO
+            "explicit" -> RepoInclusion.MANUAL
+            else -> null
+          }
+      repos.add(RemoteRepo(name, isEnabled = enabled, isIgnored = ignored, inclusion = inclusion))
     }
 
     runInEdt {
@@ -292,11 +295,13 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     val remotesPath = treeModel.getTreePath(remotesNode.userObject)
     val wasExpanded = remotesPath != null && tree.isExpanded(remotesPath)
     remotesNode.removeAllChildren()
-    repos.map { repo ->
+    repos
+        .map { repo ->
           ContextTreeRemoteRepoNode(repo) { checked ->
             setRepoEnabledInContextState(repo.name, checked)
           }
-    }.forEach { remotesNode.add(it) }
+        }
+        .forEach { remotesNode.add(it) }
     // TODO: Count the enabled repos, not all repos; count the ignored repos.
     contextRoot.numRepos = repos.count { it.isIgnored != true }
     treeModel.reload(contextRoot)
@@ -393,11 +398,11 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
   }
 
   override fun createCheckboxPolicy(): CheckboxTreeBase.CheckPolicy =
-    CheckboxTreeBase.CheckPolicy(
-      /* checkChildrenWithCheckedParent = */ true,
-      /* uncheckChildrenWithUncheckedParent = */ true,
-      /* checkParentWithCheckedChild = */ true,
-      /* uncheckParentWithUncheckedChild = */ false)
+      CheckboxTreeBase.CheckPolicy(
+          /* checkChildrenWithCheckedParent = */ true,
+          /* uncheckChildrenWithUncheckedParent = */ true,
+          /* checkParentWithCheckedChild = */ true,
+          /* uncheckParentWithUncheckedChild = */ false)
 
   override fun updateFromExtension(enhancedContextStatus: EnhancedContextContextT) {
     // No-op. The consumer panel relies solely on JetBrains-side state.
