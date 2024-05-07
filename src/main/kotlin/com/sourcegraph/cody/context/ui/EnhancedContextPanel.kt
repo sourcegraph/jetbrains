@@ -114,7 +114,7 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
   /** The tree component. */
   protected val tree = run {
     val checkPolicy = createCheckboxPolicy()
-    object : CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkPolicy) {
+    object : CheckboxTree(ContextRepositoriesCheckboxRenderer(enhancedContextEnabled), treeRoot, checkPolicy) {
       // When collapsed, the horizontal scrollbar obscures the Chat Context summary & checkbox.
       // Prefer to clip. Users
       // can resize the sidebar if desired.
