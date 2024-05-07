@@ -209,6 +209,11 @@ private constructor(
           this.chatPanel.promptPanel.setContextFilesSelector(message.userContextFiles)
         }
       }
+      ExtensionMessage.Type.ENHANCED_CONTEXT_STATUS -> {
+        if (message.enhancedContextStatus != null) {
+          this.chatPanel.contextView.updateFromExtension(message.enhancedContextStatus)
+        }
+      }
       else -> {
         logger.debug(String.format("unknown message type: %s", message.type))
       }

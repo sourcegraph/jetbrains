@@ -5,6 +5,7 @@ import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.ThreeStateCheckBox
+import com.sourcegraph.cody.context.RepoInclusion
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import javax.swing.JTree
@@ -60,6 +61,16 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
         textRenderer.appendHTML(
             "<b>${node.repo.displayName}</b>", SimpleTextAttributes.REGULAR_ATTRIBUTES)
         textRenderer.icon = node.repo.icon
+        toolTipText = when {
+          node.repo.isIgnored == true -> CodyBundle.getString("context-panel.tree.node-ignored.tooltip")
+          node.repo.inclusion == RepoInclusion.AUTO -> CodyBundle.getString("context-panel.tree.node-auto.tooltip")
+          else -> node.repo.name
+        }
+        myCheckbox.state = when {
+          node.repo.isEnabled == true -> ThreeStateCheckBox.State.SELECTED
+          else -> ThreeStateCheckBox.State.NOT_SELECTED
+        }
+        myCheckbox.isEnabled = node.repo.inclusion != RepoInclusion.AUTO
       }
 
       // Fallback
