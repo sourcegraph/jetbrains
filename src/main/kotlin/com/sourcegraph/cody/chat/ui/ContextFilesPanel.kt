@@ -55,12 +55,13 @@ class ContextFilesPanel(
   }
 
   private fun deriveAccordionTitle(contextItemFiles: List<ContextItemFile>): String {
-    val filteredFiles = contextItemFiles.distinctBy { it.uri }
+    val (excludedFiles, includedFiles) = contextItemFiles.partition { it.isTooLarge == true || it.isIgnored == true }
     val prefix = "✨ Context: "
-    val lineCount = contextItemFiles.sumOf { it.range?.length() ?: 0 }
-    val fileCount = filteredFiles.size
-    val lines = "$lineCount line${if (lineCount > 1) "s" else ""}"
-    val files = "$fileCount file${if (fileCount > 1) "s" else ""}"
+    val excludedFileCount = excludedFiles.distinctBy { it.uri }.size
+    val includedFileCount = includedFiles.distinctBy { it.uri }.size
+    val lineCount = includedFiles.sumOf { it.range?.length() ?: 0 }
+    val lines = "$lineCount ${"line".pluralize(lineCount)}"
+    val files = "$includedFileCount ${"file".pluralize(includedFileCount)}${if (excludedFileCount > 0) " — $excludedFileCount ${"file".pluralize(excludedFileCount)} excluded" else ""}"
     val title =
         if (lineCount > 0) {
           "$lines from $files"
@@ -101,5 +102,14 @@ class ContextFilesPanel(
         }
       }
     }
+  }
+}
+
+// Can pluralize "file" and "line" by adding -s
+private fun String.pluralize(count: Int): String {
+  return if (count == 1) {
+    this
+  } else {
+    "${this}s"
   }
 }
