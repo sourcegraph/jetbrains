@@ -215,8 +215,10 @@ abstract class FixupSession(
   }
 
   private fun showErrorGroup(labelText: String, hoverText: String? = null) {
-    showLensGroup(LensGroupFactory(this).createErrorGroup(labelText, hoverText))
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ERROR_GROUP)
+    runInEdt {
+      showLensGroup(LensGroupFactory(this).createErrorGroup(labelText, hoverText))
+      publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ERROR_GROUP)
+    }
   }
 
   /**
