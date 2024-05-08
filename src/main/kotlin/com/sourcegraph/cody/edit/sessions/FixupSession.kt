@@ -300,6 +300,12 @@ abstract class FixupSession(
       CodyEditorUtil.getAllOpenEditors()
           .firstOrNull { it.document == documentForFile }
           ?.let { newEditor -> editor = newEditor }
+
+      val textFile = ProtocolTextDocument.fromVirtualFile(editor, vf)
+      CodyAgentService.withAgent(project) { agent ->
+        ensureSelectionRange(agent, textFile)
+        runInEdt { showWorkingGroup() }
+      }
     }
   }
 
