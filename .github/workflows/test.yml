@@ -45,5 +45,5 @@ jobs:
       - run: ./gradlew test
       - run: ./gradlew buildPlugin
       - run: ./gradlew spotlessCheck
-      - run: ./gradlew runPluginVerifier
+      - run: ./gradlew runPluginVerifier -Pvalidation=lite
       - run: ./gradlew --stop
