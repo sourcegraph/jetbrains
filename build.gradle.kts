@@ -24,20 +24,26 @@ val isForceAgentBuild =
         properties("forceAgentBuild") == "true"
 val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") == "true"
 
-// As https://www.jetbrains.com/updates/updates.xml adds a new "IntelliJ IDEA" YYYY.N version, add it to this list.
+// As https://www.jetbrains.com/updates/updates.xml adds a new "IntelliJ IDEA" YYYY.N version, add
+// it to this list.
 // Remove unsupported old versions from this list.
-val versionsOfInterest = listOf("2022.1", "2022.2", "2022.3", "2023.1", "2023.2", "2023.3", "2024.1").sorted()
-val versionsToValidate = when (project.properties["validation"]?.toString()) {
-  "lite" -> listOf(versionsOfInterest.first(), versionsOfInterest.last())
-  null, "full" -> versionsOfInterest
-  else -> error("Unexpected validation property: \"validation\" should be \"lite\" or \"full\" (default) was \"${project.properties["validation"]}\"")
-}
+val versionsOfInterest =
+    listOf("2022.1", "2022.2", "2022.3", "2023.1", "2023.2", "2023.3", "2024.1").sorted()
+val versionsToValidate =
+    when (project.properties["validation"]?.toString()) {
+      "lite" -> listOf(versionsOfInterest.first(), versionsOfInterest.last())
+      null,
+      "full" -> versionsOfInterest
+      else ->
+          error(
+              "Unexpected validation property: \"validation\" should be \"lite\" or \"full\" (default) was \"${project.properties["validation"]}\"")
+    }
 val skippedFailureLevels =
-  EnumSet.of(
-    FailureLevel.DEPRECATED_API_USAGES,
-    FailureLevel.SCHEDULED_FOR_REMOVAL_API_USAGES, // blocked by: Kotlin UI DSL Cell.align
-    FailureLevel.EXPERIMENTAL_API_USAGES,
-    FailureLevel.NOT_DYNAMIC)!!
+    EnumSet.of(
+        FailureLevel.DEPRECATED_API_USAGES,
+        FailureLevel.SCHEDULED_FOR_REMOVAL_API_USAGES, // blocked by: Kotlin UI DSL Cell.align
+        FailureLevel.EXPERIMENTAL_API_USAGES,
+        FailureLevel.NOT_DYNAMIC)!!
 
 plugins {
   id("java")
