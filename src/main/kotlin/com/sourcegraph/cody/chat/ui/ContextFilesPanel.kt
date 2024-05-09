@@ -108,10 +108,7 @@ class ContextFilesPanel(
 }
 
 // Can pluralize "file" and "line" by adding -s
-private fun String.pluralize(count: Int): String {
-  return if (count == 1) {
-    this
-  } else {
-    "${this}s"
-  }
-}
+  private fun String.pluralize(count: Int): String = when {
+    count == 1 -> this
+    else -> "${this}s"
+  } 
