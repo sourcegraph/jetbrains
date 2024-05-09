@@ -316,7 +316,7 @@ data class DisplayedContextFile(val contextItem: ContextItem) {
     val isTooLarge = contextItemFile?.title == "large-file" || contextItemFile?.isTooLarge == true
     val warnIfNeeded =
         when {
-          isIgnored -> "<i> - ⚠ Ignored by an admin setting.</i>"
+          isIgnored -> "<i> - ⚠ Ignored by an admin setting</i>"
           isTooLarge -> "<i> - ⚠ File too large</i>"
           else -> ""
         }

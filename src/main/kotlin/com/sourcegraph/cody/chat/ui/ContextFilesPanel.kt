@@ -57,20 +57,24 @@ class ContextFilesPanel(
   private fun deriveAccordionTitle(contextItemFiles: List<ContextItemFile>): String {
     val (excludedFiles, includedFiles) =
         contextItemFiles.partition { it.isTooLarge == true || it.isIgnored == true }
-    val prefix = "✨ Context: "
-    val excludedFileCount = excludedFiles.distinctBy { it.uri }.size
-    val includedFileCount = includedFiles.distinctBy { it.uri }.size
+
     val lineCount = includedFiles.sumOf { it.range?.length() ?: 0 }
     val lines = "$lineCount ${"line".pluralize(lineCount)}"
-    val files =
-        "$includedFileCount ${"file".pluralize(includedFileCount)}${if (excludedFileCount > 0) " — $excludedFileCount ${"file".pluralize(excludedFileCount)} excluded" else ""}"
-    val title =
-        if (lineCount > 0) {
-          "$lines from $files"
-        } else {
-          files
-        }
 
+    val excludedFileCount = excludedFiles.distinctBy { it.uri }.size
+    val includedFileCount = includedFiles.distinctBy { it.uri }.size
+    val excludedFilesMessage = when {
+      excludedFileCount > 0 -> " — $excludedFileCount ${"file".pluralize(excludedFileCount)} excluded"
+      else -> ""
+    }
+    val files = "$includedFileCount ${"file".pluralize(includedFileCount)}${excludedFilesMessage}"
+
+    val title = when {
+      lineCount > 0 -> "$lines from $files"
+      else -> files
+    }
+
+    val prefix = "✨ Context: "
     return "$prefix $title"
   }
 
