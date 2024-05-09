@@ -11,6 +11,7 @@ import com.intellij.util.ui.StatusText;
 import com.sourcegraph.cody.config.ui.AccountConfigurable;
 import java.awt.*;
 import javax.swing.*;
+import org.apache.commons.lang.SystemUtils;
 import org.apache.commons.lang.WordUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -75,7 +76,7 @@ public class BrowserAndLoadingPanel extends JLayeredPane {
 
     } else if (errorMessage != null) {
       String wrappedText = WordUtils.wrap("Error: " + errorMessage, 100);
-      String[] lines = wrappedText.split("\\n");
+      String[] lines = wrappedText.split(SystemUtils.LINE_SEPARATOR);
       emptyText.setText(lines[0]);
       for (int i = 1; i < lines.length; i++) {
         if (!lines[i].trim().isEmpty()) {

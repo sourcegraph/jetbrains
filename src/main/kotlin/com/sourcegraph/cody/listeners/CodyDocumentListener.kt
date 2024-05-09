@@ -1,7 +1,6 @@
 package com.sourcegraph.cody.listeners
 
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -30,37 +29,34 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
   }
 
   override fun documentChangedNonBulk(event: DocumentEvent) {
-    // Can be called on non-EDT during IDE shutdown.
-    runInEdt {
-      val editor = FileEditorManager.getInstance(project).selectedTextEditor
-      if (editor?.document != event.document) {
-        return@runInEdt
-      }
+    val editor = FileEditorManager.getInstance(project).selectedTextEditor
+    if (editor?.document != event.document) {
+      return
+    }
 
-      logCodeCopyPastedFromChat(event)
-      CodyAutocompleteManager.instance.clearAutocompleteSuggestions(editor)
+    logCodeCopyPastedFromChat(event)
+    CodyAutocompleteManager.instance.clearAutocompleteSuggestions(editor)
 
-      if (CodyEditorUtil.isImplicitAutocompleteEnabledForEditor(editor) &&
-          CodyEditorUtil.isEditorValidForAutocomplete(editor) &&
-          !CommandProcessor.getInstance().isUndoTransparentActionInProgress) {
+    if (CodyEditorUtil.isImplicitAutocompleteEnabledForEditor(editor) &&
+        CodyEditorUtil.isEditorValidForAutocomplete(editor) &&
+        !CommandProcessor.getInstance().isUndoTransparentActionInProgress) {
 
-        ProtocolTextDocument.fromEditor(editor)?.let { textDocument ->
-          CodyAgentService.withAgent(project) { agent ->
-            agent.server.textDocumentDidChange(textDocument)
+      ProtocolTextDocument.fromEditor(editor)?.let { textDocument ->
+        CodyAgentService.withAgent(project) { agent ->
+          agent.server.textDocumentDidChange(textDocument)
 
-            // This notification must be sent after the above, see tracker comment for more details.
-            AcceptCodyAutocompleteAction.tracker.getAndSet(null)?.let { completionID ->
-              agent.server.completionAccepted(CompletionItemParams(completionID))
-              agent.server.autocompleteClearLastCandidate()
-            }
+          // This notification must be sent after the above, see tracker comment for more details.
+          AcceptCodyAutocompleteAction.tracker.getAndSet(null)?.let { completionID ->
+            agent.server.completionAccepted(CompletionItemParams(completionID))
+            agent.server.autocompleteClearLastCandidate()
           }
         }
+      }
 
-        val changeOffset = event.offset + event.newLength
-        if (editor.caretModel.offset == changeOffset) {
-          CodyAutocompleteManager.instance.triggerAutocomplete(
-              editor, changeOffset, InlineCompletionTriggerKind.AUTOMATIC)
-        }
+      val changeOffset = event.offset + event.newLength
+      if (editor.caretModel.offset == changeOffset) {
+        CodyAutocompleteManager.instance.triggerAutocomplete(
+            editor, changeOffset, InlineCompletionTriggerKind.AUTOMATIC)
       }
     }
   }

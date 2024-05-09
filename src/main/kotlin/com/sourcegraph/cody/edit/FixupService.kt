@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicReference
 class FixupService(val project: Project) : Disposable {
   private val logger = Logger.getInstance(FixupService::class.java)
 
-  @Volatile private var activeSession: FixupSession? = null
+  private var activeSession: FixupSession? = null
 
   // We only have one editing session at a time in JetBrains, for now.
   // This reference ensures we only have one inline-edit dialog active at a time.
@@ -28,12 +28,14 @@ class FixupService(val project: Project) : Disposable {
   /** Entry point for the inline edit command, called by the action handler. */
   fun startCodeEdit(editor: Editor) {
     if (!isEligibleForInlineEdit(editor)) return
+    cancelActiveSession()
     currentEditPrompt.set(EditCommandPrompt(this, editor, "Edit Code with Cody"))
   }
 
   /** Entry point for the document code command, called by the action handler. */
   fun startDocumentCode(editor: Editor) {
     if (!isEligibleForInlineEdit(editor)) return
+    activeSession?.finish()
     DocumentCodeSession(this, editor, editor.project ?: return)
   }
 
@@ -58,17 +60,22 @@ class FixupService(val project: Project) : Disposable {
   fun getActiveSession(): FixupSession? = activeSession
 
   fun setActiveSession(session: FixupSession) {
-    activeSession?.let { if (it.isShowingAcceptLens()) it.accept() else it.cancel() }
-    waitUntilActiveSessionIsFinished()
+    if (session == activeSession) return
+    cancelActiveSession()
     activeSession = session
   }
 
-  fun waitUntilActiveSessionIsFinished() {
-    while (activeSession != null) {
-      Thread.sleep(100)
+  // Fully cancels/retracts any current session.
+  fun cancelActiveSession() {
+    try {
+      activeSession?.finish()
+    } catch (x: Exception) {
+      logger.warn("Error while disposing session", x)
     }
+    clearActiveSession()
   }
 
+  // Just clear the service's reference to an active session.
   fun clearActiveSession() {
     // N.B. This cannot call back into the activeSession, or it will recurse.
     activeSession = null

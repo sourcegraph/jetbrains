@@ -5,7 +5,6 @@ import com.intellij.injected.editor.EditorWindow
 import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
@@ -25,8 +24,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings.IndentOptions
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.intellij.util.io.createFile
-import com.intellij.util.io.exists
+import com.intellij.util.withScheme
 import com.sourcegraph.cody.vscode.Range
 import com.sourcegraph.config.ConfigUtil
 import java.net.URI
@@ -206,33 +204,24 @@ object CodyEditorUtil {
   @RequiresEdt
   fun showDocument(
       project: Project,
-      uri: URI,
+      uriString: String,
       selection: Range? = null,
       preserveFocus: Boolean? = false
   ): Boolean {
     try {
+      val uri = URI.create(uriString).withScheme("file")
       val vf =
           LocalFileSystem.getInstance().refreshAndFindFileByNioFile(uri.toPath()) ?: return false
-      if (selection == null) {
-        OpenFileDescriptor(project, vf).navigate(/* requestFocus= */ preserveFocus != true)
-      } else {
-        OpenFileDescriptor(
-                project, vf, selection.start.line, /* logicalColumn= */ selection.start.character)
-            .navigate(/* requestFocus= */ preserveFocus != true)
-      }
+      OpenFileDescriptor(
+              project,
+              vf,
+              selection?.start?.line ?: 0,
+              /* logicalColumn= */ selection?.start?.character ?: 0)
+          .navigate(/* requestFocus= */ preserveFocus != true)
       return true
     } catch (e: Exception) {
-      logger.error("Cannot switch view to file $uri", e)
+      logger.error("Cannot switch view to file $uriString", e)
       return false
     }
-  }
-
-  fun createFileIfNeeded(project: Project, uri: URI, content: String? = null): VirtualFile? {
-    if (!uri.toPath().exists()) uri.toPath().createFile()
-    val vf = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(uri.toPath())
-    content?.let {
-      WriteCommandAction.runWriteCommandAction(project) { vf?.setBinaryContent(it.toByteArray()) }
-    }
-    return vf
   }
 }

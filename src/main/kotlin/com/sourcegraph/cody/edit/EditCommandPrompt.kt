@@ -5,7 +5,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
@@ -25,8 +24,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.MessageBusConnection
-import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ModelUsage
 import com.sourcegraph.cody.chat.ui.LlmDropdown
@@ -70,17 +69,14 @@ import javax.swing.JRootPane
 import javax.swing.JScrollPane
 import javax.swing.KeyStroke
 import javax.swing.ListCellRenderer
+import javax.swing.SwingUtilities
 import javax.swing.WindowConstants
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
 /** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
-class EditCommandPrompt(
-    val controller: FixupService,
-    val editor: Editor,
-    dialogTitle: String,
-    instruction: String? = null
-) : JFrame(), Disposable {
+class EditCommandPrompt(val controller: FixupService, val editor: Editor, dialogTitle: String) :
+    JFrame(), Disposable {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
 
   private val offset = editor.caretModel.primaryCaret.offset
@@ -128,12 +124,8 @@ class EditCommandPrompt(
 
   private val instructionsField =
       InstructionsInputTextArea(this).apply {
-        if (instruction != null) {
-          text = instruction
-        } else {
-          text = lastPrompt
-        }
-        if (text.isNullOrBlank() && promptHistory.isNotEmpty()) {
+        text = lastPrompt
+        if (text.isBlank() && promptHistory.isNotEmpty()) {
           text = promptHistory.getPrevious()
         }
       }
@@ -209,7 +201,7 @@ class EditCommandPrompt(
         }
 
         private fun handleDocumentChange() {
-          runInEdt {
+          ApplicationManager.getApplication().invokeLater {
             updateOkButtonState()
             checkForInterruptions()
           }
@@ -260,9 +252,8 @@ class EditCommandPrompt(
         }
       }
 
+  // Note: Must be created on EDT, although we can't annotate it as such.
   init {
-    ApplicationManager.getApplication().assertIsDispatchThread()
-
     // Register with FixupService as a failsafe if the project closes. Normally we're disposed
     // sooner, when the dialog is closed or focus is lost.
     Disposer.register(controller, this)
@@ -553,7 +544,7 @@ class EditCommandPrompt(
         return
       }
       // Kick off the editing command.
-      EditCodeSession(controller, editor, text, llmDropdown.item)
+      controller.setActiveSession(EditCodeSession(controller, editor, text, llmDropdown.item))
     }
     clearActivePrompt()
   }
@@ -574,7 +565,7 @@ class EditCommandPrompt(
   }
 
   private fun onThemeChange() {
-    runInEdt {
+    SwingUtilities.invokeLater {
       titleLabel.foreground = boldLabelColor() // custom background we manage ourselves
       revalidate()
       repaint()
@@ -590,7 +581,8 @@ class EditCommandPrompt(
       if (offscreenImage == null ||
           offscreenImage!!.width != width ||
           offscreenImage!!.height != height) {
-        offscreenImage = ImageUtil.createImage(width, height, BufferedImage.TYPE_INT_ARGB)
+        @Suppress("DEPRECATION")
+        offscreenImage = UIUtil.createImage(width, height, BufferedImage.TYPE_INT_ARGB)
       }
       val offscreenGraphics = offscreenImage!!.createGraphics()
       super.paintComponent(offscreenGraphics)

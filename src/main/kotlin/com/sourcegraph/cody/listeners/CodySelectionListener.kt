@@ -16,7 +16,7 @@ class CodySelectionListener(val project: Project) : SelectionListener {
 
     ProtocolTextDocument.fromEditor(e.editor)?.let { textDocument ->
       CodyAgentService.withAgent(project) { agent ->
-        agent.server.textDocumentDidChange(textDocument)
+        agent.server.textDocumentDidFocus(textDocument)
       }
     }
 

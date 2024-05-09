@@ -2,7 +2,6 @@ package com.sourcegraph.cody.edit.widget
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
@@ -298,7 +297,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     if (ApplicationManager.getApplication().isDispatchThread) {
       executeAndComplete()
     } else {
-      runInEdt { executeAndComplete() }
+      ApplicationManager.getApplication().invokeLater { executeAndComplete() }
     }
     return result
   }
