@@ -63,16 +63,19 @@ class ContextFilesPanel(
 
     val excludedFileCount = excludedFiles.distinctBy { it.uri }.size
     val includedFileCount = includedFiles.distinctBy { it.uri }.size
-    val excludedFilesMessage = when {
-      excludedFileCount > 0 -> " — $excludedFileCount ${"file".pluralize(excludedFileCount)} excluded"
-      else -> ""
-    }
+    val excludedFilesMessage =
+        when {
+          excludedFileCount > 0 ->
+              " — $excludedFileCount ${"file".pluralize(excludedFileCount)} excluded"
+          else -> ""
+        }
     val files = "$includedFileCount ${"file".pluralize(includedFileCount)}${excludedFilesMessage}"
 
-    val title = when {
-      lineCount > 0 -> "$lines from $files"
-      else -> files
-    }
+    val title =
+        when {
+          lineCount > 0 -> "$lines from $files"
+          else -> files
+        }
 
     val prefix = "✨ Context: "
     return "$prefix $title"
@@ -112,7 +115,8 @@ class ContextFilesPanel(
 }
 
 // Can pluralize "file" and "line" by adding -s
-  private fun String.pluralize(count: Int): String = when {
-    count == 1 -> this
-    else -> "${this}s"
-  } 
+private fun String.pluralize(count: Int): String =
+    when {
+      count == 1 -> this
+      else -> "${this}s"
+    }
