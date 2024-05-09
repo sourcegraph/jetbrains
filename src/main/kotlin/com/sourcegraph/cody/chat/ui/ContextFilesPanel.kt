@@ -40,7 +40,7 @@ class ContextFilesPanel(
     }
 
     val title = deriveAccordionTitle(contextItemFiles)
-    val margin = JBInsets.create(Insets(0,0, 0, 0))
+    val margin = JBInsets.create(Insets(TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN, TEXT_MARGIN))
     val accordionSection = AccordionSection(title)
     accordionSection.isOpaque = false
     accordionSection.border = EmptyBorder(margin)

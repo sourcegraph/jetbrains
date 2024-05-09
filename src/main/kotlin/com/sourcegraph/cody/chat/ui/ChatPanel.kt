@@ -51,7 +51,6 @@ class ChatPanel(
           chatModelProviderFromState)
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)
-  private val promptWrapper = JBPanelWithEmptyText(BorderLayout())
 
   private val contextView: EnhancedContextPanel = EnhancedContextPanel.create(project, chatSession)
 
@@ -70,17 +69,13 @@ class ChatPanel(
     layout = BorderLayout()
     border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
 
-    val contextContainer = JBScrollPane(contextView)
-    contextContainer.border = BorderFactory.createEmptyBorder()
-
     // this wrapper is needed to apply padding. Can't apply padding directly to the promptPanel.
     // Also it makes it aligned with the default padding of the stopGeneratingButton
     val textAreaWrapper = JPanel(BorderLayout())
-    textAreaWrapper.background = JBColor.namedColor("Editor.SearchField.background")
-    textAreaWrapper.border = BorderFactory.createEmptyBorder(4, 4, 0, 4)
     textAreaWrapper.add(promptPanel)
+    textAreaWrapper.border = BorderFactory.createEmptyBorder(4, 4, 0, 4)
 
-
+    val promptWrapper = JPanel(BorderLayout())
     promptWrapper.background = JBColor.namedColor("Editor.SearchField.background")
       promptWrapper.border = BorderFactory.createCompoundBorder(
             //adds separator at the top
@@ -91,21 +86,25 @@ class ChatPanel(
         promptWrapper.add(textAreaWrapper, BorderLayout.SOUTH)
         promptWrapper.add(stopGeneratingButton, BorderLayout.NORTH)
 
-
     val topWrapper = JPanel(BorderLayout())
       topWrapper.add(llmDropdown, BorderLayout.NORTH)
       topWrapper.add(chatPanel, BorderLayout.CENTER)
       topWrapper.add(promptWrapper, BorderLayout.SOUTH)
 
-
+    val contextContainer = JBScrollPane(contextView)
+    contextContainer.border = BorderFactory.createEmptyBorder()
     chatSplitter.firstComponent = topWrapper
     chatSplitter.secondComponent = contextContainer
     add(chatSplitter, BorderLayout.CENTER)
 
+    revalidate()
+    repaint()
 
     //debug
-    //bottomWrapper.border = BorderFactory.createLineBorder(Color.RED, 1)
-   // topWrapper.border = BorderFactory.createLineBorder(Color.PINK, 1)
+    promptWrapper.border = BorderFactory.createLineBorder(Color.RED, 1)
+    promptWrapper.background = JBColor.namedColor("Editor.SearchField.background")
+
+    // topWrapper.border = BorderFactory.createLineBorder(Color.PINK, 1)
   }
 
   fun setAsActive() {

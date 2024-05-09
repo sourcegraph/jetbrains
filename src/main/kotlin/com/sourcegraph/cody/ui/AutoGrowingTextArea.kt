@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.actionSystem.ShortcutSet
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
+import com.intellij.ui.JBColor
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.common.ui.SimpleDumbAwareBGTAction
 import java.awt.Dimension
@@ -52,7 +53,7 @@ class AutoGrowingTextArea(private val minRows: Int, maxRows: Int, outerPanel: JC
 
     textArea.document = document
     document.addUndoableEditListener { event -> undoManager.addEdit(event.edit) }
-
+    textArea.background = JBColor.GREEN
     updateTextAreaSize()
   }
 
@@ -72,6 +73,7 @@ class AutoGrowingTextArea(private val minRows: Int, maxRows: Int, outerPanel: JC
     promptInput.lineWrap = true
     promptInput.wrapStyleWord = true
     promptInput.requestFocusInWindow()
+
 
     /* Insert Enter on Shift+Enter, Ctrl+Enter, Alt/Option+Enter, and Meta+Enter */
     val shiftEnter =
