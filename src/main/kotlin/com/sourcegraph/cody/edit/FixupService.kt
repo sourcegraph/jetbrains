@@ -56,22 +56,22 @@ class FixupService(val project: Project) : Disposable {
         currentEditPrompt.set(EditCommandPrompt(this, editor, "Edit Code with Cody"))
       }
     }
+  }
 
   /** Entry point for the document code command, called by the action handler. */
   fun startDocumentCode(editor: Editor) {
     runInEdt {
       if (isEligibleForInlineEdit(editor)) {
-        editor.project?.let { project ->
-          DocumentCodeSession(this, editor, project)
-        }
+        editor.project?.let { project -> DocumentCodeSession(this, editor, project) }
       }
     }
   }
 
   /** Entry point for the test code command, called by the action handler. */
   fun startTestCode(editor: Editor) {
-    if (!isEligibleForInlineEdit(editor)) return
-    TestCodeSession(this, editor, editor.project ?: return)
+    if (isEligibleForInlineEdit(editor)) {
+      TestCodeSession(this, editor, editor.project ?: return)
+    }
   }
 
   @RequiresEdt
