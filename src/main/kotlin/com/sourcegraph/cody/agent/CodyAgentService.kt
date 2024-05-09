@@ -108,11 +108,15 @@ class CodyAgentService(private val project: Project) : Disposable {
       }
 
       agent.client.onOpenUntitledDocument = Function { params ->
-        val uri = URI.create(params.uri).withScheme("file")
-        if (CodyEditorUtil.createFileIfNeeded(project, uri, params.content) == null)
+        val uri = URI.create(params.uri)
+        if (!uri.path.contains("/")) {
+          return@Function false
+        }
+        val fileUri = uri.withScheme("file")
+        if (CodyEditorUtil.createFileIfNeeded(project, fileUri, params.content) == null)
             return@Function false
         ApplicationManager.getApplication().invokeAndWait {
-          CodyEditorUtil.showDocument(project, uri)
+          CodyEditorUtil.showDocument(project, fileUri)
         }
         return@Function true
       }
