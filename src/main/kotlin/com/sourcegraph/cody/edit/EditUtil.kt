@@ -1,15 +1,8 @@
 package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.ignore.IgnoreOracle
-import com.sourcegraph.cody.ignore.IgnorePolicy
 import com.sourcegraph.config.ThemeUtil
 import java.awt.Color
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 import javax.swing.AbstractButton
 import javax.swing.JButton
 import javax.swing.JComponent
