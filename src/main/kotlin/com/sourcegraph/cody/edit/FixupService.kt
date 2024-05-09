@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference
 class FixupService(val project: Project) : Disposable {
   private val logger = Logger.getInstance(FixupService::class.java)
 
-  private var activeSession: FixupSession? = null
+  @Volatile private var activeSession: FixupSession? = null
 
   // We only have one editing session at a time in JetBrains, for now.
   // This reference ensures we only have one inline-edit dialog active at a time.
@@ -54,18 +54,19 @@ class FixupService(val project: Project) : Disposable {
   /** Entry point for the inline edit command, called by the action handler. */
   fun startCodeEdit(editor: Editor) {
     runInEdt {
-      if (!isEligibleForInlineEdit(editor)) return@runInEdt
-      cancelActiveSession()
-      currentEditPrompt.set(EditCommandPrompt(this, editor, "Edit Code with Cody"))
+      if (isEligibleForInlineEdit(editor)) {
+        currentEditPrompt.set(EditCommandPrompt(this, editor, "Edit Code with Cody"))
+      }
     }
-  }
 
   /** Entry point for the document code command, called by the action handler. */
   fun startDocumentCode(editor: Editor) {
     runInEdt {
-      if (!isEligibleForInlineEdit(editor)) return@runInEdt
-      cancelActiveSession()
-      DocumentCodeSession(this, editor, editor.project ?: return@runInEdt)
+      if (isEligibleForInlineEdit(editor)) {
+        editor.project?.let { project ->
+          DocumentCodeSession(this, editor, project)
+        }
+      }
     }
   }
 
@@ -97,22 +98,17 @@ class FixupService(val project: Project) : Disposable {
   fun getActiveSession(): FixupSession? = activeSession
 
   fun setActiveSession(session: FixupSession) {
-    if (session == activeSession) return
-    cancelActiveSession()
+    activeSession?.let { if (it.isShowingAcceptLens()) it.accept() else it.cancel() }
+    waitUntilActiveSessionIsFinished()
     activeSession = session
   }
 
-  // Fully cancels/retracts any current session.
-  fun cancelActiveSession() {
-    try {
-      activeSession?.finish()
-    } catch (x: Exception) {
-      logger.warn("Error while disposing session", x)
+  fun waitUntilActiveSessionIsFinished() {
+    while (activeSession != null) {
+      Thread.sleep(100)
     }
-    clearActiveSession()
   }
 
-  // Just clear the service's reference to an active session.
   fun clearActiveSession() {
     // N.B. This cannot call back into the activeSession, or it will recurse.
     activeSession = null
