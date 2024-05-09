@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.sourcegraph.cody.agent.protocol.util.Rfc3986UriEncoder
+import java.nio.file.FileSystems
 
 class ProtocolTextDocument
 private constructor(
@@ -47,8 +48,9 @@ private constructor(
       return ProtocolTextDocument(uriFor(file), text, selection)
     }
 
-    fun uriFor(file: VirtualFile): String {
-      return Rfc3986UriEncoder.encode(file.url)
+    private fun uriFor(file: VirtualFile): String {
+      val uriString = FileSystems.getDefault().getPath(file.path).toUri().toString()
+      return Rfc3986UriEncoder.encode(uriString)
     }
   }
 }
