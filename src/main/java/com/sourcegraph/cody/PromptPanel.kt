@@ -4,7 +4,9 @@ import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
@@ -19,6 +21,8 @@ import com.sourcegraph.cody.ui.AutoGrowingTextArea
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.ui.SimpleDumbAwareBGTAction
+import java.awt.BorderLayout
+import java.awt.Color
 import java.awt.Dimension
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
@@ -28,6 +32,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.DefaultListModel
 import javax.swing.JLayeredPane
+import javax.swing.JPanel
 import javax.swing.KeyStroke
 import javax.swing.border.EmptyBorder
 import javax.swing.event.AncestorEvent
@@ -41,6 +46,8 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
   private val scrollPane = autoGrowingTextArea.scrollPane
   private val textArea = autoGrowingTextArea.textArea
   private val sendButton = SendButton()
+  private val instructionsPanel = JBPanel<JBPanel<*>>(BorderLayout())
+  private val instructions = JBLabel("TEST")
   private var contextFilesListViewModel = DefaultListModel<DisplayedContextFile>()
   private val contextFilesListView = JBList(contextFilesListViewModel)
   private val contextFilesContainer = JBScrollPane(contextFilesListView)
@@ -74,6 +81,13 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
     add(contextFilesContainer, PALETTE_LAYER, 0)
 
     add(sendButton, PALETTE_LAYER, 0)
+
+    instructionsPanel.isOpaque = true
+    instructionsPanel.setBounds(0,0,100,100)
+    instructionsPanel.withBackground(Color.GREEN)
+    instructionsPanel.andOpaque()
+    instructionsPanel.add(instructions, BorderLayout.CENTER)
+    add(instructionsPanel, PALETTE_LAYER, 0)
 
     preferredSize = Dimension(scrollPane.width, scrollPane.height)
 

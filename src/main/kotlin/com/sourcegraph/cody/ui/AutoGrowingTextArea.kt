@@ -53,7 +53,6 @@ class AutoGrowingTextArea(private val minRows: Int, maxRows: Int, outerPanel: JC
 
     textArea.document = document
     document.addUndoableEditListener { event -> undoManager.addEdit(event.edit) }
-    textArea.background = JBColor.GREEN
     updateTextAreaSize()
   }
 
@@ -66,7 +65,7 @@ class AutoGrowingTextArea(private val minRows: Int, maxRows: Int, outerPanel: JC
   }
 
   private fun createTextArea(): JBTextArea {
-    val promptInput: JBTextArea = RoundedJBTextArea(minRows, 10)
+    val promptInput: JBTextArea = RoundedJBTextArea(minRows, 0)
     val textUI = DarculaTextAreaUI.createUI(promptInput) as BasicTextAreaUI
     promptInput.setUI(textUI)
     promptInput.font = UIUtil.getLabelFont()

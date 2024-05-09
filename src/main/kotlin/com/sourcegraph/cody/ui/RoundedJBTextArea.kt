@@ -26,6 +26,8 @@ class RoundedJBTextArea(minRows: Int, private val cornerRadius: Int) : JBTextAre
             (this.height - 1).toFloat(),
             cornerRadius.toFloat(),
             cornerRadius.toFloat())
+    //sets the color to be the same as the paren wrapper. Making it seem bigger.
+    // If we decide to go back to an inner text area, we just need to change the border and background
     g2.color = JBColor.namedColor("Editor.SearchField.background")
     g2.fill(roundRect)
     g2.color = JBColor.namedColor("Editor.SearchField.background")

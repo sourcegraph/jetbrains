@@ -3,9 +3,9 @@ package com.sourcegraph.cody.chat.ui
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
+import com.intellij.ui.JBColor
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.PromptPanel
@@ -20,17 +20,33 @@ import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.vscode.CancellationToken
-import java.awt.BorderLayout
-import com.intellij.ui.JBColor
-import com.intellij.ui.JBColor.namedColor
-import com.jgoodies.forms.factories.Borders.EmptyBorder
-import java.awt.Color
-import java.awt.Dimension
-import java.awt.FlowLayout
+import java.awt.*
 import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JPanel
+import javax.swing.border.Border
 
+
+class PromptWrapper : JPanel(BorderLayout()) {
+  // Define the default background color as a property
+  private val defaultBackground = JBColor.namedColor("Editor.SearchField.background", JBColor.WHITE)
+
+  init {
+    isOpaque = true
+    super.setBackground(defaultBackground)
+    border = BorderFactory.createCompoundBorder(
+      BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.border()),
+      BorderFactory.createEmptyBorder(8, 4, 8, 4)
+    )
+  }
+
+  // Override setBackground to control background setting
+  override fun setBackground(bg: Color?) {
+
+    super.setBackground(defaultBackground)
+    // }
+  }
+}
 
 class ChatPanel(
     val project: Project,
@@ -39,8 +55,6 @@ class ChatPanel(
 ) : JPanel(VerticalFlowLayout(VerticalFlowLayout.CENTER, 0, 0, true, false)) {
 
   private val chatSplitter = OnePixelSplitter(true, 0.9f)
-
-
   val promptPanel: PromptPanel = PromptPanel(project, chatSession)
   private val llmDropdown =
       LlmDropdown(
@@ -51,7 +65,6 @@ class ChatPanel(
           chatModelProviderFromState)
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)
-
   private val contextView: EnhancedContextPanel = EnhancedContextPanel.create(project, chatSession)
 
   private val stopGeneratingButton =
@@ -66,30 +79,45 @@ class ChatPanel(
 
 
   init {
+
+    /** Layout:
+     * ┏━━━━━━━━━━━━topWrapper━━━━━━━━━━━━┓
+     * ┃  ┌────────llmDropdown─────────┐  ┃
+     * ┃  └────────────────────────────┘  ┃
+     * ┃  ┌─────────chatPanel──────────┐  ┃
+     * ┃  └────────────────────────────┘  ┃
+     * ┃  ┏━━━━━━━promptWrapper━━━━━━━━┓  ┃
+     * ┃  ┃ ┌──stopGeneratingButton──┐ ┃  ┃
+     * ┃  ┃ └────────────────────────┘ ┃  ┃
+     * ┃  ┃ ┏━━━━textAreaWrapper━━━━━┓ ┃  ┃
+     * ┃  ┃ ┃┌─────promptPanel─────┐ ┃ ┃  ┃
+     * ┃  ┃ ┃└─────────────────────┘ ┃ ┃  ┃
+     * ┃  ┃ ┗━━━━━━━━━━━━━━━━━━━━━━━━┛ ┃  ┃
+     * ┃  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛  ┃
+     * ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+     *    ─ ─ ─ ─ ─chatSplitter ─ ─ ─ ─ ─
+     *  ┌────────contextContainer─────────┐
+     *  └─────────────────────────────────┘
+     */
+
     layout = BorderLayout()
     border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
 
-    // this wrapper is needed to apply padding. Can't apply padding directly to the promptPanel.
-    // Also it makes it aligned with the default padding of the stopGeneratingButton
+    // This wrapper is needed to apply padding. Can't apply padding directly to the promptPanel.
+    // Also, it makes it aligned with the default padding of the stopGeneratingButton
     val textAreaWrapper = JPanel(BorderLayout())
-    textAreaWrapper.add(promptPanel)
-    textAreaWrapper.border = BorderFactory.createEmptyBorder(4, 4, 0, 4)
+      textAreaWrapper.add(promptPanel)
+      textAreaWrapper.border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
 
-    val promptWrapper = JPanel(BorderLayout())
-    promptWrapper.background = JBColor.namedColor("Editor.SearchField.background")
-      promptWrapper.border = BorderFactory.createCompoundBorder(
-            //adds separator at the top
-            BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.border()),
-            //adds padding
-            BorderFactory.createEmptyBorder(8, 4, 8, 4)
-        )
-        promptWrapper.add(textAreaWrapper, BorderLayout.SOUTH)
-        promptWrapper.add(stopGeneratingButton, BorderLayout.NORTH)
+    val promptWrapper = PromptWrapper()
+    promptWrapper.add(textAreaWrapper, BorderLayout.SOUTH)
+    promptWrapper.add(stopGeneratingButton, BorderLayout.NORTH)
 
     val topWrapper = JPanel(BorderLayout())
       topWrapper.add(llmDropdown, BorderLayout.NORTH)
       topWrapper.add(chatPanel, BorderLayout.CENTER)
       topWrapper.add(promptWrapper, BorderLayout.SOUTH)
+
 
     val contextContainer = JBScrollPane(contextView)
     contextContainer.border = BorderFactory.createEmptyBorder()
@@ -97,14 +125,9 @@ class ChatPanel(
     chatSplitter.secondComponent = contextContainer
     add(chatSplitter, BorderLayout.CENTER)
 
-    revalidate()
-    repaint()
-
     //debug
-    promptWrapper.border = BorderFactory.createLineBorder(Color.RED, 1)
-    promptWrapper.background = JBColor.namedColor("Editor.SearchField.background")
-
-    // topWrapper.border = BorderFactory.createLineBorder(Color.PINK, 1)
+    //promptWrapper.border = BorderFactory.createLineBorder(Color.RED, 1)
+    //topWrapper.border = BorderFactory.createLineBorder(Color.RED, 1)
   }
 
   fun setAsActive() {
