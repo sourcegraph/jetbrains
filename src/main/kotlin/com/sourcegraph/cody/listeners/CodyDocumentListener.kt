@@ -30,10 +30,8 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
   }
 
   override fun documentChangedNonBulk(event: DocumentEvent) {
-    runInEdt { // Is not always called from EDT.
-      logCodeCopyPastedFromChat(event)
-      CodyAutocompleteManager.instance.clearAutocompleteSuggestions(
-          FileEditorManager.getInstance(project).selectedTextEditor ?: return@runInEdt)
+    // Can be called on non-EDT during IDE shutdown.
+    runInEdt {
       val editor = FileEditorManager.getInstance(project).selectedTextEditor
       if (editor?.document != event.document) {
         return@runInEdt
