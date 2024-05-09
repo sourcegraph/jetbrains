@@ -450,9 +450,9 @@ all of the following should be true for each test:
 1. Whenever the current repo/file is ignored, inline edits should stop working.
    - The Edit Instructions dialog should not display, and disappear if active.
    - The Document Code function should not work at all (via keyboard or menu).
-2. If an edit is in progress, and its file becomes ignored, then the edit in
-   progress should cancel/undo.
-3. When the ignore policy for the current file returns to USE, inline edits
+2. If an edit is in progress, with code lenses displaying, and its file becomes
+   ignored, then the edit in progress should cancel/undo.
+3. When the current file's policy changes back to non-ignored, inline edits
    should start working again.
 
 ## Multi-repo context

@@ -36,8 +36,6 @@ class FixupService(val project: Project) : Disposable {
 
   private val connection: MessageBusConnection
 
-  private var lastCodyIgnoreUserNotification: Long = 0
-
   init {
     connection =
         project.messageBus.connect().apply {
@@ -114,18 +112,12 @@ class FixupService(val project: Project) : Disposable {
     activeSession = null
   }
 
+  // If they are in the midst of an inline edit and the policy changes, cancel the edit.
   private fun handlePolicyChange(context: IgnoreMessageBus.Context) {
-    if (context.policy != IgnorePolicy.IGNORE) return
-
-    // Try not to spam the user with the same message.
-    val now = System.currentTimeMillis()
-    if (lastCodyIgnoreUserNotification + NOTIFICATION_DEBOUNCE_MILLIS > now) return
-
-    currentEditPrompt.get()?.dispose()
-    cancelActiveSession()
-    ActionInIgnoredFileNotification().notify(project)
-
-    lastCodyIgnoreUserNotification = now
+    if (context.policy == IgnorePolicy.IGNORE) {
+      currentEditPrompt.get()?.dispose()
+      getActiveSession()?.dismiss()
+    }
   }
 
   override fun dispose() {
@@ -147,8 +139,6 @@ class FixupService(val project: Project) : Disposable {
   }
 
   companion object {
-    private const val NOTIFICATION_DEBOUNCE_MILLIS = 1000L * 10
-
     @JvmStatic
     fun getInstance(project: Project): FixupService {
       return project.service<FixupService>()
