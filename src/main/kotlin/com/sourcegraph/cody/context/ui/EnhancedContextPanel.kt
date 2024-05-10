@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.context.ui
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.ide.HelpTooltip
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.application.ApplicationManager
@@ -27,7 +28,6 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.vcs.CodebaseName
 import java.awt.Dimension
-import java.net.URL
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.BorderFactory
@@ -121,8 +121,7 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
         CheckboxTree(
             ContextRepositoriesCheckboxRenderer(enhancedContextEnabled), treeRoot, checkPolicy) {
       // When collapsed, the horizontal scrollbar obscures the Chat Context summary & checkbox.
-      // Prefer to clip. Users
-      // can resize the sidebar if desired.
+      // Prefer to clip. Users can resize the sidebar if desired.
       override fun getScrollableTracksViewportWidth(): Boolean = true
     }
   }
@@ -181,8 +180,14 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
     // Because the buttons
     // are approximately square, use the toolbar width as a proxy for the button height.
     val toolbarButtonHeight = toolbar.actionsPanel.preferredSize.width
+    val preferredSizeNumVisibleButtons = 1
     panel.preferredSize =
-        Dimension(0, padding + max(tree.rowCount * tree.rowHeight, 2 * toolbarButtonHeight))
+        Dimension(
+            0,
+            padding +
+                max(
+                    tree.rowCount * tree.rowHeight,
+                    preferredSizeNumVisibleButtons * toolbarButtonHeight))
     panel.parent?.revalidate()
   }
 
@@ -208,7 +213,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
   @RequiresEdt
   override fun createPanel(): JComponent {
-    // TODO: Add the "clock" button when the functionality is clarified.
     toolbar.setEditActionName(CodyBundle.getString("context-panel.button.edit-repositories"))
     toolbar.setEditAction {
       val controller = RemoteRepoPopupController(project)
@@ -220,7 +224,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       val popup = controller.createPopup(tree.width, rawSpec)
       popup.showAbove(tree)
     }
-    toolbar.addExtraAction(HelpButton())
     return toolbar.createPanel()
   }
 
@@ -287,9 +290,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
         .setDescription(
             CodyBundle.getString("context-panel.tree.help-tooltip.description")
                 .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), endpoint))
-        .setBrowserLink(
-            CodyBundle.getString("context-panel.tree.help-tooltip.link.text"),
-            URL(CodyBundle.getString("context-panel.tree.help-tooltip.link.href")))
+        .setLink(CodyBundle.getString("context-panel.tree.help-tooltip.link.text")) {
+          BrowserUtil.open(CodyBundle.getString("context-panel.tree.help-tooltip.link.href"))
+        }
         .setLocation(HelpTooltip.Alignment.LEFT)
         .setInitialDelay(
             1500) // Tooltip can interfere with the treeview, so cool off on showing it.
