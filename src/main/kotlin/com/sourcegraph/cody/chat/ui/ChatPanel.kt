@@ -82,8 +82,6 @@ class ChatPanel(
 
     /** Layout:
      * ┏━━━━━━━━━━━━topWrapper━━━━━━━━━━━━┓
-     * ┃  ┌────────llmDropdown─────────┐  ┃
-     * ┃  └────────────────────────────┘  ┃
      * ┃  ┌─────────chatPanel──────────┐  ┃
      * ┃  └────────────────────────────┘  ┃
      * ┃  ┏━━━━━━━promptWrapper━━━━━━━━┓  ┃
@@ -93,6 +91,8 @@ class ChatPanel(
      * ┃  ┃ ┃┌─────promptPanel─────┐ ┃ ┃  ┃
      * ┃  ┃ ┃└─────────────────────┘ ┃ ┃  ┃
      * ┃  ┃ ┗━━━━━━━━━━━━━━━━━━━━━━━━┛ ┃  ┃
+     * ┃  ┃ ┌──────llmDropdown───────┐ ┃  ┃
+     * ┃  ┃ └────────────────────────┘ ┃  ┃
      * ┃  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛  ┃
      * ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
      *    ─ ─ ─ ─ ─chatSplitter ─ ─ ─ ─ ─
@@ -110,13 +110,19 @@ class ChatPanel(
       textAreaWrapper.border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
 
     val promptWrapper = PromptWrapper()
-    promptWrapper.add(textAreaWrapper, BorderLayout.SOUTH)
-    promptWrapper.add(stopGeneratingButton, BorderLayout.NORTH)
+      promptWrapper.add(textAreaWrapper, BorderLayout.CENTER)
+      promptWrapper.add(stopGeneratingButton, BorderLayout.NORTH)
+      promptWrapper.add(llmDropdown, BorderLayout.SOUTH)
+
+    //val llmDropdownWrapper = JPanel(BorderLayout())
+      //llmDropdownWrapper.border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
+      //llmDropdownWrapper.add(llmDropdown, BorderLayout.NORTH)
 
     val topWrapper = JPanel(BorderLayout())
-      topWrapper.add(llmDropdown, BorderLayout.NORTH)
-      topWrapper.add(chatPanel, BorderLayout.CENTER)
-      topWrapper.add(promptWrapper, BorderLayout.SOUTH)
+//topWrapper.add(llmDropdownWrapper, BorderLayout.NORTH)
+topWrapper.add(chatPanel, BorderLayout.CENTER)
+topWrapper.add(promptWrapper, BorderLayout.SOUTH)
+
 
 
     val contextContainer = JBScrollPane(contextView)

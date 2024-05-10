@@ -46,8 +46,6 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
   private val scrollPane = autoGrowingTextArea.scrollPane
   private val textArea = autoGrowingTextArea.textArea
   private val sendButton = SendButton()
-  private val instructionsPanel = JBPanel<JBPanel<*>>(BorderLayout())
-  private val instructions = JBLabel("TEST")
   private var contextFilesListViewModel = DefaultListModel<DisplayedContextFile>()
   private val contextFilesListView = JBList(contextFilesListViewModel)
   private val contextFilesContainer = JBScrollPane(contextFilesListView)
@@ -81,13 +79,6 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
     add(contextFilesContainer, PALETTE_LAYER, 0)
 
     add(sendButton, PALETTE_LAYER, 0)
-
-    instructionsPanel.isOpaque = true
-    instructionsPanel.setBounds(0,0,100,100)
-    instructionsPanel.withBackground(Color.GREEN)
-    instructionsPanel.andOpaque()
-    instructionsPanel.add(instructions, BorderLayout.CENTER)
-    add(instructionsPanel, PALETTE_LAYER, 0)
 
     preferredSize = Dimension(scrollPane.width, scrollPane.height)
 
