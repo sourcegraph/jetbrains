@@ -359,6 +359,7 @@ abstract class FixupSession(
         // by calling triggerFixupAsync() which in turn calls ensureSelectionRange().
         // The value of this property does not change
         // when the user selects a different snippet in the UI.
+        // FIXME this causes a problem when the entire file becomes shorter than the original selection range.
         selectionRange!!.let {
           val tr = TextRange(it.start.toOffset(document), it.end.toOffset(document))
           val input = document.getText(tr)
