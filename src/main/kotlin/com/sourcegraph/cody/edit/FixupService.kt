@@ -76,20 +76,17 @@ class FixupService(val project: Project) : Disposable {
 
   fun getActiveSession(): FixupSession? = activeSession
 
-  fun setActiveSession(session: FixupSession) {
-    activeSession?.let { if (it.isShowingAcceptLens()) it.accept() else it.cancel() }
-    waitUntilActiveSessionIsFinished()
-    activeSession = session
-  }
-
-  fun waitUntilActiveSessionIsFinished() {
-    while (activeSession != null) {
-      Thread.sleep(100)
+  fun startNewSession(newSession: FixupSession, code: () -> Unit) {
+    activeSession?.let { currentSession ->
+      if (currentSession.isShowingAcceptLens()) currentSession.accept() else currentSession.cancel()
+      currentSession.cancellationToken.onFinished {
+        activeSession = newSession
+        code()
+      }
     }
   }
 
   fun clearActiveSession() {
-    // N.B. This cannot call back into the activeSession, or it will recurse.
     activeSession = null
   }
 

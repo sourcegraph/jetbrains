@@ -37,6 +37,7 @@ import com.sourcegraph.cody.edit.fixupActions.InsertUndoableAction
 import com.sourcegraph.cody.edit.fixupActions.ReplaceUndoableAction
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
+import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.utils.CodyEditorUtil
 import java.net.URI
 import java.util.concurrent.CancellationException
@@ -72,11 +73,30 @@ abstract class FixupSession(
   // it enables us to show the user what we sent and let them hand-edit it.
   var instruction: String? = null
 
+  val cancellationToken = CancellationToken()
+
   private val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
 
   init {
     triggerFixupAsync()
+
     runInEdt { Disposer.register(controller, this) }
+
+    cancellationToken.onFinished {
+      try {
+        controller.clearActiveSession()
+      } catch (x: Exception) {
+        logger.debug("Session cleanup error", x)
+      }
+
+      runInEdt {
+        try { // Disposing inlay requires EDT.
+          Disposer.dispose(this)
+        } catch (x: Exception) {
+          logger.warn("Error disposing fixup session $this", x)
+        }
+      }
+    }
   }
 
   private val document
@@ -91,31 +111,30 @@ abstract class FixupSession(
     CodyAgentService.withAgent(project) { agent ->
       workAroundUninitializedCodebase()
 
-      // All this because we can get the workspace/edit before the request returns!
-      fixupService.setActiveSession(this)
+      fixupService.startNewSession(this) {
+        // Spend a turn to get folding ranges before showing lenses.
+        ensureSelectionRange(agent, textFile)
 
-      // Spend a turn to get folding ranges before showing lenses.
-      ensureSelectionRange(agent, textFile)
+        showWorkingGroup()
 
-      showWorkingGroup()
-
-      makeEditingRequest(agent)
-          .handle { result, error ->
-            if (error != null || result == null) {
-              showErrorGroup("Error while generating doc string: $error")
-            } else {
-              selectionRange = adjustToDocumentRange(result.selectionRange)
+        makeEditingRequest(agent)
+            .handle { result, error ->
+              if (error != null || result == null) {
+                showErrorGroup("Error while generating doc string: $error")
+              } else {
+                selectionRange = adjustToDocumentRange(result.selectionRange)
+              }
+              null
             }
-            null
-          }
-          .exceptionally { error: Throwable? ->
-            if (!(error is CancellationException || error is CompletionException)) {
-              showErrorGroup("Error while generating code: ${error?.localizedMessage}")
+            .exceptionally { error: Throwable? ->
+              if (!(error is CancellationException || error is CompletionException)) {
+                showErrorGroup("Error while generating code: ${error?.localizedMessage}")
+              }
+              cancel()
+              null
             }
-            cancel()
-            null
-          }
-          .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+      }
     }
   }
 
@@ -156,15 +175,10 @@ abstract class FixupSession(
       // Tasks remain in this state until explicit accept/undo/cancel.
       CodyTaskState.Applied -> showAcceptGroup()
       // Then they transition to finished.
-      CodyTaskState.Finished -> finish()
-      CodyTaskState.Error -> finish()
+      CodyTaskState.Finished -> cancellationToken.dispose()
+      CodyTaskState.Error -> cancellationToken.dispose()
       CodyTaskState.Pending -> {}
     }
-  }
-
-  /** Notification that the Agent has deleted the task. Clean up if we haven't yet. */
-  fun taskDeleted() {
-    finish()
   }
 
   // N.B. Blocks calling thread until the lens group is shown,
@@ -207,21 +221,6 @@ abstract class FixupSession(
     showLensGroup(LensGroupFactory(this).createErrorGroup(hoverText))
   }
 
-  fun finish() {
-    try {
-      controller.clearActiveSession()
-    } catch (x: Exception) {
-      logger.debug("Session cleanup error", x)
-    }
-    runInEdt {
-      try { // Disposing inlay requires EDT.
-        Disposer.dispose(this)
-      } catch (x: Exception) {
-        logger.warn("Error disposing fixup session $this", x)
-      }
-    }
-  }
-
   /** Subclass sends a fixup command to the agent, and returns the initial task. */
   abstract fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask>
 
@@ -245,12 +244,7 @@ abstract class FixupSession(
   }
 
   fun retry() {
-    val instruction = instruction
-
-    undo()
-
-    ApplicationManager.getApplication().executeOnPooledThread {
-      FixupService.getInstance(project).waitUntilActiveSessionIsFinished()
+    cancellationToken.onFinished {
       runInEdt {
         // Close loophole where you can keep retrying after the ignore policy changes.
         if (controller.isEligibleForInlineEdit(editor)) {
@@ -258,10 +252,11 @@ abstract class FixupSession(
         }
       }
     }
+    undo()
   }
 
   fun dismiss() {
-    finish()
+    cancellationToken.dispose()
   }
 
   fun performWorkspaceEdit(workspaceEditParams: WorkspaceEditParams) {
