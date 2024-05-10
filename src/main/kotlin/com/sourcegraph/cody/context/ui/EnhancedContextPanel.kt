@@ -194,7 +194,7 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
     }
   }
 
-  abstract fun updateFromExtension(enhancedContextStatus: EnhancedContextContextT)
+  abstract fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT)
 }
 
 class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession) :
@@ -228,7 +228,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
           /* checkParentWithCheckedChild = */ false,
           /* uncheckParentWithUncheckedChild = */ false)
 
-  override fun updateFromExtension(enhancedContextStatus: EnhancedContextContextT) {
+  override fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT) {
     val repos = mutableListOf<RemoteRepo>()
 
     for (group in enhancedContextStatus.groups) {
@@ -278,7 +278,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     treeModel.reload()
     resize()
 
-    // Update the extension-side state for this chat.
+    // Update the Agent-side state for this chat.
     val enabledRepos = cleanedRepos.filter { it.isEnabled }.mapNotNull { it.codebaseName }
     RemoteRepoUtils.resolveReposWithErrorNotification(
         project, enabledRepos.map { CodebaseName(it) }) { repos ->
@@ -329,7 +329,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
                   })
             }
 
-            // Update the extension state. This triggers the tree view update.
+            // Update the Agent state. This triggers the tree view update.
             chatSession.sendWebviewMessage(
                 WebviewMessage(
                     command = "context/choose-remote-search-repo", explicitRepos = trimmedRepos))
@@ -404,7 +404,7 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
           /* checkParentWithCheckedChild = */ true,
           /* uncheckParentWithUncheckedChild = */ false)
 
-  override fun updateFromExtension(enhancedContextStatus: EnhancedContextContextT) {
+  override fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT) {
     // No-op. The consumer panel relies solely on JetBrains-side state.
   }
 

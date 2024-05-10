@@ -211,7 +211,7 @@ private constructor(
       }
       ExtensionMessage.Type.ENHANCED_CONTEXT_STATUS -> {
         if (message.enhancedContextStatus != null) {
-          this.chatPanel.contextView.updateFromExtension(message.enhancedContextStatus)
+          this.chatPanel.contextView.updateFromAgent(message.enhancedContextStatus)
         }
       }
       else -> {
@@ -259,7 +259,7 @@ private constructor(
         restoreChatSession(agent, chatMessages, chatModelProviderFromState, state.internalId!!)
     connectionId.getAndSet(newConnectionId)
 
-    // Update the extension-side state.
+    // Update the Agent-side state.
     val remoteRepos = state.enhancedContext?.remoteRepositories
     if (remoteRepos != null &&
         CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ==
