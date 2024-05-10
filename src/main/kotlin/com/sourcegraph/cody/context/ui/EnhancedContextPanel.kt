@@ -211,7 +211,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       val controller = RemoteRepoPopupController(project)
       controller.onAccept = { spec ->
         rawSpec = spec
-        applyRepoSpec(spec)
+        ApplicationManager.getApplication().executeOnPooledThread {
+          applyRepoSpec(spec)
+        }
       }
 
       val popup = controller.createPopup(tree.width, rawSpec)
