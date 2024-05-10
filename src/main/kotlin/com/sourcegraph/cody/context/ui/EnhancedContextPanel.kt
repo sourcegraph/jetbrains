@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.context.ui
 
+import com.intellij.ide.HelpTooltip
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
@@ -23,8 +24,10 @@ import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.vcs.CodebaseName
 import java.awt.Dimension
+import java.net.URL
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.BorderFactory
@@ -278,6 +281,17 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     treeRoot.add(contextRoot)
     treeModel.reload()
     resize()
+
+    HelpTooltip()
+        .setTitle(CodyBundle.getString("context-panel.tree.help-tooltip.title"))
+        .setDescription(
+            CodyBundle.getString("context-panel.tree.help-tooltip.description")
+                .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), endpoint))
+        .setBrowserLink(
+            CodyBundle.getString("context-panel.tree.help-tooltip.link.text"),
+            URL(CodyBundle.getString("context-panel.tree.help-tooltip.link.href")))
+        .setLocation(HelpTooltip.Alignment.LEFT)
+        .installOn(tree)
 
     // Update the Agent-side state for this chat.
     val enabledRepos = cleanedRepos.filter { it.isEnabled }.mapNotNull { it.codebaseName }
