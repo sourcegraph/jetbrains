@@ -15,6 +15,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.messages.Topic
 import com.intellij.util.withScheme
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
@@ -236,7 +237,6 @@ abstract class FixupSession(
     showErrorGroup(text, hoverText ?: "No additional info from Agent")
   }
 
-  // TODO: Have the current editor's DocumentListener call us.
   fun handleDocumentChange(editorThatChanged: Editor) {
     if (editorThatChanged != editor) return
     // We auto-accept if they edit the document after we've put up this lens group.

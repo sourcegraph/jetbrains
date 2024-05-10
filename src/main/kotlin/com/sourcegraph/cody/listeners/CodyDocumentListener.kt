@@ -13,6 +13,7 @@ import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager
 import com.sourcegraph.cody.autocomplete.action.AcceptCodyAutocompleteAction
 import com.sourcegraph.cody.chat.CodeEditorFactory
+import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
 import com.sourcegraph.telemetry.GraphQlLogger
 import com.sourcegraph.utils.CodyEditorUtil
@@ -62,6 +63,7 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
               editor, changeOffset, InlineCompletionTriggerKind.AUTOMATIC)
         }
       }
+      FixupService.getInstance(project).getActiveSession()?.handleDocumentChange(editor)
     }
   }
 }
