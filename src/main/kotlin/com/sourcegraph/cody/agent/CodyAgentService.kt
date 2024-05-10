@@ -108,15 +108,14 @@ class CodyAgentService(private val project: Project) : Disposable {
       }
 
       agent.client.onOpenUntitledDocument = Function { params ->
-        val uri = URI.create(params.uri)
-        if (!uri.path.contains("/")) {
-          return@Function false
-        }
-        val fileUri = uri.withScheme("file")
-        if (CodyEditorUtil.createFileIfNeeded(project, fileUri, params.content) == null)
+        // We always get a file which does not start with file:// there.
+        // They start with untitled:// which is VSCode-specific way
+        // to say that files does not exist on the disk yet.
+        val uri = URI.create(params.uri).withScheme("file")
+        if (CodyEditorUtil.createFileIfNeeded(project, uri, params.content) == null)
             return@Function false
         ApplicationManager.getApplication().invokeAndWait {
-          CodyEditorUtil.showDocument(project, fileUri)
+          CodyEditorUtil.showDocument(project, uri)
         }
         return@Function true
       }
