@@ -211,9 +211,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       val controller = RemoteRepoPopupController(project)
       controller.onAccept = { spec ->
         rawSpec = spec
-        ApplicationManager.getApplication().executeOnPooledThread {
-          applyRepoSpec(spec)
-        }
+        ApplicationManager.getApplication().executeOnPooledThread { applyRepoSpec(spec) }
       }
 
       val popup = controller.createPopup(tree.width, rawSpec)
@@ -256,7 +254,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   private val remotesNode = ContextTreeRemotesNode()
   private val contextRoot =
       object :
-          ContextTreeEnterpriseRootNode("", 0, { checked -> enhancedContextEnabled.set(checked) }) {
+          ContextTreeEnterpriseRootNode(
+              "", 0, 0, { checked -> enhancedContextEnabled.set(checked) }) {
         override fun isChecked(): Boolean {
           return enhancedContextEnabled.get()
         }
@@ -304,8 +303,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
           }
         }
         .forEach { remotesNode.add(it) }
-    // TODO: Count the enabled repos, not all repos; count the ignored repos.
+
     contextRoot.numRepos = repos.count { it.isIgnored != true }
+    contextRoot.numIgnoredRepos = repos.count { it.isIgnored == true }
     treeModel.reload(contextRoot)
     if (wasExpanded) {
       tree.expandPath(remotesPath)
