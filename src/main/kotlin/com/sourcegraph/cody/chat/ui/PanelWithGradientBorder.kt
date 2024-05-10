@@ -29,15 +29,10 @@ open class PanelWithGradientBorder(private val gradientWidth: Int, speaker: Spea
         .subscribe(LafManagerListener.TOPIC, LafManagerListener { computeLayout() })
   }
 
-  private fun computeLayout() {
+private fun computeLayout() {
     val panelBackground = UIUtil.getPanelBackground()
-    //val separatorForeground = JBUI.CurrentTheme.CustomFrameDecorations.separatorForeground()
-    //val topBorder: Border = BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.namedColor("borderColor"))
-    //val bottomBorder: Border = BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.namedColor("borderColor"))
-    //val topAndBottomBorder: Border = BorderFactory.createCompoundBorder(topBorder, bottomBorder)
-    //val emptyBorder = BorderFactory.createEmptyBorder(0, 0, 0, 0)
+    this.border = JBUI.Borders.empty()
 
-   // this.border = if (isHuman) emptyBorder else topAndBottomBorder
     this.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, false)
     this.background = if (isHuman) ColorUtil.darker(panelBackground, 2) else panelBackground
   }

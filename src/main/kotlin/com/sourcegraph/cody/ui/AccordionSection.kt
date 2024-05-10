@@ -38,7 +38,7 @@ class AccordionSection(title: String) : JPanel() {
   private fun createToggleButtonHTML(title: String, isCollapsed: Boolean): String =
       """<html>
           <body style='text-align:left'>
-            <span style='color:gray'>
+            <span style='color:gray; font-size:8px'>
               ${if (isCollapsed) "&#9654;" else "&#9660;"}
             </span>
             &nbsp;$title

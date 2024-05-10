@@ -16,6 +16,7 @@ import com.sourcegraph.cody.chat.ChatUIConstants.TEXT_MARGIN
 import com.sourcegraph.cody.ui.AccordionSection
 import com.sourcegraph.common.BrowserOpener.openInBrowser
 import com.sourcegraph.common.ui.SimpleDumbAwareBGTAction
+import com.vladsch.flexmark.util.html.ui.Color
 import java.awt.BorderLayout
 import java.awt.Insets
 import javax.swing.JPanel
@@ -28,9 +29,11 @@ class ContextFilesPanel(
   init {
     this.layout = BorderLayout()
     isVisible = false
-
+    border = JBUI.Borders.empty()
+w
     updateContentWith(chatMessage.contextFiles)
   }
+
 
   fun updateContentWith(contextItems: List<ContextItem>?) {
     val contextItemFiles = contextItems?.mapNotNull { it as? ContextItemFile }

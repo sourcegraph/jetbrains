@@ -26,11 +26,10 @@ import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.border.Border
 
-
+//This class is used to force bg to be rendered with the right color
+// otherwise it only renders the proper bg color with a ChatSession change
 class PromptWrapper : JPanel(BorderLayout()) {
-  // Define the default background color as a property
   private val defaultBackground = JBColor.namedColor("Editor.SearchField.background", JBColor.WHITE)
-
   init {
     isOpaque = true
     super.setBackground(defaultBackground)
@@ -39,12 +38,8 @@ class PromptWrapper : JPanel(BorderLayout()) {
       BorderFactory.createEmptyBorder(8, 4, 8, 4)
     )
   }
-
-  // Override setBackground to control background setting
   override fun setBackground(bg: Color?) {
-
     super.setBackground(defaultBackground)
-    // }
   }
 }
 
@@ -96,7 +91,7 @@ class ChatPanel(
      * ┃  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛  ┃
      * ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
      *    ─ ─ ─ ─ ─chatSplitter ─ ─ ─ ─ ─
-     *  ┌────────contextContainer─────────┐
+     *  ┌────────bottomWrapper────────────┐
      *  └─────────────────────────────────┘
      */
 
@@ -114,26 +109,16 @@ class ChatPanel(
       promptWrapper.add(stopGeneratingButton, BorderLayout.NORTH)
       promptWrapper.add(llmDropdown, BorderLayout.SOUTH)
 
-    //val llmDropdownWrapper = JPanel(BorderLayout())
-      //llmDropdownWrapper.border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
-      //llmDropdownWrapper.add(llmDropdown, BorderLayout.NORTH)
+    val bottomWrapper = JBScrollPane(contextView)
+        bottomWrapper.border = BorderFactory.createEmptyBorder()
 
     val topWrapper = JPanel(BorderLayout())
-//topWrapper.add(llmDropdownWrapper, BorderLayout.NORTH)
-topWrapper.add(chatPanel, BorderLayout.CENTER)
-topWrapper.add(promptWrapper, BorderLayout.SOUTH)
+      topWrapper.add(chatPanel, BorderLayout.CENTER)
+      topWrapper.add(promptWrapper, BorderLayout.SOUTH)
 
-
-
-    val contextContainer = JBScrollPane(contextView)
-    contextContainer.border = BorderFactory.createEmptyBorder()
     chatSplitter.firstComponent = topWrapper
-    chatSplitter.secondComponent = contextContainer
+    chatSplitter.secondComponent = bottomWrapper
     add(chatSplitter, BorderLayout.CENTER)
-
-    //debug
-    //promptWrapper.border = BorderFactory.createLineBorder(Color.RED, 1)
-    //topWrapper.border = BorderFactory.createLineBorder(Color.RED, 1)
   }
 
   fun setAsActive() {
