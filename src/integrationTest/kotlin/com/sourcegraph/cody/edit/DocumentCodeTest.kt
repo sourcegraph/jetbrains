@@ -14,10 +14,10 @@ import com.sourcegraph.cody.edit.widget.LensAction
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
-import org.mockito.Mockito.mock
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import org.mockito.Mockito.mock
 
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)

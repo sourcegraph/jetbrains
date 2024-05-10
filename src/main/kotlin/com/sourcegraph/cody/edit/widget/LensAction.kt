@@ -19,11 +19,8 @@ import java.awt.geom.Rectangle2D
 import javax.swing.UIManager
 
 @Suppress("UseJBColor")
-class LensAction(
-    val group: LensWidgetGroup,
-    private val text: String,
-    val actionId: String
-) : LensWidget(group) {
+class LensAction(val group: LensWidgetGroup, private val text: String, val actionId: String) :
+    LensWidget(group) {
 
   private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
 

@@ -38,7 +38,7 @@ class LensGroupFactory(val session: FixupSession) {
 
   fun createErrorGroup(
       message: String, // The message to show in the error lens; should be short.
-      tooltip: String? = null  // Can show more detail here.
+      tooltip: String? = null // Can show more detail here.
   ): LensWidgetGroup {
     return LensWidgetGroup(session, session.editor).apply {
       addLogo(this)

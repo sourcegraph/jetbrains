@@ -53,7 +53,8 @@ import kotlin.io.path.toPath
 
 /**
  * Common functionality for commands that let the agent edit the code inline, such as adding a doc
- * string, or fixing up a region according to user instructions.
+ * string, or fixing up a region according to user instructions. Instances of this class map 1:1
+ * with FixupTask instances in the Agent.
  */
 abstract class FixupSession(
     val controller: FixupService,
@@ -65,7 +66,7 @@ abstract class FixupSession(
   private val fixupService = FixupService.getInstance(project)
 
   // This is passed back by the Agent when we initiate the editing task.
-  private var taskId: String? = null
+  @Volatile var taskId: String? = null
 
   var lensGroup: LensWidgetGroup? = null
     private set
@@ -73,6 +74,11 @@ abstract class FixupSession(
   private val showedAcceptLens = AtomicBoolean(false)
 
   var selectionRange: Range? = null
+
+  // The prompt that the Agent used for this task. For Edit, it's the same as
+  // the most recent prompt the user sent, which we already have. But for Document Code,
+  // it enables us to show the user what we sent and let them hand-edit it.
+  var instruction: String? = null
 
   private val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
 
@@ -82,7 +88,7 @@ abstract class FixupSession(
 
   init {
     triggerFixupAsync()
-    ApplicationManager.getApplication().invokeLater { Disposer.register(controller, this) }
+    runInEdt { Disposer.register(controller, this) }
   }
 
   private val document
@@ -90,6 +96,8 @@ abstract class FixupSession(
 
   @RequiresEdt
   private fun triggerFixupAsync() {
+    ApplicationManager.getApplication().assertIsDispatchThread()
+
     // Those lookups require us to be on the EDT.
     val file = FileDocumentManager.getInstance().getFile(document)
     val textFile = file?.let { ProtocolTextDocument.fromVirtualFile(editor, it) } ?: return
@@ -97,21 +105,20 @@ abstract class FixupSession(
     CodyAgentService.withAgent(project) { agent ->
       workAroundUninitializedCodebase()
 
+      // All this because we can get the workspace/edit before the request returns!
+      fixupService.setActiveSession(this)
+
       // Spend a turn to get folding ranges before showing lenses.
       ensureSelectionRange(agent, textFile)
 
       showWorkingGroup()
 
-      // All this because we can get the workspace/edit before the request returns!
-      fixupService.setActiveSession(this)
       makeEditingRequest(agent)
           .handle { result, error ->
             if (error != null || result == null) {
               displayError(defaultErrorText, error?.localizedMessage)
             } else {
-              taskId = result.id
               selectionRange = adjustToDocumentRange(result.selectionRange)
-              fixupService.setActiveSession(this)
             }
             null
           }
@@ -119,7 +126,7 @@ abstract class FixupSession(
             if (!(error is CancellationException || error is CompletionException)) {
               displayError(defaultErrorText, error?.localizedMessage)
             }
-            finish()
+            cancel()
             null
           }
           .completeOnTimeout(null, 3, TimeUnit.SECONDS)
@@ -151,6 +158,7 @@ abstract class FixupSession(
   }
 
   fun update(task: EditTask) {
+    task.instruction?.let { instruction = it }
     when (task.state) {
       // This is an internal state (parked/ready tasks) and we should never see it.
       CodyTaskState.Idle -> {}
@@ -159,12 +167,15 @@ abstract class FixupSession(
       CodyTaskState.Working,
       CodyTaskState.Inserting,
       CodyTaskState.Applying,
-      CodyTaskState.Formatting -> {}
+      CodyTaskState.Formatting -> {
+        taskId = task.id
+      }
       // Tasks remain in this state until explicit accept/undo/cancel.
       CodyTaskState.Applied -> showAcceptGroup()
-      // Then they transition to finished.
-      CodyTaskState.Finished -> {}
-      CodyTaskState.Error -> {}
+      // Then they transition to finished, or error.
+      CodyTaskState.Finished -> finish()
+      // We do not finish() until the error is displayed and closed.
+      CodyTaskState.Error -> displayError(defaultErrorText, task.error?.message)
       CodyTaskState.Pending -> {}
     }
   }
@@ -247,7 +258,7 @@ abstract class FixupSession(
       logger.debug("Session cleanup error", x)
     }
     runInEdt {
-      try {
+      try { // Disposing inlay requires EDT.
         Disposer.dispose(this)
       } catch (x: Exception) {
         logger.warn("Error disposing fixup session $this", x)
@@ -262,7 +273,6 @@ abstract class FixupSession(
     CodyAgentService.withAgent(project) { agent ->
       agent.server.acceptEditTask(TaskIdParam(taskId!!))
     }
-    finish()
     publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
   }
 
@@ -270,30 +280,25 @@ abstract class FixupSession(
     CodyAgentService.withAgent(project) { agent ->
       agent.server.cancelEditTask(TaskIdParam(taskId!!))
     }
-    if (performedActions.isNotEmpty()) {
-      undo()
-    } else {
-      finish()
+  }
+
+  fun undo() {
+    runInEdt { showWorkingGroup() }
+    CodyAgentService.withAgent(project) { agent ->
+      agent.server.undoEditTask(TaskIdParam(taskId!!))
     }
     publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_CANCEL)
   }
 
   fun retry() {
-    ApplicationManager.getApplication().invokeLater {
-      // This starts an entirely new session, independent of this one.
-      EditCommandPrompt(controller, editor, "Edit instructions and Retry")
-    }
-    controller.cancelActiveSession()
-  }
+    val instruction = instruction
 
-  // Action handler for FixupSession.ACTION_UNDO.
-  fun undo() {
-    CodyAgentService.withAgent(project) { agent ->
-      agent.server.undoEditTask(TaskIdParam(taskId!!))
+    undo()
+
+    ApplicationManager.getApplication().executeOnPooledThread {
+      FixupService.getInstance(project).waitUntilActiveSessionIsFinished()
+      runInEdt { EditCommandPrompt(controller, editor, "Edit instructions and Retry", instruction) }
     }
-    undoEdits()
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
-    finish()
   }
 
   fun dismiss() {
@@ -348,7 +353,7 @@ abstract class FixupSession(
 
     CodyAgentService.withAgent(project) { agent ->
       ensureSelectionRange(agent, textFile)
-      ApplicationManager.getApplication().invokeLater { showWorkingGroup() }
+      runInEdt { showWorkingGroup() }
     }
   }
 
@@ -401,13 +406,6 @@ abstract class FixupSession(
     val endLineLength = document.getLineEndOffset(endLine) - document.getLineStartOffset(endLine)
     val end = if (r.end.line < 0) Position(line = endLine, character = endLineLength) else r.end
     return Range(start, end)
-  }
-
-  private fun undoEdits() {
-    if (project.isDisposed) return
-    WriteCommandAction.runWriteCommandAction(project) {
-      performedActions.reversed().forEach { it.undo() }
-    }
   }
 
   fun createDiffDocument(): Document {
