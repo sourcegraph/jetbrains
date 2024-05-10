@@ -291,6 +291,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
             CodyBundle.getString("context-panel.tree.help-tooltip.link.text"),
             URL(CodyBundle.getString("context-panel.tree.help-tooltip.link.href")))
         .setLocation(HelpTooltip.Alignment.LEFT)
+        .setInitialDelay(
+            1500) // Tooltip can interfere with the treeview, so cool off on showing it.
         .installOn(tree)
 
     // Update the Agent-side state for this chat.
