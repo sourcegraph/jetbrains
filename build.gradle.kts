@@ -1,4 +1,7 @@
 import com.jetbrains.plugin.structure.base.utils.isDirectory
+import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
 import java.nio.file.FileSystems
 import java.nio.file.FileVisitResult
@@ -12,9 +15,6 @@ import java.util.*
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import kotlin.script.experimental.jvm.util.hasParentNamed
-import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -482,20 +482,20 @@ tasks {
 
   register<Test>("integrationTest") {
     description = "Runs the integration tests."
-    applySharedConfiguration(sharedIntegrationTestConfig)
+    sharedIntegrationTestConfig()
   }
 
   // Make sure to set CODY_INTEGRATION_TEST_TOKEN when using this task.
   register<Test>("passthroughIntegrationTest") {
     description = "Runs the integration tests, passing everything through to the LLM."
-    applySharedConfiguration(sharedIntegrationTestConfig)
+    sharedIntegrationTestConfig()
     environment("CODY_RECORDING_MODE", "passthrough")
   }
 
   // Make sure to set CODY_INTEGRATION_TEST_TOKEN when using this task.
   register<Test>("recordingIntegrationTest") {
     description = "Runs the integration tests and records the responses."
-    applySharedConfiguration(sharedIntegrationTestConfig)
+    sharedIntegrationTestConfig()
 
     environment("CODY_RECORDING_MODE", "record")
     environment("CODY_RECORDING_NAME", "integration-tests")
@@ -503,8 +503,4 @@ tasks {
   }
 
   named("check") { dependsOn("integrationTest") }
-}
-
-fun Test.applySharedConfiguration(sharedConfig: Test.() -> Unit) {
-  sharedConfig()
 }
