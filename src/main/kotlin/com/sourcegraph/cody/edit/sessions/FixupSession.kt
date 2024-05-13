@@ -320,7 +320,7 @@ abstract class FixupSession(
     }
   }
 
-  fun performInlineEdits(edits: List<TextEdit>) {
+  fun performInlineEdits(edits: List<TextEdit>, isUndo: Boolean = false) {
     // TODO: This is an artifact of the update to concurrent editing tasks.
     // We do need to mute any LensGroup listeners, but this is an ugly way to do it.
     // There are multiple Lens groups; we need a Document-level listener list.
@@ -355,22 +355,26 @@ abstract class FixupSession(
           }
         }
 
-        // It is safe to use selectionRange here, because it is set in the constructor
-        // by calling triggerFixupAsync() which in turn calls ensureSelectionRange().
-        // The value of this property does not change
-        // when the user selects a different snippet in the UI.
-        // FIXME this causes a problem when the entire file becomes shorter than the original selection range.
-        selectionRange!!.let {
-          val tr = TextRange(it.start.toOffset(document), it.end.toOffset(document))
-          val input = document.getText(tr)
-          val formatted =
-              CodyFormatter.formatStringBasedOnDocument(
-                  input, project, document, tr, editor.caretModel.offset)
-          if (input.replace(Regex("\\s"), "") != formatted.replace(Regex("\\s"), "")) {
-            logger.error(
-                "Skipped internal formatting because the formatted text is different from the original text")
+        // Skip the formatting if these edits are part of an undo operation.
+        if(!isUndo){
+          // It is safe to use selectionRange here, because it is set in the constructor
+          // by calling triggerFixupAsync() which in turn calls ensureSelectionRange().
+          // The value of this property does not change
+          // when the user selects a different snippet in the UI.
+          // FIXME this causes a problem when the entire file becomes shorter than the original
+          // selection range.
+          selectionRange!!.let {
+            val tr = TextRange(it.start.toOffset(document), it.end.toOffset(document))
+            val input = document.getText(tr)
+            val formatted =
+                    CodyFormatter.formatStringBasedOnDocument(
+                            input, project, document, tr, editor.caretModel.offset)
+            if (input.replace(Regex("\\s"), "") != formatted.replace(Regex("\\s"), "")) {
+              logger.error(
+                      "Skipped internal formatting because the formatted text is different from the original text")
+            }
+            document.replaceString(tr.startOffset, tr.endOffset, formatted)
           }
-          document.replaceString(tr.startOffset, tr.endOffset, formatted)
         }
 
         performedActions += currentActions
