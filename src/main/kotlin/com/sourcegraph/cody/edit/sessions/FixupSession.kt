@@ -356,7 +356,7 @@ abstract class FixupSession(
         }
 
         // Skip the formatting if these edits are part of an undo operation.
-        if(!isUndo){
+        if (!isUndo) {
           // It is safe to use selectionRange here, because it is set in the constructor
           // by calling triggerFixupAsync() which in turn calls ensureSelectionRange().
           // The value of this property does not change
@@ -367,11 +367,11 @@ abstract class FixupSession(
             val tr = TextRange(it.start.toOffset(document), it.end.toOffset(document))
             val input = document.getText(tr)
             val formatted =
-                    CodyFormatter.formatStringBasedOnDocument(
-                            input, project, document, tr, tr.startOffset)
+                CodyFormatter.formatStringBasedOnDocument(
+                    input, project, document, tr, tr.startOffset)
             if (input.replace(Regex("\\s"), "") != formatted.replace(Regex("\\s"), "")) {
               logger.error(
-                      "Skipped internal formatting because the formatted text is different from the original text")
+                  "Skipped internal formatting because the formatted text is different from the original text")
             }
             document.replaceString(tr.startOffset, tr.endOffset, formatted)
           }
