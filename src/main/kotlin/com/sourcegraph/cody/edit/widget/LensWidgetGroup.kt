@@ -22,6 +22,7 @@ import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.config.ThemeUtil
+import org.jetbrains.annotations.NotNull
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -32,7 +33,6 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
 import kotlin.math.roundToInt
-import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
@@ -97,10 +97,14 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   var isErrorGroup = false
 
   init {
-    Disposer.register(session, this)
-    editor.addEditorMouseListener(mouseClickListener)
-    editor.addEditorMouseMotionListener(mouseMotionListener)
-    addedListeners.set(true)
+    if (!session.isDisposed.get()) {
+      Disposer.register(session, this)
+      editor.addEditorMouseListener(mouseClickListener)
+      editor.addEditorMouseMotionListener(mouseMotionListener)
+      addedListeners.set(true)
+    } else {
+      logger.warn("Disposing lens widget group with disposed session: $this")
+    }
   }
 
   fun withListenersMuted(block: () -> Unit) {

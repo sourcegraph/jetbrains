@@ -69,6 +69,7 @@ abstract class FixupSession(
     private set
 
   private val showedAcceptLens = AtomicBoolean(false)
+  val isDisposed = AtomicBoolean(false)
 
   var selectionRange: Range? = null
 
@@ -187,6 +188,7 @@ abstract class FixupSession(
   // integration testing, but also because there's no real harm blocking pool threads.
   private fun showLensGroup(group: LensWidgetGroup) {
     lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
+    if (isDisposed.get()) return
     lensGroup = group
     var range = selectionRange
     if (range == null) {
@@ -413,6 +415,7 @@ abstract class FixupSession(
   }
 
   override fun dispose() {
+    isDisposed.set(true)
     if (project.isDisposed) return
     performedActions.forEach { it.dispose() }
   }
