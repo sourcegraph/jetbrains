@@ -368,7 +368,7 @@ abstract class FixupSession(
             val input = document.getText(tr)
             val formatted =
                     CodyFormatter.formatStringBasedOnDocument(
-                            input, project, document, tr, editor.caretModel.offset)
+                            input, project, document, tr, tr.startOffset)
             if (input.replace(Regex("\\s"), "") != formatted.replace(Regex("\\s"), "")) {
               logger.error(
                       "Skipped internal formatting because the formatted text is different from the original text")
