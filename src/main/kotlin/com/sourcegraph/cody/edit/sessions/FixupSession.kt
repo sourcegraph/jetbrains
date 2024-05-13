@@ -92,6 +92,8 @@ abstract class FixupSession(
         }
       }
 
+  @Volatile private var undoInProgress: Boolean = false
+
   init {
     triggerFixupAsync()
 
@@ -248,6 +250,7 @@ abstract class FixupSession(
   fun undo() {
     runInEdt { showWorkingGroup() }
     CodyAgentService.withAgent(project) { agent ->
+      undoInProgress = true
       agent.server.undoEditTask(TaskIdParam(taskId!!))
     }
   }
@@ -320,7 +323,7 @@ abstract class FixupSession(
     }
   }
 
-  fun performInlineEdits(edits: List<TextEdit>, isUndo: Boolean = false) {
+  fun performInlineEdits(edits: List<TextEdit>) {
     // TODO: This is an artifact of the update to concurrent editing tasks.
     // We do need to mute any LensGroup listeners, but this is an ugly way to do it.
     // There are multiple Lens groups; we need a Document-level listener list.
@@ -356,7 +359,7 @@ abstract class FixupSession(
         }
 
         // Skip the formatting if these edits are part of an undo operation.
-        if (!isUndo) {
+        if (!undoInProgress) {
           // It is safe to use selectionRange here, because it is set in the constructor
           // by calling triggerFixupAsync() which in turn calls ensureSelectionRange().
           // The value of this property does not change
@@ -376,6 +379,9 @@ abstract class FixupSession(
             document.replaceString(tr.startOffset, tr.endOffset, formatted)
           }
         }
+
+        // If this has been an undo operation, it has been completed by now
+        undoInProgress = false
 
         performedActions += currentActions
       }
