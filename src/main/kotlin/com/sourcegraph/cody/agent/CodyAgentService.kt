@@ -18,6 +18,7 @@ import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.utils.CodyEditorUtil
 import java.net.URI
+import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -25,7 +26,6 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 import java.util.function.Function
 import kotlinx.coroutines.runBlocking
-import java.util.*
 
 @Service(Service.Level.PROJECT)
 class CodyAgentService(private val project: Project) : Disposable {
@@ -39,16 +39,19 @@ class CodyAgentService(private val project: Project) : Disposable {
   private val timer = Timer()
 
   init {
-        // Initialize with current proxy settings
+    // Initialize with current proxy settings
     val proxy = HttpConfigurable.getInstance()
-        previousProxyHost = proxy.PROXY_HOST
-        previousProxyPort = proxy.PROXY_PORT
-            // Schedule the task to check for proxy changes
-        timer.schedule(object : TimerTask() {
-            override fun run() {
-                checkForProxyChanges()
-            }
-        }, 0, 2000) // Check every 5 seconds
+    previousProxyHost = proxy.PROXY_HOST
+    previousProxyPort = proxy.PROXY_PORT
+    // Schedule the task to check for proxy changes
+    timer.schedule(
+        object : TimerTask() {
+          override fun run() {
+            checkForProxyChanges()
+          }
+        },
+        0,
+        5000) // Check every 5 seconds
     onStartup { agent ->
       agent.client.onNewMessage = Consumer { params ->
         if (!project.isDisposed) {
@@ -120,22 +123,23 @@ class CodyAgentService(private val project: Project) : Disposable {
       }
     }
   }
-    private fun checkForProxyChanges() {
-        val proxy = HttpConfigurable.getInstance()
-        val currentProxyHost = proxy.PROXY_HOST
-        val currentProxyPort = proxy.PROXY_PORT
 
-        if (currentProxyHost != previousProxyHost || currentProxyPort != previousProxyPort) {
-            // Proxy settings have changed
-            previousProxyHost = currentProxyHost
-            previousProxyPort = currentProxyPort
-            reloadAgent()
-        }
+  private fun checkForProxyChanges() {
+    val proxy = HttpConfigurable.getInstance()
+    val currentProxyHost = proxy.PROXY_HOST
+    val currentProxyPort = proxy.PROXY_PORT
+
+    if (currentProxyHost != previousProxyHost || currentProxyPort != previousProxyPort) {
+      // Proxy settings have changed
+      previousProxyHost = currentProxyHost
+      previousProxyPort = currentProxyPort
+      reloadAgent()
     }
+  }
 
   private fun reloadAgent() {
-        restartAgent(project)
-    }
+    restartAgent(project)
+  }
 
   private fun onStartup(action: (CodyAgent) -> Unit) {
     synchronized(startupActions) { startupActions.add(action) }
@@ -192,7 +196,7 @@ class CodyAgentService(private val project: Project) : Disposable {
   }
 
   override fun dispose() {
-     timer.cancel()
+    timer.cancel()
     stopAgent(null)
   }
 
