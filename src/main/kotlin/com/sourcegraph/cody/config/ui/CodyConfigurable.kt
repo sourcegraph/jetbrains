@@ -1,5 +1,7 @@
 package com.sourcegraph.cody.config.ui
 
+import javax.swing.JButton
+import com.sourcegraph.cody.agent.CodyAgentService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
@@ -52,6 +54,13 @@ class CodyConfigurable(val project: Project) : BoundConfigurable(ConfigUtil.CODY
           checkBox("Accept non-trusted certificates")
               .enabledIf(enableCodyCheckbox.selected)
               .bindSelected(settingsModel::shouldAcceptNonTrustedCertificatesAutomatically)
+        }
+        row {
+          val reloadButton = JButton("Reload Agent")
+          reloadButton.addActionListener {
+             CodyAgentService.getInstance(project).restartAgent(project)
+          }
+          cell(reloadButton)
         }
       }
 

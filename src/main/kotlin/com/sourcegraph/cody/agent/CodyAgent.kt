@@ -176,8 +176,8 @@ private constructor(
         processBuilder.environment()["HTTPS_PROXY"] = "https://$proxyUrl"
       }
 
-      logger.info("starting Cody agent ${command.joinToString(" ")}")
-      logger.info(
+      logger.warn("starting Cody agent ${command.joinToString(" ")}")
+      logger.warn(
           "Cody agent proxyUrl ${proxyUrl} PROXY_TYPE_IS_SOCKS ${proxy.PROXY_TYPE_IS_SOCKS}")
 
       val process =

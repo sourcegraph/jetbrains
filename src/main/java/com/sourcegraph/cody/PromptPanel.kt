@@ -33,6 +33,8 @@ import javax.swing.border.EmptyBorder
 import javax.swing.event.AncestorEvent
 import javax.swing.event.AncestorListener
 import javax.swing.text.DefaultEditorKit
+import javax.swing.JButton
+
 
 class PromptPanel(project: Project, private val chatSession: ChatSession) : JLayeredPane() {
 
