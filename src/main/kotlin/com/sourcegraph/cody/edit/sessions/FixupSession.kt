@@ -73,7 +73,7 @@ abstract class FixupSession(
   // it enables us to show the user what we sent and let them hand-edit it.
   var instruction: String? = null
 
-  val cancellationToken = CancellationToken()
+  private val cancellationToken = CancellationToken()
 
   private val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
 
@@ -111,30 +111,30 @@ abstract class FixupSession(
     CodyAgentService.withAgent(project) { agent ->
       workAroundUninitializedCodebase()
 
-      fixupService.startNewSession(this) {
-        // Spend a turn to get folding ranges before showing lenses.
-        ensureSelectionRange(agent, textFile)
+      fixupService.startNewSession(this)
 
-        showWorkingGroup()
+      // Spend a turn to get folding ranges before showing lenses.
+      ensureSelectionRange(agent, textFile)
 
-        makeEditingRequest(agent)
-            .handle { result, error ->
-              if (error != null || result == null) {
-                showErrorGroup("Error while generating doc string: $error")
-              } else {
-                selectionRange = adjustToDocumentRange(result.selectionRange)
-              }
-              null
+      showWorkingGroup()
+
+      makeEditingRequest(agent)
+          .handle { result, error ->
+            if (error != null || result == null) {
+              showErrorGroup("Error while generating doc string: $error")
+            } else {
+              selectionRange = adjustToDocumentRange(result.selectionRange)
             }
-            .exceptionally { error: Throwable? ->
-              if (!(error is CancellationException || error is CompletionException)) {
-                showErrorGroup("Error while generating code: ${error?.localizedMessage}")
-              }
-              cancel()
-              null
+            null
+          }
+          .exceptionally { error: Throwable? ->
+            if (!(error is CancellationException || error is CompletionException)) {
+              showErrorGroup("Error while generating code: ${error?.localizedMessage}")
             }
-            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
-      }
+            cancel()
+            null
+          }
+          .completeOnTimeout(null, 3, TimeUnit.SECONDS)
     }
   }
 
@@ -161,6 +161,7 @@ abstract class FixupSession(
 
   fun update(task: EditTask) {
     task.instruction?.let { instruction = it }
+
     when (task.state) {
       // This is an internal state (parked/ready tasks) and we should never see it.
       CodyTaskState.Idle -> {}
@@ -187,6 +188,7 @@ abstract class FixupSession(
   private fun showLensGroup(group: LensWidgetGroup) {
     lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
     lensGroup = group
+
     var range = selectionRange
     if (range == null) {
       // Be defensive, as the protocol has been fragile with respect to selection ranges.
@@ -207,6 +209,8 @@ abstract class FixupSession(
     if (!ApplicationManager.getApplication().isDispatchThread) { // integration test
       future.get()
     }
+
+    controller.notifySessionStateChanged()
   }
 
   private fun showWorkingGroup() {
@@ -370,6 +374,10 @@ abstract class FixupSession(
   override fun dispose() {
     if (project.isDisposed) return
     performedActions.forEach { it.dispose() }
+  }
+
+  fun isShowingWorkingLens(): Boolean {
+    return lensGroup?.isInWorkingGroup == true
   }
 
   /** Returns true if the Accept lens group is currently active. */

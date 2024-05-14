@@ -24,6 +24,9 @@ import java.util.concurrent.atomic.AtomicReference
 class FixupService(val project: Project) : Disposable {
   private val logger = Logger.getInstance(FixupService::class.java)
 
+  private val fixupSessionStateListeners: MutableList<ActiveFixupSessionStateListener> =
+      mutableListOf()
+
   @Volatile private var activeSession: FixupSession? = null
 
   // We only have one editing session at a time in JetBrains, for now.
@@ -76,18 +79,22 @@ class FixupService(val project: Project) : Disposable {
 
   fun getActiveSession(): FixupSession? = activeSession
 
-  fun startNewSession(newSession: FixupSession, code: () -> Unit) {
+  fun startNewSession(newSession: FixupSession) {
     activeSession?.let { currentSession ->
-      if (currentSession.isShowingAcceptLens()) currentSession.accept() else currentSession.cancel()
-      currentSession.cancellationToken.onFinished {
-        activeSession = newSession
-        code()
-      }
+      // TODO: This should be done on the agent side, but we would need to add new client capability
+      // (parallel edits, disabled in JetBrains).
+      // We want to enable parallel edits in JetBrains soon, so this would be a wasted effort.
+      if (currentSession.isShowingAcceptLens()) {
+        currentSession.accept()
+        currentSession.dismiss()
+      } else throw IllegalStateException("Cannot start new session when one is already active")
     }
+    activeSession = newSession
   }
 
   fun clearActiveSession() {
     activeSession = null
+    notifySessionStateChanged()
   }
 
   override fun dispose() {
@@ -105,6 +112,26 @@ class FixupService(val project: Project) : Disposable {
         logger.warn("Error disposing prompt", x)
       }
     }
+  }
+
+  fun addListener(listener: ActiveFixupSessionStateListener) {
+    synchronized(fixupSessionStateListeners) { fixupSessionStateListeners.add(listener) }
+  }
+
+  fun isEditInProgress(): Boolean {
+    return activeSession?.isShowingWorkingLens() ?: false
+  }
+
+  fun notifySessionStateChanged() {
+    synchronized(fixupSessionStateListeners) {
+      for (listener in fixupSessionStateListeners) {
+        listener.fixupSessionStateChanged(isEditInProgress())
+      }
+    }
+  }
+
+  interface ActiveFixupSessionStateListener {
+    fun fixupSessionStateChanged(isInProgress: Boolean)
   }
 
   companion object {
