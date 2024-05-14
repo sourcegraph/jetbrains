@@ -65,7 +65,13 @@ class CodyAgentService(project: Project) : Disposable {
       }
 
       agent.client.onTextDocumentEdit = Function { params ->
-        FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
+        try {
+          FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
+          true
+        } catch (e: RuntimeException) {
+          logger.error(e)
+          false
+        }
       }
 
       agent.client.onTextDocumentShow = Function { params ->
