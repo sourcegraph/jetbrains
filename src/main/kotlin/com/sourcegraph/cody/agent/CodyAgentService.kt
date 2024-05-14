@@ -64,7 +64,7 @@ class CodyAgentService(project: Project) : Disposable {
         FixupService.getInstance(project).getActiveSession()?.performWorkspaceEdit(params)
       }
 
-      agent.client.onTextDocumentEdit = Consumer { params ->
+      agent.client.onTextDocumentEdit = Function { params ->
         FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
       }
 

@@ -12,6 +12,7 @@ import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.concurrency.annotations.RequiresEdt
@@ -30,8 +31,6 @@ import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.agent.protocol.WorkspaceEditParams
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.FixupService
-import com.sourcegraph.cody.edit.exception.EditCreationException
-import com.sourcegraph.cody.edit.exception.EditExecutionException
 import com.sourcegraph.cody.edit.fixupActions.FixupUndoableAction
 import com.sourcegraph.cody.edit.fixupActions.InsertUndoableAction
 import com.sourcegraph.cody.edit.fixupActions.ReplaceUndoableAction
@@ -314,43 +313,50 @@ abstract class FixupSession(
     }
   }
 
-  fun performInlineEdits(edits: List<TextEdit>) {
+  fun performInlineEdits(edits: List<TextEdit>): Boolean {
+    if (lensGroup == null) return false
     // TODO: This is an artifact of the update to concurrent editing tasks.
     // We do need to mute any LensGroup listeners, but this is an ugly way to do it.
     // There are multiple Lens groups; we need a Document-level listener list.
-    lensGroup?.withListenersMuted {
+    return lensGroup!!.withListenersMuted {
       if (!controller.isEligibleForInlineEdit(editor)) {
-        return@withListenersMuted logger.warn("Inline edit not eligible")
+        logger.warn("Inline edit not eligible")
+        return@withListenersMuted false
       }
 
-      WriteCommandAction.runWriteCommandAction(project) {
-        val currentActions =
-            edits.mapNotNull { edit ->
-              try {
-                when (edit.type) {
-                  "replace",
-                  "delete" -> ReplaceUndoableAction(project, edit, document)
-                  "insert" -> InsertUndoableAction(project, edit, document)
-                  else -> {
-                    logger.warn("Unknown edit type: ${edit.type}")
-                    null
+      return@withListenersMuted WriteCommandAction.runWriteCommandAction(
+          project,
+          Computable {
+            val currentActions =
+                edits.mapNotNull { edit ->
+                  try {
+                    when (edit.type) {
+                      "replace",
+                      "delete" -> ReplaceUndoableAction(project, edit, document)
+                      "insert" -> InsertUndoableAction(project, edit, document)
+                      else -> {
+                        logger.warn("Unknown edit type: ${edit.type}")
+                        null
+                      }
+                    }
+                  } catch (e: RuntimeException) {
+                    logger.error("Failed to create the action for: $edit", e)
+                    return@Computable false
                   }
                 }
+
+            currentActions.forEach { action ->
+              try {
+                action.apply()
               } catch (e: RuntimeException) {
-                throw EditCreationException(edit, e)
+                logger.error("Failed to apply edit from: $action", e)
+                return@Computable false
               }
             }
 
-        currentActions.forEach { action ->
-          try {
-            action.apply()
-          } catch (e: RuntimeException) {
-            throw EditExecutionException(action, e)
-          }
-        }
-
-        performedActions += currentActions
-      }
+            performedActions += currentActions
+            return@Computable true
+          })
     }
   }
 

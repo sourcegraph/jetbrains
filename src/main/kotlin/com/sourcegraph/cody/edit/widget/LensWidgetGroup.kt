@@ -103,10 +103,10 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     addedListeners.set(true)
   }
 
-  fun withListenersMuted(block: () -> Unit) {
+  fun <T> withListenersMuted(block: () -> T): T {
     try {
       listenersMuted = true
-      block()
+      return block()
     } finally {
       listenersMuted = false
     }
