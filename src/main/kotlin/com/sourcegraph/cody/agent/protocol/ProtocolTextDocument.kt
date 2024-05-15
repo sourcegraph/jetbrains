@@ -50,7 +50,7 @@ private constructor(
 
     private fun uriFor(file: VirtualFile): String {
       val uri = FileSystems.getDefault().getPath(file.path).toUri().toString()
-      return uri.replace(Regex("file://(\\w):/")) {
+      return uri.replace(Regex("file:///(\\w):/")) {
         val driveLetter =
             it.groups[1]?.value?.lowercase(Locale.getDefault()) ?: return@replace it.value
         "file:///$driveLetter%3A/"
