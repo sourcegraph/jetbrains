@@ -537,40 +537,6 @@ tasks {
     dependsOn("buildCody")
   }
 
-  register<Test>("integrationTest") {
-    description = "Runs the integration tests."
-    group = "verification"
-    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
-    classpath = sourceSets["integrationTest"].runtimeClasspath
-
-    val resourcesPath = project.file("src/integrationTest/resources").absolutePath
-    systemProperty("test.resources.dir", resourcesPath)
-
-    // TODO: Refactor to share these with runIde.
-    systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
-    systemProperty("cody-agent.directory", buildCodyDir.parent)
-    systemProperty("sourcegraph.verbose-logging", "true")
-    systemProperty(
-        "cody.autocomplete.enableFormatting",
-        project.property("cody.autocomplete.enableFormatting") as String? ?: "true")
-
-    include { it.file.hasParentNamed("integrationTest") }
-
-    useJUnit()
-
-    systemProperty("cody.integration.testing", "true")
-    systemProperty(
-        "idea.test.execution.policy", // For now, should be used by all tests
-        "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
-
-    environment("CODY_JETBRAINS_FEATURES", "cody.feature.inline-edits=true")
-    environment("CODY_RECORDING_MODE", "replay")
-    environment("CODY_RECORDING_DIRECTORY", "recordings")
-    environment("CODY_RECORD_IF_MISSING", "false") // Polly needs this to record at all.
-
-    dependsOn("buildCody")
-  }
-
   // Make sure to set CODY_INTEGRATION_TEST_TOKEN when using this task.
   register<Test>("passthroughIntegrationTest") {
     description = "Runs the integration tests, passing everything through to the LLM."
