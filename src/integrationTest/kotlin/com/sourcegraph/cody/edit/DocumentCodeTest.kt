@@ -17,10 +17,12 @@ import com.sourcegraph.cody.edit.widget.LensSpinner
 import org.mockito.Mockito.mock
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.regex.Pattern
+import kotlin.io.path.pathString
 
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)
@@ -199,7 +201,11 @@ class DocumentCodeTest : BasePlatformTestCase() {
     testResourcesDir.copyRecursively(testDataPath.toFile(), overwrite = true)
 
     myFixture.testDataPath = testDataPath.toString()
-    myFixture.configureByFile("testProjects/documentCode/src/main/java/Foo.java")
+    val sourcePath =
+        Paths.get(testDataPath.pathString, "testProjects/documentCode/src/main/java/Foo.java")
+            .toString()
+    assertTrue(File(sourcePath).exists())
+    myFixture.configureByFile(sourcePath)
   }
 
   private fun subscribeToTopic(
