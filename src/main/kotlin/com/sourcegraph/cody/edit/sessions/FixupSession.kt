@@ -239,13 +239,18 @@ abstract class FixupSession(
   }
 
   fun retry() {
-    // TODO: The actual prompt we sent is displayed as ghost text in the text input field, in VS
-    // Code.
-    // E.g. "Write a brief documentation comment for the selected code <etc.>"
-    // We need to send the prompt along with the lenses, so that the client can display it.
-    ApplicationManager.getApplication().invokeLater {
-      // This starts an entirely new session, independent of this one.
-      EditCommandPrompt(controller, editor, "Edit instructions and Retry")
+    val instruction = instruction
+
+    undo()
+
+    ApplicationManager.getApplication().executeOnPooledThread {
+      FixupService.getInstance(project).waitUntilActiveSessionIsFinished()
+      runInEdt {
+        // Close loophole where you can keep retrying after the ignore policy changes.
+        if (controller.isEligibleForInlineEdit(editor)) {
+          EditCommandPrompt(controller, editor, "Edit instructions and Retry", instruction)
+        }
+      }
     }
     controller.cancelActiveSession()
   }

@@ -24,13 +24,30 @@ import java.util.function.Function
 import kotlinx.coroutines.runBlocking
 
 @Service(Service.Level.PROJECT)
-class CodyAgentService(project: Project) : Disposable {
+class CodyAgentService(private val project: Project) : Disposable {
 
   @Volatile private var codyAgent: CompletableFuture<CodyAgent> = CompletableFuture()
 
   private val startupActions: MutableList<(CodyAgent) -> Unit> = mutableListOf()
 
+  private var previousProxyHost: String? = null
+  private var previousProxyPort: Int? = null
+  private val timer = Timer()
+
   init {
+    // Initialize with current proxy settings
+    val proxy = HttpConfigurable.getInstance()
+    previousProxyHost = proxy.PROXY_HOST
+    previousProxyPort = proxy.PROXY_PORT
+    // Schedule the task to check for proxy changes
+    timer.schedule(
+        object : TimerTask() {
+          override fun run() {
+            checkForProxyChanges()
+          }
+        },
+        0,
+        5000) // Check every 5 seconds
     onStartup { agent ->
       agent.client.onNewMessage = Consumer { params ->
         if (!project.isDisposed) {
@@ -56,12 +73,24 @@ class CodyAgentService(project: Project) : Disposable {
         FixupService.getInstance(project).getActiveSession()?.taskDeleted()
       }
 
-      agent.client.onWorkspaceEdit = Consumer { params ->
-        FixupService.getInstance(project).getActiveSession()?.performWorkspaceEdit(params)
+      agent.client.onWorkspaceEdit = Function { params ->
+        try {
+          FixupService.getInstance(project).getActiveSession()?.performWorkspaceEdit(params)
+          true
+        } catch (e: RuntimeException) {
+          logger.error(e)
+          false
+        }
       }
 
-      agent.client.onTextDocumentEdit = Consumer { params ->
-        FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
+      agent.client.onTextDocumentEdit = Function { params ->
+        try {
+          FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
+          true
+        } catch (e: RuntimeException) {
+          logger.error(e)
+          false
+        }
       }
 
       agent.client.onTextDocumentShow = Function { params ->
@@ -89,6 +118,23 @@ class CodyAgentService(project: Project) : Disposable {
         CodyFileEditorListener.registerAllOpenedFiles(project, agent)
       }
     }
+  }
+
+  private fun checkForProxyChanges() {
+    val proxy = HttpConfigurable.getInstance()
+    val currentProxyHost = proxy.PROXY_HOST
+    val currentProxyPort = proxy.PROXY_PORT
+
+    if (currentProxyHost != previousProxyHost || currentProxyPort != previousProxyPort) {
+      // Proxy settings have changed
+      previousProxyHost = currentProxyHost
+      previousProxyPort = currentProxyPort
+      reloadAgent()
+    }
+  }
+
+  private fun reloadAgent() {
+    restartAgent(project)
   }
 
   private fun onStartup(action: (CodyAgent) -> Unit) {
@@ -146,6 +192,7 @@ class CodyAgentService(project: Project) : Disposable {
   }
 
   override fun dispose() {
+    timer.cancel()
     stopAgent(null)
   }
 
