@@ -58,9 +58,9 @@ class CommandsTabPanel(
       add(separator)
     }
 
-    addSeparator("Edit Commands")
     if (ConfigUtil.isFeatureFlagEnabled("cody.feature.inline-edits") ||
         CodyApplicationSettings.instance.isInlineEditionEnabled) {
+      addSeparator("Edit Commands")
       addInlineEditActionButton(EditCodeAction.ID)
       addInlineEditActionButton(DocumentCodeAction.ID)
       addInlineEditActionButton(TestCodeAction.ID)
@@ -106,7 +106,7 @@ class CommandsTabPanel(
 
     button.layout = BorderLayout()
     button.border = BorderFactory.createEmptyBorder(0, 5, 0, 10)
-    ActionManagerEx.getInstanceEx().getAction(actionId).shortcutSet.shortcuts.firstOrNull()?.let {
+    ActionManagerEx.getInstanceEx().getAction(actionId).shortcutSet.shortcuts.lastOrNull()?.let {
       button.add(JLabel(KeymapUtil.getShortcutText(it)), BorderLayout.LINE_END)
     }
     button.mnemonic = mnemonic
