@@ -189,9 +189,9 @@ class DocumentCodeTest : BasePlatformTestCase() {
   }
 
   private fun configureFixture() {
-    val env = System.getenv()
+    // TODO: Copy our test project sources into this path.
     myFixture.testDataPath =
-        Paths.get(moduleRootPath, "build", "src/integrationTest/resources").toString()
+        Paths.get(moduleRootPath, "integrationTest/resources").toString()
     myFixture.configureByFile("test-projects/document-code/src/main/java/Foo.java")
   }
 
