@@ -1,3 +1,4 @@
+
 import com.jetbrains.plugin.structure.base.utils.isDirectory
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
@@ -390,7 +391,7 @@ tasks {
     systemProperty("sourcegraph.verbose-logging", "true")
     systemProperty(
         "cody.autocomplete.enableFormatting",
-        project.property("cody.autocomplete.enableFormatting") ?: "true")
+        project.property("cody.autocomplete.enableFormatting") as String? ?: "true")
     environment("CODY_JETBRAINS_FEATURES", "cody.feature.inline-edits=true")
 
     val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
@@ -463,6 +464,14 @@ tasks {
     testClassesDirs = sourceSets["integrationTest"].output.classesDirs
     classpath = sourceSets["integrationTest"].runtimeClasspath
 
+    // TODO: Refactor to share these with runIde.
+    systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
+    systemProperty("cody-agent.directory", buildCodyDir.parent)
+    systemProperty("sourcegraph.verbose-logging", "true")
+    systemProperty(
+        "cody.autocomplete.enableFormatting",
+        project.property("cody.autocomplete.enableFormatting") as String? ?: "true")
+
     include { it.file.hasParentNamed("integrationTest") }
 
     useJUnit()
@@ -482,7 +491,39 @@ tasks {
 
   register<Test>("integrationTest") {
     description = "Runs the integration tests."
-    sharedIntegrationTestConfig()
+    group = "verification"
+    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+    classpath = sourceSets["integrationTest"].runtimeClasspath
+
+    // TODO: Refactor to share these with runIde.
+    systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
+    systemProperty("cody-agent.directory", buildCodyDir.parent)
+    systemProperty("sourcegraph.verbose-logging", "true")
+    systemProperty(
+        "cody.autocomplete.enableFormatting",
+        project.property("cody.autocomplete.enableFormatting") as String? ?: "true")
+
+    include { it.file.hasParentNamed("integrationTest") }
+
+    useJUnit()
+
+    systemProperty("cody.integration.testing", "true")
+    systemProperty(
+        "idea.test.execution.policy", // For now, should be used by all tests
+        "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
+
+    environment("CODY_JETBRAINS_FEATURES", "cody.feature.inline-edits=true")
+    environment("CODY_RECORDING_MODE", "replay")
+    environment("CODY_RECORDING_DIRECTORY", "recordings")
+    environment("CODY_RECORD_IF_MISSING", "false") // Polly needs this to record at all.
+
+    //  ****************** TODO DO NOT COMMIT THIS ***********************
+    environment(
+        "CODY_INTEGRATION_TEST_TOKEN",
+        "sgp_a0d7ccb4f752ea73_822109f941a35a4e0c34a5dbccf946ffe7284671")
+    //  ****************** TODO DO NOT COMMIT THIS ***********************
+
+    dependsOn("buildCody")
   }
 
   // Make sure to set CODY_INTEGRATION_TEST_TOKEN when using this task.
@@ -501,6 +542,20 @@ tasks {
     environment("CODY_RECORDING_NAME", "integration-tests")
     environment("CODY_RECORD_IF_MISSING", "true") // Polly needs this to record at all.
   }
+
+  named<Copy>("processIntegrationTestResources") {
+    from(sourceSets["integrationTest"].resources)
+    into("$buildDir/resources/integrationTest")
+    exclude("**/.idea/**")
+    exclude("**/*.xml")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  }
+
+  named<Test>("integrationTest") { dependsOn("processIntegrationTestResources") }
+  named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }
+
+
+  withType<Test> { systemProperty("idea.test.src.dir", "$buildDir/resources/integrationTest") }
 
   named("check") { dependsOn("integrationTest") }
 }
