@@ -495,6 +495,9 @@ tasks {
     testClassesDirs = sourceSets["integrationTest"].output.classesDirs
     classpath = sourceSets["integrationTest"].runtimeClasspath
 
+    val resourcesPath = project.file("src/integrationTest/resources").absolutePath
+    systemProperty("test.resources.dir", resourcesPath)
+
     // TODO: Refactor to share these with runIde.
     systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
     systemProperty("cody-agent.directory", buildCodyDir.parent)
@@ -516,12 +519,6 @@ tasks {
     environment("CODY_RECORDING_MODE", "replay")
     environment("CODY_RECORDING_DIRECTORY", "recordings")
     environment("CODY_RECORD_IF_MISSING", "false") // Polly needs this to record at all.
-
-    //  ****************** TODO DO NOT COMMIT THIS ***********************
-    environment(
-        "CODY_INTEGRATION_TEST_TOKEN",
-        "sgp_a0d7ccb4f752ea73_822109f941a35a4e0c34a5dbccf946ffe7284671")
-    //  ****************** TODO DO NOT COMMIT THIS ***********************
 
     dependsOn("buildCody")
   }

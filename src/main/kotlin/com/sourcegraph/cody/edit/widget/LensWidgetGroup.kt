@@ -102,8 +102,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       editor.addEditorMouseListener(mouseClickListener)
       editor.addEditorMouseMotionListener(mouseMotionListener)
       addedListeners.set(true)
-    } else {
-      logger.warn("Disposing lens widget group with disposed session: $this")
     }
   }
 

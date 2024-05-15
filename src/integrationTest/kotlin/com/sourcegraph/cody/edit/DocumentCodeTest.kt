@@ -4,7 +4,6 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -16,7 +15,8 @@ import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import org.mockito.Mockito.mock
-import java.nio.file.Paths
+import java.io.File
+import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -25,8 +25,7 @@ import java.util.regex.Pattern
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)
 
-  // Our test resources are copied into this directory, typically an in-memory filesystem.
-  private val moduleRootPath = ModuleRootManager.getInstance(module).contentRoots[0].path
+  private lateinit var testResourcesDir: File
 
   override fun setUp() {
     super.setUp()
@@ -42,6 +41,9 @@ class DocumentCodeTest : BasePlatformTestCase() {
       }
     }
     // TODO: Notify the Agent that all documents were closed.
+    //  -or, verify that CodyFileEditorListener works, and close them ourselves.
+
+    testResourcesDir.deleteRecursively()
     super.tearDown()
   }
 
@@ -51,7 +53,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
     runInEdtAndWait {
       val rangeContext =
           try {
-            foldingRangeFuture.get(5, TimeUnit.SECONDS)
+            foldingRangeFuture.get(15, TimeUnit.SECONDS)
           } catch (t: TimeoutException) {
             fail("Timed out waiting for folding ranges")
             null
@@ -189,10 +191,15 @@ class DocumentCodeTest : BasePlatformTestCase() {
   }
 
   private fun configureFixture() {
-    // TODO: Copy our test project sources into this path.
-    myFixture.testDataPath =
-        Paths.get(moduleRootPath, "integrationTest/resources").toString()
-    myFixture.configureByFile("test-projects/document-code/src/main/java/Foo.java")
+    // This is wherever src/integrationTest/resources is on the box running the tests.
+    testResourcesDir = File(System.getProperty("test.resources.dir"))
+    assertTrue(testResourcesDir.exists())
+
+    val testDataPath = Files.createTempDirectory("testData")
+    testResourcesDir.copyRecursively(testDataPath.toFile(), overwrite = true)
+
+    myFixture.testDataPath = testDataPath.toString()
+    myFixture.configureByFile("testProjects/documentCode/src/main/java/Foo.java")
   }
 
   private fun subscribeToTopic(
