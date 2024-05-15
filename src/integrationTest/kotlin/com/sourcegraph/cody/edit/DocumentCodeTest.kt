@@ -22,12 +22,11 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.regex.Pattern
-import kotlin.io.path.pathString
 
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)
 
-  private lateinit var testResourcesDir: File
+  private lateinit var testDataPath: File
 
   override fun setUp() {
     super.setUp()
@@ -45,7 +44,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
     // TODO: Notify the Agent that all documents were closed.
     //  -or, verify that CodyFileEditorListener works, and close them ourselves.
 
-    testResourcesDir.deleteRecursively()
+    testDataPath.deleteRecursively()
     super.tearDown()
   }
 
@@ -194,18 +193,18 @@ class DocumentCodeTest : BasePlatformTestCase() {
 
   private fun configureFixture() {
     // This is wherever src/integrationTest/resources is on the box running the tests.
-    testResourcesDir = File(System.getProperty("test.resources.dir"))
+    val testResourcesDir = File(System.getProperty("test.resources.dir"))
     assertTrue(testResourcesDir.exists())
 
-    val testDataPath = Files.createTempDirectory("testData")
-    testResourcesDir.copyRecursively(testDataPath.toFile(), overwrite = true)
+    testDataPath = Files.createTempDirectory("testData").toFile()
+    testResourcesDir.copyRecursively(testDataPath, overwrite = true)
 
     myFixture.testDataPath = testDataPath.toString()
-    val sourcePath =
-        Paths.get(testDataPath.pathString, "testProjects/documentCode/src/main/java/Foo.java")
-            .toString()
+    // The file we pass to configureByFile must be relative to testDataPath.
+    val projectFile = "testProjects/documentCode/src/main/java/Foo.java"
+    val sourcePath = Paths.get(testDataPath.path, projectFile).toString()
     assertTrue(File(sourcePath).exists())
-    myFixture.configureByFile(sourcePath)
+    myFixture.configureByFile(projectFile)
   }
 
   private fun subscribeToTopic(
