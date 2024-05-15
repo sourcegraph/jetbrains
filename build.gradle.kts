@@ -458,11 +458,59 @@ tasks {
     }
   }
 
+  val integrationTestSystemProps =
+      mapOf(
+          "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
+          "cody-agent.directory" to buildCodyDir.parent,
+          "sourcegraph.verbose-logging" to "true",
+          "cody.autocomplete.enableFormatting" to
+              (project.property("cody.autocomplete.enableFormatting") as String? ?: "true"),
+          "cody.integration.testing" to "true",
+          // For now, should be used by all tests
+          "idea.test.execution.policy" to "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy",
+          "test.resources.dir" to project.file("src/integrationTest/resources").absolutePath)
+
+  val integrationTestEnvVars =
+      mapOf(
+          "CODY_JETBRAINS_FEATURES" to "cody.feature.inline-edits=true",
+          "CODY_RECORDING_MODE" to "replay",
+          "CODY_RECORDING_DIRECTORY" to "recordings",
+          "CODY_RECORD_IF_MISSING" to "false") // Polly needs this to record at all.
+
   // Common configuration for integration tests.
-  val sharedIntegrationTestConfig: Test.() -> Unit = {
+  // TODO: This doesn't actually work.
+  fun Test.sharedIntegrationTestConfig() {
     group = "verification"
     testClassesDirs = sourceSets["integrationTest"].output.classesDirs
     classpath = sourceSets["integrationTest"].runtimeClasspath
+
+    // TODO: Refactor to share these with runIde.
+    systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
+    systemProperty("cody-agent.directory", buildCodyDir.parent)
+    systemProperty("sourcegraph.verbose-logging", "true")
+    systemProperty(
+        "cody.autocomplete.enableFormatting",
+        project.property("cody.autocomplete.enableFormatting") as String? ?: "true")
+
+    include { it.file.hasParentNamed("integrationTest") }
+
+    integrationTestSystemProps.forEach { (k, v) -> systemProperty(k, v) }
+    integrationTestEnvVars.forEach { (k, v) -> environment(k, v) }
+
+    useJUnit()
+
+    dependsOn("buildCody")
+  }
+
+  // Make sure to set CODY_INTEGRATION_TEST_TOKEN env var when using this task.
+  register<Test>("integrationTest") {
+    description = "Runs the integration tests."
+    group = "verification"
+    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+    classpath = sourceSets["integrationTest"].runtimeClasspath
+
+    val resourcesPath = project.file("src/integrationTest/resources").absolutePath
+    systemProperty("test.resources.dir", resourcesPath)
 
     // TODO: Refactor to share these with runIde.
     systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
@@ -548,11 +596,14 @@ tasks {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
   }
 
-  named<Test>("integrationTest") { dependsOn("processIntegrationTestResources") }
-  named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }
-
-
   withType<Test> { systemProperty("idea.test.src.dir", "$buildDir/resources/integrationTest") }
+
+  named<Test>("integrationTest") {
+    dependsOn("processIntegrationTestResources")
+    //sharedIntegrationTestConfig()
+  }
+
+  named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }
 
   named("check") { dependsOn("integrationTest") }
 }
