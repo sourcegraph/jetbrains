@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import java.nio.file.FileSystems
+import java.util.Locale
 
 class ProtocolTextDocument
 private constructor(
@@ -48,7 +49,12 @@ private constructor(
     }
 
     private fun uriFor(file: VirtualFile): String {
-      return FileSystems.getDefault().getPath(file.path).toUri().toString()
+      val uri = FileSystems.getDefault().getPath(file.path).toUri().toString()
+      return uri.replace(Regex("file://(\\w):/")) {
+        val driveLetter =
+            it.groups[1]?.value?.lowercase(Locale.getDefault()) ?: return@replace it.value
+        "file:///$driveLetter%3A/"
+      }
     }
   }
 }
