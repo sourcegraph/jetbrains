@@ -5,6 +5,7 @@ on:
       - '**.kt'
       - '**.java'
       - '**.kts'
+      - '.github/workflows/scip-java.yml'
 jobs:
   scip-java:
     if: github.repository == 'sourcegraph/jetbrains'
