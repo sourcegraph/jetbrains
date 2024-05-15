@@ -15,7 +15,6 @@ import com.intellij.ui.TitledSeparator
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.commands.CommandId
-import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.edit.actions.DocumentCodeAction
 import com.sourcegraph.cody.edit.actions.EditCodeAction
@@ -23,7 +22,6 @@ import com.sourcegraph.cody.edit.actions.TestCodeAction
 import com.sourcegraph.cody.ignore.CommandPanelIgnoreBanner
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.ignore.IgnorePolicy
-import com.sourcegraph.config.ConfigUtil
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
@@ -58,13 +56,10 @@ class CommandsTabPanel(
       add(separator)
     }
 
-    if (ConfigUtil.isFeatureFlagEnabled("cody.feature.inline-edits") ||
-        CodyApplicationSettings.instance.isInlineEditionEnabled) {
-      addSeparator("Edit Commands")
-      addInlineEditActionButton(EditCodeAction.ID)
-      addInlineEditActionButton(DocumentCodeAction.ID)
-      addInlineEditActionButton(TestCodeAction.ID)
-    }
+    addSeparator("Edit Commands")
+    addInlineEditActionButton(EditCodeAction.ID)
+    addInlineEditActionButton(DocumentCodeAction.ID)
+    addInlineEditActionButton(TestCodeAction.ID)
 
     addSeparator("Chat Commands")
     CommandId.values().forEach { command -> addCommandButton(command) }
@@ -106,7 +101,7 @@ class CommandsTabPanel(
 
     button.layout = BorderLayout()
     button.border = BorderFactory.createEmptyBorder(0, 5, 0, 10)
-    ActionManagerEx.getInstanceEx().getAction(actionId).shortcutSet.shortcuts.lastOrNull()?.let {
+    ActionManagerEx.getInstanceEx().getAction(actionId).shortcutSet.shortcuts.firstOrNull()?.let {
       button.add(JLabel(KeymapUtil.getShortcutText(it)), BorderLayout.LINE_END)
     }
     button.mnemonic = mnemonic

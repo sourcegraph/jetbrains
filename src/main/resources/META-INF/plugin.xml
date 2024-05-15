@@ -233,16 +233,16 @@
                 icon="/icons/edit/generate_test.svg"
                 class="com.sourcegraph.cody.edit.actions.TestCodeAction">
             <add-to-group group-id="CodyEditorActions" anchor="first"/>
-            <keyboard-shortcut first-keystroke="ctrl shift T" keymap="$default"/>
-            <keyboard-shortcut first-keystroke="ctrl shift T" keymap="Mac OS X 10.5+"/>
+            <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift T" keymap="$default"/>
+            <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift T" keymap="Mac OS X 10.5+"/>
         </action>
 
         <action id="cody.documentCodeAction"
                 icon="/icons/edit/document_code.svg"
                 class="com.sourcegraph.cody.edit.actions.DocumentCodeAction">
             <add-to-group group-id="CodyEditorActions" anchor="first"/>
-            <keyboard-shortcut first-keystroke="ctrl shift H" keymap="$default"/>
-            <keyboard-shortcut first-keystroke="ctrl shift H" keymap="Mac OS X 10.5+"/>
+            <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift H" keymap="$default"/>
+            <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift H" keymap="Mac OS X 10.5+"/>
         </action>
 
         <action id="cody.editCodeAction"
@@ -250,12 +250,9 @@
                 class="com.sourcegraph.cody.edit.actions.EditOpenOrRetryAction"
                 description="Opens the Edit Code dialog">
             <add-to-group group-id="CodyEditorActions" anchor="first"/>
-            <keyboard-shortcut first-keystroke="ctrl shift ENTER" keymap="$default"/>
-            <keyboard-shortcut first-keystroke="ctrl shift ENTER" keymap="Mac OS X 10.5+"/>
+            <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift ENTER" keymap="$default"/>
+            <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift ENTER" keymap="Mac OS X 10.5+"/>
         </action>
-
-        <action id="cody.enableInlineEditsActions"
-                class="com.sourcegraph.cody.edit.EnableInlineEditsAction"/>
 
         <!-- Lens widget actions -->
         <action id="cody.inlineEditAcceptAction"
