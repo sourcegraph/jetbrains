@@ -4,6 +4,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -14,9 +15,9 @@ import com.sourcegraph.cody.edit.widget.LensAction
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
+import com.sourcegraph.config.ConfigUtil
 import org.mockito.Mockito.mock
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -34,18 +35,28 @@ class DocumentCodeTest : BasePlatformTestCase() {
   }
 
   override fun tearDown() {
-    FixupService.getInstance(myFixture.project).getActiveSession()?.apply {
-      try {
-        finish()
-      } catch (x: Exception) {
-        logger.warn("Error shutting down session", x)
+    try {
+      FixupService.getInstance(myFixture.project).getActiveSession()?.apply {
+        try {
+          finish()
+        } catch (x: Exception) {
+          logger.warn("Error shutting down session", x)
+        }
       }
+      // Notify the Agent that all documents have been closed.
+      val fileEditorManager = FileEditorManager.getInstance(myFixture.project)
+      fileEditorManager.openFiles.forEach {
+        // TODO: Check that this shows up in the trace.json file (textDocument/didClose).
+        fileEditorManager.closeFile(it)
+      }
+      try {
+        testDataPath.deleteRecursively()
+      } catch (x: Exception) {
+        logger.warn("Error deleting test data", x)
+      }
+    } finally {
+      super.tearDown()
     }
-    // TODO: Notify the Agent that all documents were closed.
-    //  -or, verify that CodyFileEditorListener works, and close them ourselves.
-
-    testDataPath.deleteRecursively()
-    super.tearDown()
   }
 
   fun testGetsFoldingRanges() {
@@ -54,12 +65,12 @@ class DocumentCodeTest : BasePlatformTestCase() {
     runInEdtAndWait {
       val rangeContext =
           try {
-            foldingRangeFuture.get(15, TimeUnit.SECONDS)
+            foldingRangeFuture.get(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
           } catch (t: TimeoutException) {
             fail("Timed out waiting for folding ranges")
             null
           }
-      assertNotNull(rangeContext)
+      assertNotNull("Computed selection range should be non-null", rangeContext)
       // Ensure we were able to get the selection range.
       val selection = rangeContext!!.session.selectionRange
       assertNotNull("Selection should have been set", selection)
@@ -196,10 +207,14 @@ class DocumentCodeTest : BasePlatformTestCase() {
     val testResourcesDir = File(System.getProperty("test.resources.dir"))
     assertTrue(testResourcesDir.exists())
 
-    testDataPath = Files.createTempDirectory("testData").toFile()
+    // During test runs this is set by IntelliJ to a private temp folder.
+    // We pass it to the Agent during initialization.
+    val workspaceRootUri = ConfigUtil.getWorkspaceRootPath(project)
+
+    testDataPath = Paths.get(workspaceRootUri.toString(), "src/").toFile()
     testResourcesDir.copyRecursively(testDataPath, overwrite = true)
 
-    myFixture.testDataPath = testDataPath.toString()
+    myFixture.testDataPath = testDataPath.path
     // The file we pass to configureByFile must be relative to testDataPath.
     val projectFile = "testProjects/documentCode/src/main/java/Foo.java"
     val sourcePath = Paths.get(testDataPath.path, projectFile).toString()
@@ -225,6 +240,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
     return future
   }
 
+  // Run the IDE action specified by actionId.
   private fun triggerAction(actionId: String) {
     val action = ActionManager.getInstance().getAction(actionId)
     action.actionPerformed(
@@ -247,7 +263,8 @@ class DocumentCodeTest : BasePlatformTestCase() {
 
     // TODO: find the lowest value this can be for production, and use it
     // If it's too low the test may be flaky.
-    // const val ASYNC_WAIT_TIMEOUT_SECONDS = 10000L //debug
+    //const val ASYNC_WAIT_TIMEOUT_SECONDS = 15000L
+
     const val ASYNC_WAIT_TIMEOUT_SECONDS = 15L
   }
 }

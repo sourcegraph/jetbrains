@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.sourcegraph.cody.agent.protocol.util.Rfc3986UriEncoder
+import java.net.URI
 
 class ProtocolTextDocument
 private constructor(
@@ -47,8 +48,14 @@ private constructor(
       return ProtocolTextDocument(uriFor(file), text, selection)
     }
 
-    fun uriFor(file: VirtualFile): String {
-      return Rfc3986UriEncoder.encode(file.url)
+    private fun uriFor(file: VirtualFile): String {
+      // Convert integration-test temp:// to file:// for Agent.
+      val initialUri = URI(file.url)
+      val path = initialUri.path
+      // Don't let it produce syntactically incorrect "file:/src/foo/bar" URIs.
+      // This construction forces it to have the syntax "file:///src/foo/bar".
+      val properUri = URI("file", "", path, null).toString()
+      return Rfc3986UriEncoder.encode(properUri)
     }
   }
 }

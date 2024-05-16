@@ -309,7 +309,6 @@ abstract class FixupSession(
 
       op.uri?.let { updateEditorIfNeeded(it) }
 
-      // TODO: We need to support the file-level operations.
       when (op.type) {
         "create-file" -> {
           logger.warn("Workspace edit operation created a file: ${op.uri}")
