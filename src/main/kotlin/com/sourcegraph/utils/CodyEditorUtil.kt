@@ -24,7 +24,6 @@ import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Key
-import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -225,12 +224,7 @@ object CodyEditorUtil {
       return LocalFileSystem.getInstance().refreshAndFindFileByNioFile(fixedUri.toPath())
     } catch (e: URISyntaxException) {
       // Let's try scratch files
-      val fileName =
-          if (SystemInfoRt.isWindows) {
-            uriString.substringAfterLast(':')
-          } else {
-            uriString.substringAfterLast('/').substringAfterLast('\\')
-          }
+      val fileName = uriString.substringAfterLast(':').trimStart('/', '\\')
       return ScratchRootType.getInstance()
           .findFile(project, fileName, ScratchFileService.Option.existing_only)
     }
@@ -250,12 +244,7 @@ object CodyEditorUtil {
       }
       return vf
     } catch (e: URISyntaxException) {
-      val fileName =
-          if (SystemInfoRt.isWindows) {
-            uriString.substringAfterLast(':')
-          } else {
-            uriString.substringAfterLast('/').substringAfterLast('\\')
-          }
+      val fileName = uriString.substringAfterLast(':').trimStart('/', '\\')
       val fileType = FileTypeRegistry.getInstance().getFileTypeByFileName(fileName)
       val language = LanguageUtil.getFileTypeLanguage(fileType) ?: PlainTextLanguage.INSTANCE
       return ScratchRootType.getInstance()
