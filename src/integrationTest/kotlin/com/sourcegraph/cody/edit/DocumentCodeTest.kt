@@ -3,7 +3,10 @@ package com.sourcegraph.cody.edit
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.EditorTestUtil
@@ -50,7 +53,8 @@ class DocumentCodeTest : BasePlatformTestCase() {
         fileEditorManager.closeFile(it)
       }
       try {
-        testDataPath.deleteRecursively()
+        // TODO: This seemed to kill one of the tests.
+        //testDataPath.deleteRecursively()
       } catch (x: Exception) {
         logger.warn("Error deleting test data", x)
       }
@@ -211,15 +215,64 @@ class DocumentCodeTest : BasePlatformTestCase() {
     // We pass it to the Agent during initialization.
     val workspaceRootUri = ConfigUtil.getWorkspaceRootPath(project)
 
+    // We copy the test resources there manually, bypassing Gradle, which is picky.
     testDataPath = Paths.get(workspaceRootUri.toString(), "src/").toFile()
     testResourcesDir.copyRecursively(testDataPath, overwrite = true)
 
+    // This useful setting lets us tell the fixture to look where we copied them.
     myFixture.testDataPath = testDataPath.path
+
     // The file we pass to configureByFile must be relative to testDataPath.
     val projectFile = "testProjects/documentCode/src/main/java/Foo.java"
     val sourcePath = Paths.get(testDataPath.path, projectFile).toString()
     assertTrue(File(sourcePath).exists())
     myFixture.configureByFile(projectFile)
+
+    initCaretPosition()
+  }
+
+  // This provides a crude mechanism for specifying the caret position in the test file.
+  private fun initCaretPosition() {
+    runInEdtAndWait {
+      val virtualFile = myFixture.file.virtualFile
+      val document = FileDocumentManager.getInstance().getDocument(virtualFile)!!
+      val caretToken = "[[caret]]"
+      val caretIndex = document.text.indexOf(caretToken)
+
+      if (caretIndex != -1) { // Remove caret token from doc
+        WriteCommandAction.runWriteCommandAction(project) {
+          document.deleteString(caretIndex, caretIndex + caretToken.length)
+        }
+        // Place the caret at the position where the token was found.
+        myFixture.editor.caretModel.moveToOffset(caretIndex)
+        //myFixture.editor.selectionModel.setSelection(caretIndex, caretIndex)
+      } else {
+        initSelectionRange()
+      }
+    }
+  }
+
+  // Provides  a mechanism to specify the selection range via [[start]] and [[end]].
+  // The tokens are removed and the range is selected, notifying the Agent.
+  private fun initSelectionRange() {
+    runInEdtAndWait {
+      val virtualFile = myFixture.file.virtualFile
+      val document = FileDocumentManager.getInstance().getDocument(virtualFile)!!
+      val startToken = "[[start]]"
+      val endToken = "[[end]]"
+      val start = document.text.indexOf(startToken)
+      val end = document.text.indexOf(endToken)
+      // Remove the tokens from the document.
+      if (start != -1 && end != -1) {
+        ApplicationManager.getApplication().runWriteAction {
+          document.deleteString(start, start + startToken.length)
+          document.deleteString(end, end + endToken.length)
+        }
+        myFixture.editor.selectionModel.setSelection(start, end)
+      } else {
+        logger.warn("No caret or selection range specified in test file.")
+      }
+    }
   }
 
   private fun subscribeToTopic(

@@ -6,7 +6,7 @@ public class Foo {
         List<Integer> mystery = new ArrayList<>();
         mystery.add(0);
         mystery.add(1);
-        for (int i = 2; i < 10; i++) {
+        [[caret]]for (int i = 2; i < 10; i++) {
           mystery.add(mystery.get(i - 1) + mystery.get(i - 2));
         }
 
