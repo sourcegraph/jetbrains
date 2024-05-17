@@ -422,6 +422,7 @@ Note: It's important to test performance on large repos here.
 
 When testing Cody Ignore, please reload the editor after each policy change. Outside of the required testing steps, please also make sure general product usability is not affected when Cody Ignore policies are turned on. 
 
+Please use the SG02 endpoint to test and change Cody Ignore configuration.
 
 | Policy | Workspace Repository| Test Steps | 
 | --- | --- | --- | 
