@@ -172,7 +172,7 @@ private constructor(
       if (proxy.PROXY_TYPE_IS_SOCKS) {
         processBuilder.environment()["HTTP_PROXY"] = "socks://$proxyUrl"
       }
-      if (proxy.USE_HTTP_PROXY) {
+      else {
         processBuilder.environment()["HTTP_PROXY"] = "http://$proxyUrl"
         processBuilder.environment()["HTTPS_PROXY"] = "http://$proxyUrl"
       }
