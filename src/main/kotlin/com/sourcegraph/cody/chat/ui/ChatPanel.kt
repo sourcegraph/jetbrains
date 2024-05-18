@@ -1,6 +1,8 @@
 package com.sourcegraph.cody.chat.ui
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.BrowserUtil
+import com.intellij.ide.HelpTooltip
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.ui.JBColor
@@ -16,11 +18,14 @@ import com.sourcegraph.cody.agent.protocol.ModelUsage
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.ui.EnhancedContextPanel
+import com.sourcegraph.cody.context.ui.MAX_REMOTE_REPOSITORY_COUNT
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.ui.CollapsibleTitledSeparator
 import com.sourcegraph.cody.vscode.CancellationToken
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension
@@ -114,6 +119,20 @@ class ChatPanel(
     frame.add(innerExpantion)
 
     lowerPanel.add(frame)
+
+    HelpTooltip()
+      .setTitle(CodyBundle.getString("context-panel.tree.help-tooltip.title"))
+      .setDescription(
+        CodyBundle.getString("context-panel.tree.help-tooltip.description")
+          .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString()))
+      .setLink(CodyBundle.getString("context-panel.tree.help-tooltip.link.text")) {
+        BrowserUtil.open(CodyBundle.getString("context-panel.tree.help-tooltip.link.href"))
+      }
+      .setLocation(HelpTooltip.Alignment.LEFT)
+      .setInitialDelay(
+        800) // Tooltip can interfere with the treeview, so cool off on showing it.
+      .installOn(separator)
+
 
     frame.isVisible = true
   }

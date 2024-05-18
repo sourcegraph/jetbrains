@@ -14,6 +14,7 @@ import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.JBColor
 import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.ui.JBEmptyBorder
 import com.intellij.util.ui.JBUI
 import com.intellij.vcs.commit.NonModalCommitPanel.Companion.showAbove
 import com.sourcegraph.cody.agent.EnhancedContextContextT
@@ -174,7 +175,7 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
           }
         })
       panel.border = JBUI.Borders.empty()
-
+panel.background = JBColor.RED
 
     add(panel)
   }
@@ -234,6 +235,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       popup.showAbove(tree)
     }
       toolbar.setToolbarBorder(JBUI.Borders.customLine(Color.RED, 1))
+
     return toolbar.createPanel()
   }
 
@@ -294,20 +296,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     treeRoot.add(contextRoot)
     treeModel.reload()
     resize()
-
-    HelpTooltip()
-        .setTitle(CodyBundle.getString("context-panel.tree.help-tooltip.title"))
-        .setDescription(
-            CodyBundle.getString("context-panel.tree.help-tooltip.description")
-                .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), endpoint))
-        .setLink(CodyBundle.getString("context-panel.tree.help-tooltip.link.text")) {
-          BrowserUtil.open(CodyBundle.getString("context-panel.tree.help-tooltip.link.href"))
-        }
-        .setLocation(HelpTooltip.Alignment.LEFT)
-        .setInitialDelay(
-            1500) // Tooltip can interfere with the treeview, so cool off on showing it.
-        .installOn(tree)
-
+      
     // Update the Agent-side state for this chat.
     val enabledRepos = cleanedRepos.filter { it.isEnabled }.mapNotNull { it.codebaseName }
     RemoteRepoUtils.resolveReposWithErrorNotification(
