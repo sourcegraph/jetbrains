@@ -1,8 +1,4 @@
-
 import com.jetbrains.plugin.structure.base.utils.isDirectory
-import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
 import java.nio.file.FileSystems
 import java.nio.file.FileVisitResult
@@ -16,6 +12,9 @@ import java.util.*
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import kotlin.script.experimental.jvm.util.hasParentNamed
+import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -566,7 +565,7 @@ tasks {
 
   named<Test>("integrationTest") {
     dependsOn("processIntegrationTestResources")
-    //sharedIntegrationTestConfig()
+    // sharedIntegrationTestConfig()
   }
 
   named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }

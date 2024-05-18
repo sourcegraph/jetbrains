@@ -19,13 +19,13 @@ import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.config.ConfigUtil
-import org.mockito.Mockito.mock
 import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.regex.Pattern
+import org.mockito.Mockito.mock
 
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)
@@ -41,7 +41,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
     try {
       FixupService.getInstance(myFixture.project).getActiveSession()?.apply {
         try {
-          finish()
+          dismiss()
         } catch (x: Exception) {
           logger.warn("Error shutting down session", x)
         }
@@ -54,7 +54,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
       }
       try {
         // TODO: This seemed to kill one of the tests.
-        //testDataPath.deleteRecursively()
+        // testDataPath.deleteRecursively()
       } catch (x: Exception) {
         logger.warn("Error deleting test data", x)
       }
@@ -245,7 +245,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
         }
         // Place the caret at the position where the token was found.
         myFixture.editor.caretModel.moveToOffset(caretIndex)
-        //myFixture.editor.selectionModel.setSelection(caretIndex, caretIndex)
+        // myFixture.editor.selectionModel.setSelection(caretIndex, caretIndex)
       } else {
         initSelectionRange()
       }
@@ -316,7 +316,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
 
     // TODO: find the lowest value this can be for production, and use it
     // If it's too low the test may be flaky.
-    //const val ASYNC_WAIT_TIMEOUT_SECONDS = 15000L
+    // const val ASYNC_WAIT_TIMEOUT_SECONDS = 15000L
 
     const val ASYNC_WAIT_TIMEOUT_SECONDS = 15L
   }
