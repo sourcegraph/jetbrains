@@ -66,6 +66,7 @@ abstract class FixupSession(
     private set
 
   private val showedAcceptLens = AtomicBoolean(false)
+  private val isInlineEditInProgress = AtomicBoolean(false)
   val isDisposed = AtomicBoolean(false)
 
   var selectionRange: Range? = null
@@ -173,7 +174,7 @@ abstract class FixupSession(
 
   fun update(task: EditTask) {
     task.instruction?.let { instruction = it }
-
+    logger.warn("New task: $task state=${task.state}")
     when (task.state) {
       // This is an internal state (parked/ready tasks) and we should never see it.
       CodyTaskState.Idle -> {}
@@ -258,8 +259,11 @@ abstract class FixupSession(
     showErrorGroup(text, hoverText ?: "No additional info from Agent")
   }
 
+  // TODO: Check how we accept/cancel on origin/main
+
   fun handleDocumentChange(editorThatChanged: Editor) {
     if (editorThatChanged != editor) return
+    if (isInlineEditInProgress.get()) return
     // We auto-accept if they edit the document after we've put up this lens group.
     if (showedAcceptLens.get()) {
       accept()
@@ -365,44 +369,51 @@ abstract class FixupSession(
   }
 
   fun performInlineEdits(edits: List<TextEdit>) {
-    // TODO: This is an artifact of the update to concurrent editing tasks.
-    // We do need to mute any LensGroup listeners, but this is an ugly way to do it.
-    // There are multiple Lens groups; we need a Document-level listener list.
-    lensGroup?.withListenersMuted {
-      if (!controller.isEligibleForInlineEdit(editor)) {
-        return@withListenersMuted logger.warn("Inline edit not eligible")
-      }
-
-      WriteCommandAction.runWriteCommandAction(project) {
-        val currentActions =
-            edits.mapNotNull { edit ->
-              try {
-                when (edit.type) {
-                  "replace",
-                  "delete" -> ReplaceUndoableAction(project, edit, document)
-                  "insert" -> InsertUndoableAction(project, edit, document)
-                  else -> {
-                    logger.warn("Unknown edit type: ${edit.type}")
-                    null
-                  }
-                }
-              } catch (e: RuntimeException) {
-                throw EditCreationException(edit, e)
-              }
-            }
-
-        currentActions.forEach { action ->
-          try {
-            action.apply()
-          } catch (e: RuntimeException) {
-            throw EditExecutionException(action, e)
-          }
+    isInlineEditInProgress.set(true)
+    try {
+      // TODO: This is ugly; find a better way to mute the listeners.
+      lensGroup?.withListenersMuted {
+        if (!controller.isEligibleForInlineEdit(editor)) {
+          logger.warn("Inline edit not eligible")
+          return@withListenersMuted
         }
 
-        performedActions += currentActions
+        performInlineEditActions(edits)
+      }
+    } finally {
+      isInlineEditInProgress.set(false)
+      publishProgress(CodyInlineEditActionNotifier.TOPIC_TEXT_DOCUMENT_EDIT)
+    }
+  }
+
+  private fun performInlineEditActions(edits: List<TextEdit>) {
+    WriteCommandAction.runWriteCommandAction(project) {
+      val currentActions =
+          edits.mapNotNull { edit ->
+            try {
+              when (edit.type) {
+                "replace",
+                "delete" -> ReplaceUndoableAction(project, edit, document)
+                "insert" -> InsertUndoableAction(project, edit, document)
+                else -> {
+                  logger.warn("Unknown edit type: ${edit.type}")
+                  null
+                }
+              }
+            } catch (e: RuntimeException) {
+              throw EditCreationException(edit, e)
+            }
+          }
+
+      currentActions.forEach { action ->
+        try {
+          action.apply()
+        } catch (e: RuntimeException) {
+          throw EditExecutionException(action, e)
+        }
       }
 
-      publishProgress(CodyInlineEditActionNotifier.TOPIC_TEXT_DOCUMENT_EDIT)
+      performedActions += currentActions
     }
   }
 
