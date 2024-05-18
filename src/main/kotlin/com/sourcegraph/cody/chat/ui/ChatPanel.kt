@@ -3,9 +3,11 @@ package com.sourcegraph.cody.chat.ui
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBPanel
 import com.intellij.util.IconUtil
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.PromptPanel
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.protocol.ChatMessage
@@ -20,6 +22,7 @@ import com.sourcegraph.cody.ui.ChatScrollPane
 import com.sourcegraph.cody.ui.CollapsibleTitledSeparator
 import com.sourcegraph.cody.vscode.CancellationToken
 import java.awt.BorderLayout
+import java.awt.Color
 import java.awt.Dimension
 import java.awt.FlowLayout
 import javax.swing.BorderFactory
@@ -58,7 +61,7 @@ class ChatPanel(
 
   init {
     layout = BorderLayout()
-    border = BorderFactory.createEmptyBorder(0, 0, 0, 10)
+    border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
     add(chatPanel, BorderLayout.CENTER)
 
 
@@ -66,6 +69,8 @@ class ChatPanel(
     val lowerPanel = JPanel(VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 10, 10, true, false))
     lowerPanel.add(stopGeneratingButton)
     lowerPanel.add(promptPanel)
+    lowerPanel.background = JBColor.namedColor("Editor.SearchField.background", JBColor.WHITE)
+    lowerPanel.border = JBUI.Borders.customLine(JBColor.namedColor("background"),0,1, 0, 0)
     //lowerPanel.add(contextView)
 
 
@@ -82,16 +87,19 @@ class ChatPanel(
 
     // Create a frame
     val frame = JPanel()
-    frame.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 12, 12, true, false)
-
+    frame.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, false)
+    frame.background = JBColor.namedColor("Editor.SearchField.background", JBColor.WHITE)
+    contextView.background = JBColor.namedColor("Editor.SearchField.background", JBColor.WHITE)
 
     // Create an instance of CollapsibleTitledSeparator
     val separator = CollapsibleTitledSeparator("Context Details")
 
     // Create a panel to show when expanded
     val innerExpantion = JPanel()
-    innerExpantion.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 12, 12, true, false)
+    innerExpantion.layout = VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 0, true, false)
+    innerExpantion.border = BorderFactory.createEmptyBorder(0, 8, 0, 0)
     innerExpantion.add(contextView)
+    innerExpantion.background = JBColor.namedColor("Editor.SearchField.background", JBColor.WHITE)
 
     // Initially set the panel visibility based on the separator's expanded state
     innerExpantion.isVisible = separator.expanded
