@@ -13,10 +13,8 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.Topic
-import com.intellij.util.withScheme
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService
@@ -39,14 +37,13 @@ import com.sourcegraph.cody.edit.fixupActions.InsertUndoableAction
 import com.sourcegraph.cody.edit.fixupActions.ReplaceUndoableAction
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
+import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.utils.CodyEditorUtil
-import java.net.URI
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.io.path.toPath
 
 /**
  * Common functionality for commands that let the agent edit the code inline, such as adding a doc
@@ -84,8 +81,28 @@ abstract class FixupSession(
     "Cody failed to ${if (this is DocumentCodeSession) "document" else "edit"} this code"
   }
 
+  private val cancellationToken = CancellationToken()
+
+  private val completionFuture: CompletableFuture<Void> =
+      cancellationToken.onFinished {
+        try {
+          controller.clearActiveSession()
+        } catch (x: Exception) {
+          logger.debug("Session cleanup error", x)
+        }
+
+        runInEdt {
+          try { // Disposing inlay requires EDT.
+            Disposer.dispose(this)
+          } catch (x: Exception) {
+            logger.warn("Error disposing fixup session $this", x)
+          }
+        }
+      }
+
   init {
     triggerFixupAsync()
+
     runInEdt { Disposer.register(controller, this) }
   }
 
@@ -103,8 +120,7 @@ abstract class FixupSession(
     CodyAgentService.withAgent(project) { agent ->
       workAroundUninitializedCodebase()
 
-      // All this because we can get the workspace/edit before the request returns!
-      fixupService.setActiveSession(this)
+      fixupService.startNewSession(this)
 
       // Spend a turn to get folding ranges before showing lenses.
       ensureSelectionRange(agent, textFile)
@@ -157,6 +173,7 @@ abstract class FixupSession(
 
   fun update(task: EditTask) {
     task.instruction?.let { instruction = it }
+
     when (task.state) {
       // This is an internal state (parked/ready tasks) and we should never see it.
       CodyTaskState.Idle -> {}
@@ -170,17 +187,14 @@ abstract class FixupSession(
       }
       // Tasks remain in this state until explicit accept/undo/cancel.
       CodyTaskState.Applied -> showAcceptGroup()
+
       // Then they transition to finished, or error.
-      CodyTaskState.Finished -> finish()
-      // We do not finish() until the error is displayed and closed.
+      CodyTaskState.Finished -> cancellationToken.dispose()
+      // We do not finish() until the error is displayed to the user and closed.
       CodyTaskState.Error -> displayError(defaultErrorText, task.error?.message)
+      // Then they transition to finished.
       CodyTaskState.Pending -> {}
     }
-  }
-
-  /** Notification that the Agent has deleted the task. Clean up if we haven't yet. */
-  fun taskDeleted() {
-    finish()
   }
 
   // N.B. Blocks calling thread until the lens group is shown,
@@ -190,6 +204,7 @@ abstract class FixupSession(
     lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
     if (isDisposed.get()) return
     lensGroup = group
+
     var range = selectionRange
     if (range == null) {
       // Be defensive, as the protocol has been fragile with respect to selection ranges.
@@ -204,12 +219,16 @@ abstract class FixupSession(
     val future = group.show(range)
     // Make sure the lens is visible.
     ApplicationManager.getApplication().invokeLater {
-      val logicalPosition = LogicalPosition(range.start.line, range.start.character)
-      editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+      if (!editor.isDisposed) {
+        val logicalPosition = LogicalPosition(range.start.line, range.start.character)
+        editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+      }
     }
     if (!ApplicationManager.getApplication().isDispatchThread) { // integration test
       future.get()
     }
+
+    controller.notifySessionStateChanged()
   }
 
   private fun showWorkingGroup() {
@@ -249,21 +268,6 @@ abstract class FixupSession(
     }
   }
 
-  fun finish() {
-    try {
-      controller.clearActiveSession()
-    } catch (x: Exception) {
-      logger.debug("Session cleanup error", x)
-    }
-    runInEdt {
-      try { // Disposing inlay requires EDT.
-        Disposer.dispose(this)
-      } catch (x: Exception) {
-        logger.warn("Error disposing fixup session $this", x)
-      }
-    }
-  }
-
   /** Subclass sends a fixup command to the agent, and returns the initial task. */
   abstract fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask>
 
@@ -275,8 +279,12 @@ abstract class FixupSession(
   }
 
   fun cancel() {
-    CodyAgentService.withAgent(project) { agent ->
-      agent.server.cancelEditTask(TaskIdParam(taskId!!))
+    if (taskId == null) {
+      dismiss()
+    } else {
+      CodyAgentService.withAgent(project) { agent ->
+        agent.server.cancelEditTask(TaskIdParam(taskId!!))
+      }
     }
   }
 
@@ -288,19 +296,21 @@ abstract class FixupSession(
     publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
   }
 
-  fun retry() {
-    val instruction = instruction
-
-    undo()
-
-    ApplicationManager.getApplication().executeOnPooledThread {
-      FixupService.getInstance(project).waitUntilActiveSessionIsFinished()
-      runInEdt { EditCommandPrompt(controller, editor, "Edit instructions and Retry", instruction) }
+  fun showRetryPrompt() {
+    runInEdt {
+      // Close loophole where you can keep retrying after the ignore policy changes.
+      if (controller.isEligibleForInlineEdit(editor)) {
+        EditCommandPrompt(controller, editor, "Edit instructions and Retry", instruction)
+      }
     }
   }
 
+  fun afterSessionFinished(action: Runnable) {
+    completionFuture.thenRun(action)
+  }
+
   fun dismiss() {
-    finish()
+    cancellationToken.dispose()
   }
 
   fun performWorkspaceEdit(workspaceEditParams: WorkspaceEditParams) {
@@ -336,8 +346,9 @@ abstract class FixupSession(
   }
 
   private fun updateEditorIfNeeded(path: String) {
-    val uri = URI.create(path).withScheme("file")
-    val vf = LocalFileSystem.getInstance().findFileByNioFile(uri.toPath()) ?: return
+    val vf =
+        CodyEditorUtil.findFileOrScratch(project, path)
+            ?: throw IllegalArgumentException("Could not find file $path")
     val documentForFile = FileDocumentManager.getInstance().getDocument(vf)
 
     if (document != documentForFile) {
@@ -417,6 +428,10 @@ abstract class FixupSession(
     isDisposed.set(true)
     if (project.isDisposed) return
     performedActions.forEach { it.dispose() }
+  }
+
+  fun isShowingWorkingLens(): Boolean {
+    return lensGroup?.isInWorkingGroup == true
   }
 
   /** Returns true if the Accept lens group is currently active. */

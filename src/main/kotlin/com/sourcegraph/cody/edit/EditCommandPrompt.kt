@@ -80,7 +80,7 @@ class EditCommandPrompt(
     val editor: Editor,
     dialogTitle: String,
     instruction: String? = null
-) : JFrame(), Disposable {
+) : JFrame(), Disposable, FixupService.ActiveFixupSessionStateListener {
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
 
   private val offset = editor.caretModel.primaryCaret.offset
@@ -319,6 +319,8 @@ class EditCommandPrompt(
     // Close dialog if window loses focus.
     addWindowFocusListener(windowFocusListener)
     addFocusListener(focusListener)
+
+    FixupService.getInstance(controller.project).addListener(this)
   }
 
   override fun setBounds(x: Int, y: Int, width: Int, height: Int) {
@@ -357,7 +359,9 @@ class EditCommandPrompt(
 
   @RequiresEdt
   private fun updateOkButtonState() {
-    okButton.isEnabled = instructionsField.text.isNotBlank()
+    okButton.isEnabled =
+        instructionsField.text.isNotBlank() &&
+            !FixupService.getInstance(controller.project).isEditInProgress()
   }
 
   @RequiresEdt
@@ -432,7 +436,7 @@ class EditCommandPrompt(
       val (line, col) = editor.offsetToLogicalPosition(offset).let { Pair(it.line, it.column) }
       val virtualFile = FileDocumentManager.getInstance().getFile(editor.document)
       val file = getFormattedFilePath(virtualFile)
-      filePathLabel.text = "$file at $line:$col"
+      filePathLabel.text = "$file at ${line + 1}:${col + 1}"
       filePathLabel.toolTipText = virtualFile?.path
       add(filePathLabel, BorderLayout.CENTER)
       titleBar = this
@@ -550,8 +554,15 @@ class EditCommandPrompt(
         logger.warn("Project was null when trying to add an edit session")
         return
       }
-      // Kick off the editing command.
-      EditCodeSession(controller, editor, text, llmDropdown.item)
+
+      fun editCode() = runInEdt { EditCodeSession(controller, editor, text, llmDropdown.item) }
+      val activeSession = controller.getActiveSession()
+      if (activeSession != null) {
+        activeSession.afterSessionFinished { editCode() }
+        activeSession.undo()
+      } else {
+        editCode()
+      }
     }
     clearActivePrompt()
   }
@@ -684,5 +695,9 @@ class EditCommandPrompt(
 
       return sb.toString()
     }
+  }
+
+  override fun fixupSessionStateChanged(isInProgress: Boolean) {
+    runInEdt { okButton.isEnabled = !isInProgress }
   }
 }

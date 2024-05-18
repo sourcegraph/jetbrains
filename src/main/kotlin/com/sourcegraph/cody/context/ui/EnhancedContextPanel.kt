@@ -1,5 +1,7 @@
 package com.sourcegraph.cody.context.ui
 
+import com.intellij.ide.BrowserUtil
+import com.intellij.ide.HelpTooltip
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
@@ -12,15 +14,18 @@ import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.vcs.commit.NonModalCommitPanel.Companion.showAbove
+import com.sourcegraph.cody.agent.EnhancedContextContextT
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.context.RemoteRepo
 import com.sourcegraph.cody.context.RemoteRepoUtils
+import com.sourcegraph.cody.context.RepoInclusion
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.vcs.CodebaseName
 import java.awt.Dimension
 import java.util.concurrent.TimeUnit
@@ -111,19 +116,17 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
 
   /** The tree component. */
   protected val tree = run {
-    val checkPolicy =
-        CheckboxTreeBase.CheckPolicy(
-            /* checkChildrenWithCheckedParent = */ true,
-            /* uncheckChildrenWithUncheckedParent = */ true,
-            /* checkParentWithCheckedChild = */ true,
-            /* uncheckParentWithUncheckedChild = */ false)
-    object : CheckboxTree(ContextRepositoriesCheckboxRenderer(), treeRoot, checkPolicy) {
+    val checkPolicy = createCheckboxPolicy()
+    object :
+        CheckboxTree(
+            ContextRepositoriesCheckboxRenderer(enhancedContextEnabled), treeRoot, checkPolicy) {
       // When collapsed, the horizontal scrollbar obscures the Chat Context summary & checkbox.
-      // Prefer to clip. Users
-      // can resize the sidebar if desired.
+      // Prefer to clip. Users can resize the sidebar if desired.
       override fun getScrollableTracksViewportWidth(): Boolean = true
     }
   }
+
+  protected abstract fun createCheckboxPolicy(): CheckboxTreeBase.CheckPolicy
 
   /** The toolbar decorator component. */
   protected val toolbar = run {
@@ -177,8 +180,14 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
     // Because the buttons
     // are approximately square, use the toolbar width as a proxy for the button height.
     val toolbarButtonHeight = toolbar.actionsPanel.preferredSize.width
+    val preferredSizeNumVisibleButtons = 1
     panel.preferredSize =
-        Dimension(0, padding + max(tree.rowCount * tree.rowHeight, 2 * toolbarButtonHeight))
+        Dimension(
+            0,
+            padding +
+                max(
+                    tree.rowCount * tree.rowHeight,
+                    preferredSizeNumVisibleButtons * toolbarButtonHeight))
     panel.parent?.revalidate()
   }
 
@@ -192,6 +201,8 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
       expandAllNodes(tree.rowCount)
     }
   }
+
+  abstract fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT)
 }
 
 class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession) :
@@ -202,26 +213,55 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
   @RequiresEdt
   override fun createPanel(): JComponent {
-    // TODO: Add the "clock" button when the functionality is clarified.
     toolbar.setEditActionName(CodyBundle.getString("context-panel.button.edit-repositories"))
     toolbar.setEditAction {
       val controller = RemoteRepoPopupController(project)
       controller.onAccept = { spec ->
         rawSpec = spec
-        applyRepoSpec(spec)
+        ApplicationManager.getApplication().executeOnPooledThread { applyRepoSpec(spec) }
       }
 
       val popup = controller.createPopup(tree.width, rawSpec)
       popup.showAbove(tree)
     }
-    toolbar.addExtraAction(HelpButton())
     return toolbar.createPanel()
+  }
+
+  override fun createCheckboxPolicy(): CheckboxTreeBase.CheckPolicy =
+      CheckboxTreeBase.CheckPolicy(
+          /* checkChildrenWithCheckedParent = */ true,
+          /* uncheckChildrenWithUncheckedParent = */ true,
+          /* checkParentWithCheckedChild = */ true,
+          /* uncheckParentWithUncheckedChild = */ false)
+
+  override fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT) {
+    val repos = mutableListOf<RemoteRepo>()
+
+    for (group in enhancedContextStatus.groups) {
+      val provider = group.providers.firstOrNull() ?: continue
+      val name = group.displayName
+      val enabled = provider.state == "ready"
+      val ignored = provider.isIgnored == true
+      val inclusion =
+          when (provider.inclusion) {
+            "auto" -> RepoInclusion.AUTO
+            "explicit" -> RepoInclusion.MANUAL
+            else -> null
+          }
+      repos.add(RemoteRepo(name, isEnabled = enabled, isIgnored = ignored, inclusion = inclusion))
+    }
+
+    runInEdt {
+      updateTree(repos)
+      resize()
+    }
   }
 
   private val remotesNode = ContextTreeRemotesNode()
   private val contextRoot =
       object :
-          ContextTreeEnterpriseRootNode("", 0, { checked -> enhancedContextEnabled.set(checked) }) {
+          ContextTreeEnterpriseRootNode(
+              "", 0, 0, { checked -> enhancedContextEnabled.set(checked) }) {
         override fun isChecked(): Boolean {
           return enhancedContextEnabled.get()
         }
@@ -245,35 +285,53 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     treeModel.reload()
     resize()
 
-    // Update the extension-side state for this chat.
+    HelpTooltip()
+        .setTitle(CodyBundle.getString("context-panel.tree.help-tooltip.title"))
+        .setDescription(
+            CodyBundle.getString("context-panel.tree.help-tooltip.description")
+                .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), endpoint))
+        .setLink(CodyBundle.getString("context-panel.tree.help-tooltip.link.text")) {
+          BrowserUtil.open(CodyBundle.getString("context-panel.tree.help-tooltip.link.href"))
+        }
+        .setLocation(HelpTooltip.Alignment.LEFT)
+        .setInitialDelay(
+            1500) // Tooltip can interfere with the treeview, so cool off on showing it.
+        .installOn(tree)
+
+    // Update the Agent-side state for this chat.
     val enabledRepos = cleanedRepos.filter { it.isEnabled }.mapNotNull { it.codebaseName }
     RemoteRepoUtils.resolveReposWithErrorNotification(
-        project, enabledRepos.map { it -> CodebaseName(it) }) { repos ->
-          runInEdt {
-            updateTree(repos.map { it.name })
-            resize()
-          }
+        project, enabledRepos.map { CodebaseName(it) }) { repos ->
           chatSession.sendWebviewMessage(
               WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos))
         }
   }
 
   @RequiresEdt
-  private fun updateTree(repoNames: List<String>) {
+  private fun updateTree(enabledRepos: List<RemoteRepo>) {
     // TODO: When Kotlin @RequiresEdt annotations are instrumented, remove this manual assertion.
     ApplicationManager.getApplication().assertIsDispatchThread()
 
     val remotesPath = treeModel.getTreePath(remotesNode.userObject)
     val wasExpanded = remotesPath != null && tree.isExpanded(remotesPath)
-    remotesNode.removeAllChildren()
-    repoNames.forEach { repoName ->
-      val node =
-          ContextTreeRemoteRepoNode(RemoteRepo(repoName)) { checked ->
-            setRepoEnabledInContextState(repoName, checked)
-          }
-      remotesNode.add(node)
+    val remoteNodes = remotesNode.children().toList().filterIsInstance<ContextTreeRemoteRepoNode>()
+
+    remoteNodes.forEach { node ->
+      node.repo.isEnabled = enabledRepos.find { it.name == node.repo.name } != null
     }
-    contextRoot.numRepos = repoNames.size
+
+    enabledRepos.forEach { repo ->
+      val remoteNode = remoteNodes.find { it.repo.name == repo.name }
+      if (remoteNode == null) {
+        remotesNode.add(
+            ContextTreeRemoteRepoNode(repo) { checked ->
+              setRepoEnabledInContextState(repo.name, checked)
+            })
+      }
+    }
+
+    contextRoot.numRepos = enabledRepos.count { it.isIgnored != true }
+    contextRoot.numIgnoredRepos = enabledRepos.count { it.isIgnored == true }
     treeModel.reload(contextRoot)
     if (wasExpanded) {
       tree.expandPath(remotesPath)
@@ -283,7 +341,12 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   // Given a textual list of repos, extract a best effort list of repositories from it and update
   // context settings.
   private fun applyRepoSpec(spec: String) {
-    val repos = spec.split(Regex("""\s+""")).filter { it -> it != "" }.toSet()
+    val repos =
+        spec
+            .split(Regex("""\s+"""))
+            .filter { it -> it != "" }
+            .toSet()
+            .take(MAX_REMOTE_REPOSITORY_COUNT)
     RemoteRepoUtils.resolveReposWithErrorNotification(
         project, repos.map { it -> CodebaseName(it) }.toList()) { trimmedRepos ->
           runInEdt {
@@ -299,11 +362,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
                   })
             }
 
-            // Update the UI.
-            updateTree(trimmedRepos.map { it -> it.name })
-            resize()
-
-            // Update the extension state.
+            // Update the Agent state. This triggers the tree view update.
             chatSession.sendWebviewMessage(
                 WebviewMessage(
                     command = "context/choose-remote-search-repo", explicitRepos = trimmedRepos))
@@ -369,6 +428,17 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     toolbar.addExtraAction(ReindexButton(project))
     toolbar.addExtraAction(HelpButton())
     return toolbar.createPanel()
+  }
+
+  override fun createCheckboxPolicy(): CheckboxTreeBase.CheckPolicy =
+      CheckboxTreeBase.CheckPolicy(
+          /* checkChildrenWithCheckedParent = */ true,
+          /* uncheckChildrenWithUncheckedParent = */ true,
+          /* checkParentWithCheckedChild = */ true,
+          /* uncheckParentWithUncheckedChild = */ false)
+
+  override fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT) {
+    // No-op. The consumer panel relies solely on JetBrains-side state.
   }
 
   init {

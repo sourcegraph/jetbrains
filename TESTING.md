@@ -12,7 +12,6 @@
     - [ ] [General commands availability in Cody tool window](#general-commands-availability-in-cody-tool-window)
     - [ ] [General commands availability in context menu](#general-commands-availability-in-context-menu)
     - [ ] [Explain Selected Code](#explain-code)
-    - [ ] [Generate Test](#generate-test)
     - [ ] [Smell Code](#smell-code)
 - Chat
     - [ ] [Autoscroll to latest message](#autoscroll-to-latest-message)
@@ -88,7 +87,7 @@ automatically.
     System.out.
     ```
 2. Place a cursor at the end of the `System.out.` line.
-3. Trigger autocompletion with <kbd>Alt</kbd> + <kbd>\</kbd> (or <kbd>option</kbd> + <kbd>\</kbd> on Mac).
+3. Trigger autocompletion with <kbd>Alt</kbd> + `\` (or <kbd>option</kbd> + `\` on Mac).
 
 #### Expected behaviour
 
@@ -101,7 +100,7 @@ automatically.
     public void bubbleSort(int[] array) {
     ```
 2. Place the cursor at the end of the line.
-3. Trigger autocompletion with <kbd>Alt</kbd> + <kbd>\</kbd> (or <kbd>option</kbd> + <kbd>\</kbd> on Mac).
+3. Trigger autocompletion with <kbd>Alt</kbd> + `\` (or <kbd>option</kbd> + `\` on Mac).
 
 #### Expected behaviour
 
@@ -115,7 +114,7 @@ automatically.
     System.out.println("Hello World!");
     ```
 2. Place cursor at the end of the `// print ` line.
-3. Trigger autocompletion with <kbd>Alt</kbd> + <kbd>\</kbd> (or <kbd>option</kbd> + <kbd>\</kbd> on Mac).
+3. Trigger autocompletion with <kbd>Alt</kbd> + `\` (or <kbd>option</kbd> + `\` on Mac).
 
 #### Expected behaviour
 
@@ -128,7 +127,7 @@ automatically.
     public void bubbleSort(int[] array) {
     ```
 2. Place the cursor at the end of the line.
-3. Cycle forward with <kbd>Alt</kbd> + <kbd>]</kbd> or backward with <kbd>Alt</kbd> + <kbd>[</kbd>.
+3. Cycle forward with <kbd>Alt</kbd> + <kbd>]</kbd> or backward with <kbd>Alt</kbd> + <kbd>[</kbd>. (<kbd>option</kbd> + <kbd>[</kbd> or <kbd>]</kbd> for Mac)
 
 #### Expected behaviour
 
@@ -146,11 +145,13 @@ automatically.
 
 ### General commands availability from keyboard shortcuts
 
-| Command       | Windows / Linux                                  | MacOs                                                |
-|---------------|--------------------------------------------------|------------------------------------------------------|
-| Explain Code  | <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>1</kbd> | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd> |
-| Smell Code    | <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd> | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> |
-| Generate Test | <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>3</kbd> | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd> |
+| Command            | Windows / Linux                                  | MacOs                                                    |
+|--------------------|--------------------------------------------------|----------------------------------------------------------|
+| Explain Code       | <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>1</kbd> | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd>     |
+| Smell Code         | <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd> | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>     |
+| Edit Code          |                                                  | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>Enter</kbd> |
+| Document Code      |                                                  | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd>     |
+| Generate Unit Test |                                                  | <kbd>control</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>     |
 
 #### Expected behaviour
 
@@ -163,7 +164,8 @@ automatically.
 
 #### Expected behaviour
 
-* All commands are visible in context menu and can be selected.
+* All commands are visible in Cody context menu and can be selected.
+* All commands are visible in the Commands panel and can be selected.
 * All commands works after selection.
 
 ### Explain Code
@@ -180,28 +182,6 @@ automatically.
 * Chat responds with a description of the selected code and will elaborate on the fields, classes, and
   methods, going into technical details, often structuring the text in bullet points.
 
-### Generate Test
-
-1. Paste following Java function:
-    ```java
-    public static String greet(String name) {
-        return "Hello, " + name + "!";
-    }
-    ```
-2. Select function and use `Cody | Commands | Generate Test`.
-
-#### Expected behaviour
-
-* User is automatically switched to `Chat` tab.
-* Chat responds with generated documentation similar to this:
-    ```java
-    @Test
-    public void testGreet() {
-      String result = greet("Alice");
-      assertEquals("Hello, Alice!", result);
-    }
-    ```
-
 ### Smell Code
 
 1. Paste the following Java code:
@@ -217,6 +197,128 @@ automatically.
 * User is automatically switched to `Chat` tab.
 * Chat responds with **potential issues** and **suggestions** like missing nullability checks or input sanitization (
   response may vary).
+
+### Edit Code
+
+#### Instructions Dialog
+
+Unless otherwise specified, all tests for the dialog begin with:
+1. Open any source file.
+2. Right-click in the file to bring up the code context menu.
+    - alternatively, position your caret in the editor and type ctrl+shift+enter or select Edit Code from the Commands panel.
+3. Choose Cody, then Edit Code. Confirm that the dialog appears.
+
+All tests involving prompt history should end with:
+1. Close and reopen the current Project to clear prompt history.
+
+#### Appearance and behavior
+
+1. Open the dialog and check its position.
+    - Dialog should always appear beneath the line you chose/clicked on.
+    - The horizontal position of the dialog is always the same, indented a bit from the left edge.
+    - Dialog always remains floating on top of the IDE and is not obsured by other IDE windows.
+2. Observe the dialog's appearance.
+    - Dialog has rounded corners.
+3. Switch IDE themes by going to Settings and choosing a new theme.
+    - Dialog's colors should change to match the new theme.
+4. Check the dialog's mouse interaction and modality:
+    - Dialog is non-modal and you can put the focus back into the IDE without closing it.
+    - Dialog can be dragged by clicking and dragging in the "title bar" area.
+    - Dialog can be resized by carefully positioning the cursor at the corners and dragging.
+5. Close the dialog, and press Ctrl+Shift+Enter (Mac)
+    - Dialog should appear, just as if it had been opened with the context menu
+
+#### Layout
+
+1. Open the dialog and check the layout.
+    - The file path suffix is displayed, truncated with ellipsis if needed.
+    - The instructions field is empty and is displaying the "ghost text" help.
+    - The history widget is not shown in the bottom center.
+    - The Edit Code button is initially disabled.
+2. Type some non-whitespace text into the text field.
+    - The Edit Code button is enabled.
+3. Delete all the text in the text field.
+    - The Edit Code button is disabled.
+4. Click the expansion icon at the right of the text field.
+    - The text field expands to allow more of your instructions to be visible.
+    - You can collapse it to return to the regular view.
+
+#### File Path
+
+1. Open a project file with a pathname of 80+ characters, then the Instructions dialog.
+    - The tail end of the path should be displayed, with the first part replaced with "…".
+2. Hover over the truncated file path.
+    - It should pop up a tooltip with the full/absolute file path.
+
+#### Closing
+
+1. Press the ESC key while the dialog has the focus.
+    - Dialog should always close, no matter which component in the dialog has the focus.
+2. Mouse-click the "[esc] to cancel" label in the lower left.
+    - Dialog should close.
+3. Close the editor tab from which the dialog was opened.
+    - Dialog should close along with the tab.
+4. With text in the instructions field, press the OS-specific hotkey shown next to Edit Code.
+    - The dialog should close and initiate an Edit request.
+
+#### History
+
+1. Type "one" into the text field (or anything you like as the first history item).
+2. Click Edit Code to submit the edit command, which closes the dialog.
+    - Then cancel the running command with the Cancel code lens.
+3. Reopen the instructions dialog anywhere in the document (or even another tab).
+    - The text field should now contain the text "one".
+    - The `↑↓ for history` label should now appear at the bottom of the dialog.
+    - Typing the up/down the arrows at this point only moves the cursor.
+4. Replace the text with "two", then oncce again Edit Code, cancel op, and reopen dialog.
+    - Text field contents should now be "two".
+    - Up/down arrows should cycle between "one" and "two".
+5. Type "my long instruction" into the text field. (Anything longer than 10 characters.)
+    - Up-arrow should take you to the most recent history item.
+    - Cycling the arrows, you should now also find "my long instruction" in the history.
+
+#### Model dropdown
+
+1. When signed in to an Enterprise account, verify that the model dropdown is not present in the dialog.
+2. When signed in to a Cody Free or Cody Pro account, verify that the model dropdown is available in the dialog.
+3. When signed in to a Cody Free or Cody Pro user, click the model dropdown and ensure that it shows the same models as the dropdown in the Chat window.
+
+#### Applying an edit
+
+1. Open the dialog, enter a valid instruction, such as "add comment", and press Edit Code.
+2. Verify that Cody has applied the edits inline according to your instructions. 
+
+### Document Code
+
+1. Open any project file and highlight a selection of code.
+2. Use the keyboard shortcut, Cody context menu, or option in the Commands panel to execute the Document Code command.
+    - Cody should apply documentation above the selected code.
+4. Move your cursor inside of a different function in the file without highlighting any code.
+5. Execute the Document command.
+    - Cody should apply documentation above the function that contains your cursor. 
+
+### Generate Unit Test
+
+1. Open a project file that does not have any associated test files.
+2. Highlight a selection of code.
+3. Use the keyboard shortcut, Cody context menu, or option in the Commands panel to execute the Document Code command.
+    - Cody should create a new, unsaved test file, adds the suggested unit tests to the file, and recommends a name/location for the file to be saved to.
+5. Open a project file that *does* have an associated test file.
+6. Execute the Document Code command.
+   - Cody should add the suggested unit tests to the bottom of the existing test file.
+8. Instead of highlighting code, leave your cursor in a line on the file and execute the Document Code command.
+    - Cody should treat the function containing your cursor as "highlighted code" and perform the same behaviors as above.   
+
+### Code Lenses
+
+1. Execute any inline edit command (Edit Code, Document Code, or Generate Unit Test)
+2. While an inline edit command is in progress, there should be a code lens indicating that the command is in progress and an option to Cancel.
+    - Hitting Cancel aborts the command
+3. Once a command has been executed, there should be a code lens with options to Accept, Undo, Edit & Retry, or Show Diff and their associated keyboard shortcuts.
+    - Clicking or using the shortcut to Accept applies the inline edit and removes the code lens
+    - Clicking or using the shortcut to Undo removes the inline edit as well as the code lens
+    - Clicking or using the shortcut to Edit & Retry opens the Edit Code dialog, undoes the initial edit, and applies new edits according to your new instructions.
+    - Clicking or using the shortcut to Show Diff opens a new tab with a diff view of the edits. 
 
 ## Chat
 
@@ -316,103 +418,31 @@ Note: It's important to test performance on large repos here.
 4. Empty chat input and type multiline message "A\n\nB"
 5. Press `Up` arrow. Confirm that the caret is positioned in the empty line between A and B.
 
-## Inline Edit
+### Cody Ignore 
 
-### Instructions Dialog
+When testing Cody Ignore, please reload the editor after each policy change. Outside of the required testing steps, please also make sure general product usability is not affected when Cody Ignore policies are turned on. 
 
-Unless otherwise specified, all tests for the dialog begin with
+Please use the SG02 endpoint to test and change Cody Ignore configuration.
 
-1. Open any source file.
-2. Right-click in the file to bring up the code context menu.
-   - alternatively, position your caret in the editor and type ctrl+shift+enter
-3. Choose Cody, then Edit Code. Confirm that the dialog appears.
-
-All tests involving prompt history should end with
-
-1. Close and reopen the current Project to clear prompt history.
-
-#### Appearance and behavior
-
-1. Open the dialog and check its position.
-  -  Dialog should always appear beneath the line you chose/clicked on.
-  -  The horizontal position of the dialog is always the same, indented a bit from the left edge.
-  -  Dialog always remains floating on top of the IDE and is not obsured by other IDE windows.
-2. Observe the dialog's appearance.
-  -  Dialog has rounded corners.
-3. Switch IDE themes by going to Settings and choosing a new theme.
-  -  Dialog's colors should change to match the new theme.
-4. Check the dialog's mouse interaction and modality:
-  -  Dialog is non-modal and you can put the focus back into the IDE without closing it.
-  -  Dialog can be dragged by clicking and dragging in the "title bar" area.
-  -  Dialog can be resized by carefully positioning the cursor at the corners and dragging.
-5. Close the dialog, and press Ctrl+Shift+Enter (Command+Shift+Enter on Mac)
-  - Dialog should appear, just as if it had been opened with the context menu
-
-#### Layout
-
-1. Open the dialog and check the layout.
-  - The file path suffix is displayed, truncated with ellipsis if needed.
-  - The instructions field is empty and is displaying the "ghost text" help.
-  - The history widget is not shown in the bottom center.
-  - The Edit Code button is initially disabled.
-2. Type some non-whitespace text into the text field.
-   - The Edit Code button is enabled.
-3. Delete all the text in the text field.
-   - The Edit Code button is disabled.
-4. Click the expansion icon at the right of the text field.
-  - The text field expands to allow more of your instructions to be visible.
-  - You can collapse it to return to the regular view.
-
-#### File Path
-
-1. Open a project file with a pathname of 80+ characters, then the Instructions dialog.
-   - The tail end of the path should be displayed, with the first part replaced with "…".
-2. Hover over the truncated file path.
-   - It should pop up a tooltip with the full/absolute file path.
-
-#### Closing
-
-1. Press the ESC key while the dialog has the focus.
-   - Dialog should always close, no matter which component in the dialog has the focus.
-2. Mouse-click the "[esc] to cancel" label in the lower left.
-   - Dialog should close.
-3. Close the editor tab from which the dialog was opened.
-   - Dialog should close along with the tab.
-4. With text in the instructions field, press the OS-specific hotkey shown next to Edit Code.
-  - The dialog should close and initiate an Edit request.
-
-#### History
-
-1. Type "one" into the text field (or anything you like as the first history item).
-2. Click Edit Code to submit the edit command, which closes the dialog.
-   - Then cancel the running command with the Cancel code lens.
-3. Reopen the instructions dialog anywhere in the document (or even another tab).
-   - The text field should now contain the text "one".
-   - The `↑↓ for history` label should now appear at the bottom of the dialog.
-   - Typing the up/down the arrows at this point only moves the cursor.
-4. Replace the text with "two", then oncce again Edit Code, cancel op, and reopen dialog.
-   - Text field contents should now be "two".
-   - Up/down arrows should cycle between "one" and "two".
-5. Type "my long instruction" into the text field. (Anything longer than 10 characters.)
-   - Up-arrow should take you to the most recent history item.
-   - Cycling the arrows, you should now also find "my long instruction" in the history.
-
-#### Model dropdown
-
-1. Click the model dropdown.
-  - Ensure that it shows the same models as the dropdown in the Chat window.
-  
-### Code Lenses
-
-1. Open Inline Edit, enter a valid instruction such as "add comment", and press Edit Code.
-2. While the Cancel lens group is showing, hover over the lens.
-3. While the Accept group is showing, hover over Accept, Retry, Undo, and Diff.
-4. Go through each lens above and, with a fresh instruction, type the key sequence.
+| Policy | Workspace Repository| Test Steps | 
+| --- | --- | --- | 
+| ```"cody.contextFilters": {"exclude": [{"repoNamePattern": "^github\\.com\\/sourcegraph\\/cody"}],                        "include": [{"repoNamePattern": "^github\\.com\\/sourcegraph\\/.+"}]}``` |  github.com/sourcegraph/sourcegraph | Chat: <ol><li>Verify chat works as normal by asking Cody any question and receiving a response back.</li><li>Add github.com/sourcegraph/cody to the repo context selector and verify that there is a striked out symbol in the Repositories dropdown</li><li>Ask Cody "How do you contribute to Cody?" and confirm that no files from the Cody repository was used for context </li></ol>Autocomplete: <ol><li>Verify that autocomplete works as normal in any file in the github.com/sourcegraph/sourcegraph repository</ol>Commands: <ol><li>Verify that commands (Edit, Document, Test, Smell) are possible on any file in github.com/sourcegraph/sourcegraph.</li></ol> | 
+| ```"cody.contextFilters": {"exclude": [{"repoNamePattern": "^github\\.com\\/sourcegraph\\/cody"}],                          "include": [{"repoNamePattern": "^github\\.com\\/sourcegraph\\/.+"}]}``` |  github.com/sourcegraph/cody | Chat:<ol><li>Verify chat works as normal by asking Cody any question and receiving a response back.</li><li>Open the Enhanced Context menu and verify that it shows the github.com/sourcegraph/cody repo is ignored, on hover explaining this is due to an admin policy.</li><li>@-mention any files in the github.com/sourcegraph/cody repo and verify that the user sees a disclaimer that the file is ignored upon selection.</li><li>Submit a chat with an @-file and verify that the file is crossed out and excluded in the context dropdown</li><li>Verify that the user can add the github.com/sourcegraph/sourcegraph and github.com/sourcegraph/jetbrains repos through the context popup menu for Enhanced context.</li></ol>Autocomplete:<ol><li>Verify that no autocomplete suggestions are possible on any files in the github.com/sourcegraph/cody repo.</li><li>Verify that the status bar reflects that autocomplete is disabled due to an Ignore policy.</li><li>Manually trigger autocompletes in any files in the github.com/sourcegraph/cody repo and verify that a notification is always triggered.</li></ol>Commands:<ol><li>While in any files in the github.com/sourcegraph/cody repo, verify that the sidebar shows commands are disabled, with a "Learn more" link directing to the Cody Ignore docs.</li><li>Attempt to use the right-click menu to run commands in any files in the github.com/sourcegraph/cody repo and verify that they don't run and a notification is triggered.</li><li>Attempt to use a keyboard shortcut to run commands in any files in the github.com/sourcegraph/cody repo and verify that they don't run and a notification is triggered.</li><ol> |                                                                                                                     
+| ```"cody.contextFilters": {"exclude": [{"repoNamePattern": "^github\\.com\\/sourcegraph\\/sourcegraph"}]}``` |  github.com/sourcegraph/sourcegraph    | Chat: <ol><li>Verify chat works as normal by asking Cody any question and receiving a response back.</li><li>Open the Enhanced Context menu and verify that it shows the github.com/sourcegraph/sourcegraph repo is ignored, on hover explaining this is due to an admin policy.</li><li>@-mention any files in the github.com/sourcegraph/sourcegraph repo and verify that the user sees a disclaimer that the file is ignored upon selection.</li><li>Submit a chat with an @-file and verify that the file is crossed out and excluded in the context dropdown</li><li>Verify that the user can add the github.com/sourcegraph/cody repo through the context popup menu for Enhanced context.</li></ol>Autocomplete: <ol><li>Verify that no autocomplete suggestions are possible on any files in the github.com/sourcegraph/sourcegraph.</li><li>Verify that the status bar reflects that autocomplete is disabled due to an Ignore policy.</li><li>Attempt automatic autocompletes and verify that they are not possible.</li><li>Provide multiple automatic autocomplete attempts and verify that only one notification per session is provided when autocomplete is blocked.</li><li>Manually trigger autocompletes in any files in the github.com/sourcegraph/sourcegraph repo and verify that a notification is always triggered.</li></ol>Commands: <ol><li>While in any files in the github.com/sourcegraph/sourcegraph repo, verify that the sidebar shows commands are disabled, with a "Learn more" link directing to the Cody Ignore docs.</li><li>Attempt to use the right-click menu to run commands in any files in the github.com/sourcegraph/sourcegraph repo and verify that they don't run and a notification is triggered.</li><li>Attempt to use a keyboard shortcut to run commands in any files in the github.com/sourcegraph/sourcegraph repo and verify that they don't run and a notification is triggered.</li></ol> |
+| ```"cody.contextFilters": {"exclude": [{"repoNamePattern": "^github\\.com\\/sourcegraph\\/sourcegraph"}]}``` |  github.com/sourcegraph/cody | Chat: <ol><li>Verify chat works as normal by asking Cody any question and receiving a response back.</li><li>Add github.com/sourcegraph/sourcegraph to the repo context selector and verify that there is a striked out symbol in the Repositories dropdown</li><li>Ask Cody "How do you contribute to Sourcegraph?" and confirm that no files from the Cody repository was used for context </li></ol>Autocomplete: <ol><li>Verify that autocomplete works as normal in any file in the github.com/sourcegraph/sourcegraph repository</ol>Commands: <ol><li>Verify that commands (Edit, Document, Test, Smell) are possible on any file in github.com/sourcegraph/sourcegraph.</li></ol> |
+| ```"cody.contextFilters": {"include": [{"repoNamePattern": "^github\\.com\\/sourcegraph\\/sourcegraph"}]}``` |  github.com/sourcegraph/sourcegraph | Chat: <ol><li>Verify chat works as normal by asking Cody any question and receiving a response back.</li><li>Add github.com/sourcegraph/cody to the repo context selector and verify that there is a striked out symbol in the Repositories dropdown</li><li>Ask Cody "How do you contribute to Cody?" and confirm that no files from the Cody repository was used for context </li></ol>Autocomplete: <ol><li>Verify that autocomplete works as normal in any file in the github.com/sourcegraph/sourcegraph repository</ol>Commands: <ol><li>Verify that commands (Edit, Document, Test, Smell) are possible on any file in github.com/sourcegraph/sourcegraph.</li></ol> |
+| ```"cody.contextFilters": {"include": [{"repoNamePattern": "^github\\.com\\/sourcegraph\\/sourcegraph"}]}``` |  github.com/sourcegraph/cody | Chat: <ol><li>Verify chat works as normal by asking Cody any question and receiving a response back.</li><li>Open the Enhanced Context menu and verify that it shows the github.com/sourcegraph/cody repo is ignored, on hover explaining this is due to an admin policy.</li><li>@-mention any files in the github.com/sourcegraph/cody repo and verify that the user sees a disclaimer that the file is ignored upon selection.</li><li>Submit a chat with an @-file and verify that the file is crossed out and excluded in the context dropdown</li><li>Verify that the user can add the github.com/sourcegraph/sourcegraph repo through the context popup menu for Enhanced context.</li></ol>Autocomplete: <ol><li>Verify that no autocomplete suggestions are possible on any files in the github.com/sourcegraph/cody repository.</li><li>Verify that the status bar reflects that autocomplete is disabled due to an Ignore policy.</li><li>Attempt automatic autocompletes and verify that they are not possible.</li><li>Provide multiple automatic autocomplete attempts and verify that only one notification per session is provided when autocomplete is blocked.</li><li>Manually trigger autocompletes in any files in the github.com/sourcegraph/sourcegraph repo and verify that a notification is always triggered.</li></ol>Commands: <ol><li>While in any files in the github.com/sourcegraph/cody repo, verify that the sidebar shows commands are disabled, with a "Learn more" link directing to the Cody Ignore docs.</li><li>Attempt to use the right-click menu to run commands in any files in the github.com/sourcegraph/cody repo and verify that they don't run and a notification is triggered.</li><li>Attempt to use a keyboard shortcut to run commands in any files in the github.com/sourcegraph/cody repo and verify that they don't run and a notification is triggered.</li></ol> |
+| ```"cody.contextFilters" field not set``` |  any | All functionality should be working as normal |
 
 #### Expected behavior
 
-1. Each Action should have a valid tooltip.
-2. Typing that action's advertised key sequence activates the lens.
+No matter what combination of include/exclude policies you use,
+all of the following should be true for each test:
+
+1. Whenever the current repo/file is ignored, inline edits and commands should stop working.
+2. Chat should still work, but files from the ignored repositories should not be used as context.
+3. When the current file's policy changes back to non-ignored, inline edits, commands, and context fetching
+   should start working normally again.
 
 ## Multi-repo context
 
@@ -443,7 +473,8 @@ All tests involving prompt history should end with
     - Go to Chat History tab and open previous chats one by one. Check if both history and context settings are properly
       preserved.
     - Open new chat and check if it properly inherits all setting from previously opened historical chat
-    - If `sourcegraph/sourcegraph` repo was previously added please remove it clicking the [✏️] (pencil) icon and removing the 'sourcegraph/sourcegraph' line
+    - If `sourcegraph/sourcegraph` repo was previously added please remove it clicking the [✏️] (pencil) icon and
+      removing the 'sourcegraph/sourcegraph' line
     - Ask question about squirrel. It should again describe you an animal or have no context.
 
 ## Code Search
@@ -564,7 +595,9 @@ To open the context menu:
 8. Change account to different one and then back to your pro account
 9. Open `What model are you?` chat from the history
 10. Send again message
+
 > What model are you?
+
 11. User should again get the response that model is ChatGPT
 
 #### Commands
@@ -651,18 +684,21 @@ Write a prompt and click "OK".
 ### Show Diff
 
 The "Show Diff" feature should present two sides:
-- Right-Hand Side: This should display the current state of the editor, including all changes made by Cody and any user edits.
-- Left-Hand Side: This should display the state of the editor including all user changes made at various stages:
-  - Before triggering Cody's inline edit.
-  - After triggering Cody's inline edit but before Cody started writing.
-  - While Cody is writing (before Cody finished).
-  - After Cody has finished writing.
 
-In other words, the left-hand side should show the right hand side WITHOUT Cody Inline Edit changes. 
+- Right-Hand Side: This should display the current state of the editor, including all changes made by Cody and any user
+  edits.
+- Left-Hand Side: This should display the state of the editor including all user changes made at various stages:
+    - Before triggering Cody's inline edit.
+    - After triggering Cody's inline edit but before Cody started writing.
+    - While Cody is writing (before Cody finished).
+    - After Cody has finished writing.
+
+In other words, the left-hand side should show the right hand side WITHOUT Cody Inline Edit changes.
 
 #### Scenario 1: User Adds/Removes a Line Above the Selected Area Before Triggering the Inline Edit
 
 **Steps**:
+
 1. Above the area that you want to apply the inline edit, add or remove one or more lines.
 2. Trigger the `Cody Inline Edit`.
 3. Trigger the `Show Diff`.
@@ -670,6 +706,7 @@ In other words, the left-hand side should show the right hand side WITHOUT Cody 
 #### Scenario 2: User Adds/Removes a Line Above the Selected Area After Triggering the Inline Edit But Before Cody Starts Writing
 
 **Steps**:
+
 1. Trigger the `Cody Inline Edit`.
 2. Before Cody starts writing, add or remove lines above the selected area.
 3. Allow Cody to complete its edits.
@@ -678,6 +715,7 @@ In other words, the left-hand side should show the right hand side WITHOUT Cody 
 #### Scenario 3: User Adds/Removes a Line Above the Selected Area After Cody Starts Writing But Before It Finishes
 
 **Steps**:
+
 1. Trigger the `Cody Inline Edit`.
 2. While Cody is writing, add or remove lines above the targeted edit area.
 3. Allow Cody to complete its edits.
@@ -686,13 +724,15 @@ In other words, the left-hand side should show the right hand side WITHOUT Cody 
 #### Scenario 4: User Adds/Removes a Line Above the Selected Area After Cody Finishes Writing
 
 **Steps**:
+
 1. Trigger the `Cody Inline Edit`.
 2. After Cody's edits are done, add or remove lines above the edited area.
 3. Trigger the `Show Diff`.
 
 #### Scenario 5: Scenarios 1, 2, 3, 4 But With Lines Addition/Removal Between the Inline Edit Changed lines
 
-`Inline Edit` can modify some particular line in the selected "target" area but leave the other lines unchanged (in that area). 
+`Inline Edit` can modify some particular line in the selected "target" area but leave the other lines unchanged (in that
+area).
 The changes to the lines unmodified by Cody should not be reflected in the `Show Diff`.
 
 #### Scenario 6: Scenarios 1, 2, 3, 4 But With Lines Addition/Removal After the Inline Edit Changed lines

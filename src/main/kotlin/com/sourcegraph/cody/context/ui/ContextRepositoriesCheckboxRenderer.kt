@@ -5,11 +5,15 @@ import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.ThreeStateCheckBox
+import com.sourcegraph.cody.chat.ui.pluralize
+import com.sourcegraph.cody.context.RepoInclusion
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JTree
 
-class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRenderer() {
+class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: AtomicBoolean) :
+    CheckboxTree.CheckboxTreeCellRenderer() {
 
   override fun customizeRenderer(
       tree: JTree?,
@@ -36,19 +40,35 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
       // Enterprise context node renderers
 
       is ContextTreeEnterpriseRootNode -> {
+        // Compute a complicated label counting repositories, for example:
+        // *Chat Context* 1 Repo on example.com
+        // *Chat Context* 2 Repos - 1 ignored on example.com
+        val ignoredRejoinder =
+            when {
+              node.numIgnoredRepos > 0 ->
+                  CodyBundle.getString("context-panel.tree.node-chat-context.detail-ignored-repos")
+                      .fmt(node.numIgnoredRepos.toString())
+              else -> ""
+            }
         textRenderer.appendHTML(
             CodyBundle.getString("context-panel.tree.node-chat-context.detailed")
-                .fmt(style, node.numRepos.toString(), node.endpointName),
+                .fmt(
+                    style,
+                    node.numRepos.toString(),
+                    "Repo".pluralize(node.numRepos),
+                    ignoredRejoinder,
+                    node.endpointName),
             SimpleTextAttributes.REGULAR_ATTRIBUTES)
         // The root element controls enhanced context which includes editor selection, etc. Do not
-        // display unchecked/bar
-        // even if the child repos are unchecked.
+        // display unchecked/bar even if the child repos are unchecked.
         myCheckbox.state =
             if (node.isChecked) {
               ThreeStateCheckBox.State.SELECTED
             } else {
               ThreeStateCheckBox.State.NOT_SELECTED
             }
+        toolTipText = ""
+        myCheckbox.toolTipText = ""
       }
       is ContextTreeRemotesNode -> {
         textRenderer.append(
@@ -57,9 +77,33 @@ class ContextRepositoriesCheckboxRenderer : CheckboxTree.CheckboxTreeCellRendere
         myCheckbox.isVisible = false
       }
       is ContextTreeRemoteRepoNode -> {
-        textRenderer.appendHTML(
-            "<b>${node.repo.displayName}</b>", SimpleTextAttributes.REGULAR_ATTRIBUTES)
+        val isEnhancedContextEnabled = enhancedContextEnabled.get()
+
+        textRenderer.appendHTML(node.repo.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
         textRenderer.icon = node.repo.icon
+        toolTipText =
+            when {
+              node.repo.isIgnored == true ->
+                  CodyBundle.getString("context-panel.tree.node-ignored.tooltip")
+              node.repo.inclusion == RepoInclusion.AUTO ->
+                  CodyBundle.getString("context-panel.tree.node-auto.tooltip")
+              else -> node.repo.name
+            }
+        myCheckbox.state =
+            when {
+              isEnhancedContextEnabled &&
+                  node.repo.isEnabled == true &&
+                  node.repo.isIgnored != true -> ThreeStateCheckBox.State.SELECTED
+              node.repo.isEnabled == true -> ThreeStateCheckBox.State.DONT_CARE
+              else -> ThreeStateCheckBox.State.NOT_SELECTED
+            }
+        myCheckbox.isEnabled = isEnhancedContextEnabled && node.repo.inclusion != RepoInclusion.AUTO
+        myCheckbox.toolTipText =
+            when {
+              node.repo.inclusion == RepoInclusion.AUTO ->
+                  CodyBundle.getString("context-panel.tree.node-auto.tooltip")
+              else -> CodyBundle.getString("context-panel.tree.node.checkbox.remove-tooltip")
+            }
       }
 
       // Fallback

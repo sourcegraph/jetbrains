@@ -7,7 +7,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
-import com.intellij.util.withScheme
+import com.intellij.util.net.HttpConfigurable
 import com.sourcegraph.cody.chat.AgentChatSessionService
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.context.RemoteRepoSearcher
@@ -16,7 +16,8 @@ import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.utils.CodyEditorUtil
-import java.net.URI
+import java.util.Timer
+import java.util.TimerTask
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -26,13 +27,30 @@ import java.util.function.Function
 import kotlinx.coroutines.runBlocking
 
 @Service(Service.Level.PROJECT)
-class CodyAgentService(project: Project) : Disposable {
+class CodyAgentService(private val project: Project) : Disposable {
 
   @Volatile private var codyAgent: CompletableFuture<CodyAgent> = CompletableFuture()
 
   private val startupActions: MutableList<(CodyAgent) -> Unit> = mutableListOf()
 
+  private var previousProxyHost: String? = null
+  private var previousProxyPort: Int? = null
+  private val timer = Timer()
+
   init {
+    // Initialize with current proxy settings
+    val proxy = HttpConfigurable.getInstance()
+    previousProxyHost = proxy.PROXY_HOST
+    previousProxyPort = proxy.PROXY_PORT
+    // Schedule the task to check for proxy changes
+    timer.schedule(
+        object : TimerTask() {
+          override fun run() {
+            checkForProxyChanges()
+          }
+        },
+        0,
+        5000) // Check every 5 seconds
     onStartup { agent ->
       agent.client.onNewMessage = Consumer { params ->
         if (!project.isDisposed) {
@@ -56,34 +74,50 @@ class CodyAgentService(project: Project) : Disposable {
 
       agent.client.onEditTaskDidDelete = Consumer { params ->
         FixupService.getInstance(project).getActiveSession()?.let {
-          if (params.id == it.taskId) it.taskDeleted()
+          if (params.id == it.taskId) it.dismiss()
         }
       }
 
-      agent.client.onWorkspaceEdit = Consumer { params ->
-        FixupService.getInstance(project).getActiveSession()?.performWorkspaceEdit(params)
+      agent.client.onWorkspaceEdit = Function { params ->
+        try {
+          FixupService.getInstance(project).getActiveSession()?.performWorkspaceEdit(params)
+          true
+        } catch (e: RuntimeException) {
+          logger.error(e)
+          false
+        }
       }
 
-      agent.client.onTextDocumentEdit = Consumer { params ->
-        FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
+      agent.client.onTextDocumentEdit = Function { params ->
+        try {
+          FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
+          true
+        } catch (e: RuntimeException) {
+          logger.error(e)
+          false
+        }
       }
 
       agent.client.onTextDocumentShow = Function { params ->
-        CodyEditorUtil.showDocument(
-            project,
-            URI.create(params.uri).withScheme("file"),
-            params.options?.selection?.toVSCodeRange(),
-            params.options?.preserveFocus)
+        val selection = params.options?.selection?.toVSCodeRange()
+        val preserveFocus = params.options?.preserveFocus
+        val vf = CodyEditorUtil.findFileOrScratch(project, params.uri) ?: return@Function false
+        CodyEditorUtil.showDocument(project, vf, selection, preserveFocus)
+        true
       }
 
       agent.client.onOpenUntitledDocument = Function { params ->
-        val uri = URI.create(params.uri).withScheme("file")
-        if (CodyEditorUtil.createFileIfNeeded(project, uri, params.content) == null)
-            return@Function false
+        val result = CompletableFuture<Boolean>()
         ApplicationManager.getApplication().invokeAndWait {
-          CodyEditorUtil.showDocument(project, uri)
+          val vf = CodyEditorUtil.createFileOrScratch(project, params.uri, params.content)
+          if (vf == null) {
+            result.complete(false)
+            return@invokeAndWait
+          }
+          CodyEditorUtil.showDocument(project, vf)
+          result.complete(true)
         }
-        return@Function true
+        result.get()
       }
 
       agent.client.onRemoteRepoDidChange = Consumer {
@@ -103,6 +137,23 @@ class CodyAgentService(project: Project) : Disposable {
         CodyFileEditorListener.registerAllOpenedFiles(project, agent)
       }
     }
+  }
+
+  private fun checkForProxyChanges() {
+    val proxy = HttpConfigurable.getInstance()
+    val currentProxyHost = proxy.PROXY_HOST
+    val currentProxyPort = proxy.PROXY_PORT
+
+    if (currentProxyHost != previousProxyHost || currentProxyPort != previousProxyPort) {
+      // Proxy settings have changed
+      previousProxyHost = currentProxyHost
+      previousProxyPort = currentProxyPort
+      reloadAgent()
+    }
+  }
+
+  private fun reloadAgent() {
+    restartAgent(project)
   }
 
   private fun onStartup(action: (CodyAgent) -> Unit) {
@@ -160,6 +211,7 @@ class CodyAgentService(project: Project) : Disposable {
   }
 
   override fun dispose() {
+    timer.cancel()
     stopAgent(null)
   }
 

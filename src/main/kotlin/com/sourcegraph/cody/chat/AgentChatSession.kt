@@ -13,7 +13,13 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ExtensionMessage
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.agent.WebviewReceiveMessageParams
-import com.sourcegraph.cody.agent.protocol.*
+import com.sourcegraph.cody.agent.protocol.ChatError
+import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
+import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
+import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
+import com.sourcegraph.cody.agent.protocol.ContextItem
+import com.sourcegraph.cody.agent.protocol.Speaker
 import com.sourcegraph.cody.chat.ui.ChatPanel
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.config.CodyAuthenticationManager
@@ -209,6 +215,11 @@ private constructor(
           this.chatPanel.promptPanel.setContextFilesSelector(message.userContextFiles)
         }
       }
+      ExtensionMessage.Type.ENHANCED_CONTEXT_STATUS -> {
+        if (message.enhancedContextStatus != null) {
+          this.chatPanel.contextView.updateFromAgent(message.enhancedContextStatus)
+        }
+      }
       else -> {
         logger.debug(String.format("unknown message type: %s", message.type))
       }
@@ -254,7 +265,7 @@ private constructor(
         restoreChatSession(agent, chatMessages, chatModelProviderFromState, state.internalId!!)
     connectionId.getAndSet(newConnectionId)
 
-    // Update the extension-side state.
+    // Update the Agent-side state.
     val remoteRepos = state.enhancedContext?.remoteRepositories
     if (remoteRepos != null &&
         CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ==
@@ -294,7 +305,6 @@ private constructor(
             when (commandId) {
               CommandId.Explain -> agent.server.legacyCommandsExplain()
               CommandId.Smell -> agent.server.legacyCommandsSmell()
-              CommandId.Test -> agent.server.legacyCommandsTest()
             }
           }
 

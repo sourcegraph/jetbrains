@@ -41,7 +41,7 @@ class ChatPanel(
   private val messagesPanel = MessagesPanel(project, chatSession)
   private val chatPanel = ChatScrollPane(messagesPanel)
 
-  private val contextView: EnhancedContextPanel = EnhancedContextPanel.create(project, chatSession)
+  internal val contextView: EnhancedContextPanel = EnhancedContextPanel.create(project, chatSession)
 
   private val stopGeneratingButton =
       object : JButton("Stop generating", IconUtil.desaturate(AllIcons.Actions.Suspend)) {
@@ -80,11 +80,15 @@ class ChatPanel(
 
   @RequiresEdt
   fun addOrUpdateMessage(message: ChatMessage, index: Int) {
-    if (messagesPanel.componentCount == 1) {
+    val numberOfMessagesBeforeAddOrUpdate = messagesPanel.componentCount
+    if (numberOfMessagesBeforeAddOrUpdate == 1) {
       llmDropdown.updateAfterFirstMessage()
       promptPanel.updateEmptyTextAfterFirstMessage()
     }
     messagesPanel.addOrUpdateMessage(message, index)
+    if (numberOfMessagesBeforeAddOrUpdate < messagesPanel.componentCount) {
+      chatPanel.touchingBottom = true
+    }
   }
 
   @RequiresEdt
