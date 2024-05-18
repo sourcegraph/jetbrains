@@ -7,6 +7,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBInsets
 import com.intellij.util.ui.JBUI
+import com.intellij.ui.dsl.builder.impl.CollapsibleTitledSeparator
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.ContextItem
 import com.sourcegraph.cody.agent.protocol.ContextItemFile
