@@ -259,7 +259,7 @@ abstract class FixupSession(
     showErrorGroup(text, hoverText ?: "No additional info from Agent")
   }
 
-  // TODO: Check how we accept/cancel on origin/main
+  // TODO: Check how we accept/cancel on origin/main - is this still valid?
 
   fun handleDocumentChange(editorThatChanged: Editor) {
     if (editorThatChanged != editor) return
