@@ -9,6 +9,8 @@ import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.ScrollType
+import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.openapi.editor.event.EditorMouseListener
@@ -22,6 +24,7 @@ import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.config.ThemeUtil
+import org.jetbrains.annotations.NotNull
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -30,9 +33,9 @@ import java.awt.Point
 import java.awt.geom.Rectangle2D
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
 import kotlin.math.roundToInt
-import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
@@ -72,16 +75,19 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var listenersMuted = false
 
-  val widgetFont =
-      with(editor.colorsScheme.getFont(EditorFontType.PLAIN)) { Font(name, style, size) }
+  private val globalScheme: AtomicReference<EditorColorsScheme> =
+      AtomicReference(EditorColorsManager.getInstance().globalScheme)
+  private val ideFont = AtomicReference(globalScheme.get().getFont(EditorFontType.PLAIN))
+
+  val widgetFont = with(ideFont.get()) { AtomicReference(Font(name, style, size)) }
 
   // Compute inlay height based on the widget font, not the editor font.
   private val inlayHeight =
       FontInfo.getFontMetrics(
               Font(
                   editor.colorsScheme.fontPreferences.fontFamily,
-                  widgetFont.style,
-                  widgetFont.size),
+                  widgetFont.get().style,
+                  widgetFont.get().size),
               FontInfo.getFontRenderContext(editor.contentComponent))
           .height + VERTICAL_PADDING
 
@@ -162,7 +168,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       targetRegion: Rectangle2D,
       textAttributes: TextAttributes
   ) {
-    g.font = widgetFont
+    g.font = widgetFont.get()
     if (widgetFontMetrics == null) { // Cache for hit box detection later.
       widgetFontMetrics = g.fontMetrics
     }
@@ -187,7 +193,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
         widget.paint(g, acc.toFloat(), top.toFloat() + 4)
         acc + widget.calcWidthInPixels(g.fontMetrics)
       } finally {
-        g.font = widgetFont // In case widget changed it.
+        g.font = widgetFont.get() // In case widget changed it.
       }
     }
   }

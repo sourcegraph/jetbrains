@@ -80,7 +80,7 @@ abstract class LensWidget(val parentGroup: LensWidgetGroup) : Disposable {
                   ColorKey.createColorKey("TOOLTIP_BACKGROUND", tooltipBackground))
                   ?: globalScheme.defaultBackground
           isOpaque = true
-          font = parentGroup.widgetFont
+          font = parentGroup.widgetFont.get()
           border = BorderFactory.createEmptyBorder(2, 8, 0, 8)
         }
     val hint = LightweightHint(tooltipLabel)
