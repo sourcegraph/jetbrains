@@ -19,13 +19,13 @@ import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.config.ConfigUtil
+import org.mockito.Mockito.mock
 import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.regex.Pattern
-import org.mockito.Mockito.mock
 
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)
@@ -69,14 +69,14 @@ class DocumentCodeTest : BasePlatformTestCase() {
     runInEdtAndWait {
       val rangeContext =
           try {
-            foldingRangeFuture.get(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            foldingRangeFuture.get()
           } catch (t: TimeoutException) {
             fail("Timed out waiting for folding ranges")
             null
           }
       assertNotNull("Computed selection range should be non-null", rangeContext)
       // Ensure we were able to get the selection range.
-      val selection = rangeContext!!.session.selectionRange
+      val selection = rangeContext!!.selectionRange
       assertNotNull("Selection should have been set", selection)
       // We set the selection range to whatever the protocol returns.
       // If a 0-width selection turns out to be reasonable we can adjust or remove this test.

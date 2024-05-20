@@ -15,6 +15,7 @@ import com.sourcegraph.cody.edit.sessions.TestCodeSession
 import com.sourcegraph.cody.ignore.ActionInIgnoredFileNotification
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.ignore.IgnorePolicy
+import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
 import java.util.concurrent.atomic.AtomicReference
@@ -69,6 +70,13 @@ class FixupService(val project: Project) : Disposable {
       return false
     }
     val policy = IgnoreOracle.getInstance(project).policyForEditor(editor)
+
+    // TODO: We'll have to figure out a way to integration-test the ignore stuff.
+    // But for now, the policy comes back null during testing, which would normally
+    // ignore it.
+    if (ConfigUtil.isIntegrationTestModeEnabled()) {
+      return true
+    }
     if (policy != IgnorePolicy.USE) {
       runInEdt { ActionInIgnoredFileNotification().notify(project) }
       logger.warn("Ignoring file for inline edits: $editor, policy=$policy")

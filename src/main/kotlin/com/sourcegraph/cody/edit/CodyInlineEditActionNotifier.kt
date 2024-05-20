@@ -1,13 +1,14 @@
 package com.sourcegraph.cody.edit
 
 import com.intellij.util.messages.Topic
+import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.sessions.FixupSession
 
 /** Pubsub interface shared by all inline edit notifications that accept a FixupSession. */
 interface CodyInlineEditActionNotifier {
 
   // Encapsulates the FixupSession and allows adding new fields without breaking subscribers.
-  data class Context(val session: FixupSession)
+  data class Context(val session: FixupSession, val selectionRange: Range? = null)
 
   fun afterAction(context: Context)
 

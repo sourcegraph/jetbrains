@@ -166,8 +166,10 @@ abstract class FixupSession(
     agent.server
         .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
         .thenApply { result ->
-          publishProgressOnEdt(CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES)
           selectionRange = result.range
+          publishProgressOnEdt(
+              CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES,
+              CodyInlineEditActionNotifier.Context(session = this, selectionRange = result.range))
         }
         .get()
   }
@@ -462,12 +464,19 @@ abstract class FixupSession(
     }
   }
 
-  private fun publishProgressOnEdt(topic: Topic<CodyInlineEditActionNotifier>) {
+  private fun publishProgressOnEdt(
+      topic: Topic<CodyInlineEditActionNotifier>,
+      context: CodyInlineEditActionNotifier.Context? = null
+  ) {
     ApplicationManager.getApplication().invokeLater {
-      project.messageBus
-          .syncPublisher(topic)
-          .afterAction(CodyInlineEditActionNotifier.Context(session = this))
+      val progressContext = context ?: CodyInlineEditActionNotifier.Context(session = this)
+      project.messageBus.syncPublisher(topic).afterAction(progressContext)
     }
+  }
+
+  override fun toString(): String {
+    val file = FileDocumentManager.getInstance().getFile(editor.document)
+    return "${this::javaClass.name} for ${file?.path ?: "unknown file"}"
   }
 
   companion object {
