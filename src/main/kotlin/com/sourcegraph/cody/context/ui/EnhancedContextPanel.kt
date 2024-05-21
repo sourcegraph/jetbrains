@@ -42,7 +42,6 @@ import javax.swing.JPanel
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 import javax.swing.tree.DefaultTreeModel
-import javax.swing.tree.TreeNode
 import javax.swing.tree.TreeSelectionModel
 import kotlin.math.max
 
@@ -238,11 +237,11 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
   init {
     tree.addMouseListener(object : MouseAdapter() {
+      fun targetForEvent(e: MouseEvent): Any? = tree.getClosestPathForLocation(e.x, e.y)?.lastPathComponent
+
       // We cache the target of the mouse press, so that if the tree expands before the click event is generated, we can
       // detect the mouse click event is on a different node and suppress the popup.
       private var pressedTarget: Any? = null
-
-      fun targetForEvent(e: MouseEvent): Any? = tree.getClosestPathForLocation(e.x, e.y)?.lastPathComponent
 
       override fun mousePressed(e: MouseEvent) {
         super.mousePressed(e)
@@ -256,6 +255,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
         }
       }
     })
+
+    // TODO: When HelpTooltip.enable/disableTooltip are available, use them to only enable the help tooltip
+    // when the mouse is hovering over the top row.
   }
 
   @RequiresEdt
