@@ -90,8 +90,14 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
       is ContextTreeRemoteRepoNode -> {
         val isEnhancedContextEnabled = enhancedContextEnabled.get()
 
-        textRenderer.appendHTML(node.repo.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
+        textRenderer.appendHTML(
+          CodyBundle.getString("context-panel.tree.node-remote-repo.label").fmt(style, node.repo.name, when {
+            node.repo.inclusion == RepoInclusion.AUTO -> CodyBundle.getString("context-panel.tree.node-remote-repo.auto")
+            else -> ""
+          }), SimpleTextAttributes.REGULAR_ATTRIBUTES)
+
         textRenderer.icon = node.repo.icon
+
         toolTipText =
             when {
               node.repo.isIgnored == true ->
