@@ -7,14 +7,12 @@ import javax.swing.Icon
 class LensIcon(group: LensWidgetGroup, val icon: Icon) : LensWidget(group) {
 
   override fun calcWidthInPixels(fontMetrics: FontMetrics): Int {
-    // Calculate the desired width based on the font height, adjusted by a factor
     val desiredHeight = (fontMetrics.height + fontMetrics.ascent) / 2.0f
     val scaleFactor = desiredHeight / icon.iconHeight.toFloat()
     return (icon.iconWidth * scaleFactor).toInt()
   }
 
   override fun calcHeightInPixels(fontMetrics: FontMetrics): Int {
-    // Calculate the desired height based on the font height, adjusted by a factor
     return ((fontMetrics.height + fontMetrics.ascent) / 2.0f).toInt()
   }
 
