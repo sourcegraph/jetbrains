@@ -43,19 +43,19 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
       is ContextTreeEditReposNode -> {
         myCheckbox.isVisible = false
         textRenderer.appendHTML(
-          CodyBundle.getString(when {
-            node.hasRemovableRepos -> "context-panel.tree.node-edit-repos.label-edit"
-            else -> "context-panel.tree.node-edit-repos.label-add"
-          })
-            .fmt(style),
-          SimpleTextAttributes.REGULAR_ATTRIBUTES
-        )
-        textRenderer.icon = when {
-          node.hasRemovableRepos -> Icons.Actions.Edit
-          else -> Icons.Actions.Add
-        }
+            CodyBundle.getString(
+                    when {
+                      node.hasRemovableRepos -> "context-panel.tree.node-edit-repos.label-edit"
+                      else -> "context-panel.tree.node-edit-repos.label-add"
+                    })
+                .fmt(style),
+            SimpleTextAttributes.REGULAR_ATTRIBUTES)
+        textRenderer.icon =
+            when {
+              node.hasRemovableRepos -> Icons.Actions.Edit
+              else -> Icons.Actions.Add
+            }
       }
-
       is ContextTreeEnterpriseRootNode -> {
         // Compute a complicated label counting repositories, for example:
         // *Chat Context* 1 Repo on example.com
@@ -91,10 +91,16 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
         val isEnhancedContextEnabled = enhancedContextEnabled.get()
 
         textRenderer.appendHTML(
-          CodyBundle.getString("context-panel.tree.node-remote-repo.label").fmt(style, node.repo.name, when {
-            node.repo.inclusion == RepoInclusion.AUTO -> CodyBundle.getString("context-panel.tree.node-remote-repo.auto")
-            else -> ""
-          }), SimpleTextAttributes.REGULAR_ATTRIBUTES)
+            CodyBundle.getString("context-panel.tree.node-remote-repo.label")
+                .fmt(
+                    style,
+                    node.repo.name,
+                    when {
+                      node.repo.inclusion == RepoInclusion.AUTO ->
+                          CodyBundle.getString("context-panel.tree.node-remote-repo.auto")
+                      else -> ""
+                    }),
+            SimpleTextAttributes.REGULAR_ATTRIBUTES)
 
         textRenderer.icon = node.repo.icon
 

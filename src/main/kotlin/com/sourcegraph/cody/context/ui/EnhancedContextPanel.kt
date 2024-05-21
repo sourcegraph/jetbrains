@@ -9,8 +9,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.openapi.ui.getTreePath
 import com.intellij.openapi.ui.popup.JBPopup
-import com.intellij.openapi.ui.popup.JBPopupListener
-import com.intellij.openapi.ui.popup.LightweightWindowEvent
 import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
@@ -125,14 +123,15 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
   protected val tree = run {
     val checkPolicy = createCheckboxPolicy()
     object :
-        CheckboxTree(
-            ContextRepositoriesCheckboxRenderer(enhancedContextEnabled), treeRoot, checkPolicy) {
-      // When collapsed, the horizontal scrollbar obscures the Chat Context summary & checkbox.
-      // Prefer to clip. Users can resize the sidebar if desired.
-      override fun getScrollableTracksViewportWidth(): Boolean = true
-    }.apply {
-      selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
-    }
+            CheckboxTree(
+                ContextRepositoriesCheckboxRenderer(enhancedContextEnabled),
+                treeRoot,
+                checkPolicy) {
+          // When collapsed, the horizontal scrollbar obscures the Chat Context summary & checkbox.
+          // Prefer to clip. Users can resize the sidebar if desired.
+          override fun getScrollableTracksViewportWidth(): Boolean = true
+        }
+        .apply { selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION }
   }
 
   protected abstract fun createCheckboxPolicy(): CheckboxTreeBase.CheckPolicy
@@ -223,40 +222,47 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     }
   }
 
-
   // Cache the raw user input so the user can reopen the popup to make corrections without starting
   // from scratch.
   private var rawSpec: String = ""
 
-  private val repoPopupController = RemoteRepoPopupController(project).apply {
-    onAccept = { spec ->
-      rawSpec = spec
-      ApplicationManager.getApplication().executeOnPooledThread { applyRepoSpec(spec) }
-    }
-  }
-
-  init {
-    tree.addMouseListener(object : MouseAdapter() {
-      fun targetForEvent(e: MouseEvent): Any? = tree.getClosestPathForLocation(e.x, e.y)?.lastPathComponent
-
-      // We cache the target of the mouse press, so that if the tree expands before the click event is generated, we can
-      // detect the mouse click event is on a different node and suppress the popup.
-      private var pressedTarget: Any? = null
-
-      override fun mousePressed(e: MouseEvent) {
-        super.mousePressed(e)
-        pressedTarget = targetForEvent(e)
-      }
-
-      override fun mouseClicked(e: MouseEvent) {
-        var clickTarget = targetForEvent(e)
-        if (e.clickCount == 1 && e.button == MouseEvent.BUTTON1 && pressedTarget === clickTarget && clickTarget is ContextTreeEditReposNode) {
-          repoPopupController.createPopup(tree.width, rawSpec).showAbove(tree)
+  private val repoPopupController =
+      RemoteRepoPopupController(project).apply {
+        onAccept = { spec ->
+          rawSpec = spec
+          ApplicationManager.getApplication().executeOnPooledThread { applyRepoSpec(spec) }
         }
       }
-    })
 
-    // TODO: When HelpTooltip.enable/disableTooltip are available, use them to only enable the help tooltip
+  init {
+    tree.addMouseListener(
+        object : MouseAdapter() {
+          fun targetForEvent(e: MouseEvent): Any? =
+              tree.getClosestPathForLocation(e.x, e.y)?.lastPathComponent
+
+          // We cache the target of the mouse press, so that if the tree expands before the click
+          // event is generated, we can
+          // detect the mouse click event is on a different node and suppress the popup.
+          private var pressedTarget: Any? = null
+
+          override fun mousePressed(e: MouseEvent) {
+            super.mousePressed(e)
+            pressedTarget = targetForEvent(e)
+          }
+
+          override fun mouseClicked(e: MouseEvent) {
+            var clickTarget = targetForEvent(e)
+            if (e.clickCount == 1 &&
+                e.button == MouseEvent.BUTTON1 &&
+                pressedTarget === clickTarget &&
+                clickTarget is ContextTreeEditReposNode) {
+              repoPopupController.createPopup(tree.width, rawSpec).showAbove(tree)
+            }
+          }
+        })
+
+    // TODO: When HelpTooltip.enable/disableTooltip are available, use them to only enable the help
+    // tooltip
     // when the mouse is hovering over the top row.
   }
 
@@ -309,10 +315,11 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
         }
       }
 
-  private val editReposNode = ContextTreeEditReposNode(false) {
-    val popup = RemoteRepoPopupController(project).createPopup(tree.width, rawSpec)
-    popup.showAbove(tree)
-  }
+  private val editReposNode =
+      ContextTreeEditReposNode(false) {
+        val popup = RemoteRepoPopupController(project).createPopup(tree.width, rawSpec)
+        popup.showAbove(tree)
+      }
 
   init {
     val contextState = getContextState()

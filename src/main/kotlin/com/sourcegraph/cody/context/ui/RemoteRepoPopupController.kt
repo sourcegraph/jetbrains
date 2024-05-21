@@ -162,7 +162,8 @@ class RemoteRepoPopupController(val project: Project) {
         }
     okAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, popup.content)
 
-    // If not explicitly set, the popup's minimum size is applied after the popup is shown, which is too late to compute placement in showAbove.
+    // If not explicitly set, the popup's minimum size is applied after the popup is shown, which is
+    // too late to compute placement in showAbove.
     popup.size = Dimension(width, scaledHeight)
 
     return popup

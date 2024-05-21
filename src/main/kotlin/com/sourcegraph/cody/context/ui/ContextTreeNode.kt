@@ -42,7 +42,8 @@ open class ContextTreeEnterpriseRootNode(
         Object(), onSetChecked) // TreePaths depend on user objects; Object() ensures uniqueness.
 
 /** Enterprise context selector tree, a node to trigger editing the repository list. */
-class ContextTreeEditReposNode(var hasRemovableRepos: Boolean, val onActivate: () -> Unit) : ContextTreeNode<Any>(Object())
+class ContextTreeEditReposNode(var hasRemovableRepos: Boolean, val onActivate: () -> Unit) :
+    ContextTreeNode<Any>(Object())
 
 /** Enterprise context selector tree, a specific remote repository. */
 class ContextTreeRemoteRepoNode(val repo: RemoteRepo, onSetChecked: (Boolean) -> Unit) :
