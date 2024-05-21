@@ -81,14 +81,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   val widgetFont = with(ideFont.get()) { AtomicReference(Font(name, style, size)) }
 
   // Compute inlay height based on the widget font, not the editor font.
-  private val inlayHeight =
-      FontInfo.getFontMetrics(
-              Font(
-                  editor.colorsScheme.fontPreferences.fontFamily,
-                  widgetFont.get().style,
-                  widgetFont.get().size),
-              FontInfo.getFontRenderContext(editor.contentComponent))
-          .height + VERTICAL_PADDING
+  private val inlayHeight = AtomicReference(computeInlayHeight())
 
   private var widgetFontMetrics: FontMetrics? = null
 
@@ -152,7 +145,25 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   // Propagate repaint requests from widgets to the inlay.
   fun update() {
-    inlay?.update()
+    inlayHeight.set(computeInlayHeight())
+    inlay?.apply {
+      update()
+      repaint()
+    }
+  }
+
+  private fun computeInlayHeight(): Int {
+    val font =
+        Font(
+            editor.colorsScheme.fontPreferences.fontFamily,
+            widgetFont.get().style,
+            widgetFont.get().size)
+    val fontMetrics =
+        FontInfo.getFontMetrics(font, FontInfo.getFontRenderContext(editor.contentComponent))
+
+    val totalHeight = fontMetrics.ascent + fontMetrics.descent
+
+    return (totalHeight * INLAY_HEIGHT_SCALE_FACTOR).roundToInt()
   }
 
   override fun calcWidthInPixels(inlay: Inlay<*>): Int {
@@ -160,7 +171,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   }
 
   override fun calcHeightInPixels(inlay: Inlay<*>): Int {
-    return inlayHeight
+    return inlayHeight.get()
   }
 
   private fun widgetGroupXY(): Point {
@@ -189,8 +200,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       widgetFontMetrics = g.fontMetrics
     }
 
-    val top = targetRegion.y + VERTICAL_PADDING / 2
-    val left = targetRegion.x + LEFT_MARGIN
+    val inlayHeight = calcHeightInPixels(inlay)
 
     // Draw the inlay background across the width of the Editor.
     g.color =
@@ -199,17 +209,24 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
         }
     g.fillRect(
         targetRegion.x.roundToInt(),
-        top.roundToInt(),
+        targetRegion.y.roundToInt(),
         calcWidthInPixels(inlay),
-        calcHeightInPixels(inlay))
+        inlayHeight)
 
-    // Draw all the widgets left to right, keeping track of their width.
+    val fontMetrics = g.fontMetrics
+    val fontHeight = fontMetrics.ascent + fontMetrics.descent
+    val verticalPadding = (inlayHeight - fontHeight) / 2
+
+    val top = targetRegion.y + verticalPadding
+    val left = targetRegion.x + LEFT_MARGIN
+
+    // Draw all the widgets left to right, keeping track of their x-position.
     widgets.fold(left) { acc, widget ->
       try {
-        widget.paint(g, acc.toFloat(), top.toFloat() + 4)
+        widget.paint(g, acc.toFloat(), top.toFloat())
         acc + widget.calcWidthInPixels(g.fontMetrics)
       } finally {
-        g.font = widgetFont.get() // In case widget changed it.
+        g.font = widgetFont.get()
       }
     }
   }
@@ -217,8 +234,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private fun findWidgetAt(x: Int, y: Int): LensWidget? {
     var currentX = LEFT_MARGIN
     val fontMetrics = widgetFontMetrics ?: return null
-    // Make sure it's in our bounds.
     if (inlay?.bounds?.contains(x, y) == false) return null
+
     // Walk widgets left to right checking their hit boxes.
     for (widget in widgets) {
       val widgetWidth = widget.calcWidthInPixels(fontMetrics)
@@ -227,7 +244,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
         return widget
       }
       currentX = rightEdgeX
-      // Add to currentX here to increase spacing.
     }
     return null
   }
@@ -333,6 +349,10 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   companion object {
     private const val LEFT_MARGIN = 100f
-    const val VERTICAL_PADDING = 8
+
+    // The height of the inlay is always scaled to the font height,
+    // with room for the buttons and some top/bottom padding. This setting
+    // was found empirically and seems to work well for all font sizes.
+    private const val INLAY_HEIGHT_SCALE_FACTOR = 1.3
   }
 }

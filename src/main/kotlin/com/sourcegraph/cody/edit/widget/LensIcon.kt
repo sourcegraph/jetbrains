@@ -25,15 +25,16 @@ class LensIcon(group: LensWidgetGroup, val icon: Icon) : LensWidget(group) {
     val scaleFactor = desiredHeight / icon.iconHeight.toFloat()
     val iconY = textCenterLine - desiredHeight / 2.0f
 
-    // Apply scaling transformation
     val originalTransform = g.transform
     g.translate(x.toInt(), iconY.toInt())
     g.scale(scaleFactor.toDouble(), scaleFactor.toDouble())
 
-    // Paint the icon
-    icon.paintIcon(null, g, 0, 0)
+    // Paint the icon a bit down, presumably to account for the font baseline.
+    // This 1-"pixel" adjustment works surprisingly well for font sizes ranging
+    // from 7 to 24+, and I'm not sure why, but I tested across a wide range of sizes.
+    // If you take it out, the logo will be slightly too high and will drive you crazy.
+    icon.paintIcon(null, g, 0, 1)
 
-    // Restore original transformation
     g.transform = originalTransform
   }
 
