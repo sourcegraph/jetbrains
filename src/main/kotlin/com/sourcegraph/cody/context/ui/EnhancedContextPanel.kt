@@ -225,6 +225,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   // Cache the raw user input so the user can reopen the popup to make corrections without starting
   // from scratch.
   private var rawSpec: String = ""
+  private var endpointName: String = ""
 
   private val repoPopupController =
       RemoteRepoPopupController(project).apply {
@@ -256,7 +257,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
                 e.button == MouseEvent.BUTTON1 &&
                 pressedTarget === clickTarget &&
                 clickTarget is ContextTreeEditReposNode) {
-              repoPopupController.createPopup(tree.width, rawSpec).showAbove(tree)
+              repoPopupController.createPopup(tree.width, endpointName, rawSpec).showAbove(tree)
             }
           }
         })
@@ -270,7 +271,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   override fun createPanel(): JComponent {
     toolbar.setEditActionName(CodyBundle.getString("context-panel.button.edit-repositories"))
     toolbar.setEditAction {
-      val popup = repoPopupController.createPopup(tree.width, rawSpec)
+      val popup = repoPopupController.createPopup(tree.width, endpointName, rawSpec)
       popup.showAbove(tree)
     }
     return toolbar.createPanel()
@@ -309,7 +310,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   private val contextRoot =
       object :
           ContextTreeEnterpriseRootNode(
-              "", 0, 0, { checked -> enhancedContextEnabled.set(checked) }) {
+               0, 0, { checked -> enhancedContextEnabled.set(checked) }) {
         override fun isChecked(): Boolean {
           return enhancedContextEnabled.get()
         }
@@ -317,7 +318,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
   private val editReposNode =
       ContextTreeEditReposNode(false) {
-        val popup = RemoteRepoPopupController(project).createPopup(tree.width, rawSpec)
+        val popup = RemoteRepoPopupController(project).createPopup(tree.width, endpointName, rawSpec)
         popup.showAbove(tree)
       }
 
@@ -329,10 +330,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
             ?: emptyList()
     rawSpec = cleanedRepos.map { it.codebaseName }.joinToString("\n")
 
-    val endpoint =
+    endpointName =
         CodyAuthenticationManager.getInstance(project).getActiveAccount()?.server?.displayName
             ?: CodyBundle.getString("context-panel.remote-repo.generic-endpoint-name")
-    contextRoot.endpointName = endpoint
 
     treeRoot.add(contextRoot)
     treeModel.reload()
@@ -342,7 +342,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
         .setTitle(CodyBundle.getString("context-panel.tree.help-tooltip.title"))
         .setDescription(
             CodyBundle.getString("context-panel.tree.help-tooltip.description")
-                .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), endpoint))
+                .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), endpointName))
         .setLink(CodyBundle.getString("context-panel.tree.help-tooltip.link.text")) {
           BrowserUtil.open(CodyBundle.getString("context-panel.tree.help-tooltip.link.href"))
         }

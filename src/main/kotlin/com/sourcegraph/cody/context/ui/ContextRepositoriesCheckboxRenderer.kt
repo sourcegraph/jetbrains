@@ -72,9 +72,7 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
                 .fmt(
                     style,
                     node.numRepos.toString(),
-                    "Repo".pluralize(node.numRepos),
-                    ignoredRejoinder,
-                    node.endpointName),
+                    "repository".pluralize(node.numRepos)),
             SimpleTextAttributes.REGULAR_ATTRIBUTES)
         // The root element controls enhanced context which includes editor selection, etc. Do not
         // display unchecked/bar even if the child repos are unchecked.

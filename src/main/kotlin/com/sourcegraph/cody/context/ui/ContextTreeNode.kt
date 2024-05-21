@@ -33,7 +33,6 @@ class ContextTreeLocalRepoNode(val project: Project, isEnhancedContextEnabled: A
 
 /** Enterprise context selector tree, root node. */
 open class ContextTreeEnterpriseRootNode(
-    var endpointName: String,
     var numRepos: Int,
     var numIgnoredRepos: Int,
     onSetChecked: (Boolean) -> Unit
