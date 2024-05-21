@@ -96,8 +96,11 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
                     style,
                     node.repo.name,
                     when {
+                      // TODO: Handle missing remote repos with a "not found" string
+                      node.repo.inclusion == RepoInclusion.AUTO && node.repo.isIgnored == true -> CodyBundle.getString("context-panel.tree.node-remote-repo.auto-ignored")
                       node.repo.inclusion == RepoInclusion.AUTO ->
                           CodyBundle.getString("context-panel.tree.node-remote-repo.auto")
+                      node.repo.isIgnored == true -> CodyBundle.getString("context-panel.tree.node-remote-repo.ignored")
                       else -> ""
                     }),
             SimpleTextAttributes.REGULAR_ATTRIBUTES)
