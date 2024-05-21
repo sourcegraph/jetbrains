@@ -1,10 +1,6 @@
 package com.sourcegraph.cody.context
 
-import com.intellij.codeInsight.completion.CompletionContributor
-import com.intellij.codeInsight.completion.CompletionParameters
-import com.intellij.codeInsight.completion.CompletionProvider
-import com.intellij.codeInsight.completion.CompletionResultSet
-import com.intellij.codeInsight.completion.CompletionType
+import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.PsiFileBase
@@ -20,8 +16,7 @@ import com.intellij.lexer.LexerPosition
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.LanguageFileType
-import com.intellij.openapi.progress.blockingContext
-import com.intellij.openapi.progress.runBlockingCancellable
+import com.intellij.openapi.progress.*
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -51,7 +46,7 @@ enum class RepoInclusion {
 
 data class RemoteRepo(
     val name: String,
-    var isEnabled: Boolean? = null,
+    val isEnabled: Boolean? = null,
     val isIgnored: Boolean? = null,
     val inclusion: RepoInclusion? = null
 ) {
