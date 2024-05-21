@@ -25,8 +25,7 @@ abstract class LensWidget(val parentGroup: LensWidgetGroup) : Disposable {
 
   // Note: JBColor.white is actually a dark gray in some themes,
   // which doesn't work with our widget backgrounds, which are red/green/gray.
-  @Suppress("UseJBColor")
-  protected val baseTextColor: Color = Color.WHITE
+  @Suppress("UseJBColor") protected val baseTextColor: Color = Color.WHITE
 
   private var showingTooltip = false
   private var tooltip: LightweightHint? = null

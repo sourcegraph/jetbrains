@@ -26,7 +26,6 @@ class LensAction(
     private val actionId: String
 ) : LensWidget(group) {
 
-
   private val highlight =
       LabelHighlight(
           when (actionId) {
