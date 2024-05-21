@@ -245,7 +245,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       val inclusion =
           when (provider.inclusion) {
             "auto" -> RepoInclusion.AUTO
-            "explicit" -> RepoInclusion.MANUAL
+            "manual" -> RepoInclusion.MANUAL
             else -> null
           }
       repos.add(RemoteRepo(name, isEnabled = enabled, isIgnored = ignored, inclusion = inclusion))
@@ -265,6 +265,10 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
           return enhancedContextEnabled.get()
         }
       }
+
+  private val editReposNode = ContextTreeEditReposNode(false) {
+    TODO("NYI, show the editor")
+  }
 
   init {
     val contextState = getContextState()
@@ -320,6 +324,10 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
           }
         }
         .forEach { contextRoot.add(it) }
+
+    // Add the node to add/edit the repository list.
+    editReposNode.hasRemovableRepos = repos.count { it.inclusion == RepoInclusion.MANUAL } > 0
+    contextRoot.add(editReposNode)
 
     contextRoot.numRepos = repos.count { it.isIgnored != true }
     contextRoot.numIgnoredRepos = repos.count { it.isIgnored == true }

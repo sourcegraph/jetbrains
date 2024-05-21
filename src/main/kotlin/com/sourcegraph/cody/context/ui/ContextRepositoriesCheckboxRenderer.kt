@@ -5,6 +5,7 @@ import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.ThreeStateCheckBox
+import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.chat.ui.pluralize
 import com.sourcegraph.cody.context.RepoInclusion
 import com.sourcegraph.common.CodyBundle
@@ -38,6 +39,22 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
       }
 
       // Enterprise context node renderers
+
+      is ContextTreeEditReposNode -> {
+        myCheckbox.isVisible = false
+        textRenderer.appendHTML(
+          CodyBundle.getString(when {
+            node.hasRemovableRepos -> "context-panel.tree.node-edit-repos.label-edit"
+            else -> "context-panel.tree.node-edit-repos.label-add"
+          })
+            .fmt(style),
+          SimpleTextAttributes.REGULAR_ATTRIBUTES
+        )
+        textRenderer.icon = when {
+          node.hasRemovableRepos -> Icons.Actions.Edit
+          else -> Icons.Actions.Add
+        }
+      }
 
       is ContextTreeEnterpriseRootNode -> {
         // Compute a complicated label counting repositories, for example:
