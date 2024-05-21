@@ -9,8 +9,8 @@ import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.ScrollType
+import com.intellij.openapi.editor.colors.EditorColorsListener
 import com.intellij.openapi.editor.colors.EditorColorsManager
-import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.openapi.editor.event.EditorMouseListener
@@ -75,9 +75,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var listenersMuted = false
 
-  private val globalScheme: AtomicReference<EditorColorsScheme> =
-      AtomicReference(EditorColorsManager.getInstance().globalScheme)
-  private val ideFont = AtomicReference(globalScheme.get().getFont(EditorFontType.PLAIN))
+  private val ideFont =
+      AtomicReference(EditorColorsManager.getInstance().globalScheme.getFont(EditorFontType.PLAIN))
 
   val widgetFont = with(ideFont.get()) { AtomicReference(Font(name, style, size)) }
 
@@ -108,6 +107,23 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     editor.addEditorMouseListener(mouseClickListener)
     editor.addEditorMouseMotionListener(mouseMotionListener)
     addedListeners.set(true)
+
+    // Subscribe to the color scheme changes
+    ApplicationManager.getApplication()
+        .messageBus
+        .connect(this)
+        .subscribe(
+            EditorColorsManager.TOPIC,
+            EditorColorsListener {
+              updateFonts()
+              update()
+            })
+  }
+
+  private fun updateFonts() {
+    ideFont.set(EditorColorsManager.getInstance().globalScheme.getFont(EditorFontType.PLAIN))
+    widgetFont.set(Font(ideFont.get().name, ideFont.get().style, ideFont.get().size))
+    widgetFontMetrics = null // recalculate
   }
 
   fun withListenersMuted(block: () -> Unit) {

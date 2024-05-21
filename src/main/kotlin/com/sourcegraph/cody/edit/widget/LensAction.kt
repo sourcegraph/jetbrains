@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorMouseEvent
+import com.intellij.ui.JBColor
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.EditUtil
 import com.sourcegraph.cody.edit.sessions.FixupSession
@@ -25,12 +26,6 @@ class LensAction(
     private val actionId: String
 ) : LensWidget(group) {
 
-  private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
-
-  // TODO: Put in resources
-  private val actionColor = Color(44, 45, 50)
-  private val acceptColor = Color(37, 92, 53)
-  private val undoColor = Color(114, 38, 38)
 
   private val highlight =
       LabelHighlight(
@@ -46,25 +41,35 @@ class LensAction(
 
   override fun calcHeightInPixels(fontMetrics: FontMetrics): Int = fontMetrics.height
 
+  @Suppress("UseJBColor")
   override fun paint(g: Graphics2D, x: Float, y: Float) {
     val originalFont = g.font
     val originalColor = g.color
     try {
+      // Set the background color using the enhanced theme color
       g.background = EditUtil.getEnhancedThemeColor("Panel.background")
+
+      // Get font metrics for calculating dimensions
       val metrics = g.fontMetrics
       val width = calcWidthInPixels(metrics)
       val textHeight = metrics.height
+
+      // Draw the highlight
       highlight.drawHighlight(g, x, y, width, textHeight)
 
+      // Change font and color based on mouse position
       if (mouseInBounds) {
         g.font = g.font.deriveFont(underline)
         g.color = UIManager.getColor("Link.hoverForeground")
       } else {
         g.font = g.font.deriveFont(Font.PLAIN)
-        g.color = baseTextColor
+        g.color = Color.WHITE
       }
+
+      // Draw the text string
       g.drawString(text, x + SIDE_MARGIN, y + g.fontMetrics.ascent)
 
+      // Update the bounds of the last painted area
       lastPaintedBounds =
           Rectangle2D.Float(x, y - metrics.ascent, width.toFloat(), textHeight.toFloat())
     } finally {
@@ -117,5 +122,11 @@ class LensAction(
 
   companion object {
     const val SIDE_MARGIN = 5
+
+    private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
+
+    val actionColor = JBColor(Color.DARK_GRAY, Color(44, 45, 50))
+    private val acceptColor = Color(37, 92, 53)
+    private val undoColor = Color(114, 38, 38)
   }
 }
