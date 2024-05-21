@@ -342,6 +342,7 @@ All tests involving prompt history should end with:
    - While Cody is "thinking", you should see the Working lens group.
      - Check that the spinner is spinning, and is sized and positioned correctly when the font is large.
      - Check that no other widgets are drawing out of bounds or oddly in some other way.
+5. Ensure that the Cody Logo, present in all lens groups, is scaling with the font size.
 
 ## Chat
 
