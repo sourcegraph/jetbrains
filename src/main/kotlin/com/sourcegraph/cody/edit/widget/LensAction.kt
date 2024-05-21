@@ -45,18 +45,14 @@ class LensAction(
     val originalFont = g.font
     val originalColor = g.color
     try {
-      // Set the background color using the enhanced theme color
       g.background = EditUtil.getEnhancedThemeColor("Panel.background")
 
-      // Get font metrics for calculating dimensions
       val metrics = g.fontMetrics
       val width = calcWidthInPixels(metrics)
       val textHeight = metrics.height
 
-      // Draw the highlight
       highlight.drawHighlight(g, x, y, width, textHeight)
 
-      // Change font and color based on mouse position
       if (mouseInBounds) {
         g.font = g.font.deriveFont(underline)
         g.color = UIManager.getColor("Link.hoverForeground")
@@ -65,14 +61,11 @@ class LensAction(
         g.color = Color.WHITE
       }
 
-      // Draw the text string
       g.drawString(text, x + SIDE_MARGIN, y + g.fontMetrics.ascent)
 
-      // Update the bounds of the last painted area
       lastPaintedBounds =
           Rectangle2D.Float(x, y - metrics.ascent, width.toFloat(), textHeight.toFloat())
     } finally {
-      // Other lenses are using the same Graphics2D.
       g.font = originalFont
       g.color = originalColor
     }
