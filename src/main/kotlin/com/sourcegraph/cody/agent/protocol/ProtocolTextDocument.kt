@@ -41,11 +41,11 @@ private constructor(
     private fun getVisibleRange(editor: Editor): Range {
       val visibleArea = editor.scrollingModel.visibleArea
 
-      val startOffset = editor.xyToVisualPosition(visibleArea.location)
+      val startOffset = editor.xyToLogicalPosition(visibleArea.location)
       val startOffsetLine = max(startOffset.line, 0)
       val startOffsetColumn = max(startOffset.column, 0)
 
-      val endOffset = editor.xyToVisualPosition(Point(visibleArea.right, visibleArea.bottom))
+      val endOffset = editor.xyToLogicalPosition(Point(visibleArea.right, visibleArea.bottom))
       val endOffsetLine = min(endOffset.line, editor.document.lineCount - 1)
       val endOffsetColumn = min(endOffset.column, editor.document.getLineEndOffset(endOffsetLine))
 
