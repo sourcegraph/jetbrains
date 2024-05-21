@@ -101,7 +101,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     editor.addEditorMouseMotionListener(mouseMotionListener)
     addedListeners.set(true)
 
-    // Subscribe to the color scheme changes
+    // Listen for color theme changes.
     ApplicationManager.getApplication()
         .messageBus
         .connect(this)
@@ -114,9 +114,10 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   }
 
   private fun updateFonts() {
-    ideFont.set(EditorColorsManager.getInstance().globalScheme.getFont(EditorFontType.PLAIN))
-    widgetFont.set(Font(ideFont.get().name, ideFont.get().style, ideFont.get().size))
-    widgetFontMetrics = null // recalculate
+    val font = EditorColorsManager.getInstance().globalScheme.getFont(EditorFontType.PLAIN)
+    ideFont.set(font)
+    widgetFont.set(Font(font.name, font.style, font.size))
+    widgetFontMetrics = null // force recalculation
   }
 
   fun withListenersMuted(block: () -> Unit) {
