@@ -8,12 +8,15 @@ import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.openapi.ui.getTreePath
+import com.intellij.openapi.ui.popup.JBPopup
+import com.intellij.openapi.ui.popup.JBPopupListener
+import com.intellij.openapi.ui.popup.LightweightWindowEvent
 import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.ToolbarDecorator.createDecorator
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.intellij.vcs.commit.NonModalCommitPanel.Companion.showAbove
 import com.sourcegraph.cody.agent.EnhancedContextContextT
 import com.sourcegraph.cody.agent.WebviewMessage
 import com.sourcegraph.cody.chat.ChatSession
@@ -28,6 +31,7 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.vcs.CodebaseName
 import java.awt.Dimension
+import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.util.concurrent.TimeUnit
@@ -213,6 +217,14 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
 
 class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     EnhancedContextPanel(project, chatSession) {
+  companion object {
+    fun JBPopup.showAbove(component: JComponent) {
+      val northWest = RelativePoint(component, Point(0, -this.size.height))
+      show(northWest)
+    }
+  }
+
+
   // Cache the raw user input so the user can reopen the popup to make corrections without starting
   // from scratch.
   private var rawSpec: String = ""
