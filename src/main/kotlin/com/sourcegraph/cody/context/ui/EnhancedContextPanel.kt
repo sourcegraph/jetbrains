@@ -257,7 +257,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     }
   }
 
-  private val remotesNode = ContextTreeRemotesNode()
   private val contextRoot =
       object :
           ContextTreeEnterpriseRootNode(
@@ -279,7 +278,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
         CodyAuthenticationManager.getInstance(project).getActiveAccount()?.server?.displayName
             ?: CodyBundle.getString("context-panel.remote-repo.generic-endpoint-name")
     contextRoot.endpointName = endpoint
-    contextRoot.add(remotesNode)
 
     treeRoot.add(contextRoot)
     treeModel.reload()
@@ -312,16 +310,16 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     // TODO: When Kotlin @RequiresEdt annotations are instrumented, remove this manual assertion.
     ApplicationManager.getApplication().assertIsDispatchThread()
 
-    val remotesPath = treeModel.getTreePath(remotesNode.userObject)
+    val remotesPath = treeModel.getTreePath(contextRoot.userObject)
     val wasExpanded = remotesPath != null && tree.isExpanded(remotesPath)
-    remotesNode.removeAllChildren()
+    contextRoot.removeAllChildren()
     repos
         .map { repo ->
           ContextTreeRemoteRepoNode(repo) { checked ->
             setRepoEnabledInContextState(repo.name, checked)
           }
         }
-        .forEach { remotesNode.add(it) }
+        .forEach { contextRoot.add(it) }
 
     contextRoot.numRepos = repos.count { it.isIgnored != true }
     contextRoot.numIgnoredRepos = repos.count { it.isIgnored == true }

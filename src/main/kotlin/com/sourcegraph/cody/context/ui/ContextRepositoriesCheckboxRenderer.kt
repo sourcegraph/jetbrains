@@ -70,12 +70,6 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
         toolTipText = ""
         myCheckbox.toolTipText = ""
       }
-      is ContextTreeRemotesNode -> {
-        textRenderer.append(
-            CodyBundle.getString("context-panel.tree.node-remote-repositories"),
-            SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
-        myCheckbox.isVisible = false
-      }
       is ContextTreeRemoteRepoNode -> {
         val isEnhancedContextEnabled = enhancedContextEnabled.get()
 
