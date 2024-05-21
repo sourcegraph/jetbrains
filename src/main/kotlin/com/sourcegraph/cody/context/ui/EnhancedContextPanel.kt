@@ -28,6 +28,8 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.vcs.CodebaseName
 import java.awt.Dimension
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.BorderFactory
@@ -36,6 +38,8 @@ import javax.swing.JPanel
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 import javax.swing.tree.DefaultTreeModel
+import javax.swing.tree.TreeNode
+import javax.swing.tree.TreeSelectionModel
 import kotlin.math.max
 
 /**
@@ -123,6 +127,8 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
       // When collapsed, the horizontal scrollbar obscures the Chat Context summary & checkbox.
       // Prefer to clip. Users can resize the sidebar if desired.
       override fun getScrollableTracksViewportWidth(): Boolean = true
+    }.apply {
+      selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
     }
   }
 
@@ -211,17 +217,40 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   // from scratch.
   private var rawSpec: String = ""
 
+  private val repoPopupController = RemoteRepoPopupController(project).apply {
+    onAccept = { spec ->
+      rawSpec = spec
+      ApplicationManager.getApplication().executeOnPooledThread { applyRepoSpec(spec) }
+    }
+  }
+
+  init {
+    tree.addMouseListener(object : MouseAdapter() {
+      // We cache the target of the mouse press, so that if the tree expands before the click event is generated, we can
+      // detect the mouse click event is on a different node and suppress the popup.
+      private var pressedTarget: Any? = null
+
+      fun targetForEvent(e: MouseEvent): Any? = tree.getClosestPathForLocation(e.x, e.y)?.lastPathComponent
+
+      override fun mousePressed(e: MouseEvent) {
+        super.mousePressed(e)
+        pressedTarget = targetForEvent(e)
+      }
+
+      override fun mouseClicked(e: MouseEvent) {
+        var clickTarget = targetForEvent(e)
+        if (e.clickCount == 1 && e.button == MouseEvent.BUTTON1 && pressedTarget === clickTarget && clickTarget is ContextTreeEditReposNode) {
+          repoPopupController.createPopup(tree.width, rawSpec).showAbove(tree)
+        }
+      }
+    })
+  }
+
   @RequiresEdt
   override fun createPanel(): JComponent {
     toolbar.setEditActionName(CodyBundle.getString("context-panel.button.edit-repositories"))
     toolbar.setEditAction {
-      val controller = RemoteRepoPopupController(project)
-      controller.onAccept = { spec ->
-        rawSpec = spec
-        ApplicationManager.getApplication().executeOnPooledThread { applyRepoSpec(spec) }
-      }
-
-      val popup = controller.createPopup(tree.width, rawSpec)
+      val popup = repoPopupController.createPopup(tree.width, rawSpec)
       popup.showAbove(tree)
     }
     return toolbar.createPanel()
@@ -267,7 +296,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       }
 
   private val editReposNode = ContextTreeEditReposNode(false) {
-    TODO("NYI, show the editor")
+    val popup = RemoteRepoPopupController(project).createPopup(tree.width, rawSpec)
+    popup.showAbove(tree)
   }
 
   init {
