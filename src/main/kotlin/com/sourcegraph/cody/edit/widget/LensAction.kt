@@ -57,10 +57,10 @@ class LensAction(
 
       if (mouseInBounds) {
         g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.85f)
-        g.color = UIUtil.shade(JBColor(0x000000, 0xFFFFFF), 1.0, 0.95)
+        g.color = UIUtil.shade(JBColor(0xFFFFFF, 0xFFFFFF), 1.0, 0.95)
       } else {
         g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.85f)
-        g.color = UIUtil.shade(JBColor(0x000000, 0xFFFFFF), 1.0, 0.9)
+        g.color = UIUtil.shade(JBColor(0xFFFFFF, 0xFFFFFF), 1.0, 0.9)
       }
 
       g.drawString(text, x + SIDE_MARGIN, y + g.fontMetrics.ascent + 1)
@@ -120,8 +120,8 @@ class LensAction(
 
     private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
 
-    val actionColor = JBColor(0xDFE1E5, 0x393B40)
-    private val acceptColor = JBColor(0x208A3C, 0x388119)
-    private val undoColor = JBColor(0xBC303E, 0x7B282C)
+    val actionColor = JBColor(0x4C4D54, 0x393B40)
+    private val acceptColor = JBColor(0x369650, 0x388119)
+    private val undoColor = JBColor(0xCC3645, 0x7B282C)
   }
 }

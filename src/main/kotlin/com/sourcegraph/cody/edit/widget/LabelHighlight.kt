@@ -18,10 +18,10 @@ class LabelHighlight(private val color: Color) {
    */
   fun drawHighlight(g: Graphics2D, x: Float, y: Float, textWidth: Int, textHeight: Int) {
     // Draw shadow
-    g.color = UIUtil.shade(color, 0.5, 0.75)
+    g.color = UIUtil.shade(color, 0.5, 0.35)
     g.fillRoundRect(
       (x + 0).toInt(),
-      (y + 1).toInt(),
+      (y + 0.5).toInt(),
       textWidth,
       textHeight,
       RADIUS,
