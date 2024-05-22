@@ -16,13 +16,25 @@ class LensHotkey(group: LensWidgetGroup, private val text: String) : LensLabel(g
 
   @Suppress("UseJBColor")
   override fun paint(g: Graphics2D, x: Float, y: Float) {
-    // TODO: This will all break with larger font sizes. Use percentages of font width/height.
-    val width = g.fontMetrics.stringWidth(text) + 5
-    val height = g.fontMetrics.height - 3
-    highlight.drawHighlight(g, x + 2, y + 2, width, height)
+    // Resize font and get new metrics
+    val originalFont = g.font
+    val resizedFont = originalFont.deriveFont(originalFont.size * 0.8f)
+    g.font = resizedFont
+    val fontMetrics = g.fontMetrics
 
+    // Calculate width and height with resized font
+    val width = fontMetrics.stringWidth(text) + 10
+    val height = fontMetrics.height + 3
+
+    // Draw highlight
+    highlight.drawHighlight(g, x + 2, y, width, height)
+
+    // Draw the text
     g.color = Color.white // JBColor.WHITE looks like crap in Darcula theme (very dark)
-    g.drawString(text, x + 4, y + g.fontMetrics.ascent)
+    g.drawString(text, x + 8, y + fontMetrics.ascent + 1)
+
+    // Restore original font
+    g.font = originalFont
   }
 
   override fun toString(): String {

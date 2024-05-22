@@ -20,6 +20,7 @@ import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.sessions.FixupSession
@@ -75,10 +76,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var listenersMuted = false
 
-  private val ideFont =
-      AtomicReference(EditorColorsManager.getInstance().globalScheme.getFont(EditorFontType.PLAIN))
+  val widgetFont = AtomicReference(UIUtil.getLabelFont())
 
-  val widgetFont = with(ideFont.get()) { AtomicReference(Font(name, style, size)) }
 
   // Compute inlay height based on the widget font, not the editor font.
   private val inlayHeight = AtomicReference(computeInlayHeight())
@@ -115,7 +114,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private fun updateFonts() {
     val font = EditorColorsManager.getInstance().globalScheme.getFont(EditorFontType.PLAIN)
-    ideFont.set(font)
+    //ideFont.set(font)
     widgetFont.set(Font(font.name, font.style, font.size))
     widgetFontMetrics = null // force recalculation
   }
