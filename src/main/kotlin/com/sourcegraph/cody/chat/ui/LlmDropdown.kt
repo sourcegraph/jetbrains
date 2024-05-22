@@ -84,6 +84,7 @@ class LlmDropdown(
 
   @RequiresEdt
   override fun setSelectedItem(anObject: Any?) {
+    if (project.isDisposed) return
     val modelProvider = anObject as? ChatModelsResponse.ChatModelProvider
     if (modelProvider != null) {
       if (modelProvider.codyProOnly && isCurrentUserFree) {
