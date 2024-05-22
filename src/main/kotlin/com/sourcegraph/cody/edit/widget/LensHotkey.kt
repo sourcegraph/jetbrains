@@ -33,7 +33,7 @@ class LensHotkey(group: LensWidgetGroup, private val text: String) : LensLabel(g
     highlight.drawHighlight(g, x + 2, y + 1, width, height - 2)
 
     // Draw the text
-    g.color = JBColor(0x2B2D30, 0x6F737A)
+    g.color = JBColor(0x6F737A, 0x6F737A)
     g.drawString(text, x + 7, y + fontMetrics.ascent + 1)
 
     // Restore original font

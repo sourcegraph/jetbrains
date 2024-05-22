@@ -60,7 +60,7 @@ class LensAction(
         g.color = UIUtil.shade(JBColor(0x000000, 0xFFFFFF), 1.0, 0.95)
       } else {
         g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.85f)
-        g.color = UIUtil.shade(JBColor(0x000000, 0xFFFFFF), 1.0, 1.0)
+        g.color = UIUtil.shade(JBColor(0x000000, 0xFFFFFF), 1.0, 0.9)
       }
 
       g.drawString(text, x + SIDE_MARGIN, y + g.fontMetrics.ascent + 1)
