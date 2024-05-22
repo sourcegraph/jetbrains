@@ -1,12 +1,13 @@
 package com.sourcegraph.cody.edit.widget
 
+import com.intellij.ui.JBColor
 import java.awt.Color
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 
 class LensHotkey(group: LensWidgetGroup, private val text: String) : LensLabel(group, text) {
 
-  private val hotkeyHighlightColor = LensAction.actionColor
+  private val hotkeyHighlightColor = JBColor.PanelBackground
 
   private val highlight = LabelHighlight(hotkeyHighlightColor)
 
@@ -30,7 +31,7 @@ class LensHotkey(group: LensWidgetGroup, private val text: String) : LensLabel(g
     highlight.drawHighlight(g, x + 2, y, width, height)
 
     // Draw the text
-    g.color = Color.white // JBColor.WHITE looks like crap in Darcula theme (very dark)
+    g.color = JBColor.foreground()
     g.drawString(text, x + 8, y + fontMetrics.ascent + 1)
 
     // Restore original font
