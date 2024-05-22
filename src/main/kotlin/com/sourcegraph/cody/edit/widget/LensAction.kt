@@ -7,6 +7,8 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.ui.JBColor
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.EditUtil
 import com.sourcegraph.cody.edit.sessions.FixupSession
@@ -54,8 +56,8 @@ class LensAction(
       highlight.drawHighlight(g, x, y, width, textHeight)
 
       if (mouseInBounds) {
-        g.font = g.font.deriveFont(underline)
-        g.color = UIManager.getColor("Link.hoverForeground")
+        g.font = g.font.deriveFont(Font.PLAIN)
+        g.color = JBColor.foreground()
       } else {
         g.font = g.font.deriveFont(Font.PLAIN)
         g.color = Color.WHITE
@@ -76,10 +78,11 @@ class LensAction(
     return true
   }
 
-  override fun onMouseEnter(e: EditorMouseEvent) {
-    mouseInBounds = true
-    showTooltip(EditCommandPrompt.getShortcutText(actionId) ?: return, e.mouseEvent)
-  }
+  // No need for tooltip because we display the action's shortcut in the lens bar.
+ // override fun onMouseEnter(e: EditorMouseEvent) {
+ //   mouseInBounds = true
+ //   showTooltip(EditCommandPrompt.getShortcutText(actionId) ?: return, e.mouseEvent)
+ // }
 
   private fun triggerAction(actionId: String, editor: Editor, mouseEvent: MouseEvent) {
     val action = ActionManager.getInstance().getAction(actionId)
