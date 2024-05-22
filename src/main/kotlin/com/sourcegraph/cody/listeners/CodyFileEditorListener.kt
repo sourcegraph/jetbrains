@@ -24,7 +24,7 @@ class CodyFileEditorListener : FileEditorManagerListener {
         }
       }
     } catch (x: Exception) {
-      logger.error("Error in fileOpened method for file: ${file.path}", x)
+      logger.warn("Error in fileOpened method for file: ${file.path}", x)
     }
   }
 
@@ -37,7 +37,7 @@ class CodyFileEditorListener : FileEditorManagerListener {
         }
       }
     } catch (x: Exception) {
-      logger.error("Error in fileClosed method for file: ${file.path}", x)
+      logger.warn("Error in fileClosed method for file: ${file.path}", x)
     }
   }
 
@@ -55,7 +55,7 @@ class CodyFileEditorListener : FileEditorManagerListener {
               val textDocument = fromVirtualFile(editor, file)
               codyAgent.server.textDocumentDidOpen(textDocument)
             } catch (x: Exception) {
-              logger.error("Error in registerAllOpenedFiles method for file: ${file.path}", x)
+              logger.warn("Error in registerAllOpenedFiles method for file: ${file.path}", x)
             }
           }
         }
@@ -66,7 +66,7 @@ class CodyFileEditorListener : FileEditorManagerListener {
             val textDocument = fromVirtualFile(editor, file!!)
             codyAgent.server.textDocumentDidFocus(textDocument)
           } catch (x: Exception) {
-            logger.error("Error calling textDocument/didFocus on ${file?.path}", x)
+            logger.warn("Error calling textDocument/didFocus on ${file?.path}", x)
           }
         }
       }
