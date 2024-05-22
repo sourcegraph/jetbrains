@@ -23,9 +23,7 @@ import com.intellij.ui.JBColor
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.Range
-import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.sessions.FixupSession
-import com.sourcegraph.config.ThemeUtil
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -79,7 +77,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   val widgetFont = AtomicReference(UIUtil.getLabelFont())
 
-
   // Compute inlay height based on the widget font, not the editor font.
   private val inlayHeight = AtomicReference(computeInlayHeight())
 
@@ -115,7 +112,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private fun updateFonts() {
     val font = EditorColorsManager.getInstance().globalScheme.getFont(EditorFontType.PLAIN)
-    //ideFont.set(font)
+    // ideFont.set(font)
     widgetFont.set(Font(font.name, font.style, font.size))
     widgetFontMetrics = null // force recalculation
   }
@@ -204,7 +201,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     val inlayHeight = calcHeightInPixels(inlay)
 
     // Draw the inlay background across the width of the Editor.
-    g.color = JBColor(0xECEDF2,0x26282D)
+    g.color = JBColor(0xECEDF2, 0x26282D)
     g.fillRect(
         targetRegion.x.roundToInt(),
         targetRegion.y.roundToInt(),
@@ -347,7 +344,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   companion object {
 
-    //todo: make it follow the identation of the block. for now it is fixed to the left
+    // todo: make it follow the identation of the block. for now it is fixed to the left
     private const val LEFT_MARGIN = 20f
 
     // The height of the inlay is always scaled to the font height,

@@ -3,8 +3,6 @@ package com.sourcegraph.cody.edit.widget
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.UIUtil
-import com.sourcegraph.cody.edit.EditCommandPrompt
-import java.awt.Color
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 

@@ -63,7 +63,7 @@ class InstructionsInputTextArea(parentDisposable: Disposable) :
         setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         color = EditUtil.getThemeColor("Component.infoForeground")
         val leftMargin = 15
-        drawString(GHOST_TEXT, leftMargin, (fontMetrics.height * 1.5).toInt()-2)
+        drawString(GHOST_TEXT, leftMargin, (fontMetrics.height * 1.5).toInt() - 2)
       }
     }
   }

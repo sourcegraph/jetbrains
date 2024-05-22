@@ -7,19 +7,15 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.ui.JBColor
-import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.EditUtil
 import com.sourcegraph.cody.edit.sessions.FixupSession
-import java.awt.Color
 import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.event.MouseEvent
 import java.awt.font.TextAttribute
 import java.awt.geom.Rectangle2D
-import javax.swing.UIManager
 
 @Suppress("UseJBColor")
 class LensAction(
@@ -53,7 +49,7 @@ class LensAction(
       val width = calcWidthInPixels(metrics) - 4
       val textHeight = metrics.height
 
-      highlight.drawHighlight(g, x, y+1, width, textHeight-2)
+      highlight.drawHighlight(g, x, y + 1, width, textHeight - 2)
 
       if (mouseInBounds) {
         g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.85f)
@@ -79,10 +75,10 @@ class LensAction(
   }
 
   // No need for tooltip because we display the action's shortcut in the lens bar.
- // override fun onMouseEnter(e: EditorMouseEvent) {
- //   mouseInBounds = true
- //   showTooltip(EditCommandPrompt.getShortcutText(actionId) ?: return, e.mouseEvent)
- // }
+  // override fun onMouseEnter(e: EditorMouseEvent) {
+  //   mouseInBounds = true
+  //   showTooltip(EditCommandPrompt.getShortcutText(actionId) ?: return, e.mouseEvent)
+  // }
 
   private fun triggerAction(actionId: String, editor: Editor, mouseEvent: MouseEvent) {
     val action = ActionManager.getInstance().getAction(actionId)
