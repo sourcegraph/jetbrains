@@ -54,6 +54,8 @@ class LlmDropdown(
 
   @RequiresEdt
   private fun updateModelsInUI(models: List<ChatModelsResponse.ChatModelProvider>) {
+    if (project.isDisposed) return
+
     models.sortedBy { it.codyProOnly }.forEach(::addItem)
 
     CodyAuthenticationManager.getInstance(project).getActiveAccountTier().thenApply { accountTier ->
