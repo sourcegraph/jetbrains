@@ -281,6 +281,7 @@ private constructor(
     if (remoteRepos != null &&
         CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ==
             false) {
+      // TODO: This needs to limit to 10 repos again.
       RemoteRepoUtils.resolveReposWithErrorNotification(
               project,
               remoteRepos

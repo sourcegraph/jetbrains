@@ -39,9 +39,8 @@ object RemoteRepoUtils {
   }
 
   /**
-   * Resolves the repositories named in `repos` and runs `callback` with the first
-   * `MAX_REMOTE_REPOSITORY_COUNT` of them. If remote repo resolution fails, displays an error
-   * message instead.
+   * Resolves the repositories named in `repos` and runs `callback` with the result. If remote repo resolution fails,
+   * displays an error message instead.
    */
   fun resolveReposWithErrorNotification(
       project: Project,
@@ -63,7 +62,7 @@ object RemoteRepoUtils {
             runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
             return@thenApply
           }
-          callback(resolvedRepos.take(MAX_REMOTE_REPOSITORY_COUNT))
+          callback(resolvedRepos)
         }
   }
 }

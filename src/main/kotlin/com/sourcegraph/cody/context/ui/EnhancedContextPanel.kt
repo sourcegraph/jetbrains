@@ -17,14 +17,12 @@ import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.EnhancedContextContextT
 import com.sourcegraph.cody.agent.WebviewMessage
+import com.sourcegraph.cody.agent.protocol.Repo
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.context.RemoteRepo
-import com.sourcegraph.cody.context.RemoteRepoUtils
-import com.sourcegraph.cody.context.RepoInclusion
+import com.sourcegraph.cody.context.*
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.EnhancedContextState
-import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.vcs.CodebaseName
@@ -32,7 +30,6 @@ import java.awt.Dimension
 import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.BorderFactory
 import javax.swing.JComponent
@@ -222,16 +219,31 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     }
   }
 
-  // Cache the raw user input so the user can reopen the popup to make corrections without starting
-  // from scratch.
-  private var rawSpec: String = ""
+  private var controller = RemoteRepoContextController(project,
+    object : ChatContextStateProvider {
+      override fun getSavedState(): EnhancedContextState? = getContextState()
+
+      override fun updateSavedState(modifyContext: (EnhancedContextState) -> Unit) {
+        updateContextState(modifyContext)
+      }
+
+      override fun updateAgentState(repos: List<Repo>) {
+        chatSession.sendWebviewMessage(
+          WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos)
+        )
+      }
+
+      override fun updateUI(repos: List<RemoteRepo>) {
+        updateTree(repos)
+      }
+    })
+
   private var endpointName: String = ""
 
   private val repoPopupController =
       RemoteRepoPopupController(project).apply {
         onAccept = { spec ->
-          rawSpec = spec
-          ApplicationManager.getApplication().executeOnPooledThread { applyRepoSpec(spec) }
+          ApplicationManager.getApplication().executeOnPooledThread { controller.updateRawSpec(spec) }
         }
       }
 
@@ -257,21 +269,20 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
                 e.button == MouseEvent.BUTTON1 &&
                 pressedTarget === clickTarget &&
                 clickTarget is ContextTreeEditReposNode) {
-              repoPopupController.createPopup(tree.width, endpointName, rawSpec).showAbove(tree)
+              repoPopupController.createPopup(tree.width, endpointName, controller.rawSpec).showAbove(tree)
             }
           }
         })
 
     // TODO: When HelpTooltip.enable/disableTooltip are available, use them to only enable the help
-    // tooltip
-    // when the mouse is hovering over the top row.
+    // tooltip when the mouse is hovering over the top row.
   }
 
   @RequiresEdt
   override fun createPanel(): JComponent {
     toolbar.setEditActionName(CodyBundle.getString("context-panel.button.edit-repositories"))
     toolbar.setEditAction {
-      val popup = repoPopupController.createPopup(tree.width, endpointName, rawSpec)
+      val popup = repoPopupController.createPopup(tree.width, endpointName, controller.rawSpec)
       popup.showAbove(tree)
     }
     return toolbar.createPanel()
@@ -285,26 +296,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
           /* uncheckParentWithUncheckedChild = */ false)
 
   override fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT) {
-    val repos = mutableListOf<RemoteRepo>()
-
-    for (group in enhancedContextStatus.groups) {
-      val provider = group.providers.firstOrNull() ?: continue
-      val name = group.displayName
-      val enabled = provider.state == "ready"
-      val ignored = provider.isIgnored == true
-      val inclusion =
-          when (provider.inclusion) {
-            "auto" -> RepoInclusion.AUTO
-            "manual" -> RepoInclusion.MANUAL
-            else -> null
-          }
-      repos.add(RemoteRepo(name, isEnabled = enabled, isIgnored = ignored, inclusion = inclusion))
-    }
-
-    runInEdt {
-      updateTree(repos)
-      resize()
-    }
+    controller.updateFromAgent(enhancedContextStatus)
   }
 
   private val contextRoot =
@@ -318,18 +310,12 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
   private val editReposNode =
       ContextTreeEditReposNode(false) {
-        val popup = RemoteRepoPopupController(project).createPopup(tree.width, endpointName, rawSpec)
+        val popup = repoPopupController.createPopup(tree.width, endpointName, controller.rawSpec)
         popup.showAbove(tree)
       }
 
   init {
-    val contextState = getContextState()
-
-    val cleanedRepos =
-        contextState?.remoteRepositories?.filter { it.codebaseName != null }?.toSet()?.toList()
-            ?: emptyList()
-    rawSpec = cleanedRepos.map { it.codebaseName }.joinToString("\n")
-
+    controller.loadFromChatState(getContextState()?.remoteRepositories)
     endpointName =
         CodyAuthenticationManager.getInstance(project).getActiveAccount()?.server?.displayName
             ?: CodyBundle.getString("context-panel.remote-repo.generic-endpoint-name")
@@ -350,14 +336,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
         .setInitialDelay(
             1500) // Tooltip can interfere with the treeview, so cool off on showing it.
         .installOn(tree)
-
-    // Update the Agent-side state for this chat.
-    val enabledRepos = cleanedRepos.filter { it.isEnabled }.mapNotNull { it.codebaseName }
-    RemoteRepoUtils.resolveReposWithErrorNotification(
-        project, enabledRepos.map { CodebaseName(it) }) { repos ->
-          chatSession.sendWebviewMessage(
-              WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos))
-        }
   }
 
   @RequiresEdt
@@ -371,7 +349,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     repos
         .map { repo ->
           ContextTreeRemoteRepoNode(repo) { checked ->
-            setRepoEnabledInContextState(repo.name, checked)
+            controller.setRepoEnabledInContextState(repo.name, checked)
           }
         }
         .forEach { contextRoot.add(it) }
@@ -386,62 +364,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     if (wasExpanded) {
       tree.expandPath(remotesPath)
     }
-  }
 
-  // Given a textual list of repos, extract a best effort list of repositories from it and update
-  // context settings.
-  private fun applyRepoSpec(spec: String) {
-    val repos =
-        spec
-            .split(Regex("""\s+"""))
-            .filter { it -> it != "" }
-            .toSet()
-            .take(MAX_REMOTE_REPOSITORY_COUNT)
-    RemoteRepoUtils.resolveReposWithErrorNotification(
-        project, repos.map { it -> CodebaseName(it) }.toList()) { trimmedRepos ->
-          runInEdt {
-            // Update the plugin's copy of the state.
-            updateContextState { state ->
-              state.remoteRepositories.clear()
-              state.remoteRepositories.addAll(
-                  trimmedRepos.map { repo ->
-                    RemoteRepositoryState().apply {
-                      codebaseName = repo.name
-                      isEnabled = true
-                    }
-                  })
-            }
-
-            // Update the Agent state. This triggers the tree view update.
-            chatSession.sendWebviewMessage(
-                WebviewMessage(
-                    command = "context/choose-remote-search-repo", explicitRepos = trimmedRepos))
-          }
-        }
-  }
-
-  private fun setRepoEnabledInContextState(repoName: String, enabled: Boolean) {
-    var enabledRepos = listOf<CodebaseName>()
-
-    updateContextState { contextState ->
-      contextState.remoteRepositories.find { it.codebaseName == repoName }?.isEnabled = enabled
-      enabledRepos =
-          contextState.remoteRepositories
-              .filter { it.isEnabled }
-              .mapNotNull { it.codebaseName }
-              .map { CodebaseName(it) }
-    }
-
-    RemoteRepoUtils.getRepositories(project, enabledRepos)
-        .completeOnTimeout(null, 15, TimeUnit.SECONDS)
-        .thenApply { repos ->
-          if (repos == null) {
-            runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
-            return@thenApply
-          }
-          chatSession.sendWebviewMessage(
-              WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos))
-        }
+    resize()
   }
 }
 
