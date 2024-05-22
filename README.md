@@ -1,10 +1,11 @@
 <!-- Plugin description -->
 
-# Sourcegraph Cody: AI Coding Assistant
+# Sourcegraph: Cody + Code Search
 
-[Cody](https://about.sourcegraph.com/cody?utm_source=plugins.jetbrains.com&utm_medium=referral) is an AI coding assistant that helps you understand, write, and fix code faster. It uses advanced search to pull context from both local and remote codebases so that you can use context about APIs, symbols, and usage patterns from across your entire codebase at any scale, all from within your JetBrains IDE.
+Use Cody, the AI coding assistant, plus Code Search directly from your JetBrains IDE.
 
-This extension also supports [Sourcegraph Code Search](https://about.sourcegraph.com/code-search?utm_source=plugins.jetbrains.com&utm_medium=referral), which let's you search code across all your repositories and code hosts—even the code you don’t have locally. See below for more details.
+- [Cody](https://about.sourcegraph.com/cody?utm_source=plugins.jetbrains.com&utm_medium=referral) is an AI coding assistant that helps you understand, write, and fix code faster. It uses advanced search to pull context from both local and remote codebases so that you can use context about APIs, symbols, and usage patterns from across your entire codebase at any scale, all from within your JetBrains IDE.
+- [Code Search](https://about.sourcegraph.com/code-search?utm_source=plugins.jetbrains.com&utm_medium=referral) let's you search code across all your repositories and code hosts—even the code you don’t have locally. 
 
 **Cody for JetBrains IDEs is in beta. We’d love your [feedback](https://github.com/sourcegraph/sourcegraph/discussions/new?category=product-feedback&labels=cody,cody/jetbrains)**!
 
