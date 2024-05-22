@@ -1,11 +1,10 @@
 <!-- Plugin description -->
 
-# Sourcegraph Cody + Code Search
+# Sourcegraph Cody: AI Coding Assistant
 
-Use Sourcegraph’s AI assistant Cody and Sourcegraph Code Search directly from your JetBrains IDE.
+[Cody](https://about.sourcegraph.com/cody?utm_source=plugins.jetbrains.com&utm_medium=referral) is an AI coding assistant that helps you understand, write, and fix code faster. It uses advanced search to pull context from both local and remote codebases so that you can use context about APIs, symbols, and usage patterns from across your entire codebase at any scale, all from within your JetBrains IDE.
 
-- [Cody](https://about.sourcegraph.com/cody?utm_source=plugins.jetbrains.com&utm_medium=referral) is an AI coding assistant that can write, understand and fix your code. Cody is powered by Sourcegraph’s code graph, and has knowledge of your entire codebase.
-- With [Code Search](https://about.sourcegraph.com/code-search?utm_source=plugins.jetbrains.com&utm_medium=referral), you can search code across all your repositories and code hosts—even the code you don’t have locally.
+This extension also supports [Sourcegraph Code Search](https://about.sourcegraph.com/code-search?utm_source=plugins.jetbrains.com&utm_medium=referral), which let's you search code across all your repositories and code hosts—even the code you don’t have locally. See below for more details.
 
 **Cody for JetBrains IDEs is in beta. We’d love your [feedback](https://github.com/sourcegraph/sourcegraph/discussions/new?category=product-feedback&labels=cody,cody/jetbrains)**!
 
@@ -19,7 +18,7 @@ Cody autocompletes single lines, or whole functions, in any programming language
 
 ### Chat: Ask Cody about anything in your codebase
 
-Cody understands your entire codebase — not just your open files. Ask Cody any question about your code, and it will use Sourcegraph's code graph to answer using knowledge of your codebase.
+Cody is able to search context from your entire codebase — not just your open files. Cody uses advanced code search to retrieve context from both local and remote repositories. 
 
 For example, you can ask Cody:
 
@@ -44,7 +43,7 @@ _We also welcome pull request contributions for new, useful commands!_
 
 ### Swappable LLMs
 
-Cody supports multiple LLMs including Anthropic Claude, Claude 2, and OpenAI GPT-4/3.5 models, with more coming soon. Cody Pro users can swap models used for chat on-demand.
+Cody supports multiple LLMs including Anthropic Claude 3, OpenAI GPT-4o, and Mixtral models, with more coming soon. Cody Pro users can swap models used for chat on-demand.
 
 ### Usage
 
@@ -56,9 +55,9 @@ You can find detailed information about Cody's available plans [on our website](
 
 Cody works for any programming language because it uses LLMs trained on broad data. Cody works great with Python, Go, JavaScript, and TypeScript code.
 
-### Code graph
+### Code search
 
-Cody is powered by Sourcegraph’s code graph and uses context of your codebase to extend its capabilities. By using context from entire repositories, Cody is able to give more accurate answers and generate idiomatic code.
+Cody is powered by Sourcegraph’s code search and uses context of your codebase to extend its capabilities. By using context from your chosen repositories, Cody is able to give more accurate answers and generate idiomatic code.
 
 For example:
 
@@ -68,7 +67,7 @@ For example:
 
 ### Cody Enterprise
 
-Cody Enterprise is able to retrieve context from your entire remote codebase using Sourcegraph search. This gives Cody the ability to understand and answer questions about all of your code, even the repositories that don't live on your local machine.
+Cody Enterprise is able to retrieve context from your entire remote codebase using code search. This gives Cody the ability to understand and answer questions about any of your code, even the repositories that don't live on your local machine.
 
 [Contact us](https://about.sourcegraph.com/contact/request-info?utm_source=plugins.jetbrains.com&utm_medium=referral) to set up a trial of Cody Enterprise. If you’re an existing Sourcegraph Enterprise customer, contact your technical advisor.
 
