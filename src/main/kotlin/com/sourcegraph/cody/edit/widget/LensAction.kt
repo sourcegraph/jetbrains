@@ -56,14 +56,14 @@ class LensAction(
       highlight.drawHighlight(g, x, y, width, textHeight)
 
       if (mouseInBounds) {
-        g.font = g.font.deriveFont(Font.PLAIN)
-        g.color = JBColor.foreground()
+        g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.9f)
+        g.color = JBColor.foreground().brighter()
       } else {
-        g.font = g.font.deriveFont(Font.PLAIN)
-        g.color = Color.WHITE
+        g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.9f)
+        g.color = JBColor.foreground()
       }
 
-      g.drawString(text, x + SIDE_MARGIN, y + g.fontMetrics.ascent)
+      g.drawString(text, x + SIDE_MARGIN + 1, y + g.fontMetrics.ascent + 1)
 
       lastPaintedBounds =
           Rectangle2D.Float(x, y - metrics.ascent, width.toFloat(), textHeight.toFloat())
@@ -116,7 +116,7 @@ class LensAction(
   }
 
   companion object {
-    const val SIDE_MARGIN = 5
+    const val SIDE_MARGIN = 9
 
     private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
 

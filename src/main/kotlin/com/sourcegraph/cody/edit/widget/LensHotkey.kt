@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.edit.widget
 
 import com.intellij.ui.JBColor
+import com.intellij.util.ui.UIUtil
 import java.awt.Color
 import java.awt.Font
 import java.awt.FontMetrics
@@ -32,7 +33,7 @@ class LensHotkey(group: LensWidgetGroup, private val text: String) : LensLabel(g
     highlight.drawHighlight(g, x + 2, y, width, height)
 
     // Draw the text
-    g.color = JBColor.foreground()
+    g.color = UIUtil.shade(JBColor.foreground(), 1.0, 0.5)
     g.drawString(text, x + 7, y + fontMetrics.ascent + 1)
 
     // Restore original font

@@ -348,7 +348,9 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   }
 
   companion object {
-    private const val LEFT_MARGIN = 100f
+
+    //todo: make it follow the identation of the block. for now it is fixed to the left
+    private const val LEFT_MARGIN = 20f
 
     // The height of the inlay is always scaled to the font height,
     // with room for the buttons and some top/bottom padding. This setting
