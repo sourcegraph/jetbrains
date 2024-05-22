@@ -1,5 +1,7 @@
 package com.sourcegraph.cody.edit.widget
 
+import com.intellij.ui.JBColor
+import com.intellij.util.ui.UIUtil
 import java.awt.Color
 import java.awt.Graphics2D
 
@@ -15,11 +17,23 @@ class LabelHighlight(private val color: Color) {
    * @param textHeight the height of the text.
    */
   fun drawHighlight(g: Graphics2D, x: Float, y: Float, textWidth: Int, textHeight: Int) {
+    // Draw shadow
+    g.color = UIUtil.shade(color, 0.5, 0.75)
+    g.fillRoundRect(
+      (x + 0).toInt(),
+      (y + 1).toInt(),
+      textWidth,
+      textHeight,
+      RADIUS,
+      RADIUS
+    )
+
+    // Draw highlight
     g.color = color
     g.fillRoundRect(x.toInt(), y.toInt(), textWidth, textHeight, RADIUS, RADIUS)
   }
 
   companion object {
-    const val RADIUS = 6
+    const val RADIUS = 4
   }
 }

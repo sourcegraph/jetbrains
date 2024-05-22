@@ -19,6 +19,7 @@ import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.JBColor
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.Range
@@ -203,10 +204,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     val inlayHeight = calcHeightInPixels(inlay)
 
     // Draw the inlay background across the width of the Editor.
-    g.color =
-        EditCommandPrompt.textFieldBackground().run {
-          if (ThemeUtil.isDarkTheme()) darker() else this
-        }
+    g.color = JBColor(0xECEDF2,0x26282D)
     g.fillRect(
         targetRegion.x.roundToInt(),
         targetRegion.y.roundToInt(),
@@ -355,6 +353,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     // The height of the inlay is always scaled to the font height,
     // with room for the buttons and some top/bottom padding. This setting
     // was found empirically and seems to work well for all font sizes.
-    private const val INLAY_HEIGHT_SCALE_FACTOR = 1.3
+    private const val INLAY_HEIGHT_SCALE_FACTOR = 1.2
   }
 }

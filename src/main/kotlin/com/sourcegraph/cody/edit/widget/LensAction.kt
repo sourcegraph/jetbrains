@@ -37,7 +37,7 @@ class LensAction(
           })
 
   override fun calcWidthInPixels(fontMetrics: FontMetrics): Int {
-    return fontMetrics.stringWidth(text) + 2 * SIDE_MARGIN
+    return fontMetrics.stringWidth(text) + (2 * SIDE_MARGIN)
   }
 
   override fun calcHeightInPixels(fontMetrics: FontMetrics): Int = fontMetrics.height
@@ -50,20 +50,20 @@ class LensAction(
       g.background = EditUtil.getEnhancedThemeColor("Panel.background")
 
       val metrics = g.fontMetrics
-      val width = calcWidthInPixels(metrics)
+      val width = calcWidthInPixels(metrics) - 4
       val textHeight = metrics.height
 
-      highlight.drawHighlight(g, x, y, width, textHeight)
+      highlight.drawHighlight(g, x, y+1, width, textHeight-2)
 
       if (mouseInBounds) {
-        g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.9f)
-        g.color = JBColor.foreground().brighter()
+        g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.85f)
+        g.color = UIUtil.shade(JBColor(0x000000, 0xFFFFFF), 1.0, 0.95)
       } else {
-        g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.9f)
-        g.color = JBColor.foreground()
+        g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.85f)
+        g.color = UIUtil.shade(JBColor(0x000000, 0xFFFFFF), 1.0, 1.0)
       }
 
-      g.drawString(text, x + SIDE_MARGIN + 1, y + g.fontMetrics.ascent + 1)
+      g.drawString(text, x + SIDE_MARGIN, y + g.fontMetrics.ascent + 1)
 
       lastPaintedBounds =
           Rectangle2D.Float(x, y - metrics.ascent, width.toFloat(), textHeight.toFloat())
@@ -120,8 +120,8 @@ class LensAction(
 
     private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
 
-    val actionColor = JBColor(Color.DARK_GRAY, Color(44, 45, 50))
-    private val acceptColor = Color(37, 92, 53)
-    private val undoColor = Color(114, 38, 38)
+    val actionColor = JBColor(0xDFE1E5, 0x393B40)
+    private val acceptColor = JBColor(0x208A3C, 0x388119)
+    private val undoColor = JBColor(0xBC303E, 0x7B282C)
   }
 }

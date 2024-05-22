@@ -9,7 +9,7 @@ import java.awt.Graphics2D
 
 class LensHotkey(group: LensWidgetGroup, private val text: String) : LensLabel(group, text) {
 
-  private val hotkeyHighlightColor = JBColor.PanelBackground
+  private val hotkeyHighlightColor = JBColor(0xDFE1E5, 0x252629)
 
   private val highlight = LabelHighlight(hotkeyHighlightColor)
 
@@ -30,10 +30,10 @@ class LensHotkey(group: LensWidgetGroup, private val text: String) : LensLabel(g
     val height = fontMetrics.height + 3
 
     // Draw highlight
-    highlight.drawHighlight(g, x + 2, y, width, height)
+    highlight.drawHighlight(g, x + 2, y + 1, width, height - 2)
 
     // Draw the text
-    g.color = UIUtil.shade(JBColor.foreground(), 1.0, 0.5)
+    g.color = JBColor(0x2B2D30, 0x6F737A)
     g.drawString(text, x + 7, y + fontMetrics.ascent + 1)
 
     // Restore original font
