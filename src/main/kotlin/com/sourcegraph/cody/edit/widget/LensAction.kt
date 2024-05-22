@@ -74,12 +74,6 @@ class LensAction(
     return true
   }
 
-  // No need for tooltip because we display the action's shortcut in the lens bar.
-  // override fun onMouseEnter(e: EditorMouseEvent) {
-  //   mouseInBounds = true
-  //   showTooltip(EditCommandPrompt.getShortcutText(actionId) ?: return, e.mouseEvent)
-  // }
-
   private fun triggerAction(actionId: String, editor: Editor, mouseEvent: MouseEvent) {
     val action = ActionManager.getInstance().getAction(actionId)
     if (action != null) {

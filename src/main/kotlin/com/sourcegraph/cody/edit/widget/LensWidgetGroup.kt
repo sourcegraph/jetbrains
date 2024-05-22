@@ -112,7 +112,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private fun updateFonts() {
     val font = EditorColorsManager.getInstance().globalScheme.getFont(EditorFontType.PLAIN)
-    // ideFont.set(font)
     widgetFont.set(Font(font.name, font.style, font.size))
     widgetFontMetrics = null // force recalculation
   }
@@ -344,7 +343,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   companion object {
 
-    // todo: make it follow the identation of the block. for now it is fixed to the left
+    // TODO: make it follow the identation of the block. for now it is fixed to the left
     private const val LEFT_MARGIN = 20f
 
     // The height of the inlay is always scaled to the font height,
