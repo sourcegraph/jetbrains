@@ -2,6 +2,7 @@ package com.sourcegraph.cody.edit.widget
 
 import com.intellij.ui.JBColor
 import java.awt.Color
+import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 
@@ -19,7 +20,7 @@ class LensHotkey(group: LensWidgetGroup, private val text: String) : LensLabel(g
   override fun paint(g: Graphics2D, x: Float, y: Float) {
     // Resize font and get new metrics
     val originalFont = g.font
-    val resizedFont = originalFont.deriveFont(originalFont.size * 0.8f)
+    val resizedFont = originalFont.deriveFont(Font.BOLD, originalFont.size * 0.8f)
     g.font = resizedFont
     val fontMetrics = g.fontMetrics
 
@@ -32,7 +33,7 @@ class LensHotkey(group: LensWidgetGroup, private val text: String) : LensLabel(g
 
     // Draw the text
     g.color = JBColor.foreground()
-    g.drawString(text, x + 8, y + fontMetrics.ascent + 1)
+    g.drawString(text, x + 7, y + fontMetrics.ascent + 1)
 
     // Restore original font
     g.font = originalFont
