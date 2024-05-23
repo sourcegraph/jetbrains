@@ -90,7 +90,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var prevCursor: Cursor? = null
 
-  private var lastComputedIndent = -1
+  private var lastComputedIndent = RECOMPUTE
 
   var isInWorkingGroup = false
   var isAcceptGroup = false
@@ -256,7 +256,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   // Computes the X coordinate in the Editor where the first widget is drawn.
   private fun leftMargin(): Int {
-    if (lastComputedIndent != -1) {
+    if (lastComputedIndent != RECOMPUTE) {
       return lastComputedIndent
     }
     try {
