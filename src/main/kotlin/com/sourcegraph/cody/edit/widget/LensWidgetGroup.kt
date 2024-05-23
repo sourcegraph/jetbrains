@@ -90,6 +90,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var prevCursor: Cursor? = null
 
+  private var lastComputedIndent = -1
+
   var isInWorkingGroup = false
   var isAcceptGroup = false
   var isErrorGroup = false
@@ -254,9 +256,16 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   // Computes the X coordinate in the Editor where the first widget is drawn.
   private fun leftMargin(): Int {
+    if (lastComputedIndent != -1) {
+      return lastComputedIndent
+    }
     try {
       val document = editor.document
-      val inlayOffset = inlay?.offset ?: return DEFAULT_MARGIN
+      val inlayOffset = inlay?.offset
+      if (inlayOffset != null) {
+        lastComputedIndent = DEFAULT_MARGIN
+        return DEFAULT_MARGIN
+      }
       val lineCount = document.lineCount
 
       val inlayLineNumber = document.getLineNumber(inlayOffset)
@@ -276,13 +285,19 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
                   .takeWhile { it.isWhitespace() }
                   .sumOf { if (it == '\t') tabSize * spaceWidth else spaceWidth }
 
+          lastComputedIndent = indentationLevel
           return indentationLevel
         }
       }
     } catch (x: Exception) {
       logger.warn("Error computing code lens left margin", x)
     }
+    lastComputedIndent = DEFAULT_MARGIN
     return DEFAULT_MARGIN
+  }
+
+  fun reset() {
+    lastComputedIndent = RECOMPUTE
   }
 
   // Dispatch mouse click events to the appropriate widget.
@@ -383,5 +398,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     // with room for the buttons and some top/bottom padding. This setting
     // was found empirically and seems to work well for all font sizes.
     private const val INLAY_HEIGHT_SCALE_FACTOR = 1.2
+
+    // Flag to force recomputation of left margin.
+    private const val RECOMPUTE = -1
   }
 }
