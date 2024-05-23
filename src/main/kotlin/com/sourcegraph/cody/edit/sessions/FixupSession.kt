@@ -411,6 +411,7 @@ abstract class FixupSession(
     if (project.isDisposed) return
     performedActions.forEach { it.dispose() }
     editor.document.removeDocumentListener(documentListener)
+    cancellationToken.dispose()
   }
 
   fun isShowingWorkingLens(): Boolean {

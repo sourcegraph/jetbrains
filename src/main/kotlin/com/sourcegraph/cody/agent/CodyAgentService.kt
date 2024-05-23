@@ -79,20 +79,24 @@ class CodyAgentService(private val project: Project) : Disposable {
       }
 
       agent.client.onWorkspaceEdit = Function { params ->
+        val activeSession = FixupService.getInstance(project).getActiveSession()
         try {
-          FixupService.getInstance(project).getActiveSession()?.performWorkspaceEdit(params)
+          activeSession?.performWorkspaceEdit(params)
           true
         } catch (e: RuntimeException) {
+          activeSession?.dispose()
           logger.error(e)
           false
         }
       }
 
       agent.client.onTextDocumentEdit = Function { params ->
+        val activeSession = FixupService.getInstance(project).getActiveSession()
         try {
-          FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
+          activeSession?.performInlineEdits(params.edits)
           true
         } catch (e: RuntimeException) {
+          activeSession?.dispose()
           logger.error(e)
           false
         }
@@ -250,6 +254,7 @@ class CodyAgentService(private val project: Project) : Disposable {
               try {
                 callback.accept(agent)
               } catch (e: Exception) {
+                logger.warn(e)
                 onFailure.accept(e)
               }
             }
