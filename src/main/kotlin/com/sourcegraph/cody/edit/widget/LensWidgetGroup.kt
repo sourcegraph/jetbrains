@@ -266,8 +266,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
         lastComputedIndent = DEFAULT_MARGIN
         return DEFAULT_MARGIN
       }
-      val lineCount = document.lineCount
 
+      val lineCount = document.lineCount
       val inlayLineNumber = document.getLineNumber(inlayOffset)
 
       // Find next non-blank line.
