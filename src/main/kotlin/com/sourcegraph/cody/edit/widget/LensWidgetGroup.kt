@@ -254,29 +254,35 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   // Computes the X coordinate in the Editor where the first widget is drawn.
   private fun leftMargin(): Int {
-    val document = editor.document
-    val inlayOffset = inlay?.offset ?: return DEFAULT_MARGIN
-    val lineCount = document.lineCount
+    try {
+      val document = editor.document
+      val inlayOffset = inlay?.offset ?: return DEFAULT_MARGIN
+      val lineCount = document.lineCount
 
-    val inlayLineNumber = document.getLineNumber(inlayOffset)
-    // Find next non-blank line.
-    for (lineNumber in inlayLineNumber until lineCount) {
-      val lineStartOffset = document.getLineStartOffset(lineNumber)
-      val lineEndOffset = document.getLineEndOffset(lineNumber)
-      val lineText = document.getText(TextRange(lineStartOffset, lineEndOffset))
-      // Compute the pixel width of the indentation.
-      if (lineText.isNotBlank()) {
-        val tabSize = EditorUtil.getTabSize(editor)
-        val spaceWidth = EditorUtil.getSpaceWidth(Font.PLAIN, editor)
-        val indentationLevel =
-            lineText
-                .takeWhile { it.isWhitespace() }
-                .sumOf { if (it == '\t') tabSize * spaceWidth else spaceWidth }
+      val inlayLineNumber = document.getLineNumber(inlayOffset)
 
-        return indentationLevel
+      // Find next non-blank line.
+      for (lineNumber in inlayLineNumber until lineCount) {
+        val lineStartOffset = document.getLineStartOffset(lineNumber)
+        val lineEndOffset = document.getLineEndOffset(lineNumber)
+        val lineText = document.getText(TextRange(lineStartOffset, lineEndOffset))
+
+        // Compute the pixel width of the indentation.
+        if (lineText.isNotBlank()) {
+          val tabSize = EditorUtil.getTabSize(editor)
+          val spaceWidth = EditorUtil.getSpaceWidth(Font.PLAIN, editor)
+          val indentationLevel =
+              lineText
+                  .takeWhile { it.isWhitespace() }
+                  .sumOf { if (it == '\t') tabSize * spaceWidth else spaceWidth }
+
+          return indentationLevel
+        }
       }
+    } catch (x: Exception) {
+      logger.warn("Error computing code lens left margin", x)
     }
-    return DEFAULT_MARGIN // No non-blank line found.
+    return DEFAULT_MARGIN
   }
 
   // Dispatch mouse click events to the appropriate widget.
