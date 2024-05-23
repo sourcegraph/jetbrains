@@ -4,7 +4,6 @@ import com.intellij.ide.BrowserUtil
 import com.intellij.ide.HelpTooltip
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.openapi.ui.getTreePath
@@ -25,7 +24,6 @@ import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
-import com.sourcegraph.vcs.CodebaseName
 import java.awt.Dimension
 import java.awt.Point
 import java.awt.event.MouseAdapter
@@ -219,8 +217,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     }
   }
 
-  private var controller = RemoteRepoContextController(project,
-    object : ChatContextStateProvider {
+  private var controller = EnterpriseEnhancedContextStateController(project,
+    object : ChatEnhancedContextStateProvider {
       override fun getSavedState(): EnhancedContextState? = getContextState()
 
       override fun updateSavedState(modifyContext: (EnhancedContextState) -> Unit) {

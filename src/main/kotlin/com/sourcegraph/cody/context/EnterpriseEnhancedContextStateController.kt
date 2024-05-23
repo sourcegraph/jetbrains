@@ -11,7 +11,10 @@ import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.vcs.CodebaseName
 import java.util.concurrent.TimeUnit
 
-class RemoteRepoContextModel {
+/**
+ * The ephemeral, in-memory model of enterprise enhanced context state.
+ */
+private class EnterpriseEnhancedContextModel {
   // What the user actually wrote
   var rawSpec: String = ""
 
@@ -25,15 +28,45 @@ class RemoteRepoContextModel {
   var configured: List<RemoteRepo> = emptyList()
 }
 
-interface ChatContextStateProvider {
+/**
+ * Provides the [EnterpriseEnhancedContextStateController] access to chat's
+ * representation of enhanced context state. There are THREE representations:
+ * - JetBrains Cody has a bespoke representation saved in its chat history. This is
+ *   divorced from the TypeScript extension's saved chat history :shrug:
+ * - The agent has a set of repositories that are actually used for enhanced context.
+ *   This set can be read and written, however the agent may add a repository it has
+ *   picked up and included automatically by examining the project.
+ * - The chat sidebar UI presents a view of enhanced context to the user. (Including
+ *   a text field in a popup, however that is only *read* by the controller so does
+ *   not appear here--see [EnterpriseEnhancedContextStateController.updateRawSpec].)
+ */
+interface ChatEnhancedContextStateProvider {
+  /**
+   * Retrieves JetBrains Cody's "chat history" copy of enhanced context state.
+   */
   fun getSavedState(): EnhancedContextState?
+
+  /**
+   * Updates JetBrains Cody's "chat history" copy of enhanced context state.
+   */
   fun updateSavedState(updater: (EnhancedContextState) -> Unit)
+
+  /**
+   * Updates the Agent-side state for the chat.
+   */
   fun updateAgentState(repos: List<Repo>)
+
+  /**
+   * Pushes a UI update to the chat side panel.
+   */
   fun updateUI(repos: List<RemoteRepo>)
 }
 
-class RemoteRepoContextController(val project: Project, val chat: ChatContextStateProvider) {
-  private var model = RemoteRepoContextModel()
+/**
+ * Reconciles the multiple, asynchronously updated copies of enhanced context state
+ */
+class EnterpriseEnhancedContextStateController(val project: Project, val chat: ChatEnhancedContextStateProvider) {
+  private var model = EnterpriseEnhancedContextModel()
 
   val rawSpec: String
     get(): String = model.rawSpec
@@ -50,7 +83,8 @@ class RemoteRepoContextController(val project: Project, val chat: ChatContextSta
     // Update the Agent-side state for this chat.
     val enabledRepos = cleanedRepos.filter { it.isEnabled }.mapNotNull { it.codebaseName }
     RemoteRepoUtils.resolveReposWithErrorNotification(
-      project, enabledRepos.map { CodebaseName(it) }, chat::updateAgentState)
+      project, enabledRepos.map { CodebaseName(it) }, chat::updateAgentState
+    )
 
     // TODO: Update the UI
   }
@@ -96,7 +130,8 @@ class RemoteRepoContextController(val project: Project, val chat: ChatContextSta
     // TODO: Limit to 10 somewhere.
 
     RemoteRepoUtils.resolveReposWithErrorNotification(
-      project, specified.map { CodebaseName(it) }.toList()) { trimmedRepos ->
+      project, specified.map { CodebaseName(it) }.toList()
+    ) { trimmedRepos ->
       runInEdt {
         // Update the plugin's copy of the state.
         chat.updateSavedState { state ->
