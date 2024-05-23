@@ -94,7 +94,7 @@ abstract class FixupSession(
 
   init {
     editor.document.addDocumentListener(documentListener, /* parentDisposable = */ this)
-    runInEdt { Disposer.register(controller, this) }
+    Disposer.register(controller, this)
     triggerFixupAsync()
   }
 
