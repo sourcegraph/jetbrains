@@ -382,9 +382,7 @@ tasks {
     dependsOn(project.tasks.getByPath("buildCody"))
     jvmArgs("-Djdk.module.illegalAccess.silent=true")
 
-    agentProperties.forEach { (key, value) ->
-        systemProperty(key, value)
-    }
+    agentProperties.forEach { (key, value) -> systemProperty(key, value) }
 
     val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
     if (platformRuntimeVersion != null) {
@@ -436,9 +434,7 @@ tasks {
   }
 
   test {
-    agentProperties.forEach { (key, value) ->
-      systemProperty(key, value)
-    }
+    agentProperties.forEach { (key, value) -> systemProperty(key, value) }
 
     dependsOn(project.tasks.getByPath("buildCody"))
   }
