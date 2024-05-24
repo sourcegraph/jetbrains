@@ -8,6 +8,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.util.net.HttpConfigurable
+import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.chat.AgentChatSessionService
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.context.RemoteRepoSearcher
@@ -16,15 +17,14 @@ import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.utils.CodyEditorUtil
-import java.util.Timer
-import java.util.TimerTask
+import kotlinx.coroutines.runBlocking
+import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 import java.util.function.Function
-import kotlinx.coroutines.runBlocking
 
 @Service(Service.Level.PROJECT)
 class CodyAgentService(private val project: Project) : Disposable {
@@ -36,6 +36,8 @@ class CodyAgentService(private val project: Project) : Disposable {
   private var previousProxyHost: String? = null
   private var previousProxyPort: Int? = null
   private val timer = Timer()
+
+  private val textChangeDebouncer = TextChangeDebouncer(project)
 
   init {
     // Initialize with current proxy settings
@@ -295,7 +297,7 @@ class CodyAgentService(private val project: Project) : Disposable {
     suspend fun <T> coWithAgent(project: Project, callback: suspend (CodyAgent) -> T) =
         coWithAgent(project, false, callback)
 
-    suspend fun <T> coWithAgent(
+    private suspend fun <T> coWithAgent(
         project: Project,
         restartIfNeeded: Boolean,
         callback: suspend (CodyAgent) -> T
@@ -304,7 +306,7 @@ class CodyAgentService(private val project: Project) : Disposable {
         throw Exception("Cody is not enabled")
       }
       try {
-        val instance = CodyAgentService.getInstance(project)
+        val instance = getInstance(project)
         val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
         val agent =
             if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
@@ -320,5 +322,14 @@ class CodyAgentService(private val project: Project) : Disposable {
         throw e
       }
     }
+  }
+
+  // This is an odd duck to have here. There isn't much better place to put it, and it makes
+  // some sense that the CodyAgentService should handle debouncing calls to CodyAgentServer.
+  fun sendTextDocumentDidChange(
+      document: ProtocolTextDocument,
+      forceWithoutDebounce: Boolean = false
+  ) {
+    return textChangeDebouncer.debounce(document, forceWithoutDebounce)
   }
 }

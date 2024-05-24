@@ -15,9 +15,7 @@ class CodySelectionListener(val project: Project) : SelectionListener {
     }
 
     ProtocolTextDocument.fromEditorWithRangeSelection(e.editor)?.let { textDocument ->
-      CodyAgentService.withAgent(project) { agent ->
-        agent.server.textDocumentDidChange(textDocument)
-      }
+      CodyAgentService.getInstance(project).sendTextDocumentDidChange(textDocument)
     }
 
     CodyAutocompleteManager.instance.clearAutocompleteSuggestions(e.editor)

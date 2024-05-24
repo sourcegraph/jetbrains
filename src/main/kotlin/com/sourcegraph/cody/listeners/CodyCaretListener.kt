@@ -4,7 +4,6 @@ import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager
@@ -23,11 +22,9 @@ class CodyCaretListener(val project: Project) : CaretListener {
       return
     }
 
-    ProtocolTextDocument.fromEditorWithOffsetSelection(e.editor, e.newPosition)?.let { textDocument
+    ProtocolTextDocument.fromEditorWithOffsetSelection(e.editor, e.newPosition)?.let{ textDocument
       ->
-      CodyAgentService.withAgent(project) { agent: CodyAgent ->
-        agent.server.textDocumentDidChange(textDocument)
-      }
+      CodyAgentService.getInstance(project).sendTextDocumentDidChange(textDocument)
     }
 
     CodyAutocompleteManager.instance.clearAutocompleteSuggestions(e.editor)
