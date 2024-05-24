@@ -102,10 +102,12 @@ private constructor(
       val oldFragment = event.oldFragment.toString()
       val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
       val startPosition = editor.offsetToLogicalPosition(event.offset).codyPosition()
+      // allocate List once to avoid three unnecessary duplicate allocations
+      val oldFragmentLines = oldFragment.lines()
       val endCharacter =
-          if (oldFragment.lines().size > 1) oldFragment.lines().last().length
+          if (oldFragmentLines.size > 1) oldFragmentLines.last().length
           else startPosition.character + oldFragment.length
-      val endPosition = Position(startPosition.line + oldFragment.lines().size - 1, endCharacter)
+      val endPosition = Position(startPosition.line + oldFragmentLines.size - 1, endCharacter)
 
       return ProtocolTextDocument(
           uri = uriFor(file),
