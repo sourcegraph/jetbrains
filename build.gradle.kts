@@ -299,6 +299,7 @@ tasks {
           "cody.agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
           "cody.agent.directory" to buildCodyDir.parent,
           "sourcegraph.verbose-logging" to "true",
+          "cody.agent.panic-when-out-of-sync" to "true",
           "cody.autocomplete.enableFormatting" to
               (project.property("cody.autocomplete.enableFormatting") ?: "true"))
 
@@ -380,16 +381,10 @@ tasks {
   runIde {
     dependsOn(project.tasks.getByPath("buildCody"))
     jvmArgs("-Djdk.module.illegalAccess.silent=true")
-    // TODO: Figure out why systemProperties(...) doesn't work
-    //    systemProperties(agentProperties)
 
-    systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
-    systemProperty("cody-agent.directory", buildCodyDir.parent)
-    systemProperty("sourcegraph.verbose-logging", "true")
-    systemProperty("cody-agent.panic-when-out-of-sync", "true")
-    systemProperty(
-        "cody.autocomplete.enableFormatting",
-        project.property("cody.autocomplete.enableFormatting") ?: "true")
+    agentProperties.forEach { (key, value) ->
+        systemProperty(key, value)
+    }
 
     val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
     if (platformRuntimeVersion != null) {
@@ -441,13 +436,10 @@ tasks {
   }
 
   test {
-    systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
-    systemProperty("cody-agent.directory", buildCodyDir.parent)
-    systemProperty("sourcegraph.verbose-logging", "true")
-    systemProperty("cody-agent.panic-when-out-of-sync", "true")
-    systemProperty(
-        "cody.autocomplete.enableFormatting",
-        project.property("cody.autocomplete.enableFormatting") ?: "true")
+    agentProperties.forEach { (key, value) ->
+      systemProperty(key, value)
+    }
+
     dependsOn(project.tasks.getByPath("buildCody"))
   }
 }

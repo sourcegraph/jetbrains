@@ -6,6 +6,6 @@ data class TestingParams(
 ) {
   companion object {
     val doIncludeTestingParam =
-        "true".equals(System.getProperty("cody-agent.panic-when-out-of-sync", "false"))
+        "true".equals(System.getProperty("cody.agent.panic-when-out-of-sync", "false"))
   }
 }
