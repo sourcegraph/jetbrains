@@ -246,7 +246,7 @@ private constructor(
 
     private fun agentDirectory(): Path? {
       // N.B. this is the default/production setting. CODY_DIR overrides it locally.
-      val fromProperty = System.getProperty("cody.agent.directory", "")
+      val fromProperty = System.getProperty("cody-agent.directory", "")
       if (fromProperty.isNotEmpty()) {
         return Paths.get(fromProperty).resolve("agent")
       }
@@ -287,7 +287,7 @@ private constructor(
     }
 
     private fun traceWriter(): PrintWriter? {
-      val tracePath = System.getProperty("cody.agent.trace-path", "")
+      val tracePath = System.getProperty("cody-agent.trace-path", "")
       if (tracePath.isNotEmpty()) {
         val trace = Paths.get(tracePath)
         try {
