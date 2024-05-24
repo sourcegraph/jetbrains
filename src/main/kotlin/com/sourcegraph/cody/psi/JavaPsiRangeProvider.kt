@@ -9,7 +9,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.util.PsiTreeUtil
 
-class CodyPsiRangeProviderImpl : CodyPsiRangeProvider {
+class JavaPsiRangeProvider : CodyPsiRangeProvider {
     override fun getDocumentableRange(project: Project, editor: Editor): DocumentableRange? {
         val psiFile = getPsiFile(project, editor) ?: return null
         val caretOffset = editor.caretModel.offset
@@ -25,7 +25,6 @@ class CodyPsiRangeProviderImpl : CodyPsiRangeProvider {
     }
 
     private fun findDocumentableElement(element: PsiElement): PsiElement? {
-        // Correct usage of PsiTreeUtil.getParentOfType
         return PsiTreeUtil.getParentOfType(element, PsiMethod::class.java, PsiClass::class.java)
     }
 }
