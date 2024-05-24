@@ -10,16 +10,16 @@ import com.sourcegraph.config.ConfigUtil
 
 class CodySelectionListener(val project: Project) : SelectionListener {
 
-  override fun selectionChanged(e: SelectionEvent) {
-    if (!ConfigUtil.isCodyEnabled() || e.editor == null) {
+  override fun selectionChanged(event: SelectionEvent) {
+    if (!ConfigUtil.isCodyEnabled() || event.editor == null) {
       return
     }
 
-    ProtocolTextDocument.fromEditorWithRangeSelection(e.editor)?.let { textDocument ->
+    ProtocolTextDocument.fromEditorWithRangeSelection(event.editor, event)?.let { textDocument ->
       EditorChangesBus.documentChanged(project, textDocument)
       CodyAgentService.getInstance(project).sendTextDocumentDidChange(textDocument)
     }
 
-    CodyAutocompleteManager.instance.clearAutocompleteSuggestions(e.editor)
+    CodyAutocompleteManager.instance.clearAutocompleteSuggestions(event.editor)
   }
 }
