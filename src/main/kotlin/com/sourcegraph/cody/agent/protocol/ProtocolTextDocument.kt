@@ -24,7 +24,11 @@ private constructor(
 
   companion object {
 
-    private fun getSelection(editor: Editor): Range {
+    private fun getSelection(editor: Editor, isZeroBased: Boolean = false): Range {
+      // For an empty document, return a zero-width selection at the start of the document.
+      if (editor.document.lineCount == 0) return Range(Position(0, 0), Position(0, 0))
+      // Subtract 1 to convert 1-based line numbers to 0-based line numbers.
+      val baseline = if (isZeroBased) 1 else 0
       val selectionModel = editor.selectionModel
       val selectionStartPosition =
           selectionModel.selectionStartPosition?.let { editor.visualToLogicalPosition(it) }
@@ -32,11 +36,12 @@ private constructor(
           selectionModel.selectionEndPosition?.let { editor.visualToLogicalPosition(it) }
       if (selectionStartPosition != null && selectionEndPosition != null) {
         return Range(
-            Position(selectionStartPosition.line, selectionStartPosition.column),
-            Position(selectionEndPosition.line, selectionEndPosition.column))
+            Position(selectionStartPosition.line - baseline, selectionStartPosition.column),
+            Position(selectionEndPosition.line - baseline, selectionEndPosition.column)
+        )
       }
       val caret = editor.caretModel.primaryCaret
-      val position = Position(caret.logicalPosition.line, caret.logicalPosition.column)
+      val position = Position(caret.logicalPosition.line - baseline, caret.logicalPosition.column)
       // A single-offset caret is a selection where end == start.
       return Range(position, position)
     }
@@ -45,15 +50,18 @@ private constructor(
       val visibleArea = editor.scrollingModel.visibleArea
 
       val startOffset = editor.xyToLogicalPosition(visibleArea.location)
-      val startOffsetLine = max(startOffset.line, 0)
+      // Minus 1 to convert 1-based line numbers to 0-based line numbers before sending to Agent.
+      val startOffsetLine = max(startOffset.line - 1, 0)
       val startOffsetColumn = max(startOffset.column, 0)
 
       val endOffset = editor.xyToLogicalPosition(Point(visibleArea.right, visibleArea.bottom))
-      val endOffsetLine = max(0, min(endOffset.line, editor.document.lineCount - 1))
+      val endOffsetLine = max(0, min(endOffset.line - 1, editor.document.lineCount - 1))
       val endOffsetColumn = min(endOffset.column, editor.document.getLineEndOffset(endOffsetLine))
 
       return Range(
-          Position(startOffsetLine, startOffsetColumn), Position(endOffsetLine, endOffsetColumn))
+          Position(startOffsetLine, startOffsetColumn),
+          Position(endOffsetLine, endOffsetColumn)
+      )
     }
 
     @JvmStatic
@@ -69,7 +77,8 @@ private constructor(
     @JvmStatic
     fun fromEditorWithRangeSelection(editor: Editor): ProtocolTextDocument? {
       val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
-      return ProtocolTextDocument(uri = uriFor(file), selection = getSelection(editor))
+      // Keep current selection as is when sending the document to the agent.
+      return ProtocolTextDocument(uri = uriFor(file), selection = getSelection(editor, false))
     }
 
     @JvmStatic
@@ -78,6 +87,7 @@ private constructor(
       return ProtocolTextDocument(
           uri = uriFor(file),
           content = editor.document.text,
+          selection = getSelection(editor, true),
           // TODO(olafurpg): let's implement incremental document synchronization later.
           //                 Incremental document synchronization is very difficult to get
           //                 100% right so we need to be careful.
@@ -88,7 +98,7 @@ private constructor(
           //                          position(editor.document, event.offset),
           //                          position(editor.document, event.offset + event.oldLength)),
           //                      event.newFragment.toString()))
-      )
+          )
     }
 
     @JvmStatic
@@ -106,8 +116,9 @@ private constructor(
       return ProtocolTextDocument(
           uri = uriFor(file),
           content = text,
-          selection = getSelection(editor),
-          visibleRange = getVisibleRange(editor))
+          selection = getSelection(editor, true),
+          visibleRange = getVisibleRange(editor)
+      )
     }
 
     @JvmStatic

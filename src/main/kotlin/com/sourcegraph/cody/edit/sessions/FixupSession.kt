@@ -56,7 +56,6 @@ abstract class FixupSession(
     val project: Project,
     var editor: Editor
 ) : Disposable {
-
   private val logger = Logger.getInstance(FixupSession::class.java)
   private val fixupService = FixupService.getInstance(project)
   private val documentListener by lazy { FixupSessionDocumentListener(this) }
@@ -147,12 +146,13 @@ abstract class FixupSession(
   }
 
   private fun ensureSelectionRange(agent: CodyAgent, textFile: ProtocolTextDocument) {
-    val selection = textFile.selection ?: return
-    selectionRange = selection.toRangeMarker(document, true)
-    agent.server
-        .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
-        .thenApply { result -> selectionRange = result.range.toRangeMarker(document, true) }
-        .get()
+      val selection = textFile.selection ?: return
+      selectionRange = selection.toRangeMarker(document, true)
+      agent
+          .server
+          .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
+          .thenApply { result -> selectionRange = result.range.toRangeMarker(document, true) }
+          .get()
   }
 
   fun update(task: EditTask) {
