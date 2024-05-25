@@ -9,6 +9,7 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import java.awt.Point
 import java.nio.file.FileSystems
 import java.util.Locale
@@ -33,6 +34,7 @@ private constructor(
 
   companion object {
 
+    @RequiresEdt
     private fun getTestingParams(
         uri: String,
         content: String? = null,
@@ -52,6 +54,7 @@ private constructor(
               ))
     }
 
+    @RequiresEdt
     private fun getSelection(editor: Editor): Range {
       val selectionModel = editor.selectionModel
       val selectionStartPosition =
@@ -69,6 +72,7 @@ private constructor(
       return Range(position, position)
     }
 
+    @RequiresEdt
     private fun getVisibleRange(editor: Editor): Range {
       val visibleArea = editor.scrollingModel.visibleArea
 
@@ -85,6 +89,7 @@ private constructor(
     }
 
     @JvmStatic
+    @RequiresEdt
     fun fromEditorWithOffsetSelection(
         editor: Editor,
         newPosition: LogicalPosition
@@ -100,6 +105,7 @@ private constructor(
     }
 
     @JvmStatic
+    @RequiresEdt
     fun fromEditorWithRangeSelection(editor: Editor, event: SelectionEvent): ProtocolTextDocument? {
       val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
       val uri = uriFor(file)
@@ -133,6 +139,7 @@ private constructor(
     }
 
     @JvmStatic
+    @RequiresEdt
     fun fromEditorForDocumentEvent(editor: Editor, event: DocumentEvent): ProtocolTextDocument? {
       val oldFragment = event.oldFragment.toString()
       val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
@@ -156,12 +163,14 @@ private constructor(
     }
 
     @JvmStatic
+    @RequiresEdt
     fun fromEditor(editor: Editor): ProtocolTextDocument? {
       val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
       return fromVirtualFile(editor, file)
     }
 
     @JvmStatic
+    @RequiresEdt
     fun fromVirtualFile(
         editor: Editor,
         file: VirtualFile,
