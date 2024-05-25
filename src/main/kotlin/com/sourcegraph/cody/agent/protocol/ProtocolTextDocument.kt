@@ -2,6 +2,7 @@ package com.sourcegraph.cody.agent.protocol
 
 import com.intellij.codeInsight.codeVision.ui.popup.layouter.bottom
 import com.intellij.codeInsight.codeVision.ui.popup.layouter.right
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -23,6 +24,12 @@ private constructor(
     val contentChanges: List<ProtocolTextDocumentContentChangeEvent>? = null,
     val testing: TestingParams? = null,
 ) {
+
+  init {
+    if (!ApplicationManager.getApplication().isDispatchThread) {
+      throw IllegalStateException("ProtocolTextDocument must be be created on EDT")
+    }
+  }
 
   companion object {
 
