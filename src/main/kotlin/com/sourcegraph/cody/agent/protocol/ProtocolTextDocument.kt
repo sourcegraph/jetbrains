@@ -136,14 +136,16 @@ private constructor(
           if (oldFragmentLines.size > 1) oldFragmentLines.last().length
           else startPosition.character + oldFragment.length
       val endPosition = Position(startPosition.line + oldFragmentLines.size - 1, endCharacter)
+      val uri = uriFor(file)
 
       return ProtocolTextDocument(
-          uri = uriFor(file),
+          uri = uri,
           content = null,
           contentChanges =
               listOf(
                   ProtocolTextDocumentContentChangeEvent(
-                      Range(startPosition, endPosition), event.newFragment.toString())))
+                      Range(startPosition, endPosition), event.newFragment.toString())),
+          testing = getTestingParams(uri, content = editor.document.text))
     }
 
     @JvmStatic
