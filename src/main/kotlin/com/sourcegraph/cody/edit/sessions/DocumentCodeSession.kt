@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.edit.sessions
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgent
@@ -12,7 +13,17 @@ class DocumentCodeSession(
     editor: Editor,
     project: Project,
 ) : FixupSession(controller, project, editor) {
+
   override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
-    return agent.server.commandsDocument()
+    return try {
+      agent.server.commandsDocument()
+    } catch (x: Exception) {
+      logger.warn("Error making editCommands/document request", x)
+      CompletableFuture.failedFuture(x)
+    }
+  }
+
+  companion object {
+    private val logger = Logger.getInstance(DocumentCodeSession::class.java)
   }
 }

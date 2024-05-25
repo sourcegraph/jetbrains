@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.edit.sessions
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
@@ -21,7 +22,15 @@ class EditCodeSession(
 ) : FixupSession(controller, editor.project!!, editor) {
 
   override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
-    val params = InlineEditParams(instructions, chatModelProvider.model)
-    return agent.server.commandsEdit(params)
+    return try {
+      agent.server.commandsEdit(InlineEditParams(instructions, chatModelProvider.model))
+    } catch (x: Exception) {
+      logger.warn("Error making editCommands/edit request", x)
+      CompletableFuture.failedFuture(x)
+    }
+  }
+
+  companion object {
+    private val logger = Logger.getInstance(EditCodeSession::class.java)
   }
 }
