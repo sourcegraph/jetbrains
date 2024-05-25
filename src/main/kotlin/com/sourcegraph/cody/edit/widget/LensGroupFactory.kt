@@ -20,15 +20,14 @@ class LensGroupFactory(val session: FixupSession) {
     }
   }
 
-  fun createAcceptGroup(isDocumentCode: Boolean = false): LensWidgetGroup {
+  fun createAcceptGroup(): LensWidgetGroup {
     return LensWidgetGroup(session, session.editor).apply {
       addLogo(this)
       addAction(this, "Accept", FixupSession.ACTION_ACCEPT)
       addSeparator(this)
       addAction(this, "Undo", FixupSession.ACTION_UNDO)
       addSeparator(this)
-      val retryLensTitle = if (isDocumentCode) "Retry" else "Edit & Retry"
-      addAction(this, retryLensTitle, FixupSession.ACTION_RETRY)
+      addAction(this, "Edit & Retry", FixupSession.ACTION_RETRY)
       addSeparator(this)
       addAction(this, "Show Diff", FixupSession.ACTION_DIFF)
       registerWidgets()
