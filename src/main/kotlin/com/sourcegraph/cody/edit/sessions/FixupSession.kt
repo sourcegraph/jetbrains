@@ -122,13 +122,11 @@ abstract class FixupSession(
               if (!(error is CancellationException || error is CompletionException)) {
                 showErrorGroup("Error while generating code", error)
               }
-              cancel()
               null
             }
             .completeOnTimeout(null, 3, TimeUnit.SECONDS)
       } catch (e: Exception) {
         showErrorGroup("Edit failed", e)
-        cancel()
       }
     }
   }
