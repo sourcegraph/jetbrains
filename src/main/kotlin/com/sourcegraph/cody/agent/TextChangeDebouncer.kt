@@ -18,7 +18,7 @@ class TextChangeDebouncer(val project: Project) {
   @Synchronized
   fun debounce(document: ProtocolTextDocument, forceSkipDebounce: Boolean = false) {
     // If URI has changed (i.e. switched tabs or documents), send the first one immediately.
-    if (forceSkipDebounce || (document.uri != lastUri)) {
+    if (BYPASS_DEBOUNCE || forceSkipDebounce || document.uri != lastUri) {
       scheduledFuture?.cancel(false)
       sendTextDocumentDidChange(document)
       lastUri = document.uri
@@ -31,9 +31,7 @@ class TextChangeDebouncer(val project: Project) {
 
   private fun sendTextDocumentDidChange(document: ProtocolTextDocument) {
     try {
-      CodyAgentService.withAgent(project) { agent ->
-        agent.server.textDocumentDidChange(document)
-      }
+      CodyAgentService.withAgent(project) { agent -> agent.server.textDocumentDidChange(document) }
     } catch (x: Exception) {
       logger.warn("Error in sendTextDocumentDidChange method for file: ${document.uri}", x)
     }
@@ -55,5 +53,9 @@ class TextChangeDebouncer(val project: Project) {
     //  10ms debounce: 150 times
     //  30ms debounce: 40 times -- roughly 33 calls per second. Good enough.
     private const val DEBOUNCE_INTERVAL = 30L
+
+    // A flag for turning debounce entirely off, for comparing performance, debugging, etc.
+    private val BYPASS_DEBOUNCE: Boolean =
+        System.getProperty("cody.bypassTextChangeDebounce") == "true"
   }
 }

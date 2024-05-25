@@ -55,7 +55,7 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
     // IMPORTANT: we must do document synchronization even if autocomplete isn't auto-triggered.
     // This is esp. important with incremental document synchronization where the server goes out
     // of sync if it doesn't get all changes.
-    
+
     ProtocolTextDocument.fromEditorForDocumentEvent(editor, event)?.let { textDocument ->
       EditorChangesBus.documentChanged(project, textDocument)
       CodyAgentService.getInstance(project).sendTextDocumentDidChange(textDocument)

@@ -22,7 +22,7 @@ class CodyCaretListener(val project: Project) : CaretListener {
       return
     }
 
-    ProtocolTextDocument.fromEditorWithOffsetSelection(e.editor, e.newPosition)?.let{ textDocument
+    ProtocolTextDocument.fromEditorWithOffsetSelection(e.editor, e.newPosition)?.let { textDocument
       ->
       EditorChangesBus.documentChanged(project, textDocument)
       CodyAgentService.getInstance(project).sendTextDocumentDidChange(textDocument)
