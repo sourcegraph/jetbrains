@@ -26,6 +26,7 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.sessions.FixupSession
+import org.jetbrains.annotations.NotNull
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -37,7 +38,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
 import kotlin.math.roundToInt
-import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
@@ -314,7 +314,9 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     val lastWidget = lastHoveredWidget
 
     if (widget is LensAction) {
-      prevCursor = e.editor.contentComponent.cursor
+      if (prevCursor != Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)) {
+        prevCursor = e.editor.contentComponent.cursor
+      }
       e.editor.contentComponent.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
     } else {
       if (prevCursor != null) {
@@ -323,10 +325,15 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       }
     }
 
-    // Check if the mouse has moved from one widget to another or from/to outside
+    // Check if the mouse has moved from one widget to another or from/to outside.
     if (widget != lastWidget) {
       lastWidget?.onMouseExit(e)
       lastHoveredWidget = widget // null if now outside
+      if (widget is LensAction) {
+        if (prevCursor != Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)) {
+          e.editor.contentComponent.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
+        }
+      }
       widget?.onMouseEnter(e)
       inlay?.update() // force repaint
     }
