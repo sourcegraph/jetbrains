@@ -559,17 +559,14 @@ class EditCommandPrompt(
 
       val activeSession = controller.getActiveSession()
       activeSession?.let {
-          it.afterSessionFinished {
-              runInEdt {
-                  EditCodeSession(controller, editor, text, llmDropdown.item, if (it.isInserted) "insert" else "edit")
-              }
-          }
-          it.undo()
-      } ?: run {
+        it.afterSessionFinished {
           runInEdt {
-              EditCodeSession(controller, editor, text, llmDropdown.item)
+            EditCodeSession(
+                controller, editor, text, llmDropdown.item, if (it.isInserted) "insert" else "edit")
           }
-      }
+        }
+        it.undo()
+      } ?: run { runInEdt { EditCodeSession(controller, editor, text, llmDropdown.item) } }
     }
     clearActivePrompt()
   }
