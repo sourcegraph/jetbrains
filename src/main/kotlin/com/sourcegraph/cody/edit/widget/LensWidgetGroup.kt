@@ -88,8 +88,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   var inlay: Inlay<EditorCustomElementRenderer>? = null
 
-  private var prevCursor: Cursor? = null
-
   private var lastComputedIndent = RECOMPUTE
 
   var isInWorkingGroup = false
@@ -314,26 +312,15 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     val lastWidget = lastHoveredWidget
 
     if (widget is LensAction) {
-      if (prevCursor != Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)) {
-        prevCursor = e.editor.contentComponent.cursor
-      }
       e.editor.contentComponent.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
     } else {
-      if (prevCursor != null) {
-        e.editor.contentComponent.cursor = prevCursor!!
-        prevCursor = null
-      }
+      e.editor.contentComponent.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
     }
 
     // Check if the mouse has moved from one widget to another or from/to outside.
     if (widget != lastWidget) {
       lastWidget?.onMouseExit(e)
       lastHoveredWidget = widget // null if now outside
-      if (widget is LensAction) {
-        if (prevCursor != Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)) {
-          e.editor.contentComponent.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
-        }
-      }
       widget?.onMouseEnter(e)
       inlay?.update() // force repaint
     }
