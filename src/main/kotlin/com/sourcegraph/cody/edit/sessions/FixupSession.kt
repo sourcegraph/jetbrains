@@ -69,6 +69,10 @@ abstract class FixupSession(
 
   private var selectionRange: RangeMarker? = null
 
+  // Whether the session has inserted text into the document.
+  private val isInserted: Boolean
+    get() = performedActions.any { it is InsertUndoableAction }
+
   // The prompt that the Agent used for this task. For Edit, it's the same as
   // the most recent prompt the user sent, which we already have. But for Document Code,
   // it enables us to show the user what we sent and let them hand-edit it.
@@ -261,6 +265,19 @@ abstract class FixupSession(
       CodyAgentService.withAgent(project) { agent ->
         agent.server.cancelEditTask(TaskIdParam(taskId!!))
       }
+    }
+  }
+
+  // For Document Code tasks, this will directly regenerate the doc string then insert it.
+  // For Edit tasks, this will display the prompt popup,
+  // which will allow the user to edit the prompt before replacing current selection.
+  fun retry() {
+    fun docCode() = runInEdt { DocumentCodeSession(controller, editor, project) }
+    if (isInserted) {
+      undo()
+      afterSessionFinished { docCode() }
+    } else {
+      showRetryPrompt()
     }
   }
 
