@@ -151,15 +151,17 @@ private constructor(
           else startPosition.character + oldFragment.length
       val endPosition = Position(startPosition.line + oldFragmentLines.size - 1, endCharacter)
       val uri = uriFor(file)
+      val selection = getSelection(editor)
 
       return ProtocolTextDocument(
           uri = uri,
           content = null,
+          selection = selection,
           contentChanges =
               listOf(
                   ProtocolTextDocumentContentChangeEvent(
                       Range(startPosition, endPosition), event.newFragment.toString())),
-          testing = getTestingParams(uri, content = editor.document.text))
+          testing = getTestingParams(uri, selection = selection, content = editor.document.text))
     }
 
     @JvmStatic
