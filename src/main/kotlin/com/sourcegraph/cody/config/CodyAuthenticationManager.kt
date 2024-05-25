@@ -98,10 +98,14 @@ class CodyAuthenticationManager(val project: Project) : Disposable {
       accountTierFuture.complete(AccountTier.ENTERPRISE)
     } else {
       CodyAgentService.withAgent(project) { agent ->
-        val isCurrentUserPro = agent.server.isCurrentUserPro().get()
-        val currentAccountType =
-            if (isCurrentUserPro) AccountTier.DOTCOM_PRO else AccountTier.DOTCOM_FREE
-        accountTierFuture.complete(currentAccountType)
+        try {
+          val isCurrentUserPro = agent.server.isCurrentUserPro().get()
+          val currentAccountType =
+              if (isCurrentUserPro) AccountTier.DOTCOM_PRO else AccountTier.DOTCOM_FREE
+          accountTierFuture.complete(currentAccountType)
+        } catch (e: Exception) {
+          accountTierFuture.completeExceptionally(e)
+        }
       }
     }
 

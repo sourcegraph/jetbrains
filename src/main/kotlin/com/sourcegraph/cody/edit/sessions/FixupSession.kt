@@ -95,37 +95,41 @@ abstract class FixupSession(
 
   @RequiresEdt
   private fun triggerFixupAsync() {
-    // Those lookups require us to be on the EDT.
     val file = FileDocumentManager.getInstance().getFile(document)
     val textFile = file?.let { ProtocolTextDocument.fromVirtualFile(editor, it) } ?: return
 
     CodyAgentService.withAgent(project) { agent ->
       workAroundUninitializedCodebase()
 
-      fixupService.startNewSession(this)
+      try {
+        fixupService.startNewSession(this)
+        // Spend a turn to get folding ranges before showing lenses.
+        ensureSelectionRange(agent, textFile)
+        showWorkingGroup()
 
-      // Spend a turn to get folding ranges before showing lenses.
-      ensureSelectionRange(agent, textFile)
-
-      showWorkingGroup()
-
-      makeEditingRequest(agent)
-          .handle { result, error ->
-            if (error != null || result == null) {
-              showErrorGroup("Error while generating doc string: $error")
-            } else {
-              selectionRange = adjustToDocumentRange(result.selectionRange)
+        makeEditingRequest(agent)
+            .handle { result, error ->
+              if (error != null) {
+                showErrorGroup("Error while generating code", error)
+              } else if (result == null) {
+                showErrorGroup("Null result generating code for task $taskId")
+              } else {
+                selectionRange = adjustToDocumentRange(result.selectionRange)
+              }
+              null
             }
-            null
-          }
-          .exceptionally { error: Throwable? ->
-            if (!(error is CancellationException || error is CompletionException)) {
-              showErrorGroup("Error while generating code: ${error?.localizedMessage}")
+            .exceptionally { error: Throwable? ->
+              if (!(error is CancellationException || error is CompletionException)) {
+                showErrorGroup("Error while generating code", error)
+              }
+              cancel()
+              null
             }
-            cancel()
-            null
-          }
-          .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+      } catch (e: Exception) {
+        showErrorGroup("Edit failed", e)
+        cancel()
+      }
     }
   }
 
@@ -144,10 +148,16 @@ abstract class FixupSession(
   private fun ensureSelectionRange(agent: CodyAgent, textFile: ProtocolTextDocument) {
     val selection = textFile.selection ?: return
     selectionRange = selection.toRangeMarker(document, true)
-    agent.server
-        .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
-        .thenApply { result -> selectionRange = result.range.toRangeMarker(document, true) }
-        .get()
+
+    try {
+      val result =
+          agent.server
+              .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
+              .get()
+      selectionRange = result.range.toRangeMarker(document, true)
+    } catch (e: Exception) {
+      logger.warn("Error getting folding range", e)
+    }
   }
 
   fun update(task: EditTask) {
@@ -168,7 +178,13 @@ abstract class FixupSession(
       CodyTaskState.Applied -> showAcceptGroup()
       // Then they transition to finished.
       CodyTaskState.Finished -> dispose()
-      CodyTaskState.Error -> dispose()
+      // The Error state can occur at any time in the protocol.
+      CodyTaskState.Error -> {
+        val msg = "Task ${task.id} has entered the Error state"
+        logger.warn(msg)
+        // TODO: Propagate the error message from the FixupController.
+        showErrorGroup(msg)
+      }
       CodyTaskState.Pending -> {}
     }
   }
@@ -225,6 +241,11 @@ abstract class FixupSession(
   }
 
   private fun showAcceptGroup() {
+    if (isShowingAcceptLens()) {
+      logger.warn("Accept lens group is already showing.")
+      return
+    }
+
     showLensGroup(LensGroupFactory(this).createAcceptGroup())
 
     // This is the specific moment after which any edits to the document,
@@ -232,8 +253,8 @@ abstract class FixupSession(
     documentListener.setAcceptLensGroupShown(true)
   }
 
-  private fun showErrorGroup(hoverText: String) {
-    showLensGroup(LensGroupFactory(this).createErrorGroup(hoverText))
+  private fun showErrorGroup(msg: String, e: Throwable? = null) {
+    showLensGroup(LensGroupFactory(this).createErrorGroup(msg, e))
   }
 
   /** Subclass sends a fixup command to the agent, and returns the initial task. */

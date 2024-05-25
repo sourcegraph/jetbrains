@@ -240,6 +240,13 @@ class CodyAgentService(private val project: Project) : Disposable {
     }
 
     @JvmStatic
+    fun agentStreamIsClosed(e: Exception): Boolean {
+      return generateSequence(e as Throwable?) { it.cause }
+          .take(10)
+          .any { it is java.io.IOException }
+    }
+
+    @JvmStatic
     private fun withAgent(
         project: Project,
         restartIfNeeded: Boolean,
@@ -253,7 +260,13 @@ class CodyAgentService(private val project: Project) : Disposable {
               try {
                 callback.accept(agent)
               } catch (e: Exception) {
-                logger.warn(e)
+                if (agentStreamIsClosed(e)) {
+                  logger.warn("Agent connection lost, restarting agent")
+                  getInstance(project).restartAgent(project)
+                } else {
+                  logger.error("Agent connection lost, aborting", e)
+                  setAgentError(project, e)
+                }
                 onFailure.accept(e)
               }
             }
@@ -303,7 +316,7 @@ class CodyAgentService(private val project: Project) : Disposable {
         throw Exception("Cody is not enabled")
       }
       try {
-        val instance = CodyAgentService.getInstance(project)
+        val instance = getInstance(project)
         val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
         val agent =
             if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
