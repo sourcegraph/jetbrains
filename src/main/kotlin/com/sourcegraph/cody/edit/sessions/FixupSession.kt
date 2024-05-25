@@ -150,8 +150,7 @@ abstract class FixupSession(
 
     try {
       val result =
-          agent
-              .server
+          agent.server
               .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
               .get()
       selectionRange = result.range.toRangeMarker(document, true)
