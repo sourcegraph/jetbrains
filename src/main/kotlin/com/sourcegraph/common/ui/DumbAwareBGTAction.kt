@@ -1,17 +1,15 @@
 package com.sourcegraph.common.ui
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.NlsActions
-import com.sourcegraph.cody.ui.BGTActionSetter
 import javax.swing.Icon
 import org.jetbrains.annotations.NotNull
 
 abstract class DumbAwareBGTAction : DumbAwareAction {
 
-  constructor() : super() {
-    BGTActionSetter.runUpdateOnBackgroundThread(this)
-  }
+  constructor() : super() {}
 
   constructor(icon: Icon?) : super(icon)
 
@@ -22,6 +20,10 @@ abstract class DumbAwareBGTAction : DumbAwareAction {
       description: @NlsActions.ActionDescription String?,
       icon: Icon?
   ) : super(text, description, icon)
+
+  fun getActionUpdateThread(): ActionUpdateThread {
+    return ActionUpdateThread.EDT
+  }
 }
 
 class SimpleDumbAwareBGTAction(
