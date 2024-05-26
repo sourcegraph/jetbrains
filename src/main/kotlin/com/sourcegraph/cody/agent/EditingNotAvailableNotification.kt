@@ -1,13 +1,11 @@
 package com.sourcegraph.cody.agent
 
-
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.impl.NotificationFullContent
 import com.sourcegraph.Icons
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.NotificationGroups
-
 
 class EditingNotAvailableNotification :
     Notification(
@@ -17,7 +15,7 @@ class EditingNotAvailableNotification :
         NotificationType.WARNING),
     NotificationFullContent {
 
-    init {
-        icon = Icons.RepoIgnored
-    }
+  init {
+    icon = Icons.RepoIgnored
+  }
 }

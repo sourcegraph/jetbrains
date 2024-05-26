@@ -10,7 +10,6 @@ import com.sourcegraph.Icons
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.NotificationGroups
 
-
 class CodyStartingNotification :
     Notification(
         NotificationGroups.SOURCEGRAPH_ERRORS,
@@ -19,24 +18,25 @@ class CodyStartingNotification :
         NotificationType.INFORMATION),
     NotificationFullContent {
 
-    init {
-        icon = Icons.CodyLogo
-    }
+  init {
+    icon = Icons.CodyLogo
+  }
 
-    override fun notify(project: Project?) {
-        // only show if not already being shown
-        if (instance == null) {
-            instance = this
-            super.notify(project)
-            balloon?.addListener(object : JBPopupListener {
-                override fun onClosed(event: LightweightWindowEvent) {
-                    instance = null
-                }
-            })
-        }
+  override fun notify(project: Project?) {
+    // only show if not already being shown
+    if (instance == null) {
+      instance = this
+      super.notify(project)
+      balloon?.addListener(
+          object : JBPopupListener {
+            override fun onClosed(event: LightweightWindowEvent) {
+              instance = null
+            }
+          })
     }
+  }
 
-    companion object {
-        var instance: CodyStartingNotification? = null
-    }
+  companion object {
+    var instance: CodyStartingNotification? = null
+  }
 }
