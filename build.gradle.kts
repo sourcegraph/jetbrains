@@ -19,31 +19,31 @@ fun properties(key: String) = project.findProperty(key).toString()
 
 val isForceBuild = properties("forceBuild") == "true"
 val isForceAgentBuild =
-        isForceBuild ||
-                properties("forceCodyBuild") == "true" ||
-                properties("forceAgentBuild") == "true"
+    isForceBuild ||
+        properties("forceCodyBuild") == "true" ||
+        properties("forceAgentBuild") == "true"
 val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") == "true"
 
 // As https://www.jetbrains.com/updates/updates.xml adds a new "IntelliJ IDEA" YYYY.N version, add
 // it to this list.
 // Remove unsupported old versions from this list.
 val versionsOfInterest =
-        listOf("2022.1", "2022.2", "2022.3", "2023.1", "2023.2", "2023.3", "2024.1").sorted()
+    listOf("2022.1", "2022.2", "2022.3", "2023.1", "2023.2", "2023.3", "2024.1").sorted()
 val versionsToValidate =
-        when (project.properties["validation"]?.toString()) {
-          "lite" -> listOf(versionsOfInterest.first(), versionsOfInterest.last())
-          null,
-          "full" -> versionsOfInterest
-          else ->
-            error(
-                    "Unexpected validation property: \"validation\" should be \"lite\" or \"full\" (default) was \"${project.properties["validation"]}\"")
-        }
+    when (project.properties["validation"]?.toString()) {
+      "lite" -> listOf(versionsOfInterest.first(), versionsOfInterest.last())
+      null,
+      "full" -> versionsOfInterest
+      else ->
+          error(
+              "Unexpected validation property: \"validation\" should be \"lite\" or \"full\" (default) was \"${project.properties["validation"]}\"")
+    }
 val skippedFailureLevels =
-        EnumSet.of(
-                FailureLevel.DEPRECATED_API_USAGES,
-                FailureLevel.SCHEDULED_FOR_REMOVAL_API_USAGES, // blocked by: Kotlin UI DSL Cell.align
-                FailureLevel.EXPERIMENTAL_API_USAGES,
-                FailureLevel.NOT_DYNAMIC)!!
+    EnumSet.of(
+        FailureLevel.DEPRECATED_API_USAGES,
+        FailureLevel.SCHEDULED_FOR_REMOVAL_API_USAGES, // blocked by: Kotlin UI DSL Cell.align
+        FailureLevel.EXPERIMENTAL_API_USAGES,
+        FailureLevel.NOT_DYNAMIC)!!
 
 plugins {
   id("java")
@@ -64,19 +64,31 @@ repositories {
   maven { url = uri("https://www.jetbrains.com/intellij-repository/snapshots") }
 }
 
+val languagePlugins = when (properties("platformType")) {
+  "IC", "IU" -> listOf("org.jetbrains.plugins.java")
+  "GO" -> listOf("org.jetbrains.plugins.go")
+  "PY", "PC" -> listOf("Pythonid")
+  "WS" -> listOf("JavaScript")
+  "RD" -> listOf("org.jetbrains.plugins.csharp")
+  "CL" -> listOf("org.jetbrains.plugins.clion")
+  "RM" -> listOf("org.jetbrains.plugins.ruby")
+  "DS" -> listOf("org.jetbrains.plugins.database")
+  "AS" -> listOf("org.jetbrains.plugins.android")
+  "RUST" -> listOf("org.rust.lang")
+  else -> emptyList()
+}
+
 intellij {
   pluginName.set(properties("pluginName"))
   version.set(properties("platformVersion"))
   type.set(properties("platformType"))
-
   // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
   plugins.set(
-          properties("platformPlugins")
-                  .split(',')
-                  .map(String::trim)
-                  .filter(String::isNotEmpty)
-                  .plus("org.jetbrains.plugins.go:211.7442.13")
-  )
+      properties("platformPlugins")
+          .split(',')
+          .map(String::trim)
+          .filter(String::isNotEmpty)
+          .plus(languagePlugins))
 
   updateSinceUntilBuild.set(false)
 }
@@ -140,23 +152,23 @@ fun copyRecursively(input: File, output: File) {
   val inputPath = input.toPath()
   val outputPath = output.toPath()
   Files.walkFileTree(
-          inputPath,
-          object : SimpleFileVisitor<java.nio.file.Path>() {
-            override fun visitFile(
-                    file: java.nio.file.Path?,
-                    attrs: BasicFileAttributes?
-            ): FileVisitResult {
-              if (file != null) {
-                val destination = outputPath.resolve(file.fileName)
-                if (!destination.parent.isDirectory) {
-                  Files.createDirectories(destination.parent)
-                }
-                println("Copy ${inputPath.relativize(file)}")
-                Files.copy(file, outputPath.resolve(file.fileName), StandardCopyOption.REPLACE_EXISTING)
-              }
-              return super.visitFile(file, attrs)
+      inputPath,
+      object : SimpleFileVisitor<java.nio.file.Path>() {
+        override fun visitFile(
+            file: java.nio.file.Path?,
+            attrs: BasicFileAttributes?
+        ): FileVisitResult {
+          if (file != null) {
+            val destination = outputPath.resolve(file.fileName)
+            if (!destination.parent.isDirectory) {
+              Files.createDirectories(destination.parent)
             }
-          })
+            println("Copy ${inputPath.relativize(file)}")
+            Files.copy(file, outputPath.resolve(file.fileName), StandardCopyOption.REPLACE_EXISTING)
+          }
+          return super.visitFile(file, attrs)
+        }
+      })
 }
 
 fun unzip(input: File, output: File, excludeMatcher: PathMatcher? = null) {
@@ -193,7 +205,7 @@ fun unzip(input: File, output: File, excludeMatcher: PathMatcher? = null) {
 }
 
 val githubArchiveCache =
-        Paths.get(System.getProperty("user.home"), ".sourcegraph", "caches", "jetbrains").toFile()
+    Paths.get(System.getProperty("user.home"), ".sourcegraph", "caches", "jetbrains").toFile()
 
 tasks {
   val codeSearchCommit = "9d86a4f7d183e980acfe5d6b6468f06aaa0d8acf"
@@ -234,7 +246,7 @@ tasks {
       workingDir(jetbrainsDir)
     }
     val buildOutput =
-            jetbrainsDir.resolve("src").resolve("main").resolve("resources").resolve("dist")
+        jetbrainsDir.resolve("src").resolve("main").resolve("resources").resolve("dist")
     copyRecursively(buildOutput, destinationDir)
     return destinationDir
   }
@@ -256,11 +268,11 @@ tasks {
     if (!fromEnvironmentVariable.isNullOrEmpty()) {
       // "~" works fine from the terminal, however it breaks IntelliJ's run configurations
       val pathString =
-              if (fromEnvironmentVariable.startsWith("~")) {
-                System.getProperty("user.home") + fromEnvironmentVariable.substring(1)
-              } else {
-                fromEnvironmentVariable
-              }
+          if (fromEnvironmentVariable.startsWith("~")) {
+            System.getProperty("user.home") + fromEnvironmentVariable.substring(1)
+          } else {
+            fromEnvironmentVariable
+          }
       return Paths.get(pathString).toFile()
     }
     val url = "https://github.com/sourcegraph/cody/archive/$codyCommit.zip"
@@ -347,29 +359,29 @@ tasks {
     // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's
     // manifest
     pluginDescription.set(
-            projectDir
-                    .resolve("README.md")
-                    .readText()
-                    .lines()
-                    .run {
-                      val start = "<!-- Plugin description -->"
-                      val end = "<!-- Plugin description end -->"
+        projectDir
+            .resolve("README.md")
+            .readText()
+            .lines()
+            .run {
+              val start = "<!-- Plugin description -->"
+              val end = "<!-- Plugin description end -->"
 
-                      if (!containsAll(listOf(start, end))) {
-                        throw GradleException(
-                                "Plugin description section not found in README.md:\n$start ... $end")
-                      }
-                      subList(indexOf(start) + 1, indexOf(end))
-                    }
-                    .joinToString("\n")
-                    .run { markdownToHTML(this) },
+              if (!containsAll(listOf(start, end))) {
+                throw GradleException(
+                    "Plugin description section not found in README.md:\n$start ... $end")
+              }
+              subList(indexOf(start) + 1, indexOf(end))
+            }
+            .joinToString("\n")
+            .run { markdownToHTML(this) },
     )
   }
 
   buildPlugin {
     dependsOn(project.tasks.getByPath("buildCody"))
     from(
-            fileTree(buildCodyDir) { include("*") },
+        fileTree(buildCodyDir) { include("*") },
     ) {
       into("agent/")
     }
@@ -402,9 +414,9 @@ tasks {
     val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
     if (platformRuntimeVersion != null) {
       val ideaInstallDir =
-              getIdeaInstallDir(platformRuntimeVersion.toString())
-                      ?: throw GradleException(
-                              "Could not find IntelliJ install for $platformRuntimeVersion")
+          getIdeaInstallDir(platformRuntimeVersion.toString())
+              ?: throw GradleException(
+                  "Could not find IntelliJ install for $platformRuntimeVersion")
       ideDir.set(ideaInstallDir)
     }
   }
