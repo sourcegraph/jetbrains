@@ -307,15 +307,16 @@ tasks {
 
   // System properties that are used for testing purposes. These properties
   // should be consistently set in different local dev environments, like `./gradlew :runIde`,
-  // `./gradlew test` or when testing inside IntelliJ
+  // `./gradlew test` or when testing inside IntelliJ.
   val agentProperties =
-          mapOf<String, Any>(
-                  "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
-                  "cody-agent.directory" to buildCodyDir.parent,
-                  "sourcegraph.verbose-logging" to "true",
-                  "cody-agent.panic-when-out-of-sync" to "true",
-                  "cody.autocomplete.enableFormatting" to
-                          (project.property("cody.autocomplete.enableFormatting") ?: "true"))
+      mapOf<String, Any>(
+          "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
+          "cody-agent.directory" to buildCodyDir.parent,
+          "sourcegraph.verbose-logging" to "true",
+          "cody-agent.panic-when-out-of-sync" to
+              (System.getProperty("cody-agent.panic-when-out-of-sync") ?: "false"),
+          "cody.autocomplete.enableFormatting" to
+              (project.property("cody.autocomplete.enableFormatting") ?: "true"))
 
   fun getIdeaInstallDir(ideaVersion: String): File? {
     val gradleHome = project.gradle.gradleUserHomeDir

@@ -69,6 +69,10 @@ abstract class FixupSession(
 
   private var selectionRange: RangeMarker? = null
 
+  // Whether the session has inserted text into the document.
+  val isInserted: Boolean
+    get() = performedActions.any { it is InsertUndoableAction }
+
   // The prompt that the Agent used for this task. For Edit, it's the same as
   // the most recent prompt the user sent, which we already have. But for Document Code,
   // it enables us to show the user what we sent and let them hand-edit it.
@@ -102,30 +106,33 @@ abstract class FixupSession(
     CodyAgentService.withAgent(project) { agent ->
       workAroundUninitializedCodebase()
 
-      fixupService.startNewSession(this)
+      try {
+        fixupService.startNewSession(this)
+        // Spend a turn to get folding ranges before showing lenses.
+        ensureSelectionRange(agent, textFile)
+        showWorkingGroup()
 
-      // Spend a turn to get folding ranges before showing lenses.
-      ensureSelectionRange(agent, textFile)
-
-      showWorkingGroup()
-
-      makeEditingRequest(agent)
-          .handle { result, error ->
-            if (error != null || result == null) {
-              showErrorGroup("Error while generating doc string: $error")
-            } else {
-              selectionRange = adjustToDocumentRange(result.selectionRange)
+        makeEditingRequest(agent)
+            .handle { result, error ->
+              if (error != null || result == null) {
+                showErrorGroup("Error while generating doc string: $error")
+              } else {
+                selectionRange = adjustToDocumentRange(result.selectionRange)
+              }
+              null
             }
-            null
-          }
-          .exceptionally { error: Throwable? ->
-            if (!(error is CancellationException || error is CompletionException)) {
-              showErrorGroup("Error while generating code: ${error?.localizedMessage}")
+            .exceptionally { error: Throwable? ->
+              if (!(error is CancellationException || error is CompletionException)) {
+                showErrorGroup("Error while generating code: ${error?.localizedMessage}")
+              }
+              cancel()
+              null
             }
-            cancel()
-            null
-          }
-          .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+      } catch (e: Exception) {
+        showErrorGroup("Edit failed: ${e.localizedMessage}")
+        cancel()
+      }
     }
   }
 
@@ -144,10 +151,16 @@ abstract class FixupSession(
   private fun ensureSelectionRange(agent: CodyAgent, textFile: ProtocolTextDocument) {
     val selection = textFile.selection ?: return
     selectionRange = selection.toRangeMarker(document, true)
-    agent.server
-        .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
-        .thenApply { result -> selectionRange = result.range.toRangeMarker(document, true) }
-        .get()
+
+    try {
+      val result =
+          agent.server
+              .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
+              .get()
+      selectionRange = result.range.toRangeMarker(document, true)
+    } catch (e: Exception) {
+      logger.warn("Error getting folding range", e)
+    }
   }
 
   fun update(task: EditTask) {
