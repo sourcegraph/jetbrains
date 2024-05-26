@@ -58,9 +58,9 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
 
     ProtocolTextDocument.fromEditorForDocumentEvent(editor, event)?.let { textDocument ->
       EditorChangesBus.documentChanged(project, textDocument)
-      CodyAgentService.withAgent(project) { agent ->
-        agent.server.textDocumentDidChange(textDocument)
+      CodyAgentService.getInstance(project).sendTextDocumentDidChange(textDocument)
 
+      CodyAgentService.withAgent(project) { agent ->
         // This notification must be sent after the above, see tracker comment for more
         // details.
         AcceptCodyAutocompleteAction.tracker.getAndSet(null)?.let { completionID ->
