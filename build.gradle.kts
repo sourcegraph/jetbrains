@@ -64,19 +64,7 @@ repositories {
   maven { url = uri("https://www.jetbrains.com/intellij-repository/snapshots") }
 }
 
-val languagePlugins = when (properties("platformType")) {
-  "IC", "IU" -> listOf("org.jetbrains.plugins.java")
-  "GO" -> listOf("org.jetbrains.plugins.go")
-  "PY", "PC" -> listOf("Pythonid")
-  "WS" -> listOf("JavaScript")
-  "RD" -> listOf("org.jetbrains.plugins.csharp")
-  "CL" -> listOf("org.jetbrains.plugins.clion")
-  "RM" -> listOf("org.jetbrains.plugins.ruby")
-  "DS" -> listOf("org.jetbrains.plugins.database")
-  "AS" -> listOf("org.jetbrains.plugins.android")
-  "RUST" -> listOf("org.rust.lang")
-  else -> emptyList()
-}
+val languagePlugins = listOf("org.jetbrains.plugins.java", "org.jetbrains.kotlin")
 
 intellij {
   pluginName.set(properties("pluginName"))
@@ -204,7 +192,7 @@ fun unzip(input: File, output: File, excludeMatcher: PathMatcher? = null) {
   }
 }
 
-val githubArchiveCache =
+val githubArchiveCache: File =
     Paths.get(System.getProperty("user.home"), ".sourcegraph", "caches", "jetbrains").toFile()
 
 tasks {
