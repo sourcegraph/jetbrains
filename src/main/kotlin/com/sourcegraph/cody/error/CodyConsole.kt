@@ -16,7 +16,8 @@ class CodyConsole(project: Project) {
   private val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Problems View")
   var content: Content? = null
 
-  val isEnabled = System.getProperty("sourcegraph.verbose-logging") == "true" ||
+  val isEnabled =
+      System.getProperty("sourcegraph.verbose-logging") == "true" ||
           System.getProperty("cody-agent.panic-when-out-of-sync") == "true"
 
   fun addMessage(message: DebugMessage) {
@@ -26,12 +27,10 @@ class CodyConsole(project: Project) {
           toolWindow?.show()
           content?.let { toolWindow?.contentManager?.setSelectedContent(it) }
           consoleView.print(
-            "${message.channel}: ${message.message}\n", ConsoleViewContentType.ERROR_OUTPUT
-          )
+              "${message.channel}: ${message.message}\n", ConsoleViewContentType.ERROR_OUTPUT)
         } else {
           consoleView.print(
-            "${message.channel}: ${message.message}\n", ConsoleViewContentType.NORMAL_OUTPUT
-          )
+              "${message.channel}: ${message.message}\n", ConsoleViewContentType.NORMAL_OUTPUT)
         }
       }
     }
