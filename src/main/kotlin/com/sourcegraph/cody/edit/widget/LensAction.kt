@@ -19,7 +19,7 @@ import java.awt.geom.Rectangle2D
 class LensAction(
     val group: LensWidgetGroup,
     private val text: String,
-    private val actionId: String
+    val actionId: String
 ) : LensWidget(group) {
 
   private val highlight =

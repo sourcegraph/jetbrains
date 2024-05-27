@@ -19,13 +19,13 @@ import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.config.ConfigUtil
+import org.mockito.Mockito.mock
 import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.regex.Pattern
-import org.mockito.Mockito.mock
 
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)
@@ -41,7 +41,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
     try {
       FixupService.getInstance(myFixture.project).getActiveSession()?.apply {
         try {
-          dismiss()
+          dispose()
         } catch (x: Exception) {
           logger.warn("Error shutting down session", x)
         }
