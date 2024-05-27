@@ -12,16 +12,6 @@ import kotlin.math.ceil
 
 object AutocompleteRenderUtil {
   @JvmStatic
-  fun fontYOffset(font: Font, editor: Editor): Double {
-    val metrics =
-        FontInfo.getFontMetrics(font, FontInfo.getFontRenderContext(editor.contentComponent))
-    val fontBaseline =
-        font.createGlyphVector(metrics.fontRenderContext, "Hello world!").visualBounds.height
-    val linePadding = (editor.lineHeight - fontBaseline) / 2
-    return ceil(fontBaseline + linePadding)
-  }
-
-  @JvmStatic
   fun getTextAttributesForEditor(editor: Editor): TextAttributes =
       try {
         editor.colorsScheme.getAttributes(
