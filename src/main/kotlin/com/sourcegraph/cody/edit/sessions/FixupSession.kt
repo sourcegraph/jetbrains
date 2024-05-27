@@ -217,7 +217,7 @@ abstract class FixupSession(
       } catch (x: Exception) {
         logger.warn("Error disposing previous lens group", x)
       }
-      if (isDisposed.get()) return
+      if (isDisposed.get()) return@runInEdt
       lensGroup = group
 
       var range =

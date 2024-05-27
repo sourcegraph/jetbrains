@@ -191,7 +191,7 @@ private constructor(
     }
 
     @JvmStatic
-    private fun uriFor(file: VirtualFile): String {
+    fun uriFor(file: VirtualFile): String {
       // Integration test: Convert default filesystem "temp://" scheme to "file://" for Agent.
       val initialUri = FileSystems.getDefault().getPath(file.path)
 
