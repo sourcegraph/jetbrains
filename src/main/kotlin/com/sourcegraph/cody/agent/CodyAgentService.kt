@@ -16,8 +16,7 @@ import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.utils.CodyEditorUtil
-import java.util.Timer
-import java.util.TimerTask
+import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -74,25 +73,29 @@ class CodyAgentService(private val project: Project) : Disposable {
 
       agent.client.onEditTaskDidDelete = Consumer { params ->
         FixupService.getInstance(project).getActiveSession()?.let {
-          if (params.id == it.taskId) it.dismiss()
+          if (params.id == it.taskId) it.dispose()
         }
       }
 
       agent.client.onWorkspaceEdit = Function { params ->
+        val activeSession = FixupService.getInstance(project).getActiveSession()
         try {
-          FixupService.getInstance(project).getActiveSession()?.performWorkspaceEdit(params)
+          activeSession?.performWorkspaceEdit(params)
           true
         } catch (e: RuntimeException) {
+          activeSession?.dispose()
           logger.error(e)
           false
         }
       }
 
       agent.client.onTextDocumentEdit = Function { params ->
+        val activeSession = FixupService.getInstance(project).getActiveSession()
         try {
-          FixupService.getInstance(project).getActiveSession()?.performInlineEdits(params.edits)
+          activeSession?.performInlineEdits(params.edits)
           true
         } catch (e: RuntimeException) {
+          activeSession?.dispose()
           logger.error(e)
           false
         }
@@ -251,6 +254,7 @@ class CodyAgentService(private val project: Project) : Disposable {
               try {
                 callback.accept(agent)
               } catch (e: Exception) {
+                logger.warn(e)
                 onFailure.accept(e)
               }
             }
@@ -293,7 +297,7 @@ class CodyAgentService(private val project: Project) : Disposable {
     suspend fun <T> coWithAgent(project: Project, callback: suspend (CodyAgent) -> T) =
         coWithAgent(project, false, callback)
 
-    suspend fun <T> coWithAgent(
+    private suspend fun <T> coWithAgent(
         project: Project,
         restartIfNeeded: Boolean,
         callback: suspend (CodyAgent) -> T

@@ -6,28 +6,21 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorMouseEvent
-import com.sourcegraph.cody.edit.EditCommandPrompt
+import com.intellij.ui.JBColor
+import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.edit.EditUtil
 import com.sourcegraph.cody.edit.sessions.FixupSession
-import java.awt.Color
 import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.event.MouseEvent
-import java.awt.font.TextAttribute
 import java.awt.geom.Rectangle2D
-import javax.swing.UIManager
 
-@Suppress("UseJBColor")
-class LensAction(val group: LensWidgetGroup, private val text: String, val actionId: String) :
-    LensWidget(group) {
-
-  private val underline = mapOf(TextAttribute.UNDERLINE to TextAttribute.UNDERLINE_ON)
-
-  // TODO: Put in resources
-  private val actionColor = Color(44, 45, 50)
-  private val acceptColor = Color(37, 92, 53)
-  private val undoColor = Color(114, 38, 38)
+class LensAction(
+    val group: LensWidgetGroup,
+    private val text: String,
+    private val actionId: String
+) : LensWidget(group) {
 
   private val highlight =
       LabelHighlight(
@@ -38,7 +31,7 @@ class LensAction(val group: LensWidgetGroup, private val text: String, val actio
           })
 
   override fun calcWidthInPixels(fontMetrics: FontMetrics): Int {
-    return fontMetrics.stringWidth(text) + 2 * SIDE_MARGIN
+    return fontMetrics.stringWidth(text) + (2 * SIDE_MARGIN)
   }
 
   override fun calcHeightInPixels(fontMetrics: FontMetrics): Int = fontMetrics.height
@@ -48,24 +41,26 @@ class LensAction(val group: LensWidgetGroup, private val text: String, val actio
     val originalColor = g.color
     try {
       g.background = EditUtil.getEnhancedThemeColor("Panel.background")
+
       val metrics = g.fontMetrics
-      val width = calcWidthInPixels(metrics)
+      val width = calcWidthInPixels(metrics) - 4
       val textHeight = metrics.height
-      highlight.drawHighlight(g, x, y, width, textHeight)
+
+      highlight.drawHighlight(g, x, y + 1, width, textHeight - 2)
 
       if (mouseInBounds) {
-        g.font = g.font.deriveFont(underline)
-        g.color = UIManager.getColor("Link.hoverForeground")
+        g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.85f)
+        g.color = UIUtil.shade(JBColor(0xFFFFFF, 0xFFFFFF), 1.0, 0.95)
       } else {
-        g.font = g.font.deriveFont(Font.PLAIN)
-        g.color = baseTextColor
+        g.font = g.font.deriveFont(Font.BOLD).deriveFont(g.font.size * 0.85f)
+        g.color = UIUtil.shade(JBColor(0xFFFFFF, 0xFFFFFF), 1.0, 0.9)
       }
-      g.drawString(text, x + SIDE_MARGIN, y + g.fontMetrics.ascent)
+
+      g.drawString(text, x + SIDE_MARGIN, y + g.fontMetrics.ascent + 1)
 
       lastPaintedBounds =
           Rectangle2D.Float(x, y - metrics.ascent, width.toFloat(), textHeight.toFloat())
     } finally {
-      // Other lenses are using the same Graphics2D.
       g.font = originalFont
       g.color = originalColor
     }
@@ -74,11 +69,6 @@ class LensAction(val group: LensWidgetGroup, private val text: String, val actio
   override fun onClick(e: EditorMouseEvent): Boolean {
     triggerAction(actionId, e.editor, e.mouseEvent)
     return true
-  }
-
-  override fun onMouseEnter(e: EditorMouseEvent) {
-    mouseInBounds = true
-    showTooltip(EditCommandPrompt.getShortcutText(actionId) ?: return, e.mouseEvent)
   }
 
   private fun triggerAction(actionId: String, editor: Editor, mouseEvent: MouseEvent) {
@@ -113,6 +103,10 @@ class LensAction(val group: LensWidgetGroup, private val text: String, val actio
   }
 
   companion object {
-    const val SIDE_MARGIN = 5
+    const val SIDE_MARGIN = 9
+
+    val actionColor = JBColor(0x4C4D54, 0x393B40)
+    private val acceptColor = JBColor(0x369650, 0x388119)
+    private val undoColor = JBColor(0xCC3645, 0x7B282C)
   }
 }

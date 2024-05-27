@@ -47,15 +47,17 @@ class FixupService(val project: Project) : Disposable {
   fun startDocumentCode(editor: Editor) {
     runInEdt {
       if (isEligibleForInlineEdit(editor)) {
-        editor.project?.let { project -> DocumentCodeSession(this, editor, project) }
+        DocumentCodeSession(this, editor, editor.project ?: return@runInEdt)
       }
     }
   }
 
   /** Entry point for the test code command, called by the action handler. */
   fun startTestCode(editor: Editor) {
-    if (isEligibleForInlineEdit(editor)) {
-      TestCodeSession(this, editor, editor.project ?: return)
+    runInEdt {
+      if (isEligibleForInlineEdit(editor)) {
+        TestCodeSession(this, editor, editor.project ?: return@runInEdt)
+      }
     }
   }
 
@@ -94,7 +96,7 @@ class FixupService(val project: Project) : Disposable {
       // We want to enable parallel edits in JetBrains soon, so this would be a wasted effort.
       if (currentSession.isShowingAcceptLens()) {
         currentSession.accept()
-        currentSession.dismiss()
+        currentSession.dispose()
       } else throw IllegalStateException("Cannot start new session when one is already active")
     }
     activeSession = newSession

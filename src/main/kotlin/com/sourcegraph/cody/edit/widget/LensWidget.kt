@@ -8,8 +8,8 @@ import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.HintHint
+import com.intellij.ui.JBColor
 import com.intellij.ui.LightweightHint
-import com.sourcegraph.config.ThemeUtil
 import java.awt.Color
 import java.awt.FontMetrics
 import java.awt.Graphics2D
@@ -24,8 +24,7 @@ abstract class LensWidget(val parentGroup: LensWidgetGroup) : Disposable {
 
   protected var mouseInBounds = false
 
-  @Suppress("UseJBColor")
-  protected val baseTextColor: Color = if (ThemeUtil.isDarkTheme()) Color.white else Color.BLACK
+  @Suppress("UseJBColor") protected val baseTextColor: Color = JBColor(0x393B40, 0xDFE1E5)
 
   private var showingTooltip = false
   private var tooltip: LightweightHint? = null
@@ -80,7 +79,7 @@ abstract class LensWidget(val parentGroup: LensWidgetGroup) : Disposable {
                   ColorKey.createColorKey("TOOLTIP_BACKGROUND", tooltipBackground))
                   ?: globalScheme.defaultBackground
           isOpaque = true
-          font = parentGroup.widgetFont
+          font = parentGroup.widgetFont.get()
           border = BorderFactory.createEmptyBorder(2, 8, 0, 8)
         }
     val hint = LightweightHint(tooltipLabel)

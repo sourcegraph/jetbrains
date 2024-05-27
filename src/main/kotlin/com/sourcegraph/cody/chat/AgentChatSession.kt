@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.chat
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
@@ -84,7 +85,7 @@ private constructor(
             text,
             displayText,
         )
-    addMessageAtIndex(humanMessage, index = messages.count())
+    addMessageAtIndex(humanMessage, index = messages.count(), receivedByAgent = false)
 
     val responsePlaceholder =
         ChatMessage(
@@ -92,15 +93,21 @@ private constructor(
             text = "",
             displayText = "",
         )
-    addMessageAtIndex(responsePlaceholder, index = messages.count())
+    addMessageAtIndex(responsePlaceholder, index = messages.count() + 1, receivedByAgent = false)
 
     submitMessageToAgent(humanMessage, contextItems)
   }
 
   private fun submitMessageToAgent(humanMessage: ChatMessage, contextItems: List<ContextItem>) {
+    createCancellationToken(onCancel = {}, onFinish = {})
+
     CodyAgentService.withAgentRestartIfNeeded(
         project,
         callback = { agent ->
+          if (cancellationToken.get().isDone) {
+            return@withAgentRestartIfNeeded
+          }
+
           val message =
               WebviewMessage(
                   command = "submit",
@@ -116,11 +123,9 @@ private constructor(
 
             GraphQlLogger.logCodyEvent(project, "chat-question", "submitted")
 
-            ApplicationManager.getApplication().invokeLater {
-              createCancellationToken(
-                  onCancel = { request.cancel(true) },
-                  onFinish = { GraphQlLogger.logCodyEvent(project, "chat-question", "executed") })
-            }
+            createCancellationToken(
+                onCancel = { request.cancel(true) },
+                onFinish = { GraphQlLogger.logCodyEvent(project, "chat-question", "executed") })
           } catch (e: Exception) {
             createCancellationToken(onCancel = {}, onFinish = {})
             handleException(e)
@@ -173,7 +178,10 @@ private constructor(
                   CodyBundle.getString("chat.rate-limit-error.upgrade")
               else -> CodyBundle.getString("chat.rate-limit-error.explain")
             }
-          } else CodyBundle.getString("chat.general-error").fmt(chatError.message, "")
+          } else {
+            val errorReportLink = CodyErrorSubmitter().getEncodedUrl(chatError.message)
+            CodyBundle.getString("chat.general-error").fmt(errorReportLink, chatError.message)
+          }
 
       addErrorMessageAsAssistantMessage(errorMessage)
     } finally {
@@ -187,9 +195,8 @@ private constructor(
 
       val message = ((e.cause as? CodyAgentException) ?: e).message ?: e.toString()
       val errorReportLink = CodyErrorSubmitter().getEncodedUrl(e.getThrowableText(), message)
-      val errorReportMsg = CodyBundle.getString("chat.general-error.report").fmt(errorReportLink)
       addErrorMessageAsAssistantMessage(
-          CodyBundle.getString("chat.general-error").fmt(message, errorReportMsg))
+          CodyBundle.getString("chat.general-error").fmt(errorReportLink, message))
     } finally {
       getCancellationToken().abort()
     }
@@ -227,25 +234,29 @@ private constructor(
   }
 
   @RequiresEdt
-  private fun addMessageAtIndex(message: ChatMessage, index: Int) {
-    val messageToUpdate = messages.getOrNull(index)
-    if (messageToUpdate != null) {
-      messages[index] = message
-    } else {
-      messages.add(message)
-    }
-
+  private fun addMessageAtIndex(message: ChatMessage, index: Int, receivedByAgent: Boolean = true) {
     chatPanel.addOrUpdateMessage(message, index)
-    HistoryService.getInstance(project).updateChatMessages(internalId, messages)
+
+    if (receivedByAgent) {
+      val messageToUpdate = messages.getOrNull(index)
+      if (messageToUpdate != null) {
+        messages[index] = message
+      } else {
+        messages.add(message)
+      }
+
+      HistoryService.getInstance(project).updateChatMessages(internalId, messages)
+    }
   }
 
-  @RequiresEdt
   private fun createCancellationToken(onCancel: () -> Unit, onFinish: () -> Unit) {
-    val newCancellationToken = CancellationToken()
-    newCancellationToken.onCancellationRequested { onCancel() }
-    newCancellationToken.onFinished { onFinish() }
-    cancellationToken.getAndSet(newCancellationToken).abort()
-    chatPanel.registerCancellationToken(newCancellationToken)
+    runInEdt {
+      val newCancellationToken = CancellationToken()
+      newCancellationToken.onCancellationRequested { onCancel() }
+      newCancellationToken.onFinished { onFinish() }
+      cancellationToken.getAndSet(newCancellationToken).abort()
+      chatPanel.registerCancellationToken(newCancellationToken)
+    }
   }
 
   fun updateFromState(agent: CodyAgent, state: ChatState) {

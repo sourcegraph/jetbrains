@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.initialization
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ex.EditorEventMulticasterEx
 import com.intellij.openapi.project.Project
@@ -25,12 +26,19 @@ import com.sourcegraph.telemetry.TelemetryInitializerActivity
  */
 class PostStartupActivity : StartupActivity.DumbAware {
 
+  // TODO(olafurpg): this activity is taking ~2.5s to run during tests, which indicates that we're
+  // doing something wrong, which may be slowing down agent startup. Not fixing it now but this
+  // deserves more investigation.
   override fun runActivity(project: Project) {
     TelemetryInitializerActivity().runActivity(project)
+
     SettingsMigration().runActivity(project)
     SelectOneOfTheAccountsAsActive().runActivity(project)
     CodyAuthNotificationActivity().runActivity(project)
-    CheckUpdatesTask(project).queue()
+    ApplicationManager.getApplication().executeOnPooledThread {
+      // Scheduling because this task takes ~2s to run
+      CheckUpdatesTask(project).queue()
+    }
     if (ConfigUtil.isCodyEnabled()) CodyAgentService.getInstance(project).startAgent(project)
     CodyStatusService.resetApplication(project)
     EndOfTrialNotificationScheduler.createAndStart(project)

@@ -1,20 +1,62 @@
 package com.sourcegraph.cody.agent.protocol
 
+import com.intellij.codeInsight.codeVision.ui.popup.layouter.bottom
+import com.intellij.codeInsight.codeVision.ui.popup.layouter.right
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.LogicalPosition
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.util.concurrency.annotations.RequiresEdt
+import java.awt.Point
 import java.net.URI
+import java.nio.file.FileSystems
 import java.util.*
+import kotlin.io.path.pathString
+import kotlin.math.max
+import kotlin.math.min
 
 class ProtocolTextDocument
 private constructor(
-    var uri: String,
-    var content: String?,
-    var selection: Range?,
+    val uri: String,
+    val content: String? = null,
+    val selection: Range? = null,
+    val visibleRange: Range? = null,
+    val contentChanges: List<ProtocolTextDocumentContentChangeEvent>? = null,
+    val testing: TestingParams? = null,
 ) {
+
+  init {
+    if (!ApplicationManager.getApplication().isDispatchThread) {
+      throw IllegalStateException("ProtocolTextDocument must be be created on EDT")
+    }
+  }
 
   companion object {
 
+    @RequiresEdt
+    private fun getTestingParams(
+        uri: String,
+        content: String? = null,
+        selection: Range? = null,
+        selectedText: String? = null
+    ): TestingParams? {
+      if (!TestingParams.doIncludeTestingParam) {
+        return null
+      }
+      return TestingParams(
+          selectedText = selectedText,
+          sourceOfTruthDocument =
+              ProtocolTextDocument(
+                  uri = uri,
+                  content = content,
+                  selection = selection,
+              ))
+    }
+
+    @RequiresEdt
     private fun getSelection(editor: Editor): Range {
       val selectionModel = editor.selectionModel
       val selectionStartPosition =
@@ -32,30 +74,130 @@ private constructor(
       return Range(position, position)
     }
 
-    @JvmStatic
-    fun fromEditor(editor: Editor): ProtocolTextDocument? {
-      val file = FileDocumentManager.getInstance().getFile(editor.document)
-      return if (file != null) fromVirtualFile(editor, file) else null
+    @RequiresEdt
+    private fun getVisibleRange(editor: Editor): Range {
+      val visibleArea = editor.scrollingModel.visibleArea
+
+      val startOffset = editor.xyToLogicalPosition(visibleArea.location)
+      val startOffsetLine = max(startOffset.line, 0)
+      val startOffsetColumn = max(startOffset.column, 0)
+
+      val endOffset = editor.xyToLogicalPosition(Point(visibleArea.right, visibleArea.bottom))
+      val endOffsetLine = max(0, min(endOffset.line, editor.document.lineCount - 1))
+      val endOffsetColumn = min(endOffset.column, editor.document.getLineEndOffset(endOffsetLine))
+
+      return Range(
+          Position(startOffsetLine, startOffsetColumn), Position(endOffsetLine, endOffsetColumn))
     }
 
     @JvmStatic
+    @RequiresEdt
+    fun fromEditorWithOffsetSelection(
+        editor: Editor,
+        newPosition: LogicalPosition
+    ): ProtocolTextDocument? {
+      val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
+      val position = newPosition.codyPosition()
+      val uri = uriFor(file)
+      val selection = Range(position, position)
+      return ProtocolTextDocument(
+          uri = uri,
+          selection = selection,
+          testing = getTestingParams(uri, selection = selection, selectedText = ""))
+    }
+
+    @JvmStatic
+    @RequiresEdt
+    fun fromEditorWithRangeSelection(editor: Editor, event: SelectionEvent): ProtocolTextDocument? {
+      val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
+      val uri = uriFor(file)
+      val document = editor.document
+
+      val startOffset = event.newRange.startOffset
+      val startLine = document.getLineNumber(startOffset)
+      val lineStartOffset1 = document.getLineStartOffset(startLine)
+      val startCharacter = startOffset - lineStartOffset1
+
+      val endOffset = event.newRange.endOffset
+      val endLine = document.getLineNumber(endOffset)
+      val lineStartOffset2 =
+          if (startLine == endLine) {
+            lineStartOffset1
+          } else {
+            document.getLineStartOffset(endLine)
+          }
+      val endCharacter = endOffset - lineStartOffset2
+
+      val selection = Range(Position(startLine, startCharacter), Position(endLine, endCharacter))
+      return ProtocolTextDocument(
+          uri = uri,
+          selection = selection,
+          testing =
+              getTestingParams(
+                  uri = uri,
+                  content = document.text,
+                  selection = selection,
+                  selectedText = editor.selectionModel.selectedText))
+    }
+
+    @JvmStatic
+    @RequiresEdt
+    fun fromEditorForDocumentEvent(editor: Editor, event: DocumentEvent): ProtocolTextDocument? {
+      val oldFragment = event.oldFragment.toString()
+      val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
+      val startPosition = editor.offsetToLogicalPosition(event.offset).codyPosition()
+      // allocate List once to avoid three unnecessary duplicate allocations
+      val oldFragmentLines = oldFragment.lines()
+      val endCharacter =
+          if (oldFragmentLines.size > 1) oldFragmentLines.last().length
+          else startPosition.character + oldFragment.length
+      val endPosition = Position(startPosition.line + oldFragmentLines.size - 1, endCharacter)
+      val uri = uriFor(file)
+      val selection = getSelection(editor)
+
+      return ProtocolTextDocument(
+          uri = uri,
+          content = null,
+          selection = selection,
+          contentChanges =
+              listOf(
+                  ProtocolTextDocumentContentChangeEvent(
+                      Range(startPosition, endPosition), event.newFragment.toString())),
+          testing = getTestingParams(uri, selection = selection, content = editor.document.text))
+    }
+
+    @JvmStatic
+    @RequiresEdt
+    fun fromEditor(editor: Editor): ProtocolTextDocument? {
+      val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
+      return fromVirtualFile(editor, file)
+    }
+
+    @JvmStatic
+    @RequiresEdt
     fun fromVirtualFile(
         editor: Editor,
         file: VirtualFile,
     ): ProtocolTextDocument {
-      val text = FileDocumentManager.getInstance().getDocument(file)?.text
+      val content = FileDocumentManager.getInstance().getDocument(file)?.text
+      val uri = uriFor(file)
       val selection = getSelection(editor)
-      return ProtocolTextDocument(uriFor(file), text, selection)
+      return ProtocolTextDocument(
+          uri = uri,
+          content = content,
+          selection = selection,
+          visibleRange = getVisibleRange(editor),
+          testing = getTestingParams(uri = uri, content = content, selection = selection))
     }
 
+    @JvmStatic
     private fun uriFor(file: VirtualFile): String {
-      // Convert integration-test default temp:// scheme to file:// for Agent.
-      val initialUri = URI(file.url)
-      val path = initialUri.path
+      // Integration test: Convert default filesystem "temp://" scheme to "file://" for Agent.
+      val initialUri = FileSystems.getDefault().getPath(file.path)
 
       // Don't let Java's URI library produce syntactically incorrect "file:/src/foo/bar" URIs.
       // This construction forces it to have the syntax "file:///src/foo/bar".
-      val properUri = URI("file", "", path, null).toString()
+      val properUri = URI("file", "", initialUri.pathString, null).toString()
 
       // Canonicalize by lower-casing drive letter, if any.
       return properUri.replace(Regex("file:///(\\w):/")) {
@@ -65,4 +207,9 @@ private constructor(
       }
     }
   }
+}
+
+// Logical positions are 0-based (!), just like in VS Code.
+private fun LogicalPosition.codyPosition(): Position {
+  return Position(this.line, this.column)
 }

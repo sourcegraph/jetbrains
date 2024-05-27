@@ -34,6 +34,7 @@ import com.sourcegraph.cody.edit.EditUtil.namedButton
 import com.sourcegraph.cody.edit.EditUtil.namedLabel
 import com.sourcegraph.cody.edit.EditUtil.namedPanel
 import com.sourcegraph.cody.edit.sessions.EditCodeSession
+import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.cody.ui.FrameMover
 import java.awt.BorderLayout
 import java.awt.Color
@@ -106,6 +107,8 @@ class EditCommandPrompt(
   private val okButton =
       namedButton("ok-button").apply {
         text = "Edit Code"
+        foreground = boldLabelColor()
+
         addActionListener { performOKAction() }
         registerKeyboardAction(
             { performOKAction() }, enterKeyStroke, JComponent.WHEN_IN_FOCUSED_WINDOW)
@@ -458,6 +461,7 @@ class EditCommandPrompt(
         } else {
           relativePath
         }
+
     return truncatedPath.ifEmpty { fileName }
   }
 
@@ -544,27 +548,41 @@ class EditCommandPrompt(
 
   @RequiresEdt
   fun performOKAction() {
-    val text = instructionsField.text
-    if (text.isNotBlank()) {
+    try {
+      val text = instructionsField.text
+      if (text.isBlank()) return
+
       promptHistory.add(text)
-      if (editor.project == null) {
-        controller
-            .getActiveSession()
-            ?.displayError("Error initiating Code Edit", "Could not find current Project")
-        logger.warn("Project was null when trying to add an edit session")
-        return
+      val session = controller.getActiveSession()
+      validateProject(session)
+
+      val mode = if (session?.isInserted == true) "insert" else "edit"
+      fun editCode() = runInEdt {
+        EditCodeSession(controller, editor, text, llmDropdown.item, mode)
       }
 
-      fun editCode() = runInEdt { EditCodeSession(controller, editor, text, llmDropdown.item) }
-      val activeSession = controller.getActiveSession()
-      if (activeSession != null) {
-        activeSession.afterSessionFinished { editCode() }
-        activeSession.undo()
+      if (session != null) {
+        session.afterSessionFinished { editCode() }
+        session.undo()
       } else {
         editCode()
       }
+    } finally {
+      clearActivePrompt()
     }
-    clearActivePrompt()
+  }
+
+  private fun validateProject(session: FixupSession?): Boolean {
+    return if (editor.project == null) {
+      // TODO move these to Cody bundle
+      session?.displayError("Error initiating Code Edit", "Could not find current Project")
+      logger.warn("Project was null when trying to add an edit session")
+      false
+    } else true
+  }
+
+  private fun startEditCodeSession(text: String, mode: String = "edit") {
+    runInEdt { EditCodeSession(controller, editor, text, llmDropdown.item, mode) }
   }
 
   private fun makeCornerShape(width: Int, height: Int): RoundRectangle2D {
@@ -590,8 +608,6 @@ class EditCommandPrompt(
     }
   }
 
-  // TODO: Was hoping this would help avoid flicker while resizing.
-  // Needs more work, but I think this is likely the right general approach.
   class DoubleBufferedRootPane : JRootPane() {
     private var offscreenImage: BufferedImage? = null
 
@@ -629,11 +645,11 @@ class EditCommandPrompt(
     // Caching these caused problems with theme switches, even when we
     // updated the cached values on theme-switch notifications.
 
-    fun mutedLabelColor(): Color = EditUtil.getMutedThemeColor("Label.disabledForeground")!!
+    fun mutedLabelColor(): Color = EditUtil.getThemeColor("Label.disabledForeground")!!
 
-    fun boldLabelColor(): Color = EditUtil.getEnhancedThemeColor("Label.foreground")!!
+    fun boldLabelColor(): Color = EditUtil.getThemeColor("Label.foreground")!!
 
-    fun textFieldBackground(): Color = EditUtil.getEnhancedThemeColor("TextField.background")!!
+    fun textFieldBackground(): Color = EditUtil.getThemeColor("TextField.background")!!
 
     /** Returns a compact symbol representation of the action's keyboard shortcut, if any. */
     @JvmStatic
@@ -675,7 +691,7 @@ class EditCommandPrompt(
       val sb = StringBuilder()
 
       if (keyStroke.modifiers and InputEvent.CTRL_DOWN_MASK != 0) {
-        sb.append("^")
+        sb.append("⌃")
       }
       if (keyStroke.modifiers and InputEvent.META_DOWN_MASK != 0) {
         sb.append("⌘")

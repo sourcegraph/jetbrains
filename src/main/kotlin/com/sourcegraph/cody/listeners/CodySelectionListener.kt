@@ -9,17 +9,19 @@ import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager
 import com.sourcegraph.config.ConfigUtil
 
 class CodySelectionListener(val project: Project) : SelectionListener {
-  override fun selectionChanged(e: SelectionEvent) {
-    if (!ConfigUtil.isCodyEnabled()) {
+
+  override fun selectionChanged(event: SelectionEvent) {
+    if (!ConfigUtil.isCodyEnabled() || event.editor == null) {
       return
     }
 
-    ProtocolTextDocument.fromEditor(e.editor)?.let { textDocument ->
+    ProtocolTextDocument.fromEditorWithRangeSelection(event.editor, event)?.let { textDocument ->
+      EditorChangesBus.documentChanged(project, textDocument)
       CodyAgentService.withAgent(project) { agent ->
         agent.server.textDocumentDidChange(textDocument)
       }
     }
 
-    CodyAutocompleteManager.instance.clearAutocompleteSuggestions(e.editor)
+    CodyAutocompleteManager.instance.clearAutocompleteSuggestions(event.editor)
   }
 }

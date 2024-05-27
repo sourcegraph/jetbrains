@@ -90,7 +90,11 @@ private constructor(
     private val PLUGIN_ID = PluginId.getId("com.sourcegraph.jetbrains")
     private const val DEFAULT_AGENT_DEBUG_PORT = 3113 // Also defined in agent/src/cli/jsonrpc.ts
 
-    @JvmField val executorService: ExecutorService = Executors.newCachedThreadPool()
+    // We are running all calls single threaded to ensure correctness of all actions, especially
+    // context synchronization.
+    // That can lead to a deadlocks if we try to do a `withAgent` call inside a `withAgent` call, so
+    // we need to be careful.
+    @JvmField val executorService: ExecutorService = Executors.newSingleThreadExecutor()
 
     private fun shouldSpawnDebuggableAgent() = System.getenv("CODY_AGENT_DEBUG_INSPECT") == "true"
 
@@ -172,12 +176,13 @@ private constructor(
 
       val proxy = HttpConfigurable.getInstance()
       val proxyUrl = proxy.PROXY_HOST + ":" + proxy.PROXY_PORT
-      if (proxy.PROXY_TYPE_IS_SOCKS) {
-        processBuilder.environment()["HTTP_PROXY"] = "socks://$proxyUrl"
-      }
       if (proxy.USE_HTTP_PROXY) {
-        processBuilder.environment()["HTTP_PROXY"] = "http://$proxyUrl"
-        processBuilder.environment()["HTTPS_PROXY"] = "http://$proxyUrl"
+        if (proxy.PROXY_TYPE_IS_SOCKS) {
+          processBuilder.environment()["HTTP_PROXY"] = "socks://$proxyUrl"
+        } else {
+          processBuilder.environment()["HTTP_PROXY"] = "http://$proxyUrl"
+          processBuilder.environment()["HTTPS_PROXY"] = "http://$proxyUrl"
+        }
       }
 
       logger.info("starting Cody agent ${command.joinToString(" ")}")

@@ -1,7 +1,8 @@
 package com.sourcegraph.cody.edit.widget
 
 import com.intellij.openapi.editor.event.EditorMouseEvent
-import com.sourcegraph.cody.edit.EditCommandPrompt
+import com.intellij.ui.JBColor
+import com.intellij.util.ui.UIUtil
 import java.awt.FontMetrics
 import java.awt.Graphics2D
 
@@ -20,9 +21,10 @@ open class LensLabel(group: LensWidgetGroup, val text: String) : LensWidget(grou
 
   override fun paint(g: Graphics2D, x: Float, y: Float) {
     g.color =
-        when {
-          text == LensGroupFactory.SEPARATOR -> EditCommandPrompt.boldLabelColor()
-          else -> baseTextColor
+        if (text == LensGroupFactory.SEPARATOR) {
+          UIUtil.shade(JBColor.foreground(), 1.0, 0.4)
+        } else {
+          baseTextColor
         }
     g.drawString(text, x, y + g.fontMetrics.ascent)
   }
