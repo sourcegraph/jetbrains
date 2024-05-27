@@ -3,12 +3,9 @@ package com.sourcegraph.cody.autocomplete.render
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.Inlay
-import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.ui.JBColor
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil.getAllInlaysForEditor
-import java.awt.Font
-import kotlin.math.ceil
 
 object AutocompleteRenderUtil {
   @JvmStatic

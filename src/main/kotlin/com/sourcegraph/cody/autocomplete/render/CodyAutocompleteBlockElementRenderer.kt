@@ -34,7 +34,7 @@ class CodyAutocompleteBlockElementRenderer(
       targetRegion: Rectangle,
       textAttributes: TextAttributes
   ) {
-      val fontInfo = fontInfoForText(text)
+    val fontInfo = fontInfoForText(text)
     g.font = fontInfo.font
     g.color = themeAttributes.foregroundColor
     val x = targetRegion.x
