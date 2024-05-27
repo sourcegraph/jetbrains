@@ -7,9 +7,9 @@ import com.intellij.openapi.util.NlsActions
 import javax.swing.Icon
 import org.jetbrains.annotations.NotNull
 
-abstract class DumbAwareBGTAction : DumbAwareAction {
+abstract class DumbAwareEDTAction : DumbAwareAction {
 
-  constructor() : super() {}
+  constructor() : super()
 
   constructor(icon: Icon?) : super(icon)
 
@@ -26,10 +26,10 @@ abstract class DumbAwareBGTAction : DumbAwareAction {
   }
 }
 
-class SimpleDumbAwareBGTAction(
+class SimpleDumbAwareEDTAction(
     text: @NlsActions.ActionText String? = null,
     private val action: (@NotNull AnActionEvent) -> Unit
-) : DumbAwareBGTAction(text) {
+) : DumbAwareEDTAction(text) {
   override fun actionPerformed(@NotNull e: AnActionEvent) {
     action(e)
   }
