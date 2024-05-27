@@ -1,7 +1,6 @@
 package com.sourcegraph.cody.edit.sessions
 
 import FixupSessionDocumentListener
-import com.intellij.codeInsight.codeVision.CodeVisionState.NotReady.result
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
@@ -174,9 +173,9 @@ abstract class FixupSession(
             publishProgressOnEdt(
                 CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES,
                 CodyInlineEditActionNotifier.Context(session = this, selectionRange = result.range))
+            result
           }
           .get()
-      selectionRange = result.range.toRangeMarker(document, true)
     } catch (e: Exception) {
       logger.warn("Error getting folding range", e)
     }
