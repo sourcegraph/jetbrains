@@ -16,7 +16,7 @@ import com.sourcegraph.config.ConfigUtil
 @Service
 class CodyStatusService : CodyStatusListener, Disposable {
 
-  private var status: CodyStatus = CodyStatus.CodyUninit
+  @Volatile private var status: CodyStatus = CodyStatus.CodyUninit
 
   init {
     ApplicationManager.getApplication()
