@@ -27,8 +27,6 @@ val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") 
 // As https://www.jetbrains.com/updates/updates.xml adds a new "IntelliJ IDEA" YYYY.N version, add
 // it to this list.
 // Remove unsupported old versions from this list.
-// See https://plugins.jetbrains.com/docs/marketplace/product-versions-in-use-statistics.html to
-// guide your decision before removing old versions.
 val versionsOfInterest =
     listOf("2022.1", "2022.2", "2022.3", "2023.1", "2023.2", "2023.3", "2024.1").sorted()
 val versionsToValidate =
@@ -83,9 +81,6 @@ dependencies {
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.21.0")
   implementation("com.googlecode.java-diff-utils:diffutils:1.3.0")
   testImplementation("org.awaitility:awaitility-kotlin:4.2.0")
-  testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
-  testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
-  testImplementation("io.mockk:mockk:1.13.4")
 }
 
 spotless {
