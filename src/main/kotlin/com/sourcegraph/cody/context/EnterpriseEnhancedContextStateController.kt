@@ -233,26 +233,29 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
   }
 
   fun setRepoEnabledInContextState(repoName: String, enabled: Boolean) {
-    // TODO TODO TODO TODO
-    var enabledRepos = listOf<CodebaseName>()
-
-    chat.updateSavedState { contextState ->
-      contextState.remoteRepositories.find { it.codebaseName == repoName }?.isEnabled = enabled
-      enabledRepos =
-        contextState.remoteRepositories
-          .filter { it.isEnabled }
-          .mapNotNull { it.codebaseName }
-          .map { CodebaseName(it) }
+    if (enabled) {
+      model.manuallyDeselected = model.manuallyDeselected.filter { it != repoName }.toSet()
+    } else {
+      model.manuallyDeselected = model.manuallyDeselected.plus(repoName)
     }
 
-    RemoteRepoUtils.getRepositories(project, enabledRepos)
-      .completeOnTimeout(null, 15, TimeUnit.SECONDS)
-      .thenApply { repos ->
-        if (repos == null) {
-          chat.notifyRemoteRepoResolutionFailed()
-          return@thenApply
-        }
-        chat.updateAgentState(repos)
-      }
+    // Update the plugin's copy of the state.
+    chat.updateSavedState { state ->
+      state.remoteRepositories.clear()
+      state.remoteRepositories.addAll(
+        model.specified.map { repoSpecName ->
+          RemoteRepositoryState().apply {
+            codebaseName = repoSpecName
+            isEnabled = !model.manuallyDeselected.contains(repoSpecName)
+          }
+        })
+    }
+
+    // Update the Agent state. This eventually produces `updateFromAgent` which triggers the tree view update.
+    chat.updateAgentState(
+      // This will work for deselecting, but not selecting.
+      model.configured.filter { !model.manuallyDeselected.contains(it.name) && it.id != null }.take(
+        MAX_REMOTE_REPOSITORY_COUNT).map { Repo(it.name, it.id!!) }
+    )
   }
 }

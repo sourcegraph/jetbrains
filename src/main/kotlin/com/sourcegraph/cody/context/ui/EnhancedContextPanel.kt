@@ -363,7 +363,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     editReposNode.hasRemovableRepos = repos.count { it.inclusion == RepoInclusion.MANUAL } > 0
     contextRoot.add(editReposNode)
 
-    // TODO: Update this to only show the active repo count, we don't need to count ignored or not etc.
     contextRoot.numActiveRepos = repos.count { it.isEnabled }
     treeModel.reload(contextRoot)
     if (wasExpanded) {
