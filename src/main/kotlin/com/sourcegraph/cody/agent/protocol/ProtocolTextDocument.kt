@@ -149,7 +149,8 @@ private constructor(
       val endCharacter =
           if (oldFragmentLines.size > 1) oldFragmentLines.last().length
           else startPosition.character + oldFragment.length
-      val endPosition = Position(startPosition.line + oldFragmentLines.size - 1, endCharacter)
+      val endPosition =
+          Position(startPosition.line + oldFragmentLines.size - 1, endCharacter.toLong())
       val uri = uriFor(file)
       val selection = getSelection(editor)
 
