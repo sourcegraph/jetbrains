@@ -54,14 +54,14 @@ enum class RepoSelectionStatus {
 }
 
 data class RemoteRepo(
-  val name: String,
-  /**
+    val name: String,
+    /**
      * Null in the case of "not found" repos, or manually deselected repos we did not try to find.
      */
     val id: String?,
-  val selectionStatus: RepoSelectionStatus,
-  val isIgnored: Boolean,
-  val inclusion: RepoInclusion,
+    val selectionStatus: RepoSelectionStatus,
+    val isIgnored: Boolean,
+    val inclusion: RepoInclusion,
 ) {
   val isEnabled: Boolean
     get() = selectionStatus == RepoSelectionStatus.SELECTED && !isIgnored

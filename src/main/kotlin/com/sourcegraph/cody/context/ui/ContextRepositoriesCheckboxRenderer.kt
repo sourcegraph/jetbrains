@@ -7,8 +7,8 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.ThreeStateCheckBox
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.chat.ui.pluralize
-import com.sourcegraph.cody.context.RepoSelectionStatus
 import com.sourcegraph.cody.context.RepoInclusion
+import com.sourcegraph.cody.context.RepoSelectionStatus
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import java.util.concurrent.atomic.AtomicBoolean
