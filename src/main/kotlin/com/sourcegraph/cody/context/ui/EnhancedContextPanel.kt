@@ -132,16 +132,6 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
 
   protected abstract fun createCheckboxPolicy(): CheckboxTreeBase.CheckPolicy
 
-  /** The toolbar decorator component. */
-  protected val toolbar = run {
-    createDecorator(tree)
-        .disableUpDownActions()
-        .setToolbarPosition(ActionToolbarPosition.RIGHT)
-        .setVisibleRowCount(1)
-        .setScrollPaneBorder(BorderFactory.createEmptyBorder())
-        .setToolbarBorder(BorderFactory.createEmptyBorder())
-  }
-
   init {
     layout = VerticalFlowLayout(VerticalFlowLayout.BOTTOM, 0, 0, true, false)
     tree.model = treeModel
@@ -178,22 +168,7 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
    * Adjusts the layout to accommodate the expanded rows in the treeview, and revalidates layout.
    */
   @RequiresEdt
-  protected fun resize() {
-    val padding = 5
-    // Set the minimum size to accommodate at least one toolbar button and an overflow ellipsis.
-    // Because the buttons
-    // are approximately square, use the toolbar width as a proxy for the button height.
-    val toolbarButtonHeight = toolbar.actionsPanel.preferredSize.width
-    val preferredSizeNumVisibleButtons = 1
-    panel.preferredSize =
-        Dimension(
-            0,
-            padding +
-                max(
-                    tree.rowCount * tree.rowHeight,
-                    preferredSizeNumVisibleButtons * toolbarButtonHeight))
-    panel.parent?.revalidate()
-  }
+  abstract fun resize()
 
   @RequiresEdt
   private fun expandAllNodes(rowCount: Int = tree.rowCount) {
@@ -289,12 +264,17 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
   @RequiresEdt
   override fun createPanel(): JComponent {
-    toolbar.setEditActionName(CodyBundle.getString("context-panel.button.edit-repositories"))
-    toolbar.setEditAction {
-      val popup = repoPopupController.createPopup(tree.width, endpointName, controller.rawSpec)
-      popup.showAbove(tree)
-    }
-    return toolbar.createPanel()
+    return tree
+  }
+
+  override fun resize() {
+    val padding = 5
+    panel.preferredSize =
+      Dimension(
+        0,
+        padding +
+        tree.rowCount * tree.rowHeight)
+    panel.parent?.revalidate()
   }
 
   override fun createCheckboxPolicy(): CheckboxTreeBase.CheckPolicy =
@@ -383,6 +363,16 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
 class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     EnhancedContextPanel(project, chatSession) {
+  // The toolbar decorator component.
+  private val toolbar = run {
+    createDecorator(tree)
+      .disableUpDownActions()
+      .setToolbarPosition(ActionToolbarPosition.RIGHT)
+      .setVisibleRowCount(1)
+      .setScrollPaneBorder(BorderFactory.createEmptyBorder())
+      .setToolbarBorder(BorderFactory.createEmptyBorder())
+  }
+
   private val enhancedContextNode =
       ContextTreeRootNode(CodyBundle.getString("context-panel.tree.node-chat-context")) { isChecked
         ->
@@ -420,6 +410,23 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
           /* uncheckChildrenWithUncheckedParent = */ true,
           /* checkParentWithCheckedChild = */ true,
           /* uncheckParentWithUncheckedChild = */ false)
+
+  override fun resize() {
+    val padding = 5
+    // Set the minimum size to accommodate at least one toolbar button and an overflow ellipsis.
+    // Because the buttons
+    // are approximately square, use the toolbar width as a proxy for the button height.
+    val toolbarButtonHeight = toolbar.actionsPanel.preferredSize.width
+    val preferredSizeNumVisibleButtons = 1
+    panel.preferredSize =
+      Dimension(
+        0,
+        padding +
+                max(
+                  tree.rowCount * tree.rowHeight,
+                  preferredSizeNumVisibleButtons * toolbarButtonHeight))
+    panel.parent?.revalidate()
+  }
 
   override fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT) {
     // No-op. The consumer panel relies solely on JetBrains-side state.

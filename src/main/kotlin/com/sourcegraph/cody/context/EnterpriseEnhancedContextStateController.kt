@@ -245,7 +245,7 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
       model.manuallyDeselected = model.manuallyDeselected.filter { it != repoName }.toSet()
       val repoToAdd = model.resolvedCache[repoName]
       if (repoToAdd == null) {
-        logger.error("failed to find repo $repoName in the resolved cache; will not enable it")
+        logger.warn("failed to find repo $repoName in the resolved cache; will not enable it")
         return
       }
       repos.add(repoToAdd)
