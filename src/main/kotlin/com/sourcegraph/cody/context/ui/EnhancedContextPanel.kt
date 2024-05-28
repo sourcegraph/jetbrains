@@ -4,6 +4,7 @@ import com.intellij.ide.BrowserUtil
 import com.intellij.ide.HelpTooltip
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.openapi.ui.getTreePath
@@ -217,12 +218,14 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     }
   }
 
+  // TODO: We need to kick off setting the agent state with
+  // controller.loadFrom...(getContextState()) etc.
   private var controller = EnterpriseEnhancedContextStateController(project,
     object : ChatEnhancedContextStateProvider {
-      override fun getSavedState(): EnhancedContextState? = getContextState()
-
       override fun updateSavedState(modifyContext: (EnhancedContextState) -> Unit) {
-        updateContextState(modifyContext)
+        runInEdt {
+          updateContextState(modifyContext)
+        }
       }
 
       override fun updateAgentState(repos: List<Repo>) {
@@ -232,8 +235,12 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       }
 
       override fun updateUI(repos: List<RemoteRepo>) {
-        updateTree(repos)
+        runInEdt {
+          updateTree(repos)
+        }
       }
+
+      override fun notifyRemoteRepoResolutionFailed() = runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
     })
 
   private var endpointName: String = ""
@@ -252,8 +259,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
               tree.getClosestPathForLocation(e.x, e.y)?.lastPathComponent
 
           // We cache the target of the mouse press, so that if the tree expands before the click
-          // event is generated, we can
-          // detect the mouse click event is on a different node and suppress the popup.
+          // event is generated, we can detect the mouse click event is on a different node and
+          // suppress the popup.
           private var pressedTarget: Any? = null
 
           override fun mousePressed(e: MouseEvent) {
@@ -356,8 +363,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     editReposNode.hasRemovableRepos = repos.count { it.inclusion == RepoInclusion.MANUAL } > 0
     contextRoot.add(editReposNode)
 
-    contextRoot.numRepos = repos.count { it.isIgnored != true }
-    contextRoot.numIgnoredRepos = repos.count { it.isIgnored == true }
+    // TODO: Update this to only show the active repo count, we don't need to count ignored or not etc.
+    contextRoot.numRepos = repos.count { !it.isIgnored }
+    contextRoot.numIgnoredRepos = repos.count { !it.isIgnored }
     treeModel.reload(contextRoot)
     if (wasExpanded) {
       tree.expandPath(remotesPath)

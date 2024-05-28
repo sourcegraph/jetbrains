@@ -10,21 +10,20 @@ import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.vcs.CodebaseName
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
-/**
- * The ephemeral, in-memory model of enterprise enhanced context state.
- */
+// The ephemeral, in-memory model of enterprise enhanced context state.
 private class EnterpriseEnhancedContextModel {
   // What the user actually wrote
   var rawSpec: String = ""
 
-  // What the user specified--strings split and de-duped
+  // `rawSpec` after parsing and de-duping. This defines the order in which to display repositories.
   var specified: Set<String> = emptySet()
 
-  // What we found in the remote
-  var resolved: List<Repo> = emptyList()
+  // The names of repositories that have been manually deselected.
+  var manuallyDeselected: Set<String> = emptySet()
 
-  // What the TypeScript extension is using for context
+  // What the TypeScript extension told us it is using for context.
   var configured: List<RemoteRepo> = emptyList()
 }
 
@@ -42,11 +41,6 @@ private class EnterpriseEnhancedContextModel {
  */
 interface ChatEnhancedContextStateProvider {
   /**
-   * Retrieves JetBrains Cody's "chat history" copy of enhanced context state.
-   */
-  fun getSavedState(): EnhancedContextState?
-
-  /**
    * Updates JetBrains Cody's "chat history" copy of enhanced context state.
    */
   fun updateSavedState(updater: (EnhancedContextState) -> Unit)
@@ -60,98 +54,186 @@ interface ChatEnhancedContextStateProvider {
    * Pushes a UI update to the chat side panel.
    */
   fun updateUI(repos: List<RemoteRepo>)
+
+  /**
+   * Displays a message that remote repository resolution failed.
+   */
+  fun notifyRemoteRepoResolutionFailed()
 }
 
 /**
- * Reconciles the multiple, asynchronously updated copies of enhanced context state
+ * Reconciles the multiple, asynchronously updated copies of enhanced context state.
+ *
+ * Changes follow this flow:
+ *
+ * 1. A chat is restored ([loadFromChatState]) which synthesizes a [rawSpec] and a `model.manuallyDeselected` set.
+ * 2. When the raw spec is updated, we parse it and produce a "speculative set of repos" ([updateSpeculativeRepos])
+ *    These have not been resolved by the backend and may be totally bogus.
+ * 3. When the speculative repos are resolved ([onResolvedRepos]) we can filter the `model.manuallyDeselected` ones
+ *    and request the Agent to focus on a set of repositories (`chat.updateAgentState`).
+ * 4. When the Agent has updated its state ([onAgentStateUpdated]) we finally learn which repositories are actually
+ *    used, whether a repository is implicitly included by the Agent based on the project, and whether a repository
+ *    is filtered by Context Filters.
+ * 5. Finally, we can [updateUI].
+ *
+ * When the user updates the raw spec, the same process happens from step 2 to step 4, however we also
+ * `chat.updateSavedState` to save the changes to the JetBrains-side copy of chat history.
+ *
+ * When the user checks and unchecks repositories, we already have all the resolved repository details. We just update
+ * the JetBrains-side copy of chat history (`chat.updateSavedState`) and do the `chat.updateAgentState` ->
+ * [onAgentStateUpdated] flow.
  */
 class EnterpriseEnhancedContextStateController(val project: Project, val chat: ChatEnhancedContextStateProvider) {
   private var model = EnterpriseEnhancedContextModel()
+  private var epoch = 0
 
   val rawSpec: String
     get(): String = model.rawSpec
 
+  /**
+   * Loads the set of repositories from the JetBrains-side copy of chat history and starts the process of resolving
+   * the mentioned repositories, configuring Agent to use them, and eventually updating the UI.
+   */
   fun loadFromChatState(remoteRepositories: List<RemoteRepositoryState>?) {
     val cleanedRepos = remoteRepositories?.filter { it.codebaseName != null }?.toSet()?.toList()
       ?: emptyList()
     model.rawSpec = cleanedRepos.map { it.codebaseName }.joinToString("\n")
-    model.specified = model.rawSpec
-      .split(Regex("""\s+"""))
-      .filter { it != "" }
-      .toSet()
 
-    // Update the Agent-side state for this chat.
-    val enabledRepos = cleanedRepos.filter { it.isEnabled }.mapNotNull { it.codebaseName }
-    RemoteRepoUtils.resolveReposWithErrorNotification(
-      project, enabledRepos.map { CodebaseName(it) }, chat::updateAgentState
-    )
+    // Remember which repositories have been manually deselected.
+    model.manuallyDeselected = cleanedRepos.filter { !it.isEnabled }.mapNotNull { it.codebaseName }.toSet()
 
-    // TODO: Update the UI
+    // Start trying to resolve these cached repos.
+    updateSpeculativeRepos(cleanedRepos.mapNotNull { it.codebaseName })
   }
 
+  /**
+   * Updates the text spec of the repository list when it is edited by the user. This does not reset the manually
+   * deselected set because the user may have edited an unrelated part of the spec. However, if a repository is
+   * removed from the spec, we remove it from the manually deselected set for it to be selected by default if it
+   * is re-added later. This saves the updated repository list to the JetBrains-side copy of chat history.
+   */
   fun updateRawSpec(newSpec: String) {
-    // TODO: Assert not EDT
     model.rawSpec = newSpec
-    model.specified = newSpec
+    val speculative = newSpec
       .split(Regex("""\s+"""))
       .filter { it != "" }
       .toSet()
+      .toList()
 
-    applyRepoSpec(model.specified)
+    // If a repository name has been removed from the list of speculative repos, then forget that it was manually
+    // deselected in order for it to be default selected if it is added back.
+
+    // TODO: Improve the accuracy of removals when there's an Agent API that maps specified name -> resolved name.
+    // Today we only have names go in and a set of repositories come out, in different (alphabetical) order.
+    model.manuallyDeselected = model.manuallyDeselected.filter { speculative.contains(it) }.toSet()
+
+    // Update the saved state in chat history.
+    chat.updateSavedState { state ->
+      state.remoteRepositories.clear()
+      state.remoteRepositories.addAll(
+        speculative.mapIndexed { index, name ->
+          RemoteRepositoryState().apply {
+            codebaseName = name
+            isEnabled = index < MAX_REMOTE_REPOSITORY_COUNT
+          }
+        })
+    }
+    updateSpeculativeRepos(speculative)
+  }
+
+  // Builds the initial list of repositories and kicks off the process of resolving them.
+  private fun updateSpeculativeRepos(repos: List<String>) {
+    var thisEpoch = synchronized(this) {
+      model.specified = repos.toSet()
+      ++epoch
+    }
+
+    RemoteRepoUtils.resolveReposWithErrorNotification(
+      project, model.specified.map { CodebaseName(it) }.toList()) {
+      synchronized(this) {
+        if (epoch == thisEpoch) {
+          onResolvedRepos(it)
+        }
+      }
+    }
+  }
+
+  private fun onResolvedRepos(repos: List<Repo>) {
+    var resolvedRepos = repos.associateBy { repo -> repo.name }
+
+    // Update the plugin's copy of the state.
+    chat.updateSavedState { state ->
+      state.remoteRepositories.clear()
+      state.remoteRepositories.addAll(
+        model.specified.map { repoSpecName ->
+          val name = resolvedRepos[repoSpecName]?.name ?: repoSpecName
+          RemoteRepositoryState().apply {
+            codebaseName = name
+            // Note, we don't limit to MAX_REMOTE_REPOSITORY_COUNT here. We may raise or lower that limit in future
+            // versions anyway, so we just record what is manually deselected and apply the limit when updating
+            // Agent-side state.
+            isEnabled = !model.manuallyDeselected.contains(name)
+          }
+        })
+    }
+
+    // Update the Agent state. This eventually produces `updateFromAgent` which triggers the tree view update.
+    chat.updateAgentState(
+      model.specified.mapNotNull { repoSpecName -> resolvedRepos[repoSpecName] }.filter { !model.manuallyDeselected.contains(it.name) }.take(
+      MAX_REMOTE_REPOSITORY_COUNT)
+    )
   }
 
   fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT) {
+    // Collect the configured repositories from the Agent reported state.
     val repos = mutableListOf<RemoteRepo>()
 
     for (group in enhancedContextStatus.groups) {
       val provider = group.providers.firstOrNull() ?: continue
       val name = group.displayName
-      val enabled = provider.state == "ready"
+      val id = provider.id ?: continue
+      val enablement = when {
+        provider.state == "ready" -> RepoEnablement.ENABLED
+        else -> RepoEnablement.DESELECTED
+      }
       val ignored = provider.isIgnored == true
       val inclusion =
         when (provider.inclusion) {
           "auto" -> RepoInclusion.AUTO
           "manual" -> RepoInclusion.MANUAL
-          else -> null
+          else -> RepoInclusion.MANUAL
         }
-      repos.add(RemoteRepo(name, isEnabled = enabled, isIgnored = ignored, inclusion = inclusion))
+      repos.add(RemoteRepo(name, id, enablement, isIgnored = ignored, inclusion))
     }
 
-    // TODO: Add repos which did not resolve.
-
-    runInEdt {
-      chat.updateUI(repos)
-    }
+    model.configured = repos
+    updateUI()
   }
 
-  // Given a textual list of repos, extract a best effort list of repositories from it and update
-  // context settings.
-  private fun applyRepoSpec(specified: Set<String>) {
-    // TODO: Limit to 10 somewhere.
+  private fun updateUI() {
+    // Compute the merged representation of repositories.
+    val usedRepos: MutableMap<String, RemoteRepo> = model.configured.associateBy { it.name }.toMutableMap()
 
-    RemoteRepoUtils.resolveReposWithErrorNotification(
-      project, specified.map { CodebaseName(it) }.toList()
-    ) { trimmedRepos ->
-      runInEdt {
-        // Update the plugin's copy of the state.
-        chat.updateSavedState { state ->
-          state.remoteRepositories.clear()
-          state.remoteRepositories.addAll(
-            trimmedRepos.mapIndexed { index, repo ->
-              RemoteRepositoryState().apply {
-                codebaseName = repo.name
-                isEnabled = index < MAX_REMOTE_REPOSITORY_COUNT
-              }
-            })
-        }
+    // Visit the repositories in the order specified by the user.
+    val repos = mutableListOf<RemoteRepo>()
+    repos.addAll(model.specified.map {
+      usedRepos.getOrDefault(it,
+        // If the repo was manually deselected, then we show it as de-selected.
+        // The repo was not manually deselected, yet isn't in the configured repos, hence it is not found.
+        // TODO: We could speculatively consult Cody Ignore to see if the deselected repo *would* have been ignored.
+        RemoteRepo(it, null, if (model.manuallyDeselected.contains(it)) { RepoEnablement.DESELECTED } else { RepoEnablement.NOT_FOUND }, isIgnored = false, RepoInclusion.MANUAL)
+      )
+    })
 
-        // Update the Agent state. This triggers the tree view update.
-        chat.updateAgentState(trimmedRepos.take(MAX_REMOTE_REPOSITORY_COUNT))
-      }
-    }
+    // Finally, if there are any remaining repos configured by the agent which are not used, represent them now.
+    repos.addAll(usedRepos.values.filter { !repos.contains(it) })
+
+    // ...and push the list to the UI.
+    chat.updateUI(repos)
   }
 
   fun setRepoEnabledInContextState(repoName: String, enabled: Boolean) {
+    // TODO TODO TODO TODO
     var enabledRepos = listOf<CodebaseName>()
 
     chat.updateSavedState { contextState ->
@@ -167,7 +249,7 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
       .completeOnTimeout(null, 15, TimeUnit.SECONDS)
       .thenApply { repos ->
         if (repos == null) {
-          runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
+          chat.notifyRemoteRepoResolutionFailed()
           return@thenApply
         }
         chat.updateAgentState(repos)
