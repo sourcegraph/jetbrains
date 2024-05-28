@@ -32,27 +32,27 @@ class PositionTest : BasePlatformTestCase() {
     assertEquals(false, result)
   }
 
-  fun test_getLogicalLineReturnsCorrectLineWhenWithinBounds() {
+  fun test_getRealLineReturnsCorrectLineWhenWithinBounds() {
     val position = Position(1, 0)
-    val result = position.getLogicalLine(document)
+    val result = position.getRealLine(document)
     assertEquals(1, result)
   }
 
-  fun test_testGetLogicalLineReturnsLastLineWhenLineIsGreaterThanLineCount() {
+  fun test_testGetRealLineReturnsLastLineWhenLineIsGreaterThanLineCount() {
     val position = Position(3, 0)
-    val result = position.getLogicalLine(document)
+    val result = position.getRealLine(document)
     assertEquals(1, result)
   }
 
-  fun test_getLogicalColumnReturnsCorrectColumnWhenWithinBounds() {
+  fun test_getRealColumnReturnsCorrectColumnWhenWithinBounds() {
     val position = Position(1, 2)
-    val result = position.getLogicalColumn(document)
+    val result = position.getRealColumn(document)
     assertEquals(2, result)
   }
 
-  fun test_getLogicalColumnReturnsLineLengthWhenCharacterIsGreaterThanLineLength() {
+  fun test_getRealColumnReturnsLineLengthWhenCharacterIsGreaterThanLineLength() {
     val position = Position(1, 10)
-    val result = position.getLogicalColumn(document)
+    val result = position.getRealColumn(document)
     assertEquals(5, result)
   }
 

@@ -12,25 +12,24 @@ data class Position(@JvmField val line: Long, @JvmField val character: Long) {
     return line < 0 || line > document.lineCount
   }
 
-  fun getLogicalLine(document: Document): Int {
+  fun getRealLine(document: Document): Int {
     return min(max(0L, document.lineCount.toLong() - 1), line).toInt()
   }
 
-  fun getLogicalColumn(document: Document): Int {
-    val logicalLine = getLogicalLine(document)
-    val lineLength =
-        document.getLineEndOffset(logicalLine) - document.getLineStartOffset(logicalLine)
+  fun getRealColumn(document: Document): Int {
+    val realLine = getRealLine(document)
+    val lineLength = document.getLineEndOffset(realLine) - document.getLineStartOffset(realLine)
     return min(lineLength.toLong(), character).toInt()
   }
 
   fun toLogicalPosition(document: Document): LogicalPosition {
-    return LogicalPosition(getLogicalLine(document), getLogicalColumn(document))
+    return LogicalPosition(getRealLine(document), getRealColumn(document))
   }
 
   /** Return zero-based offset of this position in the document. */
   fun toOffset(document: Document): Int {
-    val lineStartOffset = document.getLineStartOffset(getLogicalLine(document))
-    return lineStartOffset + getLogicalColumn(document)
+    val lineStartOffset = document.getLineStartOffset(getRealLine(document))
+    return lineStartOffset + getRealColumn(document)
   }
 
   companion object {

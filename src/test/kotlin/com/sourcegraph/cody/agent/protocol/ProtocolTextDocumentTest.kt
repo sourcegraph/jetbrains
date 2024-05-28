@@ -54,7 +54,7 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
     myFixture.editor.testing_selectSubstring("bugs")
     val range = ProtocolTextDocument.fromEditor(myFixture.editor)!!.selection!!
     assertEquals(
-      myFixture.editor.selectionModel.selectedText, myFixture.editor.testing_substring(range))
+        myFixture.editor.selectionModel.selectedText, myFixture.editor.testing_substring(range))
   }
 
   fun test_emptyFile() {
@@ -64,7 +64,6 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
         Range(Position(0, 0), Position(0, 0)),
         ProtocolTextDocument.fromVirtualFile(myFixture.editor, emptyFile).selection)
   }
-
 
   fun test_selectionListener() {
     var lastTextDocument: ProtocolTextDocument? = null
