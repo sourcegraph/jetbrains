@@ -42,6 +42,7 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
       // Enterprise context node renderers
 
       is ContextTreeEditReposNode -> {
+        toolTipText = ""
         myCheckbox.isVisible = false
         textRenderer.appendHTML(
             CodyBundle.getString(
