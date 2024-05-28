@@ -1,18 +1,21 @@
 package com.sourcegraph.cody.context
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.EnhancedContextContextT
 import com.sourcegraph.cody.agent.protocol.Repo
+import com.sourcegraph.cody.context.RemoteRepoUtils.getRepositories
 import com.sourcegraph.cody.context.ui.MAX_REMOTE_REPOSITORY_COUNT
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.vcs.CodebaseName
+import java.util.concurrent.TimeUnit
 
 // The ephemeral, in-memory model of enterprise enhanced context state.
 private class EnterpriseEnhancedContextModel {
   // What the user actually wrote
-  var rawSpec: String = ""
+  @Volatile var rawSpec: String = ""
 
   // `rawSpec` after parsing and de-duping. This defines the order in which to display repositories.
   var specified: Set<String> = emptySet()
@@ -21,7 +24,7 @@ private class EnterpriseEnhancedContextModel {
   var manuallyDeselected: Set<String> = emptySet()
 
   // What the TypeScript extension told us it is using for context.
-  var configured: List<RemoteRepo> = emptyList()
+  @Volatile var configured: List<RemoteRepo> = emptyList()
 
   // Any repository we ever resolved. Used when re-selecting a de-selected repository without
   // re-resolving.
@@ -100,15 +103,19 @@ class EnterpriseEnhancedContextStateController(
   fun loadFromChatState(remoteRepositories: List<RemoteRepositoryState>?) {
     val cleanedRepos =
         remoteRepositories?.filter { it.codebaseName != null }?.toSet()?.toList() ?: emptyList()
-    model.rawSpec = cleanedRepos.map { it.codebaseName }.joinToString("\n")
-
-    // Remember which repositories have been manually deselected.
-    model.manuallyDeselected =
-        cleanedRepos.filter { !it.isEnabled }.mapNotNull { it.codebaseName }.toSet()
 
     // Start trying to resolve these cached repos. Note, we try to resolve everything, even
     // deselected repos.
-    updateSpeculativeRepos(cleanedRepos.mapNotNull { it.codebaseName })
+    ApplicationManager.getApplication().executeOnPooledThread {
+      // Remember which repositories have been manually deselected.
+      synchronized(model) {
+        model.rawSpec = cleanedRepos.map { it.codebaseName }.joinToString("\n")
+        model.manuallyDeselected =
+          cleanedRepos.filter { !it.isEnabled }.mapNotNull { it.codebaseName }.toSet()
+      }
+
+      updateSpeculativeRepos(cleanedRepos.mapNotNull { it.codebaseName })
+    }
   }
 
   /**
@@ -119,26 +126,30 @@ class EnterpriseEnhancedContextStateController(
    * list to the JetBrains-side copy of chat history.
    */
   fun updateRawSpec(newSpec: String) {
-    model.rawSpec = newSpec
-    val speculative = newSpec.split(Regex("""\s+""")).filter { it != "" }.toSet().toList()
+    val speculative = synchronized(model) {
+      model.rawSpec = newSpec
+      val speculative = newSpec.split(Regex("""\s+""")).filter { it != "" }.toSet().toList()
 
-    // If a repository name has been removed from the list of speculative repos, then forget that it
-    // was manually
-    // deselected in order for it to be default selected if it is added back.
+      // If a repository name has been removed from the list of speculative repos, then forget that it
+      // was manually
+      // deselected in order for it to be default selected if it is added back.
 
-    // TODO: Improve the accuracy of removals when there's an Agent API that maps specified name ->
-    // resolved name.
-    // Today we only have names go in and a set of repositories come out, in different
-    // (alphabetical) order.
-    model.manuallyDeselected = model.manuallyDeselected.filter { speculative.contains(it) }.toSet()
-
+      // TODO: Improve the accuracy of removals when there's an Agent API that maps specified name ->
+      // resolved name.
+      // Today we only have names go in and a set of repositories come out, in different
+      // (alphabetical) order.
+      model.manuallyDeselected = model.manuallyDeselected.filter { speculative.contains(it) }.toSet()
+      speculative
+    }
     updateSpeculativeRepos(speculative)
   }
 
   // Builds the initial list of repositories and kicks off the process of resolving them.
   private fun updateSpeculativeRepos(repos: List<String>) {
+    assert(!ApplicationManager.getApplication().isDispatchThread) { "updateSpeculativeRepos should not be used on EDT, it may block" }
+
     var thisEpoch =
-        synchronized(this) {
+        synchronized(model) {
           model.specified = repos.toSet()
           ++epoch
         }
@@ -146,44 +157,55 @@ class EnterpriseEnhancedContextStateController(
     // Consult the repo resolution cache.
     val resolved = mutableSetOf<Repo>()
     val toResolve = mutableSetOf<String>()
-    for (repo in repos) {
-      val cached = model.resolvedCache[repo]
-      when {
-        cached == null -> toResolve.add(repo)
-        else -> resolved.add(cached)
+    synchronized(model) {
+      for (repo in repos) {
+        val cached = model.resolvedCache[repo]
+        when {
+          cached == null -> toResolve.add(repo)
+          else -> resolved.add(cached)
+        }
       }
     }
 
-    if (toResolve.size == 0) {
+    // Remotely resolve the repositories that we couldn't resolve locally.
+    if (toResolve.size > 0) {
+      val newlyResolvedRepos = getRepositories(project, toResolve.map { CodebaseName(it) }.toList())
+        .completeOnTimeout(emptyList(), 15, TimeUnit.SECONDS).get()
+
+      // Update the cache of resolved repositories.
+      synchronized(model) {
+        model.resolvedCache.putAll(newlyResolvedRepos.associateBy { it.name })
+      }
+
+      resolved.addAll(newlyResolvedRepos)
+    }
+
+    synchronized(model) {
+      if (epoch != thisEpoch) {
+        // We've kicked off another update in the meantime, so run with that one.
+        return
+      }
+      if (repos.isNotEmpty() && resolved.isEmpty()) {
+        chat.notifyRemoteRepoResolutionFailed()
+        return
+      }
       updateSavedState()
       onResolvedRepos(resolved.toList())
-    } else {
-      RemoteRepoUtils.resolveReposWithErrorNotification(
-          project, toResolve.map { CodebaseName(it) }.toList()) {
-            synchronized(this) {
-              if (epoch == thisEpoch) {
-                updateSavedState()
-                resolved.addAll(it)
-                onResolvedRepos(resolved.toList())
-              }
-            }
-          }
     }
   }
 
   private fun onResolvedRepos(repos: List<Repo>) {
     var resolvedRepos = repos.associateBy { repo -> repo.name }
 
-    // Update the cache of resolved repositories.
-    model.resolvedCache.putAll(resolvedRepos)
-
     // Update the Agent state. This eventually produces `updateFromAgent` which triggers the tree
     // view update.
-    chat.updateAgentState(
-        model.specified
-            .mapNotNull { repoSpecName -> resolvedRepos[repoSpecName] }
-            .filter { !model.manuallyDeselected.contains(it.name) }
-            .take(MAX_REMOTE_REPOSITORY_COUNT))
+    val reposToSendToAgent = synchronized(model) {
+      model.specified
+        .mapNotNull { repoSpecName -> resolvedRepos[repoSpecName] }
+        .filter { !model.manuallyDeselected.contains(it.name) }
+        .take(MAX_REMOTE_REPOSITORY_COUNT)
+    }
+    chat.updateAgentState(reposToSendToAgent)
   }
 
   fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT) {
@@ -209,37 +231,44 @@ class EnterpriseEnhancedContextStateController(
       repos.add(RemoteRepo(name, id, enablement, isIgnored = ignored, inclusion))
     }
 
-    model.configured = repos
+    synchronized(model) {
+      model.configured = repos
+    }
     updateUI()
   }
 
   private fun updateUI() {
-    // Compute the merged representation of repositories.
-    val usedRepos: MutableMap<String, RemoteRepo> =
-        model.configured.associateBy { it.name }.toMutableMap()
-
-    // Visit the repositories in the order specified by the user.
+    val usedRepos: MutableMap<String, RemoteRepo> = mutableMapOf()
     val repos = mutableListOf<RemoteRepo>()
-    repos.addAll(
+
+    synchronized(model) {
+      // Compute the merged representation of repositories.
+      usedRepos.putAll(model.configured.associateBy { it.name })
+
+      // Visit the repositories in the order specified by the user.
+      repos.addAll(
         model.specified.map {
           usedRepos.getOrDefault(
+            it,
+            // If the repo was manually deselected, then we show it as de-selected.
+            // The repo was not manually deselected, yet isn't in the configured repos, hence it
+            // is not found.
+            // TODO: We could speculatively consult Cody Ignore to see if the deselected repo
+            // *would* have been ignored.
+            RemoteRepo(
               it,
-              // If the repo was manually deselected, then we show it as de-selected.
-              // The repo was not manually deselected, yet isn't in the configured repos, hence it
-              // is not found.
-              // TODO: We could speculatively consult Cody Ignore to see if the deselected repo
-              // *would* have been ignored.
-              RemoteRepo(
-                  it,
-                  null,
-                  if (model.manuallyDeselected.contains(it)) {
-                    RepoEnablement.DESELECTED
-                  } else {
-                    RepoEnablement.NOT_FOUND
-                  },
-                  isIgnored = false,
-                  RepoInclusion.MANUAL))
+              null,
+              if (model.manuallyDeselected.contains(it)) {
+                RepoEnablement.DESELECTED
+              } else {
+                RepoEnablement.NOT_FOUND
+              },
+              isIgnored = false,
+              RepoInclusion.MANUAL
+            )
+          )
         })
+    }
 
     // Finally, if there are any remaining repos configured by the agent which are not used,
     // represent them now.
@@ -250,24 +279,27 @@ class EnterpriseEnhancedContextStateController(
   }
 
   fun setRepoEnabledInContextState(repoName: String, enabled: Boolean) {
-    val atLimit = model.configured.count { it.isEnabled } >= MAX_REMOTE_REPOSITORY_COUNT
-    val repos = model.configured.map { Repo(it.name, it.id!!) }.toMutableList()
+    val repos = synchronized(model) {
+      val atLimit = model.configured.count { it.isEnabled } >= MAX_REMOTE_REPOSITORY_COUNT
+      val repos = model.configured.map { Repo(it.name, it.id!!) }.toMutableList()
 
-    if (enabled) {
-      if (atLimit) {
-        chat.notifyRemoteRepoLimit()
-        return
+      if (enabled) {
+        if (atLimit) {
+          chat.notifyRemoteRepoLimit()
+          return
+        }
+        model.manuallyDeselected = model.manuallyDeselected.filter { it != repoName }.toSet()
+        val repoToAdd = synchronized(model.resolvedCache) { model.resolvedCache[repoName] }
+        if (repoToAdd == null) {
+          logger.warn("failed to find repo $repoName in the resolved cache; will not enable it")
+          return
+        }
+        repos.add(repoToAdd)
+      } else {
+        model.manuallyDeselected = model.manuallyDeselected.plus(repoName)
+        repos.removeIf { it.name == repoName }
       }
-      model.manuallyDeselected = model.manuallyDeselected.filter { it != repoName }.toSet()
-      val repoToAdd = model.resolvedCache[repoName]
-      if (repoToAdd == null) {
-        logger.warn("failed to find repo $repoName in the resolved cache; will not enable it")
-        return
-      }
-      repos.add(repoToAdd)
-    } else {
-      model.manuallyDeselected = model.manuallyDeselected.plus(repoName)
-      repos.removeIf { it.name == repoName }
+      repos
     }
 
     updateSavedState()
@@ -283,20 +315,21 @@ class EnterpriseEnhancedContextStateController(
   // deselected
   // (`model.manuallyDeselected`).
   private fun updateSavedState() {
+    val reposToWriteToState = synchronized(model) {
+      model.specified.map { repoSpecName ->
+        RemoteRepositoryState().apply {
+          codebaseName = repoSpecName
+          // Note, we don't limit to MAX_REMOTE_REPOSITORY_COUNT here. We may raise or lower
+          // that limit in future versions anyway, so we just record what is manually deselected
+          // and apply the limit when updating Agent-side state.
+          isEnabled = !model.manuallyDeselected.contains(repoSpecName)
+        }
+      }
+    }
+
     chat.updateSavedState { state ->
       state.remoteRepositories.clear()
-      state.remoteRepositories.addAll(
-          model.specified.map { repoSpecName ->
-            RemoteRepositoryState().apply {
-              codebaseName = repoSpecName
-              // Note, we don't limit to MAX_REMOTE_REPOSITORY_COUNT here. We may raise or lower
-              // that limit in future
-              // versions anyway, so we just record what is manually deselected and apply the limit
-              // when updating
-              // Agent-side state.
-              isEnabled = !model.manuallyDeselected.contains(repoSpecName)
-            }
-          })
+      state.remoteRepositories.addAll(reposToWriteToState)
     }
   }
 }

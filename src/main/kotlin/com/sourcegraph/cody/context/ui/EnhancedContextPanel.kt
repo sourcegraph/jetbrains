@@ -13,6 +13,7 @@ import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.TitledSeparator
+import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.concurrency.annotations.RequiresEdt
@@ -380,16 +381,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
 class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     EnhancedContextPanel(project, chatSession) {
-  // The toolbar decorator component.
-  private val toolbar = run {
-    createDecorator(tree)
-        .disableUpDownActions()
-        .setToolbarPosition(ActionToolbarPosition.RIGHT)
-        .setVisibleRowCount(1)
-        .setScrollPaneBorder(BorderFactory.createEmptyBorder())
-        .setToolbarBorder(BorderFactory.createEmptyBorder())
-  }
-
   private val enhancedContextNode =
       ContextTreeRootNode(CodyBundle.getString("context-panel.tree.node-chat-context")) { isChecked
         ->
@@ -414,10 +405,19 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     resize()
   }
 
+  private var toolbar: ToolbarDecorator? = null
+
   @RequiresEdt
   override fun createPanel(): JComponent {
-    toolbar.addExtraAction(ReindexButton(project))
-    toolbar.addExtraAction(HelpButton())
+    val toolbar = createDecorator(tree)
+      .disableUpDownActions()
+      .setToolbarPosition(ActionToolbarPosition.RIGHT)
+      .setVisibleRowCount(1)
+      .setScrollPaneBorder(BorderFactory.createEmptyBorder())
+      .setToolbarBorder(BorderFactory.createEmptyBorder())
+      .addExtraAction(ReindexButton(project))
+      .addExtraAction(HelpButton())
+    this.toolbar = toolbar
     return toolbar.createPanel()
   }
 
@@ -433,7 +433,7 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     // Set the minimum size to accommodate at least one toolbar button and an overflow ellipsis.
     // Because the buttons
     // are approximately square, use the toolbar width as a proxy for the button height.
-    val toolbarButtonHeight = toolbar.actionsPanel.preferredSize.width
+    val toolbarButtonHeight = toolbar?.actionsPanel?.preferredSize?.width ?: 0
     val preferredSizeNumVisibleButtons = 1
     panel.preferredSize =
         Dimension(
