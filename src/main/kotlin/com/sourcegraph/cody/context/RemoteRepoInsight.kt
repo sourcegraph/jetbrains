@@ -62,7 +62,7 @@ data class RemoteRepo(
     val inclusion: RepoInclusion,
 ) {
   val isEnabled: Boolean
-    get() = enablement == RepoEnablement.ENABLED
+    get() = enablement == RepoEnablement.ENABLED && !isIgnored
 
   val displayName: String
     get() = name.substring(name.indexOf('/') + 1) // Note, works for names without / => full name.
