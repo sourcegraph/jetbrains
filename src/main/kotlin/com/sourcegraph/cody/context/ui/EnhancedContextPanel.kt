@@ -207,6 +207,7 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
   }
 
   abstract fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT)
+  abstract fun updateFromSavedState(state: EnhancedContextState)
 }
 
 class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession) :
@@ -304,6 +305,10 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     controller.updateFromAgent(enhancedContextStatus)
   }
 
+  override fun updateFromSavedState(state: EnhancedContextState) {
+    controller.loadFromChatState(state.remoteRepositories)
+  }
+
   private val contextRoot =
       object :
           ContextTreeEnterpriseRootNode(
@@ -393,9 +398,7 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     enhancedContextNode.add(localContextNode)
 
     val contextState = getContextState()
-    ApplicationManager.getApplication().invokeLater {
-      enhancedContextNode.isChecked = contextState?.isEnabled ?: true
-    }
+    updateFromSavedState(contextState ?: EnhancedContextState())
 
     treeModel.reload()
     resize()
@@ -417,6 +420,12 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
 
   override fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT) {
     // No-op. The consumer panel relies solely on JetBrains-side state.
+  }
+
+  override fun updateFromSavedState(state: EnhancedContextState) {
+    ApplicationManager.getApplication().invokeLater {
+      enhancedContextNode.isChecked = state.isEnabled ?: true
+    }
   }
 
   init {

@@ -29,6 +29,7 @@ import com.sourcegraph.cody.context.RemoteRepoUtils
 import com.sourcegraph.cody.error.CodyErrorSubmitter
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.ChatState
+import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.MessageState
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
@@ -276,24 +277,10 @@ private constructor(
         restoreChatSession(agent, chatMessages, chatModelProviderFromState, state.internalId!!)
     connectionId.getAndSet(newConnectionId)
 
-    // Update the Agent-side state.
-    val remoteRepos = state.enhancedContext?.remoteRepositories
-    if (remoteRepos != null &&
-        CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ==
+    // Update the context view, controller, and Agent-side state.
+    if (CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isDotcomAccount() ==
             false) {
-      // TODO: This needs to limit to 10 repos again.
-      RemoteRepoUtils.resolveReposWithErrorNotification(
-              project,
-              remoteRepos
-                  .filter { it -> it.isEnabled && it.codebaseName != null }
-                  .map { it -> CodebaseName(it.codebaseName!!) }
-                  .toList()) { resolvedRepos ->
-                sendWebviewMessage(
-                    WebviewMessage(
-                        command = "context/choose-remote-search-repo",
-                        explicitRepos = resolvedRepos))
-              }
-          .join()
+      chatPanel.contextView.updateFromSavedState(state.enhancedContext ?: EnhancedContextState())
     }
   }
 
