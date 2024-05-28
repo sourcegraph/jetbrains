@@ -27,12 +27,12 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import java.awt.Dimension
 import java.awt.Point
+import java.awt.event.ActionEvent
+import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.util.concurrent.atomic.AtomicBoolean
-import javax.swing.BorderFactory
-import javax.swing.JComponent
-import javax.swing.JPanel
+import javax.swing.*
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 import javax.swing.tree.DefaultTreeModel
@@ -192,6 +192,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       val northWest = RelativePoint(component, Point(0, -this.size.height))
       show(northWest)
     }
+
+    private const val ENTER_MAP_KEY = "enter"
   }
 
   // TODO: We need to kick off setting the agent state with
@@ -232,6 +234,13 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       }
 
   init {
+    tree.inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), ENTER_MAP_KEY)
+    tree.actionMap.put(ENTER_MAP_KEY, object : AbstractAction() {
+      override fun actionPerformed(e: ActionEvent) {
+        repoPopupController.createPopup(tree.width, endpointName, controller.rawSpec).showAbove(tree)
+      }
+    })
+
     tree.addMouseListener(
         object : MouseAdapter() {
           fun targetForEvent(e: MouseEvent): Any? =
