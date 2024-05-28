@@ -413,14 +413,15 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
 
   @RequiresEdt
   override fun createPanel(): JComponent {
-    val toolbar = createDecorator(tree)
-      .disableUpDownActions()
-      .setToolbarPosition(ActionToolbarPosition.RIGHT)
-      .setVisibleRowCount(1)
-      .setScrollPaneBorder(BorderFactory.createEmptyBorder())
-      .setToolbarBorder(BorderFactory.createEmptyBorder())
-      .addExtraAction(ReindexButton(project))
-      .addExtraAction(HelpButton())
+    val toolbar =
+        createDecorator(tree)
+            .disableUpDownActions()
+            .setToolbarPosition(ActionToolbarPosition.RIGHT)
+            .setVisibleRowCount(1)
+            .setScrollPaneBorder(BorderFactory.createEmptyBorder())
+            .setToolbarBorder(BorderFactory.createEmptyBorder())
+            .addExtraAction(ReindexButton(project))
+            .addExtraAction(HelpButton())
     this.toolbar = toolbar
     return toolbar.createPanel()
   }

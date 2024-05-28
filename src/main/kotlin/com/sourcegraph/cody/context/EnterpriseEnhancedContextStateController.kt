@@ -95,8 +95,10 @@ class EnterpriseEnhancedContextStateController(
   val rawSpec: String
     get(): String = model_.rawSpec
 
-  private fun <T>withModel(f: (EnterpriseEnhancedContextModel) -> T): T {
-    assert(!ApplicationManager.getApplication().isDispatchThread) { "Must not use model from EDT, it may block" }
+  private fun <T> withModel(f: (EnterpriseEnhancedContextModel) -> T): T {
+    assert(!ApplicationManager.getApplication().isDispatchThread) {
+      "Must not use model from EDT, it may block"
+    }
     synchronized(model_) {
       return f(model_)
     }
@@ -118,7 +120,7 @@ class EnterpriseEnhancedContextStateController(
       withModel { model ->
         model.rawSpec = cleanedRepos.map { it.codebaseName }.joinToString("\n")
         model.manuallyDeselected =
-          cleanedRepos.filter { !it.isEnabled }.mapNotNull { it.codebaseName }.toSet()
+            cleanedRepos.filter { !it.isEnabled }.mapNotNull { it.codebaseName }.toSet()
       }
 
       updateSpeculativeRepos(cleanedRepos.mapNotNull { it.codebaseName })
@@ -137,15 +139,18 @@ class EnterpriseEnhancedContextStateController(
       model.rawSpec = newSpec
       val speculative = newSpec.split(Regex("""\s+""")).filter { it != "" }.toSet().toList()
 
-      // If a repository name has been removed from the list of speculative repos, then forget that it
+      // If a repository name has been removed from the list of speculative repos, then forget that
+      // it
       // was manually
       // deselected in order for it to be default selected if it is added back.
 
-      // TODO: Improve the accuracy of removals when there's an Agent API that maps specified name ->
+      // TODO: Improve the accuracy of removals when there's an Agent API that maps specified name
+      // ->
       // resolved name.
       // Today we only have names go in and a set of repositories come out, in different
       // (alphabetical) order.
-      model.manuallyDeselected = model.manuallyDeselected.filter { speculative.contains(it) }.toSet()
+      model.manuallyDeselected =
+          model.manuallyDeselected.filter { speculative.contains(it) }.toSet()
       speculative
     }
     updateSpeculativeRepos(speculative)
@@ -153,13 +158,15 @@ class EnterpriseEnhancedContextStateController(
 
   // Builds the initial list of repositories and kicks off the process of resolving them.
   private fun updateSpeculativeRepos(repos: List<String>) {
-    assert(!ApplicationManager.getApplication().isDispatchThread) { "updateSpeculativeRepos should not be used on EDT, it may block" }
+    assert(!ApplicationManager.getApplication().isDispatchThread) {
+      "updateSpeculativeRepos should not be used on EDT, it may block"
+    }
 
     var thisEpoch =
-      synchronized(this) {
-        withModel { model -> model.specified = repos.toSet() }
-        ++epoch
-      }
+        synchronized(this) {
+          withModel { model -> model.specified = repos.toSet() }
+          ++epoch
+        }
 
     // Consult the repo resolution cache.
     val resolved = mutableSetOf<Repo>()
@@ -176,13 +183,13 @@ class EnterpriseEnhancedContextStateController(
 
     // Remotely resolve the repositories that we couldn't resolve locally.
     if (toResolve.size > 0) {
-      val newlyResolvedRepos = getRepositories(project, toResolve.map { CodebaseName(it) }.toList())
-        .completeOnTimeout(emptyList(), 15, TimeUnit.SECONDS).get()
+      val newlyResolvedRepos =
+          getRepositories(project, toResolve.map { CodebaseName(it) }.toList())
+              .completeOnTimeout(emptyList(), 15, TimeUnit.SECONDS)
+              .get()
 
       // Update the cache of resolved repositories.
-      withModel { model ->
-        model.resolvedCache.putAll(newlyResolvedRepos.associateBy { it.name })
-      }
+      withModel { model -> model.resolvedCache.putAll(newlyResolvedRepos.associateBy { it.name }) }
 
       resolved.addAll(newlyResolvedRepos)
     }
@@ -208,9 +215,9 @@ class EnterpriseEnhancedContextStateController(
     // view update.
     val reposToSendToAgent = withModel { model ->
       model.specified
-        .mapNotNull { repoSpecName -> resolvedRepos[repoSpecName] }
-        .filter { !model.manuallyDeselected.contains(it.name) }
-        .take(MAX_REMOTE_REPOSITORY_COUNT)
+          .mapNotNull { repoSpecName -> resolvedRepos[repoSpecName] }
+          .filter { !model.manuallyDeselected.contains(it.name) }
+          .take(MAX_REMOTE_REPOSITORY_COUNT)
     }
     chat.updateAgentState(reposToSendToAgent)
   }
@@ -238,9 +245,7 @@ class EnterpriseEnhancedContextStateController(
       repos.add(RemoteRepo(name, id, enablement, isIgnored = ignored, inclusion))
     }
 
-    withModel { model ->
-      model.configured = repos
-    }
+    withModel { model -> model.configured = repos }
     updateUI()
   }
 
@@ -254,27 +259,25 @@ class EnterpriseEnhancedContextStateController(
 
       // Visit the repositories in the order specified by the user.
       repos.addAll(
-        model.specified.map {
-          usedRepos.getOrDefault(
-            it,
-            // If the repo was manually deselected, then we show it as de-selected.
-            // The repo was not manually deselected, yet isn't in the configured repos, hence it
-            // is not found.
-            // TODO: We could speculatively consult Cody Ignore to see if the deselected repo
-            // *would* have been ignored.
-            RemoteRepo(
-              it,
-              null,
-              if (model.manuallyDeselected.contains(it)) {
-                RepoEnablement.DESELECTED
-              } else {
-                RepoEnablement.NOT_FOUND
-              },
-              isIgnored = false,
-              RepoInclusion.MANUAL
-            )
-          )
-        })
+          model.specified.map {
+            usedRepos.getOrDefault(
+                it,
+                // If the repo was manually deselected, then we show it as de-selected.
+                // The repo was not manually deselected, yet isn't in the configured repos, hence it
+                // is not found.
+                // TODO: We could speculatively consult Cody Ignore to see if the deselected repo
+                // *would* have been ignored.
+                RemoteRepo(
+                    it,
+                    null,
+                    if (model.manuallyDeselected.contains(it)) {
+                      RepoEnablement.DESELECTED
+                    } else {
+                      RepoEnablement.NOT_FOUND
+                    },
+                    isIgnored = false,
+                    RepoInclusion.MANUAL))
+          })
     }
 
     // Finally, if there are any remaining repos configured by the agent which are not used,
