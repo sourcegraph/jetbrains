@@ -34,12 +34,12 @@ class ContextTreeLocalRepoNode(val project: Project, isEnhancedContextEnabled: A
 /** Enterprise context selector tree, root node. */
 open class ContextTreeEnterpriseRootNode(
   var numActiveRepos: Int,
-  var numIgnoredRepos: Int,
   onSetChecked: (Boolean) -> Unit
 ) :
     ContextTreeNode<Any>(
         Object(), onSetChecked) // TreePaths depend on user objects; Object() ensures uniqueness.
 
+// TODO: Can we remove onActivate if we remove the toolbar?
 /** Enterprise context selector tree, a node to trigger editing the repository list. */
 class ContextTreeEditReposNode(var hasRemovableRepos: Boolean, val onActivate: () -> Unit) :
     ContextTreeNode<Any>(Object())

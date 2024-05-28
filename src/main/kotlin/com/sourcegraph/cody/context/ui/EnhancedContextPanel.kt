@@ -307,7 +307,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   private val contextRoot =
       object :
           ContextTreeEnterpriseRootNode(
-               0, 0, { checked -> enhancedContextEnabled.set(checked) }) {
+               0, { checked -> enhancedContextEnabled.set(checked) }) {
         override fun isChecked(): Boolean {
           return enhancedContextEnabled.get()
         }

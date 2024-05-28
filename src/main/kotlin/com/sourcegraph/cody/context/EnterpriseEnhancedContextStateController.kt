@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.context
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.EnhancedContextContextT
 import com.sourcegraph.cody.agent.protocol.Repo
@@ -83,6 +84,7 @@ interface ChatEnhancedContextStateProvider {
  * [onAgentStateUpdated] flow.
  */
 class EnterpriseEnhancedContextStateController(val project: Project, val chat: ChatEnhancedContextStateProvider) {
+  private val logger = Logger.getInstance(EnterpriseEnhancedContextStateController::class.java)
   private val model = EnterpriseEnhancedContextModel()
   private var epoch = 0
 
@@ -136,12 +138,30 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
       ++epoch
     }
 
-    RemoteRepoUtils.resolveReposWithErrorNotification(
-      project, model.specified.map { CodebaseName(it) }.toList()) {
-      synchronized(this) {
-        if (epoch == thisEpoch) {
-          updateSavedState()
-          onResolvedRepos(it)
+    // Consult the repo resolution cache.
+    val resolved = mutableSetOf<Repo>()
+    val toResolve = mutableSetOf<String>()
+    for (repo in repos) {
+      val cached = model.resolvedCache[repo]
+      when {
+        cached == null -> toResolve.add(repo)
+        else -> resolved.add(cached)
+      }
+    }
+
+    if (toResolve.size == 0) {
+      updateSavedState()
+      onResolvedRepos(resolved.toList())
+    } else {
+      RemoteRepoUtils.resolveReposWithErrorNotification(
+        project, toResolve.map { CodebaseName(it) }.toList()
+      ) {
+        synchronized(this) {
+          if (epoch == thisEpoch) {
+            updateSavedState()
+            resolved.addAll(it)
+            onResolvedRepos(resolved.toList())
+          }
         }
       }
     }
@@ -220,7 +240,7 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
       model.manuallyDeselected = model.manuallyDeselected.filter { it != repoName }.toSet()
       val repoToAdd = model.resolvedCache[repoName]
       if (repoToAdd == null) {
-        // TODO: Should not happen. Log this.
+        logger.error("failed to find repo $repoName in the resolved cache; will not enable it")
         return
       }
       repos.add(repoToAdd)

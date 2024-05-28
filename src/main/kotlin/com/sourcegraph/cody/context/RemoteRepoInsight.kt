@@ -59,7 +59,7 @@ data class RemoteRepo(
     val id: String?,
     val enablement: RepoEnablement,
     val isIgnored: Boolean,
-    val inclusion: RepoInclusion
+    val inclusion: RepoInclusion,
 ) {
   val isEnabled: Boolean
     get() = enablement == RepoEnablement.ENABLED
