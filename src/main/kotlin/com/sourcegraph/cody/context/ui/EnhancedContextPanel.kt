@@ -317,7 +317,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
           /* uncheckParentWithUncheckedChild = */ false)
 
   override fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT) {
-    controller.updateFromAgent(enhancedContextStatus)
+    ApplicationManager.getApplication().executeOnPooledThread {
+      controller.updateFromAgent(enhancedContextStatus)
+    }
   }
 
   override fun updateFromSavedState(state: EnhancedContextState) {
@@ -360,7 +362,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     repos
         .map { repo ->
           ContextTreeRemoteRepoNode(repo) {
-            controller.setRepoEnabledInContextState(repo.name, !repo.isEnabled)
+            ApplicationManager.getApplication().executeOnPooledThread {
+              controller.setRepoEnabledInContextState(repo.name, !repo.isEnabled)
+            }
           }
         }
         .forEach { contextRoot.add(it) }

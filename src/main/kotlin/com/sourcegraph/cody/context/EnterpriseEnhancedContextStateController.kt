@@ -24,7 +24,7 @@ private class EnterpriseEnhancedContextModel {
   var manuallyDeselected: Set<String> = emptySet()
 
   // What the TypeScript extension told us it is using for context.
-  @Volatile var configured: List<RemoteRepo> = emptyList()
+  var configured: List<RemoteRepo> = emptyList()
 
   // Any repository we ever resolved. Used when re-selecting a de-selected repository without
   // re-resolving.
@@ -89,11 +89,18 @@ class EnterpriseEnhancedContextStateController(
     val chat: ChatEnhancedContextStateProvider
 ) {
   private val logger = Logger.getInstance(EnterpriseEnhancedContextStateController::class.java)
-  private val model = EnterpriseEnhancedContextModel()
+  private val model_ = EnterpriseEnhancedContextModel()
   private var epoch = 0
 
   val rawSpec: String
-    get(): String = model.rawSpec
+    get(): String = model_.rawSpec
+
+  private fun <T>withModel(f: (EnterpriseEnhancedContextModel) -> T): T {
+    assert(!ApplicationManager.getApplication().isDispatchThread) { "Must not use model from EDT, it may block" }
+    synchronized(model_) {
+      return f(model_)
+    }
+  }
 
   /**
    * Loads the set of repositories from the JetBrains-side copy of chat history and starts the
@@ -108,7 +115,7 @@ class EnterpriseEnhancedContextStateController(
     // deselected repos.
     ApplicationManager.getApplication().executeOnPooledThread {
       // Remember which repositories have been manually deselected.
-      synchronized(model) {
+      withModel { model ->
         model.rawSpec = cleanedRepos.map { it.codebaseName }.joinToString("\n")
         model.manuallyDeselected =
           cleanedRepos.filter { !it.isEnabled }.mapNotNull { it.codebaseName }.toSet()
@@ -126,7 +133,7 @@ class EnterpriseEnhancedContextStateController(
    * list to the JetBrains-side copy of chat history.
    */
   fun updateRawSpec(newSpec: String) {
-    val speculative = synchronized(model) {
+    val speculative = withModel { model ->
       model.rawSpec = newSpec
       val speculative = newSpec.split(Regex("""\s+""")).filter { it != "" }.toSet().toList()
 
@@ -149,15 +156,15 @@ class EnterpriseEnhancedContextStateController(
     assert(!ApplicationManager.getApplication().isDispatchThread) { "updateSpeculativeRepos should not be used on EDT, it may block" }
 
     var thisEpoch =
-        synchronized(model) {
-          model.specified = repos.toSet()
-          ++epoch
-        }
+      synchronized(this) {
+        withModel { model -> model.specified = repos.toSet() }
+        ++epoch
+      }
 
     // Consult the repo resolution cache.
     val resolved = mutableSetOf<Repo>()
     val toResolve = mutableSetOf<String>()
-    synchronized(model) {
+    withModel { model ->
       for (repo in repos) {
         val cached = model.resolvedCache[repo]
         when {
@@ -173,14 +180,14 @@ class EnterpriseEnhancedContextStateController(
         .completeOnTimeout(emptyList(), 15, TimeUnit.SECONDS).get()
 
       // Update the cache of resolved repositories.
-      synchronized(model) {
+      withModel { model ->
         model.resolvedCache.putAll(newlyResolvedRepos.associateBy { it.name })
       }
 
       resolved.addAll(newlyResolvedRepos)
     }
 
-    synchronized(model) {
+    synchronized(this) {
       if (epoch != thisEpoch) {
         // We've kicked off another update in the meantime, so run with that one.
         return
@@ -199,7 +206,7 @@ class EnterpriseEnhancedContextStateController(
 
     // Update the Agent state. This eventually produces `updateFromAgent` which triggers the tree
     // view update.
-    val reposToSendToAgent = synchronized(model) {
+    val reposToSendToAgent = withModel { model ->
       model.specified
         .mapNotNull { repoSpecName -> resolvedRepos[repoSpecName] }
         .filter { !model.manuallyDeselected.contains(it.name) }
@@ -231,7 +238,7 @@ class EnterpriseEnhancedContextStateController(
       repos.add(RemoteRepo(name, id, enablement, isIgnored = ignored, inclusion))
     }
 
-    synchronized(model) {
+    withModel { model ->
       model.configured = repos
     }
     updateUI()
@@ -241,7 +248,7 @@ class EnterpriseEnhancedContextStateController(
     val usedRepos: MutableMap<String, RemoteRepo> = mutableMapOf()
     val repos = mutableListOf<RemoteRepo>()
 
-    synchronized(model) {
+    withModel { model ->
       // Compute the merged representation of repositories.
       usedRepos.putAll(model.configured.associateBy { it.name })
 
@@ -279,34 +286,32 @@ class EnterpriseEnhancedContextStateController(
   }
 
   fun setRepoEnabledInContextState(repoName: String, enabled: Boolean) {
-    val repos = synchronized(model) {
+    withModel { model ->
       val atLimit = model.configured.count { it.isEnabled } >= MAX_REMOTE_REPOSITORY_COUNT
       val repos = model.configured.map { Repo(it.name, it.id!!) }.toMutableList()
 
       if (enabled) {
         if (atLimit) {
           chat.notifyRemoteRepoLimit()
-          return
+          return@withModel
         }
         model.manuallyDeselected = model.manuallyDeselected.filter { it != repoName }.toSet()
         val repoToAdd = synchronized(model.resolvedCache) { model.resolvedCache[repoName] }
         if (repoToAdd == null) {
           logger.warn("failed to find repo $repoName in the resolved cache; will not enable it")
-          return
+          return@withModel
         }
         repos.add(repoToAdd)
       } else {
         model.manuallyDeselected = model.manuallyDeselected.plus(repoName)
         repos.removeIf { it.name == repoName }
       }
-      repos
+      updateSavedState()
+
+      // Update the Agent state. This eventually produces `updateFromAgent` which triggers the tree
+      // view update.
+      chat.updateAgentState(repos)
     }
-
-    updateSavedState()
-
-    // Update the Agent state. This eventually produces `updateFromAgent` which triggers the tree
-    // view update.
-    chat.updateAgentState(repos)
   }
 
   // Pushes a state update to the JetBrains chat history copy of the enhanced context state. This
@@ -315,7 +320,7 @@ class EnterpriseEnhancedContextStateController(
   // deselected
   // (`model.manuallyDeselected`).
   private fun updateSavedState() {
-    val reposToWriteToState = synchronized(model) {
+    val reposToWriteToState = withModel { model ->
       model.specified.map { repoSpecName ->
         RemoteRepositoryState().apply {
           codebaseName = repoSpecName
