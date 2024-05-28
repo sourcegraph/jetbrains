@@ -12,6 +12,7 @@ import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
+import com.intellij.ui.TitledSeparator
 import com.intellij.ui.ToolbarDecorator.createDecorator
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.concurrency.annotations.RequiresEdt
@@ -25,7 +26,9 @@ import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
+import java.awt.BorderLayout
 import java.awt.Dimension
+import java.awt.FlowLayout
 import java.awt.Point
 import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
@@ -273,12 +276,16 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
   @RequiresEdt
   override fun createPanel(): JComponent {
-    return tree
+    val panel = JPanel()
+    panel.layout = BorderLayout()
+    panel.add(TitledSeparator(CodyBundle.getString("chat.enhanced_context.title"), tree), BorderLayout.NORTH)
+    panel.add(tree, BorderLayout.CENTER)
+    return panel
   }
 
   override fun resize() {
     val padding = 5
-    panel.preferredSize =
+    tree.preferredSize =
       Dimension(
         0,
         padding +
