@@ -40,6 +40,7 @@ val versionsToValidate =
     }
 val skippedFailureLevels =
     EnumSet.of(
+        FailureLevel.COMPATIBILITY_PROBLEMS, // blocked by: compatibility hack for IJ 2022.1 / 2024+
         FailureLevel.DEPRECATED_API_USAGES,
         FailureLevel.SCHEDULED_FOR_REMOVAL_API_USAGES, // blocked by: Kotlin UI DSL Cell.align
         FailureLevel.EXPERIMENTAL_API_USAGES,
@@ -82,6 +83,9 @@ intellij {
 }
 
 dependencies {
+  // ActionUpdateThread.jar contains copy of the
+  // com.intellij.openapi.actionSystem.ActionUpdateThread class
+  compileOnly(files("libs/ActionUpdateThread.jar"))
   implementation("org.commonmark:commonmark:0.21.0")
   implementation("org.commonmark:commonmark-ext-gfm-tables:0.21.0")
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.21.0")
@@ -314,7 +318,7 @@ tasks {
           "cody-agent.directory" to buildCodyDir.parent,
           "sourcegraph.verbose-logging" to "true",
           "cody-agent.panic-when-out-of-sync" to
-              (System.getProperty("cody-agent.panic-when-out-of-sync") ?: "false"),
+              (System.getProperty("cody-agent.panic-when-out-of-sync") ?: "true"),
           "cody.autocomplete.enableFormatting" to
               (project.property("cody.autocomplete.enableFormatting") ?: "true"))
 
