@@ -69,6 +69,10 @@ abstract class FixupSession(
 
   private var selectionRange: RangeMarker? = null
 
+  // Whether the session has inserted text into the document.
+  val isInserted: Boolean
+    get() = performedActions.any { it is InsertUndoableAction }
+
   // The prompt that the Agent used for this task. For Edit, it's the same as
   // the most recent prompt the user sent, which we already have. But for Document Code,
   // it enables us to show the user what we sent and let them hand-edit it.
@@ -259,8 +263,14 @@ abstract class FixupSession(
   abstract fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask>
 
   fun accept() {
-    CodyAgentService.withAgent(project) { agent ->
-      agent.server.acceptEditTask(TaskIdParam(taskId!!))
+    try {
+      CodyAgentService.withAgent(project) { agent ->
+        agent.server.acceptEditTask(TaskIdParam(taskId!!))
+      }
+    } catch (x: Exception) {
+      // Don't show error lens here; it's sort of pointless.
+      logger.warn("Error sending editTask/accept for taskId: ${x.localizedMessage}")
+      dispose()
     }
   }
 
@@ -268,16 +278,26 @@ abstract class FixupSession(
     if (taskId == null) {
       dispose()
     } else {
-      CodyAgentService.withAgent(project) { agent ->
-        agent.server.cancelEditTask(TaskIdParam(taskId!!))
+      try {
+        CodyAgentService.withAgent(project) { agent ->
+          agent.server.cancelEditTask(TaskIdParam(taskId!!))
+        }
+      } catch (x: Exception) {
+        // Error lens here is counterproductive as well.
+        logger.warn("Error sending editTask/accept for taskId: ${x.localizedMessage}")
+        dispose()
       }
     }
   }
 
   fun undo() {
     runInEdt { showWorkingGroup() }
-    CodyAgentService.withAgent(project) { agent ->
-      agent.server.undoEditTask(TaskIdParam(taskId!!))
+    try {
+      CodyAgentService.withAgent(project) { agent ->
+        agent.server.undoEditTask(TaskIdParam(taskId!!))
+      }
+    } catch (x: Exception) {
+      showErrorGroup("Error sending editTask/undo for taskId: ${x.localizedMessage}")
     }
   }
 

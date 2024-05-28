@@ -19,11 +19,12 @@ class EditCodeSession(
     editor: Editor,
     val instructions: String,
     private val chatModelProvider: ChatModelsResponse.ChatModelProvider,
+    val mode: String = "edit",
 ) : FixupSession(controller, editor.project!!, editor) {
 
   override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
     return try {
-      agent.server.commandsEdit(InlineEditParams(instructions, chatModelProvider.model))
+      agent.server.commandsEdit(InlineEditParams(instructions, chatModelProvider.model, mode))
     } catch (x: Exception) {
       logger.warn("Error making editCommands/edit request", x)
       CompletableFuture.failedFuture(x)
