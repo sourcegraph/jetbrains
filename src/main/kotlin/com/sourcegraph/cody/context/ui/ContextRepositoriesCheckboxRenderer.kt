@@ -58,22 +58,12 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
             }
       }
       is ContextTreeEnterpriseRootNode -> {
-        // Compute a complicated label counting repositories, for example:
-        // *Chat Context* 1 Repo on example.com
-        // *Chat Context* 2 Repos - 1 ignored on example.com
-        val ignoredRejoinder =
-            when {
-              node.numIgnoredRepos > 0 ->
-                  CodyBundle.getString("context-panel.tree.node-chat-context.detail-ignored-repos")
-                      .fmt(node.numIgnoredRepos.toString())
-              else -> ""
-            }
         textRenderer.appendHTML(
             CodyBundle.getString("context-panel.tree.node-chat-context.detailed")
                 .fmt(
                     style,
-                    node.numRepos.toString(),
-                    "repository".pluralize(node.numRepos)),
+                    node.numActiveRepos.toString(),
+                    "repository".pluralize(node.numActiveRepos)),
             SimpleTextAttributes.REGULAR_ATTRIBUTES)
         // The root element controls enhanced context which includes editor selection, etc. Do not
         // display unchecked/bar even if the child repos are unchecked.

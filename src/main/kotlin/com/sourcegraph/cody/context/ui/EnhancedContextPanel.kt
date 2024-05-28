@@ -364,8 +364,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     contextRoot.add(editReposNode)
 
     // TODO: Update this to only show the active repo count, we don't need to count ignored or not etc.
-    contextRoot.numRepos = repos.count { !it.isIgnored }
-    contextRoot.numIgnoredRepos = repos.count { !it.isIgnored }
+    contextRoot.numActiveRepos = repos.count { it.isEnabled }
     treeModel.reload(contextRoot)
     if (wasExpanded) {
       tree.expandPath(remotesPath)
