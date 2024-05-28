@@ -5,15 +5,13 @@
 Use Cody, the AI coding assistant, plus Code Search directly from your JetBrains IDE.
 
 - [Cody](https://about.sourcegraph.com/cody?utm_source=plugins.jetbrains.com&utm_medium=referral) is an AI coding assistant that helps you understand, write, and fix code faster. It uses advanced search to pull context from both local and remote codebases so that you can use context about APIs, symbols, and usage patterns from across your entire codebase at any scale, all from within your JetBrains IDE.
-- [Code Search](https://about.sourcegraph.com/code-search?utm_source=plugins.jetbrains.com&utm_medium=referral) let's you search code across all your repositories and code hosts—even the code you don’t have locally. 
-
-**Cody for JetBrains IDEs is in beta. We’d love your [feedback](https://github.com/sourcegraph/sourcegraph/discussions/new?category=product-feedback&labels=cody,cody/jetbrains)**!
+- [Code Search](https://about.sourcegraph.com/code-search?utm_source=plugins.jetbrains.com&utm_medium=referral) lets you search code across all your repositories and code hosts—even the code you don’t have locally. 
 
 ## Cody Features
 
 ### Autocomplete: Cody writes code for you
 
-Cody autocompletes single lines, or whole functions, in any programming language, configuration file, or documentation. It’s powered by latest instant LLMs for accuracy and performance.
+Cody autocompletes single lines or whole functions in any programming language, configuration file, or documentation. It’s powered by the latest instant LLMs for accuracy and performance.
 
 ![Example of using code autocomplete](https://storage.googleapis.com/sourcegraph-assets/website/Product%20Animations/AutoCompletion_IntelliJ_SS.jpg)
 
@@ -68,7 +66,7 @@ For example:
 
 ### Cody Enterprise
 
-Cody Enterprise is able to retrieve context from your entire remote codebase using code search. This gives Cody the ability to understand and answer questions about any of your code, even the repositories that don't live on your local machine.
+Cody Enterprise can retrieve context from your entire remote codebase using code search. This allows Cody to understand and answer questions about any of your code, even the repositories that don't live on your local machine.
 
 [Contact us](https://about.sourcegraph.com/contact/request-info?utm_source=plugins.jetbrains.com&utm_medium=referral) to set up a trial of Cody Enterprise. If you’re an existing Sourcegraph Enterprise customer, contact your technical advisor.
 
