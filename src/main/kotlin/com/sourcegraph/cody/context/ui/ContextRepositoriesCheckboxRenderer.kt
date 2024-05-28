@@ -7,7 +7,7 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.ThreeStateCheckBox
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.chat.ui.pluralize
-import com.sourcegraph.cody.context.RepoEnablement
+import com.sourcegraph.cody.context.RepoSelectionStatus
 import com.sourcegraph.cody.context.RepoInclusion
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
@@ -93,7 +93,7 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
                           CodyBundle.getString("context-panel.tree.node-remote-repo.auto")
                       node.repo.isIgnored ->
                           CodyBundle.getString("context-panel.tree.node-remote-repo.ignored")
-                      node.repo.enablement == RepoEnablement.NOT_FOUND ->
+                      node.repo.selectionStatus == RepoSelectionStatus.NOT_FOUND ->
                           CodyBundle.getString("context-panel.tree.node-remote-repo.not-found")
                       else -> ""
                     }),
@@ -118,12 +118,12 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
         myCheckbox.isEnabled =
             isEnhancedContextEnabled &&
                 node.repo.inclusion != RepoInclusion.AUTO &&
-                node.repo.enablement != RepoEnablement.NOT_FOUND
+                node.repo.selectionStatus != RepoSelectionStatus.NOT_FOUND
         myCheckbox.toolTipText =
             when {
               node.repo.inclusion == RepoInclusion.AUTO ->
                   CodyBundle.getString("context-panel.tree.node-auto.tooltip")
-              node.repo.enablement == RepoEnablement.NOT_FOUND ->
+              node.repo.selectionStatus == RepoSelectionStatus.NOT_FOUND ->
                   CodyBundle.getString("context-panel.tree.node-remote-repo.not-found")
               else -> CodyBundle.getString("context-panel.tree.node.checkbox.remove-tooltip")
             }

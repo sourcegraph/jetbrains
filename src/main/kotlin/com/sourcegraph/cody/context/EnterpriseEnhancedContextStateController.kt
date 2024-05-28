@@ -23,7 +23,7 @@ private class EnterpriseEnhancedContextModel {
   // The names of repositories that have been manually deselected.
   var manuallyDeselected: Set<String> = emptySet()
 
-  // What the TypeScript extension told us it is using for context.
+  // What the Agent told us it is using for context.
   var configured: List<RemoteRepo> = emptyList()
 
   // Any repository we ever resolved. Used when re-selecting a de-selected repository without
@@ -230,8 +230,8 @@ class EnterpriseEnhancedContextStateController(
       val id = provider.id ?: continue
       val enablement =
           when {
-            provider.state == "ready" -> RepoEnablement.ENABLED
-            else -> RepoEnablement.DESELECTED
+            provider.state == "ready" -> RepoSelectionStatus.SELECTED
+            else -> RepoSelectionStatus.DESELECTED
           }
       val ignored = provider.isIgnored == true
       val inclusion =
@@ -269,9 +269,9 @@ class EnterpriseEnhancedContextStateController(
                     it,
                     null,
                     if (model.manuallyDeselected.contains(it)) {
-                      RepoEnablement.DESELECTED
+                      RepoSelectionStatus.DESELECTED
                     } else {
-                      RepoEnablement.NOT_FOUND
+                      RepoSelectionStatus.NOT_FOUND
                     },
                     isIgnored = false,
                     RepoInclusion.MANUAL))

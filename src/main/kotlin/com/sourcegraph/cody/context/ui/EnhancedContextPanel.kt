@@ -287,7 +287,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
         .setTitle(CodyBundle.getString("context-panel.tree.help-tooltip.title"))
         .setDescription(
             CodyBundle.getString("context-panel.tree.help-tooltip.description")
-                .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), endpointName))
+                .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString()))
         .setLink(CodyBundle.getString("context-panel.tree.help-tooltip.link.text")) {
           BrowserUtil.open(CodyBundle.getString("context-panel.tree.help-tooltip.link.href"))
         }

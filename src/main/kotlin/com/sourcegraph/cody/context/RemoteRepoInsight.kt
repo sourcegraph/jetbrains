@@ -44,27 +44,27 @@ enum class RepoInclusion {
   MANUAL,
 }
 
-enum class RepoEnablement {
+enum class RepoSelectionStatus {
   /** The user manually deselected the repository. */
   DESELECTED,
   /** Remote repo search did not find the repo (so it is disabled.) */
   NOT_FOUND,
-  /** The repo has been found and is enabled. */
-  ENABLED,
+  /** The repo has been found and is selected. */
+  SELECTED,
 }
 
 data class RemoteRepo(
-    val name: String,
-    /**
+  val name: String,
+  /**
      * Null in the case of "not found" repos, or manually deselected repos we did not try to find.
      */
     val id: String?,
-    val enablement: RepoEnablement,
-    val isIgnored: Boolean,
-    val inclusion: RepoInclusion,
+  val selectionStatus: RepoSelectionStatus,
+  val isIgnored: Boolean,
+  val inclusion: RepoInclusion,
 ) {
   val isEnabled: Boolean
-    get() = enablement == RepoEnablement.ENABLED && !isIgnored
+    get() = selectionStatus == RepoSelectionStatus.SELECTED && !isIgnored
 
   val displayName: String
     get() = name.substring(name.indexOf('/') + 1) // Note, works for names without / => full name.
