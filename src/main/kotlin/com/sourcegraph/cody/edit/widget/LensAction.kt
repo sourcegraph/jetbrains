@@ -16,11 +16,8 @@ import java.awt.Graphics2D
 import java.awt.event.MouseEvent
 import java.awt.geom.Rectangle2D
 
-class LensAction(
-    val group: LensWidgetGroup,
-    private val text: String,
-    private val actionId: String
-) : LensWidget(group) {
+class LensAction(val group: LensWidgetGroup, private val text: String, val actionId: String) :
+    LensWidget(group) {
 
   private val highlight =
       LabelHighlight(

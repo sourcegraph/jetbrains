@@ -107,6 +107,7 @@ private constructor(
         val server = launcher.remoteProxy
         val listeningToJsonRpc = launcher.startListening()
         try {
+          logger.warn("Calling server.initialize")
           return server
               .initialize(
                   ClientInfo(
@@ -171,6 +172,8 @@ private constructor(
         processBuilder.environment()["CODY_LOG_EVENT_MODE"] = "connected-instance-only"
       }
 
+      configureIntegrationTesting(processBuilder)
+
       val proxy = HttpConfigurable.getInstance()
       val proxyUrl = proxy.PROXY_HOST + ":" + proxy.PROXY_PORT
       if (proxy.USE_HTTP_PROXY) {
@@ -209,6 +212,46 @@ private constructor(
           .start()
 
       return AgentConnection.ProcessConnection(process)
+    }
+
+    private fun configureIntegrationTesting(processBuilder: ProcessBuilder) {
+      // N.B. Do not set CODY_TESTING=true -- that is for Agent-side tests.
+      if (!ConfigUtil.isIntegrationTestModeEnabled()) return
+
+      processBuilder.environment().apply {
+        this["CODY_RECORDING_NAME"] = "integration-test"
+        this["CODY_TELEMETRY_EXPORTER"] = "testing"
+        // N.B. If you set CODY_RECORDING_MODE, you must set CODY_RECORDING_DIRECTORY,
+        // or the Agent will throw an error and your test will fail.
+        when (val mode = System.getenv("CODY_RECORDING_MODE")) {
+          null -> {
+            logger.warn(
+                """Polly is not enabled for this test.
+                   Set CODY_RECORDING_MODE and CODY_RECORDING_DIRECTORY
+                   variables to turn on Polly."""
+                    .trimMargin())
+          }
+          "record",
+          "replay",
+          "passthrough" -> {
+            logger.warn("Cody integration test recording mode: $mode")
+            this["CODY_RECORDING_MODE"] = mode
+            this["CODY_RECORD_IF_MISSING"] = "true"
+            // This flag is for Agent-side integration testing and interferes with ours.
+            // It seems to be sneaking in somewhere, so we explicitly set it to false.
+            this["CODY_TESTING"] = "false"
+            this["CODY_RECORDING_DIRECTORY"] = "recordings"
+          }
+          else -> throw CodyAgentException("Unknown CODY_RECORDING_MODE: $mode")
+        }
+      }
+
+      val testToken = System.getenv("CODY_INTEGRATION_TEST_TOKEN")
+      if (testToken is String && testToken.isNotBlank()) {
+        processBuilder.environment()["CODY_INTEGRATION_TEST_TOKEN"] = testToken
+      } else {
+        logger.warn("No access token passed for integration tests")
+      }
     }
 
     @Throws(IOException::class, CodyAgentException::class)

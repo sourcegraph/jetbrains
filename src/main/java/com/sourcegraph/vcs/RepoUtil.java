@@ -189,7 +189,8 @@ public class RepoUtil {
           != null) {
         return VCSType.PERFORCE;
       }
-    } catch (ClassNotFoundException e) {
+    } catch (Exception e) {
+      // Can throw a ClassNotFoundException or a com.intellij.execution.ExecutionException/others
       // Perforce plugin is not installed.
     }
 

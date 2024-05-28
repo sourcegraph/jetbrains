@@ -16,6 +16,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.CodyAgentService
@@ -28,6 +29,7 @@ import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.agent.protocol.WorkspaceEditParams
+import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.edit.exception.EditCreationException
@@ -43,6 +45,7 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Common functionality for commands that let the agent edit the code inline, such as adding a doc
@@ -64,8 +67,12 @@ abstract class FixupSession(
   // This is passed back by the Agent when we initiate the editing task.
   @Volatile var taskId: String? = null
 
-  // The current lens group. Changes as the state machine proceeds.
-  private var lensGroup: LensWidgetGroup? = null
+  var lensGroup: LensWidgetGroup? = null
+    private set
+
+  private val showedAcceptLens = AtomicBoolean(false)
+  private val isInlineEditInProgress = AtomicBoolean(false)
+  val isDisposed = AtomicBoolean(false)
 
   private var selectionRange: RangeMarker? = null
 
@@ -79,6 +86,10 @@ abstract class FixupSession(
   private var instruction: String? = null
 
   private val performedActions: MutableList<FixupUndoableAction> = mutableListOf()
+
+  private val defaultErrorText by lazy {
+    "Cody failed to ${if (this is DocumentCodeSession) "document" else "edit"} this code"
+  }
 
   private val cancellationToken = CancellationToken()
 
@@ -99,7 +110,8 @@ abstract class FixupSession(
 
   @RequiresEdt
   private fun triggerFixupAsync() {
-    // Those lookups require us to be on the EDT.
+    ApplicationManager.getApplication().assertIsDispatchThread()
+
     val file = FileDocumentManager.getInstance().getFile(document)
     val textFile = file?.let { ProtocolTextDocument.fromVirtualFile(editor, it) } ?: return
 
@@ -108,30 +120,31 @@ abstract class FixupSession(
 
       try {
         fixupService.startNewSession(this)
-        // Spend a turn to get folding ranges before showing lenses.
         ensureSelectionRange(agent, textFile)
         showWorkingGroup()
 
         makeEditingRequest(agent)
             .handle { result, error ->
-              if (error != null || result == null) {
-                showErrorGroup("Error while generating doc string: $error")
+              if (error != null) {
+                displayError("Error while generating code", error)
+              } else if (result == null) {
+                displayError("Null result generating code for task $taskId")
               } else {
                 selectionRange = adjustToDocumentRange(result.selectionRange)
               }
               null
             }
             .exceptionally { error: Throwable? ->
-              if (!(error is CancellationException || error is CompletionException)) {
-                showErrorGroup("Error while generating code: ${error?.localizedMessage}")
+              if ((error is CancellationException || error is CompletionException)) {
+                cancel()
+              } else {
+                displayError(defaultErrorText, error?.localizedMessage)
               }
-              cancel()
               null
             }
             .completeOnTimeout(null, 3, TimeUnit.SECONDS)
       } catch (e: Exception) {
-        showErrorGroup("Edit failed: ${e.localizedMessage}")
-        cancel()
+        displayError(defaultErrorText, e.localizedMessage)
       }
     }
   }
@@ -153,11 +166,16 @@ abstract class FixupSession(
     selectionRange = selection.toRangeMarker(document, true)
 
     try {
-      val result =
-          agent.server
-              .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
-              .get()
-      selectionRange = result.range.toRangeMarker(document, true)
+      agent.server
+          .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
+          .thenApply { result ->
+            selectionRange = result.range.toRangeMarker(document, true)
+            publishProgressOnEdt(
+                CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES,
+                CodyInlineEditActionNotifier.Context(session = this, selectionRange = result.range))
+            result
+          }
+          .get()
     } catch (e: Exception) {
       logger.warn("Error getting folding range", e)
     }
@@ -177,11 +195,14 @@ abstract class FixupSession(
       CodyTaskState.Formatting -> {
         taskId = task.id
       }
-      // Tasks remain in this state until explicit accept/undo/cancel.
+      // Tasks remain in this state until explicit or automatic accept/undo/cancel.
       CodyTaskState.Applied -> showAcceptGroup()
-      // Then they transition to finished.
-      CodyTaskState.Finished -> dispose()
-      CodyTaskState.Error -> dispose()
+
+      // Then they transition to either Finished or Error.
+      CodyTaskState.Finished -> cancellationToken.dispose()
+
+      // We do not dispose until the error is displayed to the user and closed.
+      CodyTaskState.Error -> displayError(defaultErrorText, task.error?.message)
       CodyTaskState.Pending -> {}
     }
   }
@@ -196,6 +217,7 @@ abstract class FixupSession(
       } catch (x: Exception) {
         logger.warn("Error disposing previous lens group", x)
       }
+      if (isDisposed.get()) return@runInEdt
       lensGroup = group
 
       var range =
@@ -211,14 +233,16 @@ abstract class FixupSession(
         val position = Position(editor.caretModel.currentCaret.logicalPosition.line, 0)
         range = Range(start = position, end = position)
       }
-      val future = group.show(range)
+
       // Make sure the lens is visible.
+      val future = group.show(range)
       ApplicationManager.getApplication().invokeLater {
         if (!editor.isDisposed) {
           val logicalPosition = LogicalPosition(range.start.line, range.start.character)
           editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
         }
       }
+
       if (!ApplicationManager.getApplication().isDispatchThread) { // integration test
         future.get()
       }
@@ -235,6 +259,7 @@ abstract class FixupSession(
   private fun showWorkingGroup() {
     showLensGroup(LensGroupFactory(this).createTaskWorkingGroup())
     documentListener.setAcceptLensGroupShown(false)
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
   }
 
   private fun showAcceptGroup() {
@@ -243,11 +268,27 @@ abstract class FixupSession(
     // This is the specific moment after which any edits to the document,
     // including edits generated by the Agent, will result in an auto-accept.
     documentListener.setAcceptLensGroupShown(true)
+
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACCEPT_GROUP)
   }
 
-  fun showErrorGroup(hoverText: String) {
-    showLensGroup(LensGroupFactory(this).createErrorGroup(hoverText))
+  private fun showErrorGroup(labelText: String, hoverText: String? = null) {
+    runInEdt {
+      showLensGroup(LensGroupFactory(this).createErrorGroup(labelText, hoverText))
+      publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ERROR_GROUP)
+    }
   }
+
+  /**
+   * Puts up the error lens group with the specified message and optional hover-text. The message
+   * should be short, no more than about 60 characters. The hover text can be longer and include
+   * more diagnostic information.
+   */
+  fun displayError(text: String, hoverText: String? = null) {
+    showErrorGroup(text, hoverText ?: "No additional info from Agent")
+  }
+
+  fun displayError(text: String, error: Throwable) {}
 
   /** Subclass sends a fixup command to the agent, and returns the initial task. */
   abstract fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask>
@@ -262,6 +303,7 @@ abstract class FixupSession(
       logger.warn("Error sending editTask/accept for taskId: ${x.localizedMessage}")
       dispose()
     }
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
   }
 
   fun cancel() {
@@ -289,6 +331,7 @@ abstract class FixupSession(
     } catch (x: Exception) {
       showErrorGroup("Error sending editTask/undo for taskId: ${x.localizedMessage}")
     }
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
   }
 
   fun showRetryPrompt() {
@@ -310,7 +353,6 @@ abstract class FixupSession(
 
       op.uri?.let { updateEditorIfNeeded(it) }
 
-      // TODO: We need to support the file-level operations.
       when (op.type) {
         "create-file" -> {
           logger.warn("Workspace edit operation created a file: ${op.uri}")
@@ -334,6 +376,7 @@ abstract class FixupSession(
                 "DocumentCommand session received unknown workspace edit operation: ${op.type}")
       }
     }
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_WORKSPACE_EDIT)
   }
 
   private fun updateEditorIfNeeded(path: String) {
@@ -356,42 +399,51 @@ abstract class FixupSession(
   }
 
   fun performInlineEdits(edits: List<TextEdit>) {
-    // TODO: This is an artifact of the update to concurrent editing tasks.
-    // We do need to mute any LensGroup listeners, but this is an ugly way to do it.
-    // There are multiple Lens groups; we need a Document-level listener list.
-    lensGroup?.withListenersMuted {
-      if (!controller.isEligibleForInlineEdit(editor)) {
-        return@withListenersMuted logger.warn("Inline edit not eligible")
-      }
-
-      WriteCommandAction.runWriteCommandAction(project) {
-        val currentActions =
-            edits.mapNotNull { edit ->
-              try {
-                when (edit.type) {
-                  "replace",
-                  "delete" -> ReplaceUndoableAction(project, edit, document)
-                  "insert" -> InsertUndoableAction(project, edit, document)
-                  else -> {
-                    logger.warn("Unknown edit type: ${edit.type}")
-                    null
-                  }
-                }
-              } catch (e: RuntimeException) {
-                throw EditCreationException(edit, e)
-              }
-            }
-
-        currentActions.forEach { action ->
-          try {
-            action.apply()
-          } catch (e: RuntimeException) {
-            throw EditExecutionException(action, e)
-          }
+    isInlineEditInProgress.set(true)
+    try {
+      // TODO: This is ugly; find a better way to mute the listeners.
+      lensGroup?.withListenersMuted {
+        if (!controller.isEligibleForInlineEdit(editor)) {
+          logger.warn("Inline edit not eligible")
+          return@withListenersMuted
         }
 
-        performedActions += currentActions
+        performInlineEditActions(edits)
       }
+    } finally {
+      isInlineEditInProgress.set(false)
+      publishProgress(CodyInlineEditActionNotifier.TOPIC_TEXT_DOCUMENT_EDIT)
+    }
+  }
+
+  private fun performInlineEditActions(edits: List<TextEdit>) {
+    WriteCommandAction.runWriteCommandAction(project) {
+      val currentActions =
+          edits.mapNotNull { edit ->
+            try {
+              when (edit.type) {
+                "replace",
+                "delete" -> ReplaceUndoableAction(project, edit, document)
+                "insert" -> InsertUndoableAction(project, edit, document)
+                else -> {
+                  logger.warn("Unknown edit type: ${edit.type}")
+                  null
+                }
+              }
+            } catch (e: RuntimeException) {
+              throw EditCreationException(edit, e)
+            }
+          }
+
+      currentActions.forEach { action ->
+        try {
+          action.apply()
+        } catch (e: RuntimeException) {
+          throw EditExecutionException(action, e)
+        }
+      }
+
+      performedActions += currentActions
     }
   }
 
@@ -414,6 +466,7 @@ abstract class FixupSession(
   }
 
   override fun dispose() {
+    isDisposed.set(true)
     if (project.isDisposed) return
     performedActions.forEach { it.dispose() }
     lensGroup?.dispose()
@@ -431,6 +484,29 @@ abstract class FixupSession(
 
   fun isShowingErrorLens(): Boolean {
     return lensGroup?.isErrorGroup == true
+  }
+
+  private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
+    ApplicationManager.getApplication().executeOnPooledThread {
+      project.messageBus
+          .syncPublisher(topic)
+          .afterAction(CodyInlineEditActionNotifier.Context(session = this))
+    }
+  }
+
+  private fun publishProgressOnEdt(
+      topic: Topic<CodyInlineEditActionNotifier>,
+      context: CodyInlineEditActionNotifier.Context? = null
+  ) {
+    ApplicationManager.getApplication().invokeLater {
+      val progressContext = context ?: CodyInlineEditActionNotifier.Context(session = this)
+      project.messageBus.syncPublisher(topic).afterAction(progressContext)
+    }
+  }
+
+  override fun toString(): String {
+    val file = FileDocumentManager.getInstance().getFile(editor.document)
+    return "${this::javaClass.name} for ${file?.path ?: "unknown file"}"
   }
 
   companion object {

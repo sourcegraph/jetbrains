@@ -95,10 +95,12 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   var isErrorGroup = false
 
   init {
-    Disposer.register(session, this)
-    editor.addEditorMouseListener(mouseClickListener)
-    editor.addEditorMouseMotionListener(mouseMotionListener)
-    addedListeners.set(true)
+    if (!session.isDisposed.get()) {
+      Disposer.register(session, this)
+      editor.addEditorMouseListener(mouseClickListener)
+      editor.addEditorMouseMotionListener(mouseMotionListener)
+      addedListeners.set(true)
+    }
 
     // Listen for color theme changes.
     ApplicationManager.getApplication()
@@ -326,7 +328,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     }
   }
 
-  /** Immediately hides and discards this inlay and widget group. */
+  /** Hides and discards this inlay and widget group. */
   override fun dispose() {
     // We work extra hard to ensure this method is idempotent and robust,
     // because IntelliJ (annoyingly) logs an assertion if you try to remove
