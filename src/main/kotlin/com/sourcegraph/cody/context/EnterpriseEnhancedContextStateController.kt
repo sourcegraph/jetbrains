@@ -140,9 +140,7 @@ class EnterpriseEnhancedContextStateController(
       val speculative = newSpec.split(Regex("""\s+""")).filter { it != "" }.toSet().toList()
 
       // If a repository name has been removed from the list of speculative repos, then forget that
-      // it
-      // was manually
-      // deselected in order for it to be default selected if it is added back.
+      // it was manually deselected in order for it to be default selected if it is added back.
 
       // TODO: Improve the accuracy of removals when there's an Agent API that maps specified name
       // ->
