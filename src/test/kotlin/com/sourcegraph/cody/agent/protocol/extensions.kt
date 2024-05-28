@@ -16,11 +16,3 @@ fun Editor.testing_substring(range: Range): String {
   return this.document.text.substring(
       range.start.toOffset(this.document), range.end.toOffset(this.document))
 }
-
-fun Editor.testing_range(substring: String): Range {
-  val startOffset = this.document.text.indexOf(substring)
-  val endOffset = this.document.text.indexOf(substring) + substring.length
-  return Range(
-      Position.fromOffset(this.document, startOffset),
-      Position.fromOffset(this.document, endOffset))
-}

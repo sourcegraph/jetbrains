@@ -75,17 +75,6 @@ object CodyEditorUtil {
 
   @JvmStatic
   fun getTextRange(document: Document, range: Range): TextRange {
-
-    //    val start =
-    //      min(
-    //        document.getLineEndOffset(range.start.line.toInt()),
-    //        document.getLineStartOffset(range.start.line.toInt()) + range.start.character.toInt()
-    //      )
-    //    val end =
-    //      min(
-    //        document.getLineEndOffset(range.end.line.toInt()),
-    //        document.getLineStartOffset(range.end.line.toInt()) + range.end.character.toInt()
-    //      )
     val start = range.start.toOffset(document)
     val end = range.end.toOffset(document)
     return TextRange.create(start, end)
