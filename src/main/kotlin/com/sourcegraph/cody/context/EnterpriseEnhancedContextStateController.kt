@@ -59,6 +59,11 @@ interface ChatEnhancedContextStateProvider {
    * Displays a message that remote repository resolution failed.
    */
   fun notifyRemoteRepoResolutionFailed()
+
+  /**
+   * Displays a message that the user has reached the maximum number of remote repositories.
+   */
+  fun notifyRemoteRepoLimit()
 }
 
 /**
@@ -234,7 +239,7 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
 
     if (enabled) {
       if (atLimit) {
-        // TODO: Show an error message.
+        chat.notifyRemoteRepoLimit()
         return
       }
       model.manuallyDeselected = model.manuallyDeselected.filter { it != repoName }.toSet()

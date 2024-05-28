@@ -242,6 +242,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
       }
 
       override fun notifyRemoteRepoResolutionFailed() = runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
+
+      override fun notifyRemoteRepoLimit() =
+        runInEdt { RemoteRepoLimitNotification().notify(project) }
     })
 
   private var endpointName: String = ""
