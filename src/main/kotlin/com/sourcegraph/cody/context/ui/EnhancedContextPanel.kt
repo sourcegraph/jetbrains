@@ -28,7 +28,6 @@ import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.FlowLayout
 import java.awt.Point
 import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
@@ -170,8 +169,7 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
   /**
    * Adjusts the layout to accommodate the expanded rows in the treeview, and revalidates layout.
    */
-  @RequiresEdt
-  abstract fun resize()
+  @RequiresEdt abstract fun resize()
 
   @RequiresEdt
   private fun expandAllNodes(rowCount: Int = tree.rowCount) {
@@ -185,6 +183,7 @@ constructor(protected val project: Project, protected val chatSession: ChatSessi
   }
 
   abstract fun updateFromAgent(enhancedContextStatus: EnhancedContextContextT)
+
   abstract fun updateFromSavedState(state: EnhancedContextState)
 }
 
@@ -201,48 +200,55 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
   // TODO: We need to kick off setting the agent state with
   // controller.loadFrom...(getContextState()) etc.
-  private var controller = EnterpriseEnhancedContextStateController(project,
-    object : ChatEnhancedContextStateProvider {
-      override fun updateSavedState(modifyContext: (EnhancedContextState) -> Unit) {
-        runInEdt {
-          updateContextState(modifyContext)
-        }
-      }
+  private var controller =
+      EnterpriseEnhancedContextStateController(
+          project,
+          object : ChatEnhancedContextStateProvider {
+            override fun updateSavedState(modifyContext: (EnhancedContextState) -> Unit) {
+              runInEdt { updateContextState(modifyContext) }
+            }
 
-      override fun updateAgentState(repos: List<Repo>) {
-        chatSession.sendWebviewMessage(
-          WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos)
-        )
-      }
+            override fun updateAgentState(repos: List<Repo>) {
+              chatSession.sendWebviewMessage(
+                  WebviewMessage(
+                      command = "context/choose-remote-search-repo", explicitRepos = repos))
+            }
 
-      override fun updateUI(repos: List<RemoteRepo>) {
-        runInEdt {
-          updateTree(repos)
-        }
-      }
+            override fun updateUI(repos: List<RemoteRepo>) {
+              runInEdt { updateTree(repos) }
+            }
 
-      override fun notifyRemoteRepoResolutionFailed() = runInEdt { RemoteRepoResolutionFailedNotification().notify(project) }
+            override fun notifyRemoteRepoResolutionFailed() = runInEdt {
+              RemoteRepoResolutionFailedNotification().notify(project)
+            }
 
-      override fun notifyRemoteRepoLimit() =
-        runInEdt { RemoteRepoLimitNotification().notify(project) }
-    })
+            override fun notifyRemoteRepoLimit() = runInEdt {
+              RemoteRepoLimitNotification().notify(project)
+            }
+          })
 
   private var endpointName: String = ""
 
   private val repoPopupController =
       RemoteRepoPopupController(project).apply {
         onAccept = { spec ->
-          ApplicationManager.getApplication().executeOnPooledThread { controller.updateRawSpec(spec) }
+          ApplicationManager.getApplication().executeOnPooledThread {
+            controller.updateRawSpec(spec)
+          }
         }
       }
 
   init {
     tree.inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), ENTER_MAP_KEY)
-    tree.actionMap.put(ENTER_MAP_KEY, object : AbstractAction() {
-      override fun actionPerformed(e: ActionEvent) {
-        repoPopupController.createPopup(tree.width, endpointName, controller.rawSpec).showAbove(tree)
-      }
-    })
+    tree.actionMap.put(
+        ENTER_MAP_KEY,
+        object : AbstractAction() {
+          override fun actionPerformed(e: ActionEvent) {
+            repoPopupController
+                .createPopup(tree.width, endpointName, controller.rawSpec)
+                .showAbove(tree)
+          }
+        })
 
     tree.addMouseListener(
         object : MouseAdapter() {
@@ -265,7 +271,9 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
                 e.button == MouseEvent.BUTTON1 &&
                 pressedTarget === clickTarget &&
                 clickTarget is ContextTreeEditReposNode) {
-              repoPopupController.createPopup(tree.width, endpointName, controller.rawSpec).showAbove(tree)
+              repoPopupController
+                  .createPopup(tree.width, endpointName, controller.rawSpec)
+                  .showAbove(tree)
             }
           }
         })
@@ -278,18 +286,16 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
   override fun createPanel(): JComponent {
     val panel = JPanel()
     panel.layout = BorderLayout()
-    panel.add(TitledSeparator(CodyBundle.getString("chat.enhanced_context.title"), tree), BorderLayout.NORTH)
+    panel.add(
+        TitledSeparator(CodyBundle.getString("chat.enhanced_context.title"), tree),
+        BorderLayout.NORTH)
     panel.add(tree, BorderLayout.CENTER)
     return panel
   }
 
   override fun resize() {
     val padding = 5
-    tree.preferredSize =
-      Dimension(
-        0,
-        padding +
-        tree.rowCount * tree.rowHeight)
+    tree.preferredSize = Dimension(0, padding + tree.rowCount * tree.rowHeight)
     panel.parent?.revalidate()
   }
 
@@ -310,8 +316,7 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
   private val contextRoot =
       object :
-          ContextTreeEnterpriseRootNode(
-               0, { checked -> enhancedContextEnabled.set(checked) }) {
+          ContextTreeEnterpriseRootNode(0, { checked -> enhancedContextEnabled.set(checked) }) {
         override fun isChecked(): Boolean {
           return enhancedContextEnabled.get()
         }
@@ -382,11 +387,11 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
   // The toolbar decorator component.
   private val toolbar = run {
     createDecorator(tree)
-      .disableUpDownActions()
-      .setToolbarPosition(ActionToolbarPosition.RIGHT)
-      .setVisibleRowCount(1)
-      .setScrollPaneBorder(BorderFactory.createEmptyBorder())
-      .setToolbarBorder(BorderFactory.createEmptyBorder())
+        .disableUpDownActions()
+        .setToolbarPosition(ActionToolbarPosition.RIGHT)
+        .setVisibleRowCount(1)
+        .setScrollPaneBorder(BorderFactory.createEmptyBorder())
+        .setToolbarBorder(BorderFactory.createEmptyBorder())
   }
 
   private val enhancedContextNode =
@@ -435,12 +440,12 @@ class ConsumerEnhancedContextPanel(project: Project, chatSession: ChatSession) :
     val toolbarButtonHeight = toolbar.actionsPanel.preferredSize.width
     val preferredSizeNumVisibleButtons = 1
     panel.preferredSize =
-      Dimension(
-        0,
-        padding +
+        Dimension(
+            0,
+            padding +
                 max(
-                  tree.rowCount * tree.rowHeight,
-                  preferredSizeNumVisibleButtons * toolbarButtonHeight))
+                    tree.rowCount * tree.rowHeight,
+                    preferredSizeNumVisibleButtons * toolbarButtonHeight))
     panel.parent?.revalidate()
   }
 

@@ -55,7 +55,9 @@ enum class RepoEnablement {
 
 data class RemoteRepo(
     val name: String,
-    /** Null in the case of "not found" repos, or manually deselected repos we did not try to find. */
+    /**
+     * Null in the case of "not found" repos, or manually deselected repos we did not try to find.
+     */
     val id: String?,
     val enablement: RepoEnablement,
     val isIgnored: Boolean,

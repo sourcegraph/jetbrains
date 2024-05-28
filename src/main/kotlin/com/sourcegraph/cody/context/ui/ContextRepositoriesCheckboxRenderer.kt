@@ -86,11 +86,14 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
                     node.repo.name,
                     when {
                       // TODO: Handle missing remote repos with a "not found" string
-                      node.repo.inclusion == RepoInclusion.AUTO && node.repo.isIgnored -> CodyBundle.getString("context-panel.tree.node-remote-repo.auto-ignored")
+                      node.repo.inclusion == RepoInclusion.AUTO && node.repo.isIgnored ->
+                          CodyBundle.getString("context-panel.tree.node-remote-repo.auto-ignored")
                       node.repo.inclusion == RepoInclusion.AUTO ->
                           CodyBundle.getString("context-panel.tree.node-remote-repo.auto")
-                      node.repo.isIgnored -> CodyBundle.getString("context-panel.tree.node-remote-repo.ignored")
-                      node.repo.enablement == RepoEnablement.NOT_FOUND -> CodyBundle.getString("context-panel.tree.node-remote-repo.not-found")
+                      node.repo.isIgnored ->
+                          CodyBundle.getString("context-panel.tree.node-remote-repo.ignored")
+                      node.repo.enablement == RepoEnablement.NOT_FOUND ->
+                          CodyBundle.getString("context-panel.tree.node-remote-repo.not-found")
                       else -> ""
                     }),
             SimpleTextAttributes.REGULAR_ATTRIBUTES)
@@ -99,21 +102,22 @@ class ContextRepositoriesCheckboxRenderer(private val enhancedContextEnabled: At
 
         toolTipText =
             when {
-              node.repo.isIgnored ->
-                  CodyBundle.getString("context-panel.tree.node-ignored.tooltip")
+              node.repo.isIgnored -> CodyBundle.getString("context-panel.tree.node-ignored.tooltip")
               node.repo.inclusion == RepoInclusion.AUTO ->
                   CodyBundle.getString("context-panel.tree.node-auto.tooltip")
               else -> node.repo.name
             }
         myCheckbox.state =
             when {
-              isEnhancedContextEnabled &&
-                  node.repo.isEnabled &&
-                  !node.repo.isIgnored -> ThreeStateCheckBox.State.SELECTED
+              isEnhancedContextEnabled && node.repo.isEnabled && !node.repo.isIgnored ->
+                  ThreeStateCheckBox.State.SELECTED
               node.repo.isEnabled -> ThreeStateCheckBox.State.DONT_CARE
               else -> ThreeStateCheckBox.State.NOT_SELECTED
             }
-        myCheckbox.isEnabled = isEnhancedContextEnabled && node.repo.inclusion != RepoInclusion.AUTO && node.repo.enablement != RepoEnablement.NOT_FOUND
+        myCheckbox.isEnabled =
+            isEnhancedContextEnabled &&
+                node.repo.inclusion != RepoInclusion.AUTO &&
+                node.repo.enablement != RepoEnablement.NOT_FOUND
         myCheckbox.toolTipText =
             when {
               node.repo.inclusion == RepoInclusion.AUTO ->

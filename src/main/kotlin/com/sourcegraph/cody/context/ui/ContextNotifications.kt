@@ -40,14 +40,13 @@ class RemoteRepoResolutionFailedNotification :
 }
 
 class RemoteRepoLimitNotification :
-  Notification(
-    NotificationGroups.SOURCEGRAPH_ERRORS,
-    CodyBundle.getString("context-panel.remote-repo.error-too-many-repositories.tooltip"),
-    CodyBundle.getString("context-panel.remote-repo.error-too-many-repositories").fmt(
-      MAX_REMOTE_REPOSITORY_COUNT.toString()
-    ),
-    NotificationType.WARNING),
-  NotificationFullContent {
+    Notification(
+        NotificationGroups.SOURCEGRAPH_ERRORS,
+        CodyBundle.getString("context-panel.remote-repo.error-too-many-repositories.tooltip"),
+        CodyBundle.getString("context-panel.remote-repo.error-too-many-repositories")
+            .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString()),
+        NotificationType.WARNING),
+    NotificationFullContent {
 
   init {
     icon = Icons.RepoHostGeneric
