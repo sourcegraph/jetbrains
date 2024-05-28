@@ -277,18 +277,27 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
             }
           }
         })
-
-    // TODO: When HelpTooltip.enable/disableTooltip are available, use them to only enable the help
-    // tooltip when the mouse is hovering over the top row.
   }
 
   @RequiresEdt
   override fun createPanel(): JComponent {
+    val separator = TitledSeparator(CodyBundle.getString("chat.enhanced_context.title"), tree)
+    HelpTooltip()
+        .setTitle(CodyBundle.getString("context-panel.tree.help-tooltip.title"))
+        .setDescription(
+            CodyBundle.getString("context-panel.tree.help-tooltip.description")
+                .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), endpointName))
+        .setLink(CodyBundle.getString("context-panel.tree.help-tooltip.link.text")) {
+          BrowserUtil.open(CodyBundle.getString("context-panel.tree.help-tooltip.link.href"))
+        }
+        .setLocation(HelpTooltip.Alignment.LEFT)
+        .setInitialDelay(
+            1500) // Tooltip can interfere with the treeview, so cool off on showing it.
+        .installOn(separator)
+
     val panel = JPanel()
     panel.layout = BorderLayout()
-    panel.add(
-        TitledSeparator(CodyBundle.getString("chat.enhanced_context.title"), tree),
-        BorderLayout.NORTH)
+    panel.add(separator, BorderLayout.NORTH)
     panel.add(tree, BorderLayout.CENTER)
     return panel
   }
@@ -337,19 +346,6 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     treeRoot.add(contextRoot)
     treeModel.reload()
     resize()
-
-    HelpTooltip()
-        .setTitle(CodyBundle.getString("context-panel.tree.help-tooltip.title"))
-        .setDescription(
-            CodyBundle.getString("context-panel.tree.help-tooltip.description")
-                .fmt(MAX_REMOTE_REPOSITORY_COUNT.toString(), endpointName))
-        .setLink(CodyBundle.getString("context-panel.tree.help-tooltip.link.text")) {
-          BrowserUtil.open(CodyBundle.getString("context-panel.tree.help-tooltip.link.href"))
-        }
-        .setLocation(HelpTooltip.Alignment.LEFT)
-        .setInitialDelay(
-            1500) // Tooltip can interfere with the treeview, so cool off on showing it.
-        .installOn(tree)
   }
 
   @RequiresEdt
