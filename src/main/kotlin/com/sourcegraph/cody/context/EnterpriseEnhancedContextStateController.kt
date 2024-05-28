@@ -1,16 +1,12 @@
 package com.sourcegraph.cody.context
 
-import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.EnhancedContextContextT
 import com.sourcegraph.cody.agent.protocol.Repo
 import com.sourcegraph.cody.context.ui.MAX_REMOTE_REPOSITORY_COUNT
-import com.sourcegraph.cody.context.ui.RemoteRepoResolutionFailedNotification
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.vcs.CodebaseName
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
 
 // The ephemeral, in-memory model of enterprise enhanced context state.
 private class EnterpriseEnhancedContextModel {
@@ -25,6 +21,9 @@ private class EnterpriseEnhancedContextModel {
 
   // What the TypeScript extension told us it is using for context.
   var configured: List<RemoteRepo> = emptyList()
+
+  // Any repository we ever resolved. Used when re-selecting a de-selected repository without re-resolving.
+  val resolvedCache: MutableMap<String, Repo> = mutableMapOf()
 }
 
 /**
@@ -84,7 +83,7 @@ interface ChatEnhancedContextStateProvider {
  * [onAgentStateUpdated] flow.
  */
 class EnterpriseEnhancedContextStateController(val project: Project, val chat: ChatEnhancedContextStateProvider) {
-  private var model = EnterpriseEnhancedContextModel()
+  private val model = EnterpriseEnhancedContextModel()
   private var epoch = 0
 
   val rawSpec: String
@@ -102,7 +101,7 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
     // Remember which repositories have been manually deselected.
     model.manuallyDeselected = cleanedRepos.filter { !it.isEnabled }.mapNotNull { it.codebaseName }.toSet()
 
-    // Start trying to resolve these cached repos.
+    // Start trying to resolve these cached repos. Note, we try to resolve everything, even deselected repos.
     updateSpeculativeRepos(cleanedRepos.mapNotNull { it.codebaseName })
   }
 
@@ -127,17 +126,6 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
     // Today we only have names go in and a set of repositories come out, in different (alphabetical) order.
     model.manuallyDeselected = model.manuallyDeselected.filter { speculative.contains(it) }.toSet()
 
-    // Update the saved state in chat history.
-    chat.updateSavedState { state ->
-      state.remoteRepositories.clear()
-      state.remoteRepositories.addAll(
-        speculative.mapIndexed { index, name ->
-          RemoteRepositoryState().apply {
-            codebaseName = name
-            isEnabled = index < MAX_REMOTE_REPOSITORY_COUNT
-          }
-        })
-    }
     updateSpeculativeRepos(speculative)
   }
 
@@ -152,6 +140,7 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
       project, model.specified.map { CodebaseName(it) }.toList()) {
       synchronized(this) {
         if (epoch == thisEpoch) {
+          updateSavedState()
           onResolvedRepos(it)
         }
       }
@@ -161,21 +150,8 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
   private fun onResolvedRepos(repos: List<Repo>) {
     var resolvedRepos = repos.associateBy { repo -> repo.name }
 
-    // Update the plugin's copy of the state.
-    chat.updateSavedState { state ->
-      state.remoteRepositories.clear()
-      state.remoteRepositories.addAll(
-        model.specified.map { repoSpecName ->
-          val name = resolvedRepos[repoSpecName]?.name ?: repoSpecName
-          RemoteRepositoryState().apply {
-            codebaseName = name
-            // Note, we don't limit to MAX_REMOTE_REPOSITORY_COUNT here. We may raise or lower that limit in future
-            // versions anyway, so we just record what is manually deselected and apply the limit when updating
-            // Agent-side state.
-            isEnabled = !model.manuallyDeselected.contains(name)
-          }
-        })
-    }
+    // Update the cache of resolved repositories.
+    model.resolvedCache.putAll(resolvedRepos)
 
     // Update the Agent state. This eventually produces `updateFromAgent` which triggers the tree view update.
     chat.updateAgentState(
@@ -233,29 +209,48 @@ class EnterpriseEnhancedContextStateController(val project: Project, val chat: C
   }
 
   fun setRepoEnabledInContextState(repoName: String, enabled: Boolean) {
+    val atLimit = model.configured.count { it.isEnabled } >= MAX_REMOTE_REPOSITORY_COUNT
+    val repos = model.configured.map { Repo(it.name, it.id!!) }.toMutableList()
+
     if (enabled) {
+      if (atLimit) {
+        // TODO: Show an error message.
+        return
+      }
       model.manuallyDeselected = model.manuallyDeselected.filter { it != repoName }.toSet()
+      val repoToAdd = model.resolvedCache[repoName]
+      if (repoToAdd == null) {
+        // TODO: Should not happen. Log this.
+        return
+      }
+      repos.add(repoToAdd)
     } else {
       model.manuallyDeselected = model.manuallyDeselected.plus(repoName)
+      repos.removeIf { it.name == repoName }
     }
 
-    // Update the plugin's copy of the state.
+    updateSavedState()
+
+    // Update the Agent state. This eventually produces `updateFromAgent` which triggers the tree view update.
+    chat.updateAgentState(repos)
+  }
+
+  // Pushes a state update to the JetBrains chat history copy of the enhanced context state. This simply takes
+  // whatever the user specified (`model.specified`) and saves it, along with which repos were deselected
+  // (`model.manuallyDeselected`).
+  private fun updateSavedState() {
     chat.updateSavedState { state ->
       state.remoteRepositories.clear()
       state.remoteRepositories.addAll(
         model.specified.map { repoSpecName ->
           RemoteRepositoryState().apply {
             codebaseName = repoSpecName
+            // Note, we don't limit to MAX_REMOTE_REPOSITORY_COUNT here. We may raise or lower that limit in future
+            // versions anyway, so we just record what is manually deselected and apply the limit when updating
+            // Agent-side state.
             isEnabled = !model.manuallyDeselected.contains(repoSpecName)
           }
         })
     }
-
-    // Update the Agent state. This eventually produces `updateFromAgent` which triggers the tree view update.
-    chat.updateAgentState(
-      // This will work for deselecting, but not selecting.
-      model.configured.filter { !model.manuallyDeselected.contains(it.name) && it.id != null }.take(
-        MAX_REMOTE_REPOSITORY_COUNT).map { Repo(it.name, it.id!!) }
-    )
   }
 }

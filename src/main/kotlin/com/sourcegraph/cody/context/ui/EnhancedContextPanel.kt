@@ -353,8 +353,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
     contextRoot.removeAllChildren()
     repos
         .map { repo ->
-          ContextTreeRemoteRepoNode(repo) { checked ->
-            controller.setRepoEnabledInContextState(repo.name, checked)
+          ContextTreeRemoteRepoNode(repo) {
+            controller.setRepoEnabledInContextState(repo.name, !repo.isEnabled)
           }
         }
         .forEach { contextRoot.add(it) }
