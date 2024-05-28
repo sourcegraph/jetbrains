@@ -255,7 +255,7 @@ abstract class FixupSession(
     documentListener.setAcceptLensGroupShown(true)
   }
 
-  private fun showErrorGroup(msg: String, e: Throwable? = null) {
+  fun showErrorGroup(msg: String, e: Throwable? = null) {
     showLensGroup(LensGroupFactory(this).createErrorGroup(msg, e))
   }
 
