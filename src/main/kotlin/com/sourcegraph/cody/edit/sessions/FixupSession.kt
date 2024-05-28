@@ -72,9 +72,6 @@ abstract class FixupSession(
   val isInserted: Boolean
     get() = performedActions.any { it is InsertUndoableAction }
 
-  // Whether this is a unit test command.
-  var isUnitTestCommand: Boolean = false
-
   // The prompt that the Agent used for this task. For Edit, it's the same as
   // the most recent prompt the user sent, which we already have. But for Document Code,
   // it enables us to show the user what we sent and let them hand-edit it.
@@ -184,11 +181,7 @@ abstract class FixupSession(
       // Then they transition to finished.
       CodyTaskState.Finished -> dispose()
       CodyTaskState.Error -> dispose()
-      CodyTaskState.Pending -> {
-        // TODO: This is a hack to allow the unit test command to be recognized.
-        // Currently we only set the task state to Pending for the unit test command.
-        isUnitTestCommand = true
-      }
+      CodyTaskState.Pending -> {}
     }
   }
 
@@ -243,7 +236,11 @@ abstract class FixupSession(
     documentListener.setAcceptLensGroupShown(false)
   }
 
+  // Create an abstract val for command name
+  abstract val commandName: String
+
   private fun showAcceptGroup() {
+    var isUnitTestCommand = commandName == "Test"
     showLensGroup(LensGroupFactory(this).createAcceptGroup(isUnitTestCommand))
 
     // This is the specific moment after which any edits to the document,
