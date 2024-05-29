@@ -30,6 +30,8 @@
         PerforceDirectPlugin
     </depends>
 
+    <depends optional="true" config-file="java-plugin.xml">com.intellij.java</depends>
+
     <extensions defaultExtensionNs="com.intellij">
         <projectService
                 serviceImplementation="com.sourcegraph.config.CodyProjectService"/>

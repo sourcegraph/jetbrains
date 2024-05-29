@@ -43,6 +43,6 @@ class LensIcon(group: LensWidgetGroup, val icon: Icon) : LensWidget(group) {
   }
 
   override fun toString(): String {
-    return "LensIcon(icon=$icon)"
+    return "LensIcon" // Printing the Icon impl is very long.
   }
 }

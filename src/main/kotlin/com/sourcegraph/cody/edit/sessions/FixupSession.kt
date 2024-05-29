@@ -15,6 +15,7 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentCodebase
@@ -37,6 +38,7 @@ import com.sourcegraph.cody.edit.fixupActions.InsertUndoableAction
 import com.sourcegraph.cody.edit.fixupActions.ReplaceUndoableAction
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
+import com.sourcegraph.cody.psi.CodyPsiRangeProviderFactory
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.utils.CodyEditorUtil
 import java.util.concurrent.CancellationException
@@ -151,6 +153,7 @@ abstract class FixupSession(
   private fun ensureSelectionRange(agent: CodyAgent, textFile: ProtocolTextDocument) {
     val selection = textFile.selection ?: return
     selectionRange = selection.toRangeMarker(document, true)
+    if (checkPsiRangeAvailable()) return
 
     try {
       val result =
@@ -161,6 +164,27 @@ abstract class FixupSession(
     } catch (e: Exception) {
       logger.warn("Error getting folding range", e)
     }
+  }
+
+  private fun checkPsiRangeAvailable(): Boolean {
+    val future = CompletableFuture<Boolean>()
+    runInEdtAndWait {
+      try {
+        val range =
+            CodyPsiRangeProviderFactory.getRangeProviderForFile(project, editor)
+                ?.getDocumentableRange(project, editor)
+        if (range != null) {
+          selectionRange = range.toRangeMarker(editor.document, true)
+          future.complete(true)
+        } else {
+          future.complete(false)
+        }
+      } catch (t: Throwable) { // e.g. ClassNotFoundError
+        logger.warn("Error getting PSI range", t)
+        future.complete(false)
+      }
+    }
+    return future.get()
   }
 
   fun update(task: EditTask) {

@@ -4,38 +4,28 @@ import com.intellij.ide.plugins.PluginManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
+import com.sourcegraph.cody.agent.protocol.Range
 
-class GoPsiRangeProvider : CodyPsiRangeProvider {
-  override fun getDocumentableRange(project: Project, editor: Editor): DocumentableRange? {
-    if (!isGoPluginInstalled()) {
-      // Handle the case where the Go plugin is not installed
-      return null
+class GoPsiRangeProvider : CodyPsiRangeProvider() {
+
+  override fun getDocumentableRange(project: Project, editor: Editor): Range? {
+    return if (!isGoPluginInstalled()) {
+      null
+    } else {
+      super.getDocumentableRange(project, editor)
     }
-
-    val psiFile = getPsiFile(project, editor) ?: return null
-    val caretOffset = editor.caretModel.offset
-    val element = psiFile.findElementAt(caretOffset) ?: return null
-
-    val documentableElement = findDocumentableElement(element) ?: return null
-    return DocumentableRange(documentableElement.textRange.startOffset, documentableElement.textRange.endOffset)
   }
 
-  private fun getPsiFile(project: Project, editor: Editor): PsiFile? {
-    val document = editor.document
-    return PsiDocumentManager.getInstance(project).getPsiFile(document)
-  }
-
-  private fun findDocumentableElement(element: PsiElement): PsiElement? {
+  override fun findDocumentableElement(element: PsiElement): PsiElement? {
     val goFunctionOrMethodDeclarationClass = getGoFunctionOrMethodDeclarationClass() ?: return null
     val goTypeSpecClass = getGoTypeSpecClass() ?: return null
 
     return PsiTreeUtil.getParentOfType(element, goFunctionOrMethodDeclarationClass, goTypeSpecClass)
   }
 
+  @Suppress("UNCHECKED_CAST")
   private fun getGoFunctionOrMethodDeclarationClass(): Class<out PsiElement>? {
     return try {
       Class.forName("com.goide.psi.GoFunctionOrMethodDeclaration") as Class<out PsiElement>
@@ -44,6 +34,7 @@ class GoPsiRangeProvider : CodyPsiRangeProvider {
     }
   }
 
+  @Suppress("UNCHECKED_CAST")
   private fun getGoTypeSpecClass(): Class<out PsiElement>? {
     return try {
       Class.forName("com.goide.psi.GoTypeSpec") as Class<out PsiElement>

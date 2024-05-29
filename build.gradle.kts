@@ -1,7 +1,4 @@
 import com.jetbrains.plugin.structure.base.utils.isDirectory
-import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
 import java.nio.file.FileSystems
 import java.nio.file.FileVisitResult
@@ -14,6 +11,9 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.*
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
+import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -65,7 +65,9 @@ repositories {
   maven { url = uri("https://www.jetbrains.com/intellij-repository/snapshots") }
 }
 
-val languagePlugins = listOf("org.jetbrains.plugins.java", "org.jetbrains.kotlin")
+// Here is the list of bundled language plugins that can be included in this list:
+//   https://plugins.jetbrains.com/docs/intellij/plugin-dependencies.html
+val languagePlugins = listOf("com.intellij.java", "org.jetbrains.kotlin")
 
 intellij {
   pluginName.set(properties("pluginName"))
