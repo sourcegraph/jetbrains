@@ -67,7 +67,7 @@ repositories {
 
 // Here is the list of bundled language plugins that can be included in this list:
 //   https://plugins.jetbrains.com/docs/intellij/plugin-dependencies.html
-val languagePlugins = listOf("com.intellij.java", "org.jetbrains.kotlin")
+val languagePlugins = listOf("com.intellij.java", "org.jetbrains.kotlin", "Kotlin")
 
 intellij {
   pluginName.set(properties("pluginName"))
@@ -96,7 +96,6 @@ dependencies {
 
   // Psi support
   implementation("org.jetbrains.kotlin:kotlin-stdlib")
-  implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable")
 }
 
 spotless {
