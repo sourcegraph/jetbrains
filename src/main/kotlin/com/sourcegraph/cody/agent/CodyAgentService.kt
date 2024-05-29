@@ -8,6 +8,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.util.net.HttpConfigurable
+import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.chat.AgentChatSessionService
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.context.RemoteRepoSearcher
@@ -112,17 +113,29 @@ class CodyAgentService(private val project: Project) : Disposable {
         true
       }
 
-      agent.client.onOpenUntitledDocument = Function { params ->
-        val result = CompletableFuture<Boolean>()
+      agent.client.onOpenDocument = Function { params ->
+        val uri = params.uri
+        val testDocument = CompletableFuture<ProtocolTextDocument>()
         ApplicationManager.getApplication().invokeAndWait {
-          val vf = CodyEditorUtil.createFileOrScratch(project, params.uri, params.content)
-          if (vf == null) {
-            result.complete(false)
-            return@invokeAndWait
+          try {
+            val vf = CodyEditorUtil.createFileOrScratch(project, uri)
+            if (vf != null) {
+              testDocument.complete(ProtocolTextDocument.fromVirtualFile(uri, vf))
+            } else {
+              testDocument.completeExceptionally(RuntimeException("Could not find file: $uri"))
+            }
+          } catch (e: Exception) {
+            testDocument.completeExceptionally(e)
           }
-          result.complete(true)
         }
-        result.get()
+
+        val result = CompletableFuture<ProtocolTextDocument>()
+        ApplicationManager.getApplication().executeOnPooledThread {
+          agent.server.textDocumentDidOpen(testDocument.get())
+          result.complete(testDocument.get())
+        }
+
+        result
       }
 
       agent.client.onRemoteRepoDidChange = Consumer {

@@ -8,7 +8,6 @@ import com.intellij.lang.Language
 import com.intellij.lang.LanguageUtil
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
@@ -209,33 +208,21 @@ object CodyEditorUtil {
     }
   }
 
-  fun createFileOrScratch(
-      project: Project,
-      uriString: String,
-      content: String? = null
-  ): VirtualFile? {
+  fun createFileOrScratch(project: Project, uriString: String): VirtualFile? {
     try {
       val uri = URI.create(uriString).withScheme("file")
       if (!uri.toPath().exists()) {
         uri.toPath().parent?.createDirectories()
         uri.toPath().createFile()
       }
-      val vf = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(uri.toPath())
-      content?.let {
-        WriteCommandAction.runWriteCommandAction(project) { vf?.setBinaryContent(it.toByteArray()) }
-      }
-      return vf
+      return LocalFileSystem.getInstance().refreshAndFindFileByNioFile(uri.toPath())
     } catch (e: URISyntaxException) {
       val fileName = uriString.substringAfterLast(':').trimStart('/', '\\')
       val fileType = FileTypeRegistry.getInstance().getFileTypeByFileName(fileName)
       val language = LanguageUtil.getFileTypeLanguage(fileType) ?: PlainTextLanguage.INSTANCE
       return ScratchRootType.getInstance()
           .createScratchFile(
-              project,
-              fileName,
-              language,
-              content ?: "",
-              ScratchFileService.Option.create_if_missing)
+              project, fileName, language, "", ScratchFileService.Option.create_if_missing)
     }
   }
 }

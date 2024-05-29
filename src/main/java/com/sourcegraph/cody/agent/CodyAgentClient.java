@@ -42,8 +42,8 @@ public class CodyAgentClient {
   // Callback for the "textDocument/show" request from the agent.
   @Nullable Function<TextDocumentShowParams, Boolean> onTextDocumentShow;
 
-  // Callback for the "textDocument/openUntitledDocument" request from the agent.
-  @Nullable Function<UntitledTextDocument, Boolean> onOpenUntitledDocument;
+  // Callback for the "textDocument/openDocument" request from the agent.
+  @Nullable Function<TextDocumentUri, CompletableFuture<ProtocolTextDocument>> onOpenDocument;
 
   // Callback for the "workspace/edit" request from the agent.
   @Nullable Function<WorkspaceEditParams, Boolean> onWorkspaceEdit;
@@ -97,13 +97,13 @@ public class CodyAgentClient {
     return acceptOnEventThread("textDocument/show", onTextDocumentShow, params);
   }
 
-  @JsonRequest("textDocument/openUntitledDocument")
-  public CompletableFuture<Boolean> openUntitledDocument(UntitledTextDocument params) {
-    if (onOpenUntitledDocument == null) {
-      return CompletableFuture.failedFuture(
-          new Exception("No callback registered for textDocument/openUntitledDocument"));
+  @JsonRequest("textDocument/openDocument")
+  public CompletableFuture<ProtocolTextDocument> openDocument(TextDocumentUri params) {
+    if (onOpenDocument != null) {
+      return onOpenDocument.apply(params);
     } else {
-      return CompletableFuture.completedFuture(onOpenUntitledDocument.apply(params));
+      return CompletableFuture.failedFuture(
+          new Exception("No callback registered for textDocument/openDocument"));
     }
   }
 
