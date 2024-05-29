@@ -7,7 +7,6 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 
 class KotlinPsiRangeProvider : CodyPsiRangeProvider() {
 
-  @Suppress("UNCHECKED_CAST")
   override fun findDocumentableElement(element: PsiElement): PsiElement? {
     // Explicitly specify the type parameter for PsiTreeUtil.getParentOfType
     // TODO: also allow KtProperty when their parent is a KtClass
@@ -23,8 +22,8 @@ class KotlinPsiRangeProvider : CodyPsiRangeProvider() {
             // But if you click on KtNamedFunction here, you'll see an option to
             // open the .class file, and the runtime dependency is there; it's the
             // sources that are out of date.
-            KtNamedFunction::class.java as Class<out PsiElement>,
-            KtClass::class.java as Class<out PsiElement>)
+            KtNamedFunction::class.java,
+            KtClass::class.java)
     return result
   }
 }

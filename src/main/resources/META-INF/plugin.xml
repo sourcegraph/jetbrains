@@ -25,6 +25,8 @@
 
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.platform</depends>
+    <depends optional="true" config-file="optional-java.xml">com.intellij.modules.java</depends>
+    <depends optional="true" config-file="optional-kotlin.xml">org.jetbrains.kotlin</depends>
     <depends optional="true" config-file="plugin-git.xml">Git4Idea</depends>
     <depends optional="true" config-file="plugin-perforce.xml">
         PerforceDirectPlugin

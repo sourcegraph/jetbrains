@@ -167,6 +167,7 @@ abstract class FixupSession(
   }
 
   private fun checkPsiRangeAvailable(): Boolean {
+    if (true) return false
     val future = CompletableFuture<Boolean>()
     runInEdtAndWait {
       try {
