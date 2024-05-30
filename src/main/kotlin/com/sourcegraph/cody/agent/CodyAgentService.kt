@@ -131,7 +131,7 @@ class CodyAgentService(private val project: Project) : Disposable {
 
         val result = CompletableFuture<ProtocolTextDocument>()
         ApplicationManager.getApplication().executeOnPooledThread {
-          agent.server.textDocumentDidOpen(testDocument.get())
+          agent.server.textDocumentOpen(testDocument.get())
           result.complete(testDocument.get())
         }
 

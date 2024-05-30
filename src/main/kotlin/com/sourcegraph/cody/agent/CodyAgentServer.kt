@@ -94,6 +94,9 @@ interface CodyAgentServer {
   @JsonNotification("autocomplete/completionAccepted")
   fun completionAccepted(logID: CompletionItemParams)
 
+  @JsonRequest("textDocument/open")
+  fun textDocumentOpen(document: ProtocolTextDocument): CompletableFuture<Void?>
+
   @JsonRequest("webview/receiveMessage")
   fun webviewReceiveMessage(params: WebviewReceiveMessageParams): CompletableFuture<Any?>
 
