@@ -248,7 +248,7 @@
                 class="com.sourcegraph.cody.edit.actions.EditOpenOrRetryAction"
                 description="Opens the Edit Code dialog">
             <add-to-group group-id="CodyEditorActions" anchor="first"/>
-            <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift ENTER" keymap="$default"/>
+            <keyboard-shortcut replace-all="true" first-keystroke="alt shift ENTER" keymap="$default"/>
             <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift ENTER" keymap="Mac OS X 10.5+"/>
         </action>
 
