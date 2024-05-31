@@ -121,7 +121,7 @@ private constructor(
                               codeLenses = "enabled",
                               showDocument = "enabled",
                               ignore = "enabled",
-                              untitledDocuments = "enabled")))
+                              openDocument = "enabled")))
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)
                 server.initialized()

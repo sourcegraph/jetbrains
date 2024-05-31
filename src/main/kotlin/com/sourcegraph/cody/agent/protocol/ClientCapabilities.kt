@@ -10,5 +10,5 @@ data class ClientCapabilities(
     var codeLenses: String? = null,
     val showDocument: String? = null,
     val ignore: String? = null,
-    val untitledDocuments: String? = null
+    val openDocument: String? = null
 )

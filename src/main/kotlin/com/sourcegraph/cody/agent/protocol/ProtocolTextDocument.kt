@@ -14,6 +14,7 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import java.awt.Point
 import java.nio.file.FileSystems
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
 import kotlin.math.min
 
@@ -25,15 +26,17 @@ private constructor(
     val visibleRange: Range? = null,
     val contentChanges: List<ProtocolTextDocumentContentChangeEvent>? = null,
     val testing: TestingParams? = null,
+    vf: VirtualFile? = null
 ) {
-
   init {
     if (!ApplicationManager.getApplication().isDispatchThread) {
       throw IllegalStateException("ProtocolTextDocument must be be created on EDT")
     }
+    vf?.let { uriToVSCodeUriMap[uriFor(it)] = uri }
   }
 
   companion object {
+    private val uriToVSCodeUriMap = ConcurrentHashMap<String, String>()
 
     @RequiresEdt
     private fun getTestingParams(
@@ -90,7 +93,7 @@ private constructor(
     ): ProtocolTextDocument? {
       val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
       val position = newPosition.codyPosition()
-      val uri = uriFor(file)
+      val uri = vsCodeUriFor(file)
       val selection = Range(position, position)
       return ProtocolTextDocument(
           uri = uri,
@@ -102,9 +105,11 @@ private constructor(
     @RequiresEdt
     fun fromEditorWithRangeSelection(editor: Editor, event: SelectionEvent): ProtocolTextDocument? {
       val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
+
       val uri = uriFor(file)
       val selection =
           editor.document.codyRange(event.newRange.startOffset, event.newRange.endOffset)
+
       return ProtocolTextDocument(
           uri = uri,
           selection = selection,
@@ -122,6 +127,7 @@ private constructor(
     @JvmStatic
     @RequiresEdt
     fun fromEditorForDocumentEvent(editor: Editor, event: DocumentEvent): ProtocolTextDocument? {
+
       val file = FileDocumentManager.getInstance().getFile(event.document) ?: return null
       val uri = uriFor(file)
       val selection = event.document.codyRange(editor.caretModel.offset, editor.caretModel.offset)
@@ -176,7 +182,7 @@ private constructor(
         file: VirtualFile,
     ): ProtocolTextDocument {
       val content = FileDocumentManager.getInstance().getDocument(file)?.text
-      val uri = uriFor(file)
+      val uri = vsCodeUriFor(file)
       val selection = getSelection(editor)
       return ProtocolTextDocument(
           uri = uri,
@@ -187,7 +193,32 @@ private constructor(
     }
 
     @JvmStatic
-    fun uriFor(file: VirtualFile): String {
+    @RequiresEdt
+    fun fromVirtualFile(
+        originalUri: String,
+        file: VirtualFile,
+    ): ProtocolTextDocument {
+      val content = FileDocumentManager.getInstance().getDocument(file)?.text
+      val selection = null
+
+      return ProtocolTextDocument(
+          uri = originalUri,
+          content = content,
+          selection = selection,
+          visibleRange = null,
+          testing = getTestingParams(uri = originalUri, content = content, selection = selection),
+          vf = file)
+    }
+
+    @JvmStatic
+    @RequiresEdt
+    fun vsCodeUriFor(file: VirtualFile): String {
+      val uri = uriFor(file)
+      return uriToVSCodeUriMap[uri] ?: uri
+    }
+
+    @JvmStatic
+    private fun uriFor(file: VirtualFile): String {
       val uri = FileSystems.getDefault().getPath(file.path).toUri().toString()
       return uri.replace(Regex("file:///(\\w):/")) {
         val driveLetter =
