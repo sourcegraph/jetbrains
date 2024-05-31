@@ -256,7 +256,8 @@ class EnterpriseEnhancedContextPanel(project: Project, chatSession: ChatSession)
 
           override fun mousePressed(e: MouseEvent) {
             super.mousePressed(e)
-            if (targetForEvent(e) is ContextTreeEditReposNode) {
+            if (targetForEvent(e) is ContextTreeEditReposNode &&
+                (e.button == MouseEvent.BUTTON1 || e.isPopupTrigger)) {
               repoPopupController
                   .createPopup(tree.width, endpointName, controller.rawSpec)
                   .showAbove(tree)
