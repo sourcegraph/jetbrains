@@ -24,7 +24,7 @@ abstract class BaseChatAction : DumbAwareEDTAction() {
 
   override fun update(event: AnActionEvent) {
     val project = event.project ?: return
-    val hasActiveAccount = !CodyAuthenticationManager.getInstance(project).hasNoActiveAccount()
+    val hasActiveAccount = CodyAuthenticationManager.getInstance(project).hasActiveAccount()
     event.presentation.isEnabled = hasActiveAccount
     if (!event.presentation.isEnabled) {
       event.presentation.description =

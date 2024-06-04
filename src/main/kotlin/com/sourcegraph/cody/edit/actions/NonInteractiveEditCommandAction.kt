@@ -12,7 +12,7 @@ open class NonInteractiveEditCommandAction(runAction: (Editor, FixupService) -> 
     super.update(event)
 
     val project = event.project ?: return
-    val hasActiveAccount = !CodyAuthenticationManager.getInstance(project).hasNoActiveAccount()
+    val hasActiveAccount = CodyAuthenticationManager.getInstance(project).hasActiveAccount()
     event.presentation.isEnabled =
         hasActiveAccount && !FixupService.getInstance(project).isEditInProgress()
     if (!event.presentation.isEnabled) {
