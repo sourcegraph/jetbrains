@@ -18,6 +18,7 @@ import org.cef.handler.CefFocusHandlerAdapter
 import org.cef.handler.CefLifeSpanHandler
 import java.awt.BorderLayout
 import java.awt.KeyboardFocusManager
+import java.awt.Rectangle
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
 import javax.swing.JButton
@@ -74,6 +75,21 @@ class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
 
     val browserComponent = embeddedBrowser.component
 
+    val wrapper = object : JPanel() {
+      override fun doLayout() {
+        super.doLayout()
+        val r = bounds
+        browserComponent.bounds = Rectangle(0, 0, r.width, r.height)
+        if (offscreenRendering) {
+          findButton.bounds = Rectangle(r.width - 220, r.height - 60, 200, 40)
+        }
+      }
+    }
+    if (offscreenRendering) {
+      wrapper.add(findButton)
+    }
+    wrapper.add(browserComponent)
+
     KeyboardFocusManager.getCurrentKeyboardFocusManager().addPropertyChangeListener() { event ->
       println("KFM ${event.propertyName}: ${event.newValue} <= ${event.oldValue}")
     }
@@ -82,9 +98,11 @@ class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
       layout = BorderLayout()
     }
     panel.add(textField, BorderLayout.NORTH)
-    panel.add(browserComponent, BorderLayout.CENTER)
+    panel.add(if (offscreenRendering) { wrapper } else { browserComponent }, BorderLayout.CENTER)
     panel.add(button, BorderLayout.SOUTH)
-    panel.add(findButton, BorderLayout.EAST)
+    if (!offscreenRendering) {
+      panel.add(findButton, BorderLayout.EAST)
+    }
     ContentFactory.SERVICE.getInstance().createContent(panel, "TODO Content Title", false).apply {
       isCloseable = false
       isPinnable = true
@@ -167,7 +185,7 @@ function log(message) {
 }
 
 let hotzone = document.querySelector('#hotzone')
-hotzone.addEventListener('keydown', (e) => {
+hotzone.addEventListener('keyup', (e) => {
   const modifiers = ['Alt', 'AltGraph', 'CapsLock', 'Control', 'Meta', 'NumLock', 'OS', 'ScrollLock']
   const activeModifiers = []
   for (const modifier of modifiers) {
