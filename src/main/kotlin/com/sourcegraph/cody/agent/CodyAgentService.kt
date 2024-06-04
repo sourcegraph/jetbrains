@@ -94,6 +94,7 @@ class CodyAgentService(private val project: Project) : Disposable {
       agent.client.onTextDocumentEdit = Function { params ->
         val activeSession = FixupService.getInstance(project).getActiveSession()
         try {
+          activeSession?.updateEditorIfNeeded(params.uri)
           activeSession?.performInlineEdits(params.edits)
           true
         } catch (e: RuntimeException) {
@@ -104,7 +105,7 @@ class CodyAgentService(private val project: Project) : Disposable {
       }
 
       agent.client.onTextDocumentShow = Function { params ->
-        val selection = params.options?.selection?.toVSCodeRange()
+        val selection = params.options?.selection
         val preserveFocus = params.options?.preserveFocus
         val vf = CodyEditorUtil.findFileOrScratch(project, params.uri) ?: return@Function false
         CodyEditorUtil.showDocument(project, vf, selection, preserveFocus)
@@ -119,7 +120,6 @@ class CodyAgentService(private val project: Project) : Disposable {
             result.complete(false)
             return@invokeAndWait
           }
-          CodyEditorUtil.showDocument(project, vf)
           result.complete(true)
         }
         result.get()

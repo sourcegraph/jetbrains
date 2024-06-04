@@ -20,15 +20,18 @@ class LensGroupFactory(val session: FixupSession) {
     }
   }
 
-  fun createAcceptGroup(): LensWidgetGroup {
+  fun createAcceptGroup(isUnitTestCommand: Boolean = false): LensWidgetGroup {
     return LensWidgetGroup(session, session.editor).apply {
       addLogo(this)
       addAction(this, "Accept", FixupSession.ACTION_ACCEPT)
       addSeparator(this)
       addAction(this, "Undo", FixupSession.ACTION_UNDO)
       addSeparator(this)
-      addAction(this, "Edit & Retry", FixupSession.ACTION_RETRY)
-      addSeparator(this)
+      // Exclude Edit & Retry from unit test commands
+      if (!isUnitTestCommand) {
+        addAction(this, "Edit & Retry", FixupSession.ACTION_RETRY)
+        addSeparator(this)
+      }
       addAction(this, "Show Diff", FixupSession.ACTION_DIFF)
       registerWidgets()
       isAcceptGroup = true
@@ -80,7 +83,7 @@ class LensGroupFactory(val session: FixupSession) {
   private fun addAction(group: LensWidgetGroup, label: String, actionId: String) {
     group.addWidget(LensAction(group, label, actionId))
 
-    val hotkey = EditCommandPrompt.getShortcutText(actionId)
+    val hotkey = EditCommandPrompt.getShortcutDisplayString(actionId)
     if (!hotkey.isNullOrEmpty()) {
       group.addWidget(LensHotkey(group, hotkey))
     }
