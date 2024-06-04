@@ -110,6 +110,14 @@
                                 order="first, before commitCompletion"/>
         <annotator language="SourcegraphRemoteRepoList"
                    implementationClass="com.sourcegraph.cody.context.RemoteRepoAnnotator"/>
+
+        <!-- WebView-based chat sidebar experiment -->
+        <toolWindow
+                id="Cody Experimental Chat UX"
+                icon="/icons/experiment-icon.svg"
+                anchor="right"
+                secondary="false"
+                factoryClass="com.sourcegraph.cody.sidebar.ExperimentalToolWindowFactory"/>
     </extensions>
 
     <applicationListeners>
