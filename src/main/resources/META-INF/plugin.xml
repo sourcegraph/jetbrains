@@ -105,6 +105,14 @@
                    implementationClass="com.sourcegraph.cody.context.RemoteRepoAnnotator"/>
 
         <keymapExtension implementation="com.sourcegraph.cody.config.CodyKeymapExtension"/>
+
+        <!-- WebView-based chat sidebar experiment -->
+        <toolWindow
+                id="Cody Experimental Chat UX"
+                icon="/icons/experiment-icon.svg"
+                anchor="right"
+                secondary="false"
+                factoryClass="com.sourcegraph.cody.sidebar.ExperimentalToolWindowFactory"/>
     </extensions>
 
     <applicationListeners>
