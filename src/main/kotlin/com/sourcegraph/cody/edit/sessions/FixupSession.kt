@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.agent.CodyAgent
@@ -516,7 +517,7 @@ abstract class FixupSession(
       topic: Topic<CodyInlineEditActionNotifier>,
       context: CodyInlineEditActionNotifier.Context? = null
   ) {
-    ApplicationManager.getApplication().invokeLater {
+    runInEdtAndWait {
       val progressContext = context ?: CodyInlineEditActionNotifier.Context(session = this)
       project.messageBus.syncPublisher(topic).afterAction(progressContext)
     }
