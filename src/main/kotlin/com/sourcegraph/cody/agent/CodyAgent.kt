@@ -172,7 +172,7 @@ private constructor(
         processBuilder.environment()["CODY_LOG_EVENT_MODE"] = "connected-instance-only"
       }
 
-      configureIntegrationTesting(processBuilder)
+      configureIntegrationTestingProcess(processBuilder)
 
       val proxy = HttpConfigurable.getInstance()
       val proxyUrl = proxy.PROXY_HOST + ":" + proxy.PROXY_PORT
@@ -214,7 +214,7 @@ private constructor(
       return AgentConnection.ProcessConnection(process)
     }
 
-    private fun configureIntegrationTesting(processBuilder: ProcessBuilder) {
+    private fun configureIntegrationTestingProcess(processBuilder: ProcessBuilder) {
       // N.B. Do not set CODY_TESTING=true -- that is for Agent-side tests.
       if (!ConfigUtil.isIntegrationTestModeEnabled()) return
 
@@ -244,13 +244,6 @@ private constructor(
           }
           else -> throw CodyAgentException("Unknown CODY_RECORDING_MODE: $mode")
         }
-      }
-
-      val testToken = System.getenv("CODY_INTEGRATION_TEST_TOKEN")
-      if (testToken is String && testToken.isNotBlank()) {
-        processBuilder.environment()["CODY_INTEGRATION_TEST_TOKEN"] = testToken
-      } else {
-        logger.warn("No access token passed for integration tests")
       }
     }
 

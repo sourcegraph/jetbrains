@@ -71,17 +71,11 @@ class FixupService(val project: Project) : Disposable {
       logger.warn("Edit code invoked when Cody not enabled")
       return false
     }
-    if (CodyStatusService.getCurrentStatus(project) == CodyStatus.CodyAgentNotRunning) {
-      runInEdt { CodyStartingNotification().notify(project) }
-      logger.warn("The agent is not connected")
-      return false
-    }
     if (!CodyEditorUtil.isEditorValidForAutocomplete(editor)) {
       runInEdt { EditingNotAvailableNotification().notify(project) }
       logger.warn("Edit code invoked when editing not available")
       return false
     }
-    val policy = IgnoreOracle.getInstance(project).policyForEditor(editor)
 
     // TODO: We'll have to figure out a way to integration-test the ignore stuff.
     // But for now, the policy comes back null during testing, which would normally
@@ -89,6 +83,15 @@ class FixupService(val project: Project) : Disposable {
     if (ConfigUtil.isIntegrationTestModeEnabled()) {
       return true
     }
+
+    if (CodyStatusService.getCurrentStatus(project) == CodyStatus.CodyAgentNotRunning) {
+      runInEdt { CodyStartingNotification().notify(project) }
+      logger.warn("The agent is not connected")
+      return false
+    }
+
+    val policy = IgnoreOracle.getInstance(project).policyForEditor(editor)
+
     if (policy != IgnorePolicy.USE) {
       runInEdt { ActionInIgnoredFileNotification().notify(project) }
       logger.warn("Ignoring file for inline edits: $editor, policy=$policy")

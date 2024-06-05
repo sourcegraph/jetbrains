@@ -348,6 +348,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       }
       try {
         disposeInlay()
+        widgets.forEach { it.dispose() }
       } catch (t: Throwable) {
         logger.warn("Error disposing inlay", t)
       }

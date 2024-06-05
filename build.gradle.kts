@@ -8,7 +8,7 @@ import java.nio.file.Paths
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
-import java.util.*
+import java.util.EnumSet
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import kotlin.script.experimental.jvm.util.hasParentNamed
@@ -408,7 +408,6 @@ tasks {
     jvmArgs("-Djdk.module.illegalAccess.silent=true")
 
     agentProperties.forEach { (key, value) -> systemProperty(key, value) }
-    environment("CODY_JETBRAINS_FEATURES", "cody.feature.inline-edits=true")
 
     val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
     if (platformRuntimeVersion != null) {
@@ -546,7 +545,6 @@ tasks {
         "idea.test.execution.policy", // For now, should be used by all tests
         "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
 
-    environment("CODY_JETBRAINS_FEATURES", "cody.feature.inline-edits=true")
     environment("CODY_RECORDING_MODE", "replay")
     environment("CODY_RECORDING_DIRECTORY", "recordings")
     environment("CODY_RECORD_IF_MISSING", "false") // Polly needs this to record at all.

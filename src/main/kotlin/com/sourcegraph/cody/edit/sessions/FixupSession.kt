@@ -506,7 +506,7 @@ abstract class FixupSession(
   }
 
   private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
-    ApplicationManager.getApplication().executeOnPooledThread {
+    ApplicationManager.getApplication().invokeLater {
       project.messageBus
           .syncPublisher(topic)
           .afterAction(CodyInlineEditActionNotifier.Context(session = this))

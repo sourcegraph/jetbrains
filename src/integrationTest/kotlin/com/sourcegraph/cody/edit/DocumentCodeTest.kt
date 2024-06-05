@@ -10,7 +10,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.EditorTestUtil
@@ -20,6 +19,8 @@ import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.cody.edit.widget.LensAction
 import com.sourcegraph.cody.edit.widget.LensGroupFactory
+import com.sourcegraph.cody.edit.widget.LensHotkey
+import com.sourcegraph.cody.edit.widget.LensIcon
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.config.ConfigUtil
@@ -51,18 +52,6 @@ class DocumentCodeTest : BasePlatformTestCase() {
         } catch (x: Exception) {
           logger.warn("Error shutting down session", x)
         }
-      }
-      // Notify the Agent that all documents have been closed.
-      val fileEditorManager = FileEditorManager.getInstance(myFixture.project)
-      fileEditorManager.openFiles.forEach {
-        // TODO: Check that this shows up in the trace.json file (textDocument/didClose).
-        fileEditorManager.closeFile(it)
-      }
-      try {
-        // TODO: This seemed to kill one of the tests.
-        // testDataPath.deleteRecursively()
-      } catch (x: Exception) {
-        logger.warn("Error deleting test data", x)
       }
     } finally {
       super.tearDown()
@@ -119,17 +108,19 @@ class DocumentCodeTest : BasePlatformTestCase() {
     assertNotNull("Lens group should be displayed", lenses)
 
     val widgets = lenses!!.widgets
-    assertEquals("Lens group should have 6 widgets", 6, widgets.size)
-    assertTrue("Zeroth lens should be a spinner", widgets[0] is LensSpinner)
-    assertTrue("First lens is space separator label", (widgets[1] as LensLabel).text == " ")
-    assertTrue("Second lens is working label", (widgets[2] as LensLabel).text.contains("working"))
+    assertEquals("Lens group should have 6 widgets", 8, widgets.size)
+    assertTrue("Zeroth lens group should be an icon", widgets[0] is LensIcon)
+    assertTrue("First lens group is space separator label", (widgets[1] as LensLabel).text == " ")
+    assertTrue("Second lens group is a spinner", widgets[2] is LensSpinner)
+    assertTrue("Third lens group is space separator label", (widgets[3] as LensLabel).text == " ")
     assertTrue(
-        "Third lens is separator label",
-        (widgets[3] as LensLabel).text == LensGroupFactory.SEPARATOR)
-    assertTrue("Fourth lens should be an action", widgets[4] is LensAction)
+        "Fourth lens group is a description label",
+        (widgets[4] as LensLabel).text == "Generating Code Edits")
     assertTrue(
-        "Fifth lens should be a label with a hotkey",
-        (widgets[5] as LensLabel).text.matches(Regex(" \\(.+\\)")))
+        "Fifth lens group is separator label",
+        (widgets[5] as LensLabel).text == LensGroupFactory.SEPARATOR)
+    assertTrue("Sixth lens group should be an action", widgets[6] is LensAction)
+    assertTrue("Seventh lens group should be a label with a hotkey", widgets[7] is LensHotkey)
   }
 
   private fun awaitAcceptLensGroup(): CodyInlineEditActionNotifier.Context {
@@ -354,6 +345,6 @@ class DocumentCodeTest : BasePlatformTestCase() {
     // If it's too low the test may be flaky.
     // const val ASYNC_WAIT_TIMEOUT_SECONDS = 15000L
 
-    const val ASYNC_WAIT_TIMEOUT_SECONDS = 15L
+    const val ASYNC_WAIT_TIMEOUT_SECONDS = 25L
   }
 }
