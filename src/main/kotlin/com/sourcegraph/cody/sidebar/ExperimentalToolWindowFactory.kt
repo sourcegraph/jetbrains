@@ -8,22 +8,16 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
-import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBuilder
-import com.intellij.ui.jcef.JBCefClient
-import org.cef.CefClient
-import org.cef.browser.CefBrowser
-import org.cef.handler.CefFocusHandler
-import org.cef.handler.CefFocusHandlerAdapter
-import org.cef.handler.CefLifeSpanHandler
 import java.awt.BorderLayout
 import java.awt.KeyboardFocusManager
 import java.awt.Rectangle
-import java.awt.event.FocusEvent
-import java.awt.event.FocusListener
 import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.JTextField
+import org.cef.browser.CefBrowser
+import org.cef.handler.CefFocusHandler
+import org.cef.handler.CefFocusHandlerAdapter
 
 class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
@@ -32,59 +26,76 @@ class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
 
   fun doStuff(project: Project, toolWindow: ToolWindow) {
     val textField = JTextField()
-    val button = JButton().apply {
-      text = "Delayed focus to north text field"
-      addActionListener {
-        ApplicationManager.getApplication().executeOnPooledThread {
-          Thread.sleep(1000)
-          runInEdt { textField.requestFocus() }
+    val button =
+        JButton().apply {
+          text = "Delayed focus to north text field"
+          addActionListener {
+            ApplicationManager.getApplication().executeOnPooledThread {
+              Thread.sleep(1000)
+              runInEdt { textField.requestFocus() }
+            }
+          }
         }
-      }
-    }
 
     val browserClient = JBCefApp.getInstance().createClient()
     // false: animation has vsync, weird resizing
     // true: animation does not have vsync, better resizing
     val offscreenRendering = false
-    val embeddedBrowser = JBCefBrowserBuilder().setClient(browserClient).setOffScreenRendering(offscreenRendering).build()
-    browserClient.addFocusHandler(object : CefFocusHandlerAdapter() {
-      override fun onGotFocus(browser: CefBrowser) {
-        println("Got focus")
-        super.onGotFocus(browser)
-      }
+    val embeddedBrowser =
+        JBCefBrowserBuilder()
+            .setClient(browserClient)
+            .setOffScreenRendering(offscreenRendering)
+            .build()
+    browserClient.addFocusHandler(
+        object : CefFocusHandlerAdapter() {
+          override fun onGotFocus(browser: CefBrowser) {
+            println("Got focus")
+            super.onGotFocus(browser)
+          }
 
-      override fun onSetFocus(browser: CefBrowser?, source: CefFocusHandler.FocusSource?): Boolean {
-        println("set focus")
-        return super.onSetFocus(browser, source)
-      }
+          override fun onSetFocus(
+              browser: CefBrowser?,
+              source: CefFocusHandler.FocusSource?
+          ): Boolean {
+            println("set focus")
+            return super.onSetFocus(browser, source)
+          }
 
-      override fun onTakeFocus(browser: CefBrowser?, next: Boolean) {
-        println("take focus")
-        // TODO: This is cheesy just to demonstrate we can fix the tab out problem.
-        if (next) { button } else { textField }.requestFocusInWindow()
-      }
-    }, embeddedBrowser.cefBrowser)
+          override fun onTakeFocus(browser: CefBrowser?, next: Boolean) {
+            println("take focus")
+            // TODO: This is cheesy just to demonstrate we can fix the tab out problem.
+            if (next) {
+                  button
+                } else {
+                  textField
+                }
+                .requestFocusInWindow()
+          }
+        },
+        embeddedBrowser.cefBrowser)
 
-    val findButton = JButton().apply {
-      text = "Find"
-      addActionListener {
-        embeddedBrowser.cefBrowser.stopFinding(true)
-        embeddedBrowser.cefBrowser.find(42, textField.text, true, false, true)
-      }
-    }
+    val findButton =
+        JButton().apply {
+          text = "Find"
+          addActionListener {
+            embeddedBrowser.cefBrowser.stopFinding(true)
+            embeddedBrowser.cefBrowser.find(42, textField.text, true, false, true)
+          }
+        }
 
     val browserComponent = embeddedBrowser.component
 
-    val wrapper = object : JPanel() {
-      override fun doLayout() {
-        super.doLayout()
-        val r = bounds
-        browserComponent.bounds = Rectangle(0, 0, r.width, r.height)
-        if (offscreenRendering) {
-          findButton.bounds = Rectangle(r.width - 220, r.height - 60, 200, 40)
+    val wrapper =
+        object : JPanel() {
+          override fun doLayout() {
+            super.doLayout()
+            val r = bounds
+            browserComponent.bounds = Rectangle(0, 0, r.width, r.height)
+            if (offscreenRendering) {
+              findButton.bounds = Rectangle(r.width - 220, r.height - 60, 200, 40)
+            }
+          }
         }
-      }
-    }
     if (offscreenRendering) {
       wrapper.add(findButton)
     }
@@ -94,11 +105,15 @@ class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
       println("KFM ${event.propertyName}: ${event.newValue} <= ${event.oldValue}")
     }
 
-    val panel = JPanel().apply {
-      layout = BorderLayout()
-    }
+    val panel = JPanel().apply { layout = BorderLayout() }
     panel.add(textField, BorderLayout.NORTH)
-    panel.add(if (offscreenRendering) { wrapper } else { browserComponent }, BorderLayout.CENTER)
+    panel.add(
+        if (offscreenRendering) {
+          wrapper
+        } else {
+          browserComponent
+        },
+        BorderLayout.CENTER)
     panel.add(button, BorderLayout.SOUTH)
     if (!offscreenRendering) {
       panel.add(findButton, BorderLayout.EAST)
@@ -110,7 +125,8 @@ class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
       toolWindow.contentManager.addContent(this)
     }
 
-    embeddedBrowser.loadHTML("""<!DOCTYPE html>
+    embeddedBrowser.loadHTML(
+        """<!DOCTYPE html>
       |<style>
 #circle {
   width: 2em;
@@ -202,6 +218,7 @@ hotzone.addEventListener('keyup', (e) => {
   }
 })
 </script>
-      |""".trimMargin())
+      |"""
+            .trimMargin())
   }
 }
