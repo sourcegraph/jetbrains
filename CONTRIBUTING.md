@@ -227,6 +227,19 @@ to use if you are uncertain which method to use for debugging. Option 2
 is especially useful when you need to set a breakpoint very early in
 the Agent startup.
 
+### Using VS Code to debug the Agent
+
+The setup described here also works with VS Code as your debugger and/or
+launcher. Both configurations work with IntelliJ and VS Code on the Cody
+side, and the VS Code Cody extension has both configurations available
+in its default run configurations.
+
+VS Code is usually the better choice for a debugger, because the JetBrains
+TypeScript plugin gets very confused over our TypeScript code base, and
+cannot search for files or symbols.
+
+Sometimes using JetBrains is more convenient, so we describe both options.
+
 ## How to set up Run Configurations
 
 Run configurations are basically IDEA's launcher scripts. You will need
@@ -407,3 +420,22 @@ see the configuration dropdown at the top.
   - Workaround is to exit the target gracefully by quitting each time,
     using the menus or hotkeys, rather than force-stopping it.
 
+# Integration Testing
+
+Run the integration tests at the command line with:
+
+```
+./gradlew integrationTest
+```
+
+If you pass in an access token, it will use the default production LLM
+rather than a mock LLM, which can be useful when updating the test if
+the protocol changes.
+
+```
+CODY_INTEGRATION_TEST_TOKEN=sgp_asdfasdfasdfasdfasdfasdfasdf
+```
+
+You can run and debug the integration tests, including the Agent node
+process, with the instructions above by making new run configurations
+for the test.

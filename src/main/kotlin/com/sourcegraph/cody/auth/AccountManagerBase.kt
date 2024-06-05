@@ -10,6 +10,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.util.Disposer
+import com.sourcegraph.config.ConfigUtil
 import java.util.concurrent.CopyOnWriteArrayList
 import org.jetbrains.annotations.VisibleForTesting
 
@@ -104,11 +105,24 @@ abstract class AccountManagerBase<A : Account, Cred>(private val serviceName: St
     }
   }
 
+  // TODO: Swing and a miss here -- this is not called during integration testing.
+  //   We need to move this testing code over to wherever it's looking for the credentials.
   override fun findCredentials(account: A): Cred? =
-      passwordSafe
-          .get(account.credentialAttributes())
-          ?.getPasswordAsString()
-          ?.let(::deserializeCredentials)
+      if (ConfigUtil.isIntegrationTestModeEnabled()) {
+        val host =
+            System.getenv("CODY_INTEGRATION_TEST_HOST")
+                ?: throw IllegalStateException("Missing CODY_INTEGRATION_TEST_HOST env var")
+        val token =
+            System.getenv("CODY_INTEGRATION_TEST_TOKEN")
+                ?: throw IllegalStateException("Missing CODY_INTEGRATION_TEST_TOKEN env var")
+        val credentials = Credentials(host, token)
+        deserializeCredentials(credentials.getPasswordAsString() ?: "")
+      } else {
+        passwordSafe
+            .get(account.credentialAttributes())
+            ?.getPasswordAsString()
+            ?.let(::deserializeCredentials)
+      }
 
   private fun A.credentialAttributes() = CredentialAttributes(generateServiceName(serviceName, id))
 

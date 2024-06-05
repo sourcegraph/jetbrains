@@ -35,7 +35,6 @@ import com.sourcegraph.config.ConfigUtil
 import java.net.URI
 import java.net.URISyntaxException
 import java.util.Optional
-import kotlin.io.path.createDirectories
 import kotlin.io.path.createFile
 import kotlin.io.path.exists
 import kotlin.io.path.toPath
@@ -216,10 +215,7 @@ object CodyEditorUtil {
   ): VirtualFile? {
     try {
       val uri = URI.create(uriString).withScheme("file")
-      if (!uri.toPath().exists()) {
-        uri.toPath().parent?.createDirectories()
-        uri.toPath().createFile()
-      }
+      if (!uri.toPath().exists()) uri.toPath().createFile()
       val vf = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(uri.toPath())
       content?.let {
         WriteCommandAction.runWriteCommandAction(project) { vf?.setBinaryContent(it.toByteArray()) }

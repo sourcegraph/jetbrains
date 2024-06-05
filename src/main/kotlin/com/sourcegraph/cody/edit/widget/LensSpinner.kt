@@ -52,7 +52,11 @@ class LensSpinner(group: LensWidgetGroup, private val icon: Icon) : LensWidget(g
   }
 
   override fun dispose() {
-    stop()
+    try {
+      stop()
+    } catch (x: Exception) {
+      logger.error(x)
+    }
   }
 
   override fun toString(): String {
