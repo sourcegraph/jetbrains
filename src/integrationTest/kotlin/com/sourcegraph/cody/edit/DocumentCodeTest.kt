@@ -102,7 +102,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
     }
   }
 
-  fun skip_testGetsWorkingGroupLens() {
+  fun testGetsWorkingGroupLens() {
     val future = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
     executeDocumentCodeAction()
 
@@ -142,7 +142,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
     return context!!
   }
 
-  fun skip_testShowsAcceptLens() {
+  fun testShowsAcceptLens() {
     val context = awaitAcceptLensGroup()
 
     // Lens group should match the expected structure.
@@ -180,7 +180,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
     runInEdtAndWait { Disposer.dispose(lenses) }
   }
 
-  fun skip_testAccept() {
+  fun testAccept() {
     val project = myFixture.project!!
     assertNull(FixupService.getInstance(project).getActiveSession())
 
@@ -198,7 +198,7 @@ class DocumentCodeTest : BasePlatformTestCase() {
     assertNull(FixupService.getInstance(project).getActiveSession())
   }
 
-  fun skip_testUndo() {
+  fun testUndo() {
     val undoFuture = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
     executeDocumentCodeAction()
     // The Accept/Retry/Undo group is now showing.
