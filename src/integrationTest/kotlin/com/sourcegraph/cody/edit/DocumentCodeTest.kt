@@ -4,12 +4,16 @@ import com.intellij.ide.lightEdit.LightEdit
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.LangDataKeys
+import com.intellij.openapi.actionSystem.PlatformDataKeys
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.EditorTestUtil
@@ -31,7 +35,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.regex.Pattern
 import org.junit.jupiter.api.assertDoesNotThrow
-import org.mockito.Mockito.mock
 
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)
@@ -330,14 +333,16 @@ class DocumentCodeTest : BasePlatformTestCase() {
   // Run the IDE action specified by actionId.
   private fun triggerAction(actionId: String) {
     val action = ActionManager.getInstance().getAction(actionId)
+    val context =
+        SimpleDataContext.builder()
+            .add(LangDataKeys.PROJECT, project)
+            .add(LangDataKeys.MODULE, module)
+            .add(PlatformDataKeys.EDITOR, FileEditorManager.getInstance(project).selectedTextEditor)
+            .build()
+
     action.actionPerformed(
         AnActionEvent(
-            null,
-            mock(DataContext::class.java),
-            "",
-            action.templatePresentation.clone(),
-            ActionManager.getInstance(),
-            0))
+            null, context, "", action.templatePresentation.clone(), ActionManager.getInstance(), 0))
   }
 
   private fun hasJavadocComment(text: String): Boolean {
