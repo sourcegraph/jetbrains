@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.edit
 
 import com.intellij.openapi.util.Disposer
+import com.intellij.testFramework.runInEdtAndGet
 import com.intellij.testFramework.runInEdtAndWait
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.cody.edit.widget.LensAction
@@ -10,42 +11,31 @@ import com.sourcegraph.cody.edit.widget.LensIcon
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.cody.util.CodyIntegrationTextFixture
-import java.util.concurrent.TimeoutException
-import org.junit.jupiter.api.assertDoesNotThrow
 
 class DocumentCodeTest : CodyIntegrationTextFixture() {
 
   fun testGetsFoldingRanges() {
     val foldingRangeFuture = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES)
     executeDocumentCodeAction()
-    runInEdtAndWait {
-      val rangeContext =
-          assertDoesNotThrow("Exception while waiting for folding ranges") {
-            try {
-              foldingRangeFuture.get()
-            } catch (t: TimeoutException) {
-              fail("Timed out waiting for folding ranges")
-              null
-            }
-          }
-      assertNotNull("Computed selection range should be non-null", rangeContext)
-      // Ensure we were able to get the selection range.
-      val selection = rangeContext!!.selectionRange
-      assertNotNull("Selection should have been set", selection)
-      // We set the selection range to whatever the protocol returns.
-      // If a 0-width selection turns out to be reasonable we can adjust or remove this test.
-      assertFalse("Selection range should not be zero-width", selection!!.start == selection.end)
-      // A more robust check is to see if the selection "range" is just the caret position.
-      // If so, then our fallback range somehow made the round trip, which is bad. The lenses will
-      // go in the wrong places, etc.
-      val document = myFixture.editor.document
-      val startOffset = selection.start.toOffset(document)
-      val endOffset = selection.end.toOffset(document)
-      val caret = myFixture.editor.caretModel.primaryCaret.offset
-      assertFalse(
-          "Selection range should not equal the caret position",
-          startOffset == caret && endOffset == caret)
-    }
+    val rangeContext = foldingRangeFuture.get()
+
+    assertNotNull("Computed selection range should be non-null", rangeContext)
+    // Ensure we were able to get the selection range.
+    val selection = rangeContext!!.selectionRange
+    assertNotNull("Selection should have been set", selection)
+    // We set the selection range to whatever the protocol returns.
+    // If a 0-width selection turns out to be reasonable we can adjust or remove this test.
+    assertFalse("Selection range should not be zero-width", selection!!.start == selection.end)
+    // A more robust check is to see if the selection "range" is just the caret position.
+    // If so, then our fallback range somehow made the round trip, which is bad. The lenses will
+    // go in the wrong places, etc.
+    val document = myFixture.editor.document
+    val startOffset = selection.start.toOffset(document)
+    val endOffset = selection.end.toOffset(document)
+    val caret = runInEdtAndGet { myFixture.editor.caretModel.primaryCaret.offset }
+    assertFalse(
+        "Selection range should not equal the caret position",
+        startOffset == caret && endOffset == caret)
   }
 
   fun testGetsWorkingGroupLens() {

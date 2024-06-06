@@ -14,7 +14,6 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.agent.CodyAgent
@@ -163,7 +162,9 @@ abstract class FixupSession(
           .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
           .thenApply { result ->
             selectionRange = result.range.toRangeMarker(document, true)
-            runInEdtAndWait { publishProgress(CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES) }
+            publishProgressOnEdt(
+                CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES,
+                CodyInlineEditActionNotifier.Context(session = this, selectionRange = result.range))
             result
           }
           .get()
