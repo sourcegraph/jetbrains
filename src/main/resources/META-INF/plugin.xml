@@ -108,11 +108,18 @@
 
         <!-- WebView-based chat sidebar experiment -->
         <toolWindow
-                id="Cody Experimental Chat UX"
+                id="Cody Web Content Experiments"
                 icon="/icons/experiment-icon.svg"
                 anchor="right"
                 secondary="false"
                 factoryClass="com.sourcegraph.cody.sidebar.ExperimentalToolWindowFactory"/>
+
+        <toolWindow
+                id="Cody Experimental Chat UX"
+                icon="/icons/codyLogoMonochromatic.svg"
+                anchor="right"
+                secondary="false"
+                factoryClass="com.sourcegraph.cody.sidebar.WebUIChatWindowFactory" />
     </extensions>
 
     <applicationListeners>

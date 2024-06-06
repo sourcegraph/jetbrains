@@ -323,12 +323,20 @@ private constructor(
 
     private fun agentDirectory(): Path? {
       // N.B. this is the default/production setting. CODY_DIR overrides it locally.
+      return pluginDirectory()?.resolve("agent")
+    }
+
+    /**
+     * Gets the plugin path, or null if not found. Can be overridden with the cody-agent.directory system property. Does
+     * not consider CODY_DIR environment variable overrides.
+     */
+    fun pluginDirectory(): Path? {
       val fromProperty = System.getProperty("cody-agent.directory", "")
-      if (fromProperty.isNotEmpty()) {
-        return Paths.get(fromProperty).resolve("agent")
+      return if (fromProperty.isNotEmpty()) {
+        Paths.get(fromProperty)
+      } else {
+        PluginManagerCore.getPlugin(PLUGIN_ID)?.pluginPath
       }
-      val plugin = PluginManagerCore.getPlugin(PLUGIN_ID) ?: return null
-      return plugin.pluginPath.resolve("agent")
     }
 
     @Throws(CodyAgentException::class)
