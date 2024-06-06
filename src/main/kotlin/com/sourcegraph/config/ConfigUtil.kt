@@ -13,6 +13,7 @@ import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.ExtensionConfiguration
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.config.CodyPersistentAccountsHost
 import com.sourcegraph.cody.config.ServerAuthLoader
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
@@ -44,10 +45,14 @@ object ConfigUtil {
   /**
    * Returns true if the specified feature flag is enabled. Feature flags are currently set in the
    * environment variable CODY_JETBRAINS_FEATURES. The format is
-   * CODY_JETBRAINS_FEATURES=cody.feature.1=true,cody.feature.2=false. The value should be unquoted
-   * in your run configuration, but quoted in the env var; e.g.,
+   *
    * ```
-   * export CODY_JETBRAINS_FEATURES="cody.feature.1=true,cody.feature.2=false"
+   *  CODY_JETBRAINS_FEATURES=cody.feature.1=true,cody.feature.2=false
+   * ```
+   *
+   * For instance:
+   * ```
+   * export CODY_JETBRAINS_FEATURES=cody.feature.inline-edits=true
    * ```
    *
    * @param flagName The name of the feature flag
@@ -57,6 +62,16 @@ object ConfigUtil {
 
   @JvmStatic
   fun getAgentConfiguration(project: Project): ExtensionConfiguration {
+    if (isIntegrationTestModeEnabled()) {
+      CodyPersistentAccountsHost(project)
+          .addAccount(
+              from(DOTCOM_URL, ""),
+              login = "test_user",
+              displayName = "Test User",
+              token = System.getenv("CODY_INTEGRATION_TEST_TOKEN"),
+              id = "random-unique-testing-id-1337")
+    }
+
     val serverAuth = ServerAuthLoader.loadServerAuth(project)
 
     return ExtensionConfiguration(
@@ -175,4 +190,7 @@ object ConfigUtil {
   fun getShouldAcceptNonTrustedCertificatesAutomatically(): Boolean {
     return CodyApplicationSettings.instance.shouldAcceptNonTrustedCertificatesAutomatically
   }
+
+  @JvmStatic
+  fun isIntegrationTestModeEnabled() = java.lang.Boolean.getBoolean("cody.integration.testing")
 }
