@@ -24,14 +24,14 @@ import com.sourcegraph.cody.edit.widget.LensIcon
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.config.ConfigUtil
-import org.junit.jupiter.api.assertDoesNotThrow
-import org.mockito.Mockito.mock
 import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.regex.Pattern
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.mockito.Mockito.mock
 
 class DocumentCodeTest : BasePlatformTestCase() {
   private val logger = Logger.getInstance(DocumentCodeTest::class.java)
