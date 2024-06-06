@@ -416,3 +416,21 @@ Chrome Tracing can be used to get CPU and memory profiles of Agent and the TypeS
   - Workaround is to exit the target gracefully by quitting each time,
     using the menus or hotkeys, rather than force-stopping it.
 
+# Integration Testing
+
+Run the integration tests at the command line with:
+
+```
+./gradlew integrationTest
+```
+
+You currently need to pass in a valid dotcom access token with this
+environment variable:
+
+```
+CODY_INTEGRATION_TEST_TOKEN=sgp_thisistherestofyourprivatetoken
+```
+
+You can run and debug the integration tests, including the Agent node
+process, with the instructions above by making new run configurations
+for the test.

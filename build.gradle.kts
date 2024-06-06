@@ -11,6 +11,7 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.EnumSet
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
+import kotlin.script.experimental.jvm.util.hasParentNamed
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -50,6 +51,7 @@ val skippedFailureLevels =
 
 plugins {
   id("java")
+  id("jvm-test-suite")
   // Dependencies are locked at this version to work with JDK 11 on CI.
   id("org.jetbrains.kotlin.jvm") version "1.9.22"
   id("org.jetbrains.intellij") version "1.17.3"
@@ -57,21 +59,16 @@ plugins {
   id("com.diffplug.spotless") version "6.25.0"
 }
 
+val platformVersion: String by project
+val javaVersion: String by project
+
 group = properties("pluginGroup")
 
 version = properties("pluginVersion")
 
-repositories { mavenCentral() }
-
-intellij {
-  pluginName.set(properties("pluginName"))
-  version.set(properties("platformVersion"))
-  type.set(properties("platformType"))
-
-  // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
-  plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
-
-  updateSinceUntilBuild.set(false)
+repositories {
+  maven { url = uri("https://www.jetbrains.com/intellij-repository/releases") }
+  mavenCentral()
 }
 
 dependencies {
@@ -83,6 +80,10 @@ dependencies {
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.21.0")
   implementation("com.googlecode.java-diff-utils:diffutils:1.3.0")
   testImplementation("org.awaitility:awaitility-kotlin:4.2.0")
+  testImplementation("org.junit.jupiter:junit-jupiter:5.7.0")
+  testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.22")
+  implementation("org.mockito:mockito-all:1.10.19")
+  testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1")
 }
 
 spotless {
@@ -100,7 +101,19 @@ spotless {
     ktfmt()
     trimTrailingWhitespace()
     target("src/**/*.kt")
+    toggleOffOn()
   }
+}
+
+intellij {
+  pluginName.set(properties("pluginName"))
+  version.set(platformVersion)
+  type.set(properties("platformType"))
+
+  // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
+  plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+
+  updateSinceUntilBuild.set(false)
 }
 
 java {
@@ -111,6 +124,8 @@ java {
     languageVersion.set(JavaLanguageVersion.of(properties("javaVersion").toInt()))
   }
 }
+
+tasks.named("classpathIndexCleanup") { dependsOn("compileIntegrationTestKotlin") }
 
 fun download(url: String, output: File) {
   if (output.exists()) {
@@ -184,7 +199,7 @@ fun unzip(input: File, output: File, excludeMatcher: PathMatcher? = null) {
   }
 }
 
-val githubArchiveCache =
+val githubArchiveCache: File =
     Paths.get(System.getProperty("user.home"), ".sourcegraph", "caches", "jetbrains").toFile()
 
 tasks {
@@ -441,6 +456,136 @@ tasks {
       hidden.set(true)
     }
   }
+
+  // TODO(stevey): Everything below here needs work.
+  test { dependsOn(project.tasks.getByPath("buildCody")) }
+
+  configurations {
+    create("integrationTestImplementation") { extendsFrom(configurations.testImplementation.get()) }
+    create("integrationTestRuntimeClasspath") { extendsFrom(configurations.testRuntimeOnly.get()) }
+  }
+
+  sourceSets {
+    create("integrationTest") {
+      kotlin.srcDir("src/integrationTest/kotlin")
+      compileClasspath += main.get().output
+      runtimeClasspath += main.get().output
+    }
+  }
+
+  val integrationTestSystemProps =
+      mapOf(
+          "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
+          "cody-agent.directory" to buildCodyDir.parent,
+          "sourcegraph.verbose-logging" to "true",
+          "cody.autocomplete.enableFormatting" to
+              (project.property("cody.autocomplete.enableFormatting") as String? ?: "true"),
+          "cody.integration.testing" to "true",
+          // For now, should be used by all tests
+          "idea.test.execution.policy" to "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy",
+          "test.resources.dir" to project.file("src/integrationTest/resources").absolutePath)
+
+  val integrationTestEnvVars =
+      mapOf(
+          "CODY_JETBRAINS_FEATURES" to "cody.feature.inline-edits=true",
+          "CODY_RECORDING_MODE" to "replay",
+          "CODY_RECORDING_DIRECTORY" to "recordings",
+          "CODY_RECORD_IF_MISSING" to "false") // Polly needs this to record at all.
+
+  // Common configuration for integration tests.
+  // TODO: This doesn't actually work.
+  fun Test.sharedIntegrationTestConfig() {
+    group = "verification"
+    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+    classpath = sourceSets["integrationTest"].runtimeClasspath
+
+    // TODO: Refactor to share these with runIde.
+    systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
+    systemProperty("cody-agent.directory", buildCodyDir.parent)
+    systemProperty("sourcegraph.verbose-logging", "true")
+    systemProperty(
+        "cody.autocomplete.enableFormatting",
+        project.property("cody.autocomplete.enableFormatting") as String? ?: "true")
+
+    include { it.file.hasParentNamed("integrationTest") }
+
+    integrationTestSystemProps.forEach { (k, v) -> systemProperty(k, v) }
+    integrationTestEnvVars.forEach { (k, v) -> environment(k, v) }
+
+    useJUnit()
+
+    dependsOn("buildCody")
+  }
+
+  // Make sure to set CODY_INTEGRATION_TEST_TOKEN env var when using this task.
+  register<Test>("integrationTest") {
+    description = "Runs the integration tests."
+    group = "verification"
+    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+    classpath = sourceSets["integrationTest"].runtimeClasspath
+
+    val resourcesPath = project.file("src/integrationTest/resources").absolutePath
+    systemProperty("test.resources.dir", resourcesPath)
+
+    // TODO: Refactor to share these with runIde.
+    systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
+    systemProperty("cody-agent.directory", buildCodyDir.parent)
+    systemProperty("sourcegraph.verbose-logging", "true")
+    systemProperty(
+        "cody.autocomplete.enableFormatting",
+        project.property("cody.autocomplete.enableFormatting") as String? ?: "true")
+
+    include { it.file.hasParentNamed("integrationTest") }
+
+    useJUnit()
+
+    systemProperty("cody.integration.testing", "true")
+    systemProperty(
+        "idea.test.execution.policy", // For now, should be used by all tests
+        "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
+
+    environment("CODY_RECORDING_MODE", "replay")
+    environment("CODY_RECORDING_DIRECTORY", "recordings")
+    environment("CODY_RECORD_IF_MISSING", "false") // Polly needs this to record at all.
+
+    dependsOn("buildCody")
+  }
+
+  // Make sure to set CODY_INTEGRATION_TEST_TOKEN when using this task.
+  register<Test>("passthroughIntegrationTest") {
+    description = "Runs the integration tests, passing everything through to the LLM."
+    sharedIntegrationTestConfig()
+    environment("CODY_RECORDING_MODE", "passthrough")
+  }
+
+  // Make sure to set CODY_INTEGRATION_TEST_TOKEN when using this task.
+  register<Test>("recordingIntegrationTest") {
+    description = "Runs the integration tests and records the responses."
+    sharedIntegrationTestConfig()
+
+    environment("CODY_RECORDING_MODE", "record")
+    environment("CODY_RECORDING_NAME", "integration-tests")
+    environment("CODY_RECORD_IF_MISSING", "true") // Polly needs this to record at all.
+  }
+
+  named<Copy>("processIntegrationTestResources") {
+    from(sourceSets["integrationTest"].resources)
+    into("$buildDir/resources/integrationTest")
+    exclude("**/.idea/**")
+    exclude("**/*.xml")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  }
+
+  withType<Test> { systemProperty("idea.test.src.dir", "$buildDir/resources/integrationTest") }
+
+  named<Test>("integrationTest") {
+    dependsOn("processIntegrationTestResources")
+    // sharedIntegrationTestConfig()
+  }
+
+  named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }
+
+  named("check") { dependsOn("integrationTest") }
 
   test {
     agentProperties.forEach { (key, value) -> systemProperty(key, value) }

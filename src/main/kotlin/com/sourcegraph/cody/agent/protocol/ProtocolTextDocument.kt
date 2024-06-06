@@ -12,8 +12,10 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import java.awt.Point
+import java.net.URI
 import java.nio.file.FileSystems
-import java.util.Locale
+import java.util.*
+import kotlin.io.path.pathString
 import kotlin.math.max
 import kotlin.math.min
 
@@ -184,8 +186,15 @@ private constructor(
 
     @JvmStatic
     fun uriFor(file: VirtualFile): String {
-      val uri = FileSystems.getDefault().getPath(file.path).toUri().toString()
-      return uri.replace(Regex("file:///(\\w):/")) {
+      // Integration test: Convert default filesystem "temp://" scheme to "file://" for Agent.
+      val initialUri = FileSystems.getDefault().getPath(file.path)
+
+      // Don't let Java's URI library produce syntactically incorrect "file:/src/foo/bar" URIs.
+      // This construction forces it to have the syntax "file:///src/foo/bar".
+      val properUri = URI("file", "", initialUri.pathString, null).toString()
+
+      // Canonicalize by lower-casing drive letter, if any.
+      return properUri.replace(Regex("file:///(\\w):/")) {
         val driveLetter =
             it.groups[1]?.value?.lowercase(Locale.getDefault()) ?: return@replace it.value
         "file:///$driveLetter%3A/"

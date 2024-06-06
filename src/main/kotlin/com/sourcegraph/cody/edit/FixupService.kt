@@ -19,6 +19,7 @@ import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.ignore.IgnorePolicy
 import com.sourcegraph.cody.statusbar.CodyStatus
 import com.sourcegraph.cody.statusbar.CodyStatusService
+import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.config.ConfigUtil.isCodyEnabled
 import com.sourcegraph.utils.CodyEditorUtil
 import java.util.concurrent.atomic.AtomicReference
@@ -70,17 +71,27 @@ class FixupService(val project: Project) : Disposable {
       logger.warn("Edit code invoked when Cody not enabled")
       return false
     }
-    if (CodyStatusService.getCurrentStatus(project) == CodyStatus.CodyAgentNotRunning) {
-      runInEdt { CodyStartingNotification().notify(project) }
-      logger.warn("The agent is not connected")
-      return false
-    }
     if (!CodyEditorUtil.isEditorValidForAutocomplete(editor)) {
       runInEdt { EditingNotAvailableNotification().notify(project) }
       logger.warn("Edit code invoked when editing not available")
       return false
     }
+
+    // TODO: We'll have to figure out a way to integration-test the ignore stuff.
+    // Right now during testing the policy comes back null, which depending on the
+    // account type might mean ignore-by-default. So we override it for now.
+    if (ConfigUtil.isIntegrationTestModeEnabled()) {
+      return true
+    }
+
+    if (CodyStatusService.getCurrentStatus(project) == CodyStatus.CodyAgentNotRunning) {
+      runInEdt { CodyStartingNotification().notify(project) }
+      logger.warn("The agent is not connected")
+      return false
+    }
+
     val policy = IgnoreOracle.getInstance(project).policyForEditor(editor)
+
     if (policy != IgnorePolicy.USE) {
       runInEdt { ActionInIgnoredFileNotification().notify(project) }
       logger.warn("Ignoring file for inline edits: $editor, policy=$policy")
