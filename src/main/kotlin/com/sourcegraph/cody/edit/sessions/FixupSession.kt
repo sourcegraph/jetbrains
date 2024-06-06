@@ -41,11 +41,11 @@ import com.sourcegraph.cody.edit.widget.LensGroupFactory
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.utils.CodyEditorUtil
-import org.jetbrains.annotations.VisibleForTesting
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
+import org.jetbrains.annotations.VisibleForTesting
 
 /**
  * Common functionality for commands that let the agent edit the code inline, such as adding a doc

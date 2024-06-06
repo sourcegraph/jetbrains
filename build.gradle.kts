@@ -8,10 +8,9 @@ import java.nio.file.Paths
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
-import java.util.EnumSet
+import java.util.*
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
-import kotlin.script.experimental.jvm.util.hasParentNamed
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -71,6 +70,17 @@ repositories {
   mavenCentral()
 }
 
+intellij {
+  pluginName.set(properties("pluginName"))
+  version.set(platformVersion)
+  type.set(properties("platformType"))
+
+  // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
+  plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+
+  updateSinceUntilBuild.set(false)
+}
+
 dependencies {
   // ActionUpdateThread.jar contains copy of the
   // com.intellij.openapi.actionSystem.ActionUpdateThread class
@@ -103,17 +113,6 @@ spotless {
     target("src/**/*.kt")
     toggleOffOn()
   }
-}
-
-intellij {
-  pluginName.set(properties("pluginName"))
-  version.set(platformVersion)
-  type.set(properties("platformType"))
-
-  // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
-  plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
-
-  updateSinceUntilBuild.set(false)
 }
 
 java {
@@ -201,6 +200,39 @@ fun unzip(input: File, output: File, excludeMatcher: PathMatcher? = null) {
 
 val githubArchiveCache: File =
     Paths.get(System.getProperty("user.home"), ".sourcegraph", "caches", "jetbrains").toFile()
+
+fun Test.sharedIntegrationTestConfig(buildCodyDir: File) {
+  group = "verification"
+  testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+  classpath = sourceSets["integrationTest"].runtimeClasspath
+
+  val integrationTestSystemProps =
+      mapOf(
+          "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
+          "cody-agent.directory" to buildCodyDir.parent,
+          "sourcegraph.verbose-logging" to "true",
+          "cody.autocomplete.enableFormatting" to
+              (project.property("cody.autocomplete.enableFormatting") as String? ?: "true"),
+          "cody.integration.testing" to "true",
+          "idea.test.execution.policy" to "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy",
+          "test.resources.dir" to project.file("src/integrationTest/resources").absolutePath)
+
+  integrationTestSystemProps.forEach { (k, v) -> systemProperty(k, v) }
+
+  useJUnit()
+  dependsOn("buildCody")
+}
+
+fun Test.setupIntegrationTestEnvVars(mode: String) {
+  val integrationTestEnvVars =
+      mapOf(
+          "CODY_JETBRAINS_FEATURES" to "cody.feature.inline-edits=true",
+          "CODY_RECORDING_MODE" to mode,
+          "CODY_RECORDING_DIRECTORY" to "recordings",
+          "CODY_RECORD_IF_MISSING" to "false")
+
+  integrationTestEnvVars.forEach { (k, v) -> environment(k, v) }
+}
 
 tasks {
   val codeSearchCommit = "9d86a4f7d183e980acfe5d6b6468f06aaa0d8acf"
@@ -457,7 +489,6 @@ tasks {
     }
   }
 
-  // TODO(stevey): Everything below here needs work.
   test { dependsOn(project.tasks.getByPath("buildCody")) }
 
   configurations {
@@ -473,99 +504,25 @@ tasks {
     }
   }
 
-  val integrationTestSystemProps =
-      mapOf(
-          "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
-          "cody-agent.directory" to buildCodyDir.parent,
-          "sourcegraph.verbose-logging" to "true",
-          "cody.autocomplete.enableFormatting" to
-              (project.property("cody.autocomplete.enableFormatting") as String? ?: "true"),
-          "cody.integration.testing" to "true",
-          // For now, should be used by all tests
-          "idea.test.execution.policy" to "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy",
-          "test.resources.dir" to project.file("src/integrationTest/resources").absolutePath)
-
-  val integrationTestEnvVars =
-      mapOf(
-          "CODY_JETBRAINS_FEATURES" to "cody.feature.inline-edits=true",
-          "CODY_RECORDING_MODE" to "replay",
-          "CODY_RECORDING_DIRECTORY" to "recordings",
-          "CODY_RECORD_IF_MISSING" to "false") // Polly needs this to record at all.
-
-  // Common configuration for integration tests.
-  // TODO: This doesn't actually work.
-  fun Test.sharedIntegrationTestConfig() {
-    group = "verification"
-    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
-    classpath = sourceSets["integrationTest"].runtimeClasspath
-
-    // TODO: Refactor to share these with runIde.
-    systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
-    systemProperty("cody-agent.directory", buildCodyDir.parent)
-    systemProperty("sourcegraph.verbose-logging", "true")
-    systemProperty(
-        "cody.autocomplete.enableFormatting",
-        project.property("cody.autocomplete.enableFormatting") as String? ?: "true")
-
-    include { it.file.hasParentNamed("integrationTest") }
-
-    integrationTestSystemProps.forEach { (k, v) -> systemProperty(k, v) }
-    integrationTestEnvVars.forEach { (k, v) -> environment(k, v) }
-
-    useJUnit()
-
-    dependsOn("buildCody")
-  }
-
-  // Make sure to set CODY_INTEGRATION_TEST_TOKEN env var when using this task.
   register<Test>("integrationTest") {
     description = "Runs the integration tests."
-    group = "verification"
-    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
-    classpath = sourceSets["integrationTest"].runtimeClasspath
-
-    val resourcesPath = project.file("src/integrationTest/resources").absolutePath
-    systemProperty("test.resources.dir", resourcesPath)
-
-    // TODO: Refactor to share these with runIde.
-    systemProperty("cody-agent.trace-path", "$buildDir/sourcegraph/cody-agent-trace.json")
-    systemProperty("cody-agent.directory", buildCodyDir.parent)
-    systemProperty("sourcegraph.verbose-logging", "true")
-    systemProperty(
-        "cody.autocomplete.enableFormatting",
-        project.property("cody.autocomplete.enableFormatting") as String? ?: "true")
-
-    include { it.file.hasParentNamed("integrationTest") }
-
-    useJUnit()
-
-    systemProperty("cody.integration.testing", "true")
-    systemProperty(
-        "idea.test.execution.policy", // For now, should be used by all tests
-        "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
-
-    environment("CODY_RECORDING_MODE", "replay")
-    environment("CODY_RECORDING_DIRECTORY", "recordings")
-    environment("CODY_RECORD_IF_MISSING", "false") // Polly needs this to record at all.
-
-    dependsOn("buildCody")
+    sharedIntegrationTestConfig(buildCodyDir)
+    setupIntegrationTestEnvVars("replay")
+    dependsOn("processIntegrationTestResources")
   }
 
-  // Make sure to set CODY_INTEGRATION_TEST_TOKEN when using this task.
   register<Test>("passthroughIntegrationTest") {
     description = "Runs the integration tests, passing everything through to the LLM."
-    sharedIntegrationTestConfig()
-    environment("CODY_RECORDING_MODE", "passthrough")
+    sharedIntegrationTestConfig(buildCodyDir)
+    setupIntegrationTestEnvVars("passthrough")
   }
 
-  // Make sure to set CODY_INTEGRATION_TEST_TOKEN when using this task.
   register<Test>("recordingIntegrationTest") {
     description = "Runs the integration tests and records the responses."
-    sharedIntegrationTestConfig()
-
-    environment("CODY_RECORDING_MODE", "record")
+    sharedIntegrationTestConfig(buildCodyDir)
+    setupIntegrationTestEnvVars("record")
     environment("CODY_RECORDING_NAME", "integration-tests")
-    environment("CODY_RECORD_IF_MISSING", "true") // Polly needs this to record at all.
+    environment("CODY_RECORD_IF_MISSING", "true")
   }
 
   named<Copy>("processIntegrationTestResources") {
@@ -578,18 +535,12 @@ tasks {
 
   withType<Test> { systemProperty("idea.test.src.dir", "$buildDir/resources/integrationTest") }
 
-  named<Test>("integrationTest") {
-    dependsOn("processIntegrationTestResources")
-    // sharedIntegrationTestConfig()
-  }
-
   named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }
 
   named("check") { dependsOn("integrationTest") }
 
   test {
     agentProperties.forEach { (key, value) -> systemProperty(key, value) }
-
-    dependsOn(project.tasks.getByPath("buildCody"))
+    dependsOn("buildCody")
   }
 }
