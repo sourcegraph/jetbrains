@@ -7,11 +7,14 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefBrowserBuilder
+import com.intellij.ui.jcef.JBCefJSQuery
 import com.intellij.util.io.isAncestor
 import com.sourcegraph.cody.agent.CodyAgent
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
+import org.cef.browser.CefMessageRouter
 import org.cef.callback.CefAuthCallback
 import org.cef.callback.CefCallback
 import org.cef.handler.*
@@ -32,7 +35,11 @@ import kotlin.io.path.Path
 import kotlin.math.min
 
 // We make up a host name and serve the static resources into the webview apparently from this host.
-val PSEUDO_HOST = "file+.sourcegraph.com"
+val PSEUDO_HOST = "file+.sourcegraphstatic.com"
+val PSEUDO_HOST_URL_PREFIX = "https://$PSEUDO_HOST/"
+// VSCode does this differently and uses a cross-origin request for subresources.
+// This requires rewriting relative URLs, so for now stick everything on the HTTPS + pseudo host origin.
+val MAIN_RESOURCE_URL = "${PSEUDO_HOST_URL_PREFIX}webviews/index.html" // "cody:///webviews/index.html"
 
 class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
@@ -46,7 +53,44 @@ class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
       setEnableOpenDevToolsMenuItem(true)
     }.build()
 
-    browser.jbCefClient.addRequestHandler(ExtensionRequestHandler(), browser.cefBrowser)
+    val viewToHost = JBCefJSQuery.create(browser as JBCefBrowserBase).apply {
+      addHandler { query: String ->
+        println("webview -> host: $query")
+        JBCefJSQuery.Response(null)
+      }
+    }
+    val apiScript = """
+      globalThis.acquireVsCodeApi = (function() {
+          let acquired = false;
+          let state = undefined;
+
+          return () => {
+              if (acquired && !false) {
+                  throw new Error('An instance of the VS Code API has already been acquired');
+              }
+              acquired = true;
+              return Object.freeze({
+                  postMessage: function(message, transfer) {
+                    console.assert(!transfer);
+                    ${viewToHost.inject("JSON.stringify(message)")}
+                  },
+                  setState: function(newState) {
+                      state = newState;
+                      // doPostMessage('do-update-state', JSON.stringify(newState));
+                      return newState;
+                  },
+                  getState: function() {
+                      return state;
+                  }
+              });
+          };
+      })();
+      delete window.parent;
+      delete window.top;
+      delete window.frameElement;
+    """.trimIndent()
+    println(viewToHost.inject("", "bar", "baz"))
+    browser.jbCefClient.addRequestHandler(ExtensionRequestHandler(apiScript), browser.cefBrowser)
 
     // TODO: What is "lockable" content?
     val lockable = false
@@ -54,11 +98,11 @@ class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
       ContentFactory.SERVICE.getInstance().createContent(browser.component, "TODO: Content Display Name", lockable)
     )
 
-    browser.loadURL("https://$PSEUDO_HOST/webviews/index.html")
+    browser.loadURL(MAIN_RESOURCE_URL)
   }
 }
 
-class ExtensionRequestHandler : CefRequestHandler {
+class ExtensionRequestHandler(private val apiScript: String) : CefRequestHandler {
   override fun onBeforeBrowse(
     browser: CefBrowser?,
     frame: CefFrame?,
@@ -90,10 +134,9 @@ class ExtensionRequestHandler : CefRequestHandler {
     requestInitiator: String?,
     disableDefaultHandling: BoolRef?
   ): CefResourceRequestHandler? {
-    // TODO: Do we need a non-default handler here?
-    if (request?.url?.startsWith("https://$PSEUDO_HOST/") == true) {
+    if (request?.url == MAIN_RESOURCE_URL || request?.url?.startsWith(PSEUDO_HOST_URL_PREFIX) == true) {
       disableDefaultHandling?.set(true)
-      return ExtensionResourceRequestHandler()
+      return ExtensionResourceRequestHandler(apiScript)
     }
     disableDefaultHandling?.set(false)
     return null
@@ -146,7 +189,7 @@ class ExtensionRequestHandler : CefRequestHandler {
   }
 }
 
-class ExtensionResourceRequestHandler : CefResourceRequestHandler {
+class ExtensionResourceRequestHandler(private val apiScript: String) : CefResourceRequestHandler {
   override fun getCookieAccessFilter(
     browser: CefBrowser?,
     frame: CefFrame?,
@@ -182,7 +225,7 @@ class ExtensionResourceRequestHandler : CefResourceRequestHandler {
   }
 
   override fun getResourceHandler(browser: CefBrowser?, frame: CefFrame?, request: CefRequest?): CefResourceHandler {
-    return ExtensionResourceHandler()
+    return ExtensionResourceHandler(apiScript)
   }
 
   override fun onResourceRedirect(
@@ -192,7 +235,8 @@ class ExtensionResourceRequestHandler : CefResourceRequestHandler {
     response: CefResponse?,
     newUrl: StringRef?
   ) {
-    TODO("Not yet implemented")
+    // We do not serve redirects.
+    TODO("unreachable")
   }
 
   override fun onResourceResponse(
@@ -225,7 +269,7 @@ class ExtensionResourceRequestHandler : CefResourceRequestHandler {
   }
 }
 
-class ExtensionResourceHandler : CefResourceHandler {
+class ExtensionResourceHandler(private val apiScript: String) : CefResourceHandler {
   private val logger = Logger.getInstance(ExtensionResourceHandler::class.java)
   var status = 0
   var bytesReadFromResource = 0L
@@ -238,7 +282,10 @@ class ExtensionResourceHandler : CefResourceHandler {
   // Some response bodies need to be rewritten. Gets the rewriter, if any, for the specified request path.
   private fun rewriterForRequestPath(requestPath: String): ((content: String) -> String)? =
       when {
-          requestPath.endsWith(".html") -> { content: String -> content.replace("{cspSource}", "'self'") }
+          requestPath.endsWith(".html") -> { content: String ->
+            // TODO: It is cheesy to look for <head> instead of parsing DOM content. But it is effective.
+            content.replace("{cspSource}", "'self' https://*.sourcegraphstatic.com").replace("<head>", "<head><script>$apiScript</script>")
+          }
           else -> null
       }
 
