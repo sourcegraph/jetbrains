@@ -182,11 +182,13 @@ class DocumentCodeTest : BasePlatformTestCase() {
     assertTrue(myFixture.editor.inlayModel.hasBlockElements())
     assertNotNull(FixupService.getInstance(project).getActiveSession())
 
-    val future = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
+    val performAcceptFuture = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
+    val taskFnishedFuture = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_TASK_FINISHED)
+
     triggerAction(FixupSession.ACTION_ACCEPT)
 
-    val context = future.get()
-    assertNotNull("Timed out waiting for Accept action to complete", context)
+    assertNotNull("Timed out waiting for Accept action to complete", performAcceptFuture.get())
+    assertNotNull("Timed out waiting for CodyTaskState.Finished state", taskFnishedFuture.get())
 
     assertFalse(myFixture.editor.inlayModel.hasBlockElements())
     assertNull(FixupService.getInstance(project).getActiveSession())
@@ -322,7 +324,8 @@ class DocumentCodeTest : BasePlatformTestCase() {
             topic,
             object : CodyInlineEditActionNotifier {
               override fun afterAction(context: CodyInlineEditActionNotifier.Context) {
-                logger.warn("afterAction called with context: $context")
+                logger.warn(
+                    "afterAction for topic '${topic.displayName}' called with context: $context")
                 future.complete(context)
               }
             })

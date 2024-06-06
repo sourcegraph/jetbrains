@@ -66,5 +66,12 @@ interface CodyInlineEditActionNotifier {
         Topic.create(
             "Sourcegraph Cody: textDocument/edit completed",
             CodyInlineEditActionNotifier::class.java)
+
+    @JvmStatic
+    @Topic.ProjectLevel
+    val TOPIC_TASK_FINISHED =
+        Topic.create(
+            "Sourcegraph Cody: Task finished and disposed",
+            CodyInlineEditActionNotifier::class.java)
   }
 }
