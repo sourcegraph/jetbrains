@@ -9,12 +9,11 @@ import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.ui.UIUtil
 import com.sourcegraph.config.ThemeUtil
-import java.awt.Color
-import java.awt.Font
-import java.awt.Graphics
-import java.awt.Rectangle
+import java.awt.*
 import java.awt.event.KeyEvent
+import java.awt.geom.GeneralPath
 import java.util.*
 
 @Suppress("UseJBColor")
@@ -36,40 +35,62 @@ class CodySelectionInlayManager {
             offset,
             object : EditorCustomElementRenderer {
               override fun calcWidthInPixels(inlay: Inlay<*>): Int {
-                val fontMetrics =
-                    inlay.editor.contentComponent.getFontMetrics(
-                        inlay.editor.colorsScheme.getFont(EditorFontType.PLAIN))
+                val font = UIUtil.getLabelFont()
+                val smallerFont = Font(font.name, font.style, font.size - 2)
+                val fontMetrics = inlay.editor.contentComponent.getFontMetrics(smallerFont)
                 return fontMetrics.stringWidth(content)
               }
 
               override fun paint(
-                  inlay: Inlay<*>,
-                  g: Graphics,
-                  targetRegion: Rectangle,
-                  textAttributes: TextAttributes
+                inlay: Inlay<*>,
+                g: Graphics,
+                targetRegion: Rectangle,
+                textAttributes: TextAttributes
               ) {
-                val font = inlay.editor.colorsScheme.getFont(EditorFontType.PLAIN)
-               //val smallerFont = Font(font.name, font.style, font.size - 2)
-                    g.font = font
+                val font = UIUtil.getLabelFont()
+                val smallerFont = Font(font.name, font.style.or(Font.BOLD), font.size - 2)
+                g.font = smallerFont
 
-                val caretRowColor = editor.colorsScheme.getColor(EditorColors.CARET_ROW_COLOR)
                 val backgroundColor = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)?.darker()
-
                 g.color = backgroundColor
-                //g.fillRect(targetRegion.x, targetRegion.y, targetRegion.width, targetRegion.height)
-                g.fillRoundRect(targetRegion.x, targetRegion.y, targetRegion.width, targetRegion.height, 10, 10)
 
+                val arcSize = 10
+
+                // Create a path for the custom rounded rectangle
+                val path = GeneralPath()
+
+                // Start at the top-left corner
+                path.moveTo(targetRegion.x.toDouble(), targetRegion.y.toDouble())
+
+                // Top edge
+                path.lineTo((targetRegion.x + targetRegion.width).toDouble(), targetRegion.y.toDouble())
+
+                // Right edge
+                path.lineTo((targetRegion.x + targetRegion.width).toDouble(), (targetRegion.y + targetRegion.height - arcSize).toDouble())
+                path.quadTo(
+                  (targetRegion.x + targetRegion.width).toDouble(),
+                  (targetRegion.y + targetRegion.height).toDouble(),
+                  (targetRegion.x + targetRegion.width - arcSize).toDouble(),
+                  (targetRegion.y + targetRegion.height).toDouble()
+                )
+
+                // Bottom edge
+                path.lineTo((targetRegion.x + arcSize).toDouble(), (targetRegion.y + targetRegion.height).toDouble())
+                path.lineTo(targetRegion.x.toDouble(), (targetRegion.y + targetRegion.height).toDouble())
+
+                // Left edge
+                path.lineTo(targetRegion.x.toDouble(), targetRegion.y.toDouble())
+
+                path.closePath()
+
+                // Fill the path
+                (g as Graphics2D).fill(path)
 
                 val descent = g.fontMetrics.descent
-
                 val textColor = editor.colorsScheme.getColor(EditorColors.CARET_COLOR)
-                  //  if (ThemeUtil.isDarkTheme()) Color(0x74, 0x75, 0x76)
-                    //else Color(0x64, 0x6C, 0x72)
-
                 g.color = textColor
 
-                val baseline = targetRegion.y + targetRegion.height - descent - 2
-
+                val baseline = targetRegion.y + targetRegion.height - descent - 4
                 g.drawString(content, targetRegion.x, baseline)
                 inlayBounds = targetRegion
               }
@@ -133,7 +154,7 @@ class CodySelectionInlayManager {
 
     val editShortcutText = getKeyStrokeText("cody.editCodeAction")
     val chatShortcutText = getKeyStrokeText("cody.newChat")
-    val inlayContent = " $editShortcutText to Edit "
+    val inlayContent = " $editShortcutText  to Edit  "
 
     updateInlay(editor, inlayContent, selectionEndLine)
   }
