@@ -150,7 +150,12 @@ private constructor(
             val script = File(System.getenv("CODY_DIR"), "agent/dist/index.js")
             logger.info("using Cody agent script " + script.absolutePath)
             if (shouldSpawnDebuggableAgent()) {
-              listOf(binaryPath, "--inspect-brk", "--enable-source-maps", script.absolutePath)
+              listOf(
+                  binaryPath,
+                  "--inspect-brk",
+                  "--enable-source-maps",
+                  script.absolutePath,
+                  "jsonrpc")
             } else {
               listOf(binaryPath, "--enable-source-maps", script.absolutePath)
             }
@@ -160,7 +165,12 @@ private constructor(
                     ?: throw CodyAgentException(
                         "Sourcegraph Cody + Code Search plugin path not found")
             if (shouldSpawnDebuggableAgent()) {
-              listOf(binaryPath, "--inspect", "--enable-source-maps", script.toFile().absolutePath)
+              listOf(
+                  binaryPath,
+                  "--inspect",
+                  "--enable-source-maps",
+                  script.toFile().absolutePath,
+                  "jsonrpc")
             } else {
               listOf(binaryPath, script.toFile().absolutePath)
             }
@@ -223,8 +233,6 @@ private constructor(
       if (!ConfigUtil.isIntegrationTestModeEnabled()) return
 
       processBuilder.environment().apply {
-        this["CODY_RECORDING_NAME"] = "integration-test"
-        this["CODY_TELEMETRY_EXPORTER"] = "testing"
         // N.B. If you set CODY_RECORDING_MODE, you must set CODY_RECORDING_DIRECTORY,
         // or the Agent will throw an error and your test will fail.
         when (val mode = System.getenv("CODY_RECORDING_MODE")) {
@@ -239,12 +247,21 @@ private constructor(
           "replay",
           "passthrough" -> {
             logger.warn("Cody integration test recording mode: $mode")
+            this["CODY_SHIM_TESTING"] = "true"
+            this["CODY_TEMPERATURE_ZERO"] = "true"
+            this["CODY_RECORDING_NAME"] = "integration-test"
             this["CODY_RECORDING_MODE"] = mode
             this["CODY_RECORD_IF_MISSING"] = "true"
+            this["CODY_RECORDING_DIRECTORY"] =
+                "/Users/pkukielka/Work/sourcegraph/jetbrains/src/integrationTest/resources/recordings"
+            this["CODY_TELEMETRY_EXPORTER"] = "testing"
+            this["CODY_DISABLE_FASTPATH"] =
+                "true" // Fastpass has custom bearer tokens that are difficult to record with Polly
+            this["SRC_ACCESS_TOKEN"] = System.getenv("CODY_INTEGRATION_TEST_TOKEN")
+            this["DISABLE_UPSTREAM_HEALTH_PINGS"] = "true"
             // This flag is for Agent-side integration testing and interferes with ours.
             // It seems to be sneaking in somewhere, so we explicitly set it to false.
             this["CODY_TESTING"] = "false"
-            this["CODY_RECORDING_DIRECTORY"] = "recordings"
           }
           else -> throw CodyAgentException("Unknown CODY_RECORDING_MODE: $mode")
         }
