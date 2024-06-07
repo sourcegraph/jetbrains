@@ -49,24 +49,22 @@ class CodySelectionInlayManager {
                   textAttributes: TextAttributes
               ) {
                 val font = inlay.editor.colorsScheme.getFont(EditorFontType.PLAIN)
-                val smallerFont = Font(font.name, font.style, font.size - 2)
-                    g.font = smallerFont
+               //val smallerFont = Font(font.name, font.style, font.size - 2)
+                    g.font = font
 
                 val caretRowColor = editor.colorsScheme.getColor(EditorColors.CARET_ROW_COLOR)
-                val backgroundColor =
-                    if (isCaretOnSameLine(editor, inlay)) {
-                      caretRowColor ?: editor.colorsScheme.defaultBackground
-                    } else {
-                      editor.colorsScheme.defaultBackground
-                    }
+                val backgroundColor = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)?.darker()
+
                 g.color = backgroundColor
-                g.fillRect(targetRegion.x, targetRegion.y, targetRegion.width, targetRegion.height)
+                //g.fillRect(targetRegion.x, targetRegion.y, targetRegion.width, targetRegion.height)
+                g.fillRoundRect(targetRegion.x, targetRegion.y, targetRegion.width, targetRegion.height, 10, 10)
+
 
                 val descent = g.fontMetrics.descent
 
-                val textColor =
-                    if (ThemeUtil.isDarkTheme()) Color(0x74, 0x75, 0x76)
-                    else Color(0x64, 0x6C, 0x72)
+                val textColor = editor.colorsScheme.getColor(EditorColors.CARET_COLOR)
+                  //  if (ThemeUtil.isDarkTheme()) Color(0x74, 0x75, 0x76)
+                    //else Color(0x64, 0x6C, 0x72)
 
                 g.color = textColor
 
