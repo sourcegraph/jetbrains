@@ -25,14 +25,11 @@ class CodySelectionInlayManager {
 
   private val disposable = Disposer.newDisposable()
 
-  private fun updateInlay(editor: Editor, content: String, line: Int, above: Boolean) {
+  private fun updateInlay(editor: Editor, content: String, line: Int) {
     clearInlay()
 
     val inlayModel: InlayModel = editor.inlayModel
-    val adjustedLine = if (above && line > 0) line - 1 else line
-    val offset =
-        if (above) editor.document.getLineEndOffset(adjustedLine)
-        else editor.document.getLineEndOffset(line)
+    val offset = editor.document.getLineEndOffset(line)
 
     val inlay =
         inlayModel.addInlineElement(
@@ -135,18 +132,12 @@ class CodySelectionInlayManager {
     val startLine = editor.document.getLineNumber(startOffset)
     val endLine = editor.document.getLineNumber(endOffset)
     val selectionEndLine = if (startOffset > endOffset) startLine else endLine
-    val selectionStartLine = if (startOffset < endOffset) startLine else endLine
-
-    val caretOffset = editor.caretModel.offset
-    val drawAbove = caretOffset == startOffset
 
     val editShortcutText = getKeyStrokeText("cody.editCodeAction")
     val chatShortcutText = getKeyStrokeText("cody.newChat")
     val inlayContent = " $editShortcutText to Edit "
 
-    val lineToDraw = if (drawAbove) selectionStartLine else selectionEndLine
-
-    updateInlay(editor, inlayContent, lineToDraw, drawAbove)
+    updateInlay(editor, inlayContent, selectionEndLine)
   }
 
   fun dispose() {
