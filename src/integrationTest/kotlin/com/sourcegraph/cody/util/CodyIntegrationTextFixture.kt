@@ -217,8 +217,7 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
   companion object {
     // TODO: find the lowest value this can be for production, and use it
     // If it's too low the test may be flaky.
-    // const val ASYNC_WAIT_TIMEOUT_SECONDS = 15000L
 
-    const val ASYNC_WAIT_TIMEOUT_SECONDS = 15L
+    const val ASYNC_WAIT_TIMEOUT_SECONDS = 10L
   }
 }

@@ -31,7 +31,6 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     // A more robust check is to see if the selection "range" is just the caret position.
     // If so, then our fallback range somehow made the round trip, which is bad. The lenses will
     // go in the wrong places, etc.
-    val document = myFixture.editor.document
     val caret = runInEdtAndGet { myFixture.editor.caretModel.primaryCaret.offset }
     assertFalse(
         "Selection range should not equal the caret position",
@@ -115,10 +114,17 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
   }
 
   fun testUndo() {
+    val originalDocument = myFixture.editor.document.text
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
+    assertNotSame(
+        "Expected document to be changed", originalDocument, myFixture.editor.document.text)
     assertInlayIsShown()
 
     runAndWaitForNotifications(FixupSession.ACTION_UNDO, TOPIC_PERFORM_UNDO, TOPIC_TASK_FINISHED)
+    assertEquals(
+        "Expected document changes to be reverted",
+        originalDocument,
+        myFixture.editor.document.text)
     assertNoInlayShown()
   }
 }
