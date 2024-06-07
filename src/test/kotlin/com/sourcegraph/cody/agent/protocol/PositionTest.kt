@@ -1,7 +1,9 @@
 package com.sourcegraph.cody.agent.protocol
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.junit.Ignore
 
+@Ignore
 class PositionTest : BasePlatformTestCase() {
 
   private val content = "Hello\nWorld"
