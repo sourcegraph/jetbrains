@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.listeners
 
-import CodySelectionInlayManager
 import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.editor.event.SelectionListener
 import com.intellij.openapi.project.Project

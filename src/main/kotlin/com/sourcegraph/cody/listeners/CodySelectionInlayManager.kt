@@ -1,3 +1,5 @@
+package com.sourcegraph.cody.listeners
+
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
@@ -9,12 +11,14 @@ import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.ui.UIUtil
-import java.awt.*
+import java.awt.Font
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.Rectangle
 import java.awt.event.KeyEvent
 import java.awt.geom.GeneralPath
 import java.util.*
 
-@Suppress("UseJBColor")
 class CodySelectionInlayManager {
 
   private var currentInlay: Inlay<*>? = null
@@ -103,20 +107,13 @@ class CodySelectionInlayManager {
     }
   }
 
-  private fun isCaretOnSameLine(editor: Editor, inlay: Inlay<*>): Boolean {
-    val caretModel = editor.caretModel
-    val caretOffset = caretModel.offset
-    val caretLine = editor.document.getLineNumber(caretOffset)
-    val inlayLine = editor.document.getLineNumber(inlay.offset)
-    return caretLine == inlayLine
-  }
-
   private fun clearInlay() {
     currentInlay?.let { Disposer.dispose(it) }
     currentInlay = null
     inlayBounds = null
   }
 
+  @Suppress("SameParameterValue")
   private fun getKeyStrokeText(actionId: String): String {
     val shortcuts = KeymapManager.getInstance().activeKeymap.getShortcuts(actionId)
     if (shortcuts.isNotEmpty()) {
@@ -154,8 +151,7 @@ class CodySelectionInlayManager {
     val selectionEndLine = if (startOffset > endOffset) startLine else endLine
 
     val editShortcutText = getKeyStrokeText("cody.editCodeAction")
-    val chatShortcutText = getKeyStrokeText("cody.newChat")
-    val inlayContent = " $editShortcutText  to Edit  "
+    val inlayContent = " $editShortcutText  to Edit    "
 
     updateInlay(editor, inlayContent, selectionEndLine)
   }
