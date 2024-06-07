@@ -171,6 +171,8 @@ public class CodyAgentClient {
   public void webviewPostMessage(@NotNull WebviewPostMessageParams params) {
     ExtensionMessage extensionMessage = params.getMessage();
 
+    // TODO: When using WebView Chat UX, all messages should be forwarded to the webview.
+
     if (onNewMessage != null
         && extensionMessage.getType().equals(ExtensionMessage.Type.TRANSCRIPT)) {
       ApplicationManager.getApplication().invokeLater(() -> onNewMessage.accept(params));
