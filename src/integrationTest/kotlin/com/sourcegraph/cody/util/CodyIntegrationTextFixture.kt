@@ -4,23 +4,22 @@ import com.intellij.ide.lightEdit.LightEdit
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
-import com.intellij.openapi.actionSystem.LangDataKeys
-import com.intellij.openapi.actionSystem.PlatformDataKeys
-import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
+import com.intellij.util.containers.map2Array
 import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier
 import com.sourcegraph.cody.edit.FixupService
+import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.config.ConfigUtil
 import java.io.File
 import java.nio.file.Paths
@@ -152,57 +151,61 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
     }
   }
 
-  protected fun awaitAcceptLensGroup(): CodyInlineEditActionNotifier.Context {
-    val future = subscribeToTopic(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACCEPT_GROUP)
-    executeDocumentCodeAction() // awaits sending command to Agent
-    val context = future.get() // awaits the Accept group appearing
-    assertNotNull("Timed out waiting for Accept group lens", context)
-    val editor = myFixture.editor
-    assertTrue("Lens group inlay should be displayed", editor.inlayModel.hasBlockElements())
-    return context!!
+  private fun triggerAction(actionId: String) {
+    runInEdt { EditorTestUtil.executeAction(myFixture.editor, actionId) }
   }
 
-  protected fun executeDocumentCodeAction() {
-    assertFalse(myFixture.editor.inlayModel.hasBlockElements())
-    // Execute the action and await the working group lens.
-    runInEdtAndWait { EditorTestUtil.executeAction(myFixture.editor, "cody.documentCodeAction") }
+  protected fun activeSession(): FixupSession {
+    assertActiveSession()
+    return FixupService.getInstance(project).getActiveSession()!!
+  }
+
+  protected fun assertNoInlayShown() {
+    assertFalse(
+        "Lens group inlay should NOT be displayed", myFixture.editor.inlayModel.hasBlockElements())
+  }
+
+  protected fun assertInlayIsShown() {
+    assertTrue(
+        "Lens group inlay should be displayed", myFixture.editor.inlayModel.hasBlockElements())
+  }
+
+  protected fun assertNoActiveSession() {
+    assertNull(
+        "NO active session was expected", FixupService.getInstance(project).getActiveSession())
+  }
+
+  protected fun assertActiveSession() {
+    assertNotNull(
+        "Active session was expected", FixupService.getInstance(project).getActiveSession())
+  }
+
+  protected fun runAndWaitForNotifications(
+      actionId: String,
+      vararg topic: Topic<CodyInlineEditActionNotifier>
+  ) {
+    val futures = topic.map2Array { subscribeToTopic(it) }
+    triggerAction(actionId)
+    CompletableFuture.allOf(*futures).get()
   }
 
   // Returns a future that completes when the topic is published.
-  protected fun subscribeToTopic(
+  private fun subscribeToTopic(
       topic: Topic<CodyInlineEditActionNotifier>,
-  ): CompletableFuture<CodyInlineEditActionNotifier.Context?> {
-    val future =
-        CompletableFuture<CodyInlineEditActionNotifier.Context?>()
-            .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+  ): CompletableFuture<Void> {
+    val future = CompletableFuture<Void>().orTimeout(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     project.messageBus
         .connect()
         .subscribe(
             topic,
             object : CodyInlineEditActionNotifier {
-              override fun afterAction(context: CodyInlineEditActionNotifier.Context) {
-                logger.warn(
-                    "afterAction for topic '${topic.displayName}' called with context: $context")
-                future.complete(context)
+              override fun afterAction() {
+                logger.warn("Notification sent for topic '${topic.displayName}'")
+                future.complete(null)
               }
             })
     logger.warn("Subscribed to topic: $topic")
     return future
-  }
-
-  // Run the IDE action specified by actionId.
-  protected fun triggerAction(actionId: String) {
-    val action = ActionManager.getInstance().getAction(actionId)
-    val context =
-        SimpleDataContext.builder()
-            .add(LangDataKeys.PROJECT, project)
-            .add(LangDataKeys.MODULE, module)
-            .add(PlatformDataKeys.EDITOR, FileEditorManager.getInstance(project).selectedTextEditor)
-            .build()
-
-    action.actionPerformed(
-        AnActionEvent(
-            null, context, "", action.templatePresentation.clone(), ActionManager.getInstance(), 0))
   }
 
   protected fun hasJavadocComment(text: String): Boolean {

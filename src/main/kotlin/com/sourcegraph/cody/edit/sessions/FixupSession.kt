@@ -68,11 +68,9 @@ abstract class FixupSession(
   @Volatile var taskId: String? = null
 
   // The current lens group. Changes as the state machine proceeds.
-  @VisibleForTesting
-  var lensGroup: LensWidgetGroup? = null
-    private set
+  @VisibleForTesting var lensGroup: LensWidgetGroup? = null
 
-  private var selectionRange: RangeMarker? = null
+  @VisibleForTesting var selectionRange: RangeMarker? = null
 
   // Whether the session has inserted text into the document.
   val isInserted: Boolean
@@ -162,9 +160,7 @@ abstract class FixupSession(
           .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
           .thenApply { result ->
             selectionRange = result.range.toRangeMarker(document, true)
-            publishProgressOnEdt(
-                CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES,
-                CodyInlineEditActionNotifier.Context(session = this, selectionRange = result.range))
+            publishProgressOnEdt(CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES)
             result
           }
           .get()
@@ -316,14 +312,15 @@ abstract class FixupSession(
 
   fun undo() {
     runInEdt { showWorkingGroup() }
-    try {
-      CodyAgentService.withAgent(project) { agent ->
-        agent.server.undoEditTask(TaskIdParam(taskId!!))
-      }
-    } catch (x: Exception) {
-      showErrorGroup("Error sending editTask/undo for taskId: ${x.localizedMessage}")
-    }
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
+    CodyAgentService.withAgentRestartIfNeeded(
+        project,
+        callback = { agent: CodyAgent ->
+          agent.server.undoEditTask(TaskIdParam(taskId!!))
+          publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
+        },
+        onFailure = { exception ->
+          showErrorGroup("Error sending editTask/undo for taskId: ${exception.localizedMessage}")
+        })
   }
 
   fun showRetryPrompt() {
@@ -483,19 +480,13 @@ abstract class FixupSession(
 
   private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
     ApplicationManager.getApplication().invokeLater {
-      project.messageBus
-          .syncPublisher(topic)
-          .afterAction(CodyInlineEditActionNotifier.Context(session = this))
+      project.messageBus.syncPublisher(topic).afterAction()
     }
   }
 
-  private fun publishProgressOnEdt(
-      topic: Topic<CodyInlineEditActionNotifier>,
-      context: CodyInlineEditActionNotifier.Context? = null
-  ) {
+  private fun publishProgressOnEdt(topic: Topic<CodyInlineEditActionNotifier>) {
     ApplicationManager.getApplication().invokeAndWait {
-      val progressContext = context ?: CodyInlineEditActionNotifier.Context(session = this)
-      project.messageBus.syncPublisher(topic).afterAction(progressContext)
+      project.messageBus.syncPublisher(topic).afterAction()
     }
   }
 
