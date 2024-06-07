@@ -14,7 +14,6 @@ import com.intellij.util.io.isAncestor
 import com.sourcegraph.cody.agent.CodyAgent
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
-import org.cef.browser.CefMessageRouter
 import org.cef.callback.CefAuthCallback
 import org.cef.callback.CefCallback
 import org.cef.handler.*
@@ -41,6 +40,12 @@ val PSEUDO_HOST_URL_PREFIX = "https://$PSEUDO_HOST/"
 // This requires rewriting relative URLs, so for now stick everything on the HTTPS + pseudo host origin.
 val MAIN_RESOURCE_URL = "${PSEUDO_HOST_URL_PREFIX}webviews/index.html" // "cody:///webviews/index.html"
 
+// TODO:
+// - Run await vscode.commands.executeCommand('cody.chat.panel.new') to create a new chat panel.
+// - That command's WebView shim should be able to thunk to through to this web view.
+// - query should route to onDidReceiveMessage of the remote proxy for the WebView
+// - remote proxy's postMessage should inject an event here.
+
 class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
     createWindow(project, toolWindow)
@@ -56,6 +61,8 @@ class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
     val viewToHost = JBCefJSQuery.create(browser as JBCefBrowserBase).apply {
       addHandler { query: String ->
         println("webview -> host: $query")
+        // TODO: Agent protocol needs a way to inject onDidReceiveMessage events.
+        // Thru to AgentWebViewPanel.receiveMessage
         JBCefJSQuery.Response(null)
       }
     }
@@ -76,7 +83,9 @@ class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
                   },
                   setState: function(newState) {
                       state = newState;
+                      // TODO: Route this to wherever VSCode sinks do-update-state.
                       // doPostMessage('do-update-state', JSON.stringify(newState));
+                      console.log(`do-update-state: ${'$'}{JSON.stringify(newState)}`);
                       return newState;
                   },
                   getState: function() {
