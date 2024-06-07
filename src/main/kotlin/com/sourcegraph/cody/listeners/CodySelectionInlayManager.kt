@@ -11,6 +11,7 @@ import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.util.Disposer
 import com.sourcegraph.config.ThemeUtil
 import java.awt.Color
+import java.awt.Font
 import java.awt.Graphics
 import java.awt.Rectangle
 import java.awt.event.KeyEvent
@@ -51,7 +52,8 @@ class CodySelectionInlayManager {
                   textAttributes: TextAttributes
               ) {
                 val font = inlay.editor.colorsScheme.getFont(EditorFontType.PLAIN)
-                g.font = font
+                val smallerFont = Font(font.name, font.style, font.size - 2)
+                    g.font = smallerFont
 
                 val caretRowColor = editor.colorsScheme.getColor(EditorColors.CARET_ROW_COLOR)
                 val backgroundColor =
@@ -140,7 +142,7 @@ class CodySelectionInlayManager {
 
     val editShortcutText = getKeyStrokeText("cody.editCodeAction")
     val chatShortcutText = getKeyStrokeText("cody.newChat")
-    val inlayContent = " $editShortcutText to Edit, $chatShortcutText to Chat  "
+    val inlayContent = " $editShortcutText to Edit "
 
     val lineToDraw = if (drawAbove) selectionStartLine else selectionEndLine
 
