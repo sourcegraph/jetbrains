@@ -168,6 +168,25 @@ automatically.
 * All commands are visible in the Commands panel and can be selected.
 * All commands works after selection.
 
+### General commands availability when selection is active
+
+1. Open file with source code and select some fragment.
+2. Visually confirm that the hotkeys for Edit and Chat are displayed at the end of the selection.
+
+#### Expected behaviour
+
+It should show something like this: `Ctrl + Shift + ⏎ to Edit,  Alt + = to Chat`
+(Note: that text above is not intended to be accurate. The actual hotkeys displayed
+should match whatever we have most recently set them to; they change now and then.)
+
+* There should only be one hint visible at a time, and should update as the selection changes.
+* The hint should disappear as soon as the selection disappears.
+* The hotkey help should match the editor background if not on same line as the caret.
+* The hotkey help should match the caret-line background  not on same line as the caret.
+* The hotkeys should be correct.
+* The colors should work with light and dark themes.
+* It is OK if the hint is not visible in some places because it's offscreen.
+
 ### Explain Code
 
 1. Paste the following Java code:
