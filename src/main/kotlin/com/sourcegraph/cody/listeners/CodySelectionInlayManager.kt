@@ -4,13 +4,11 @@ import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.InlayModel
 import com.intellij.openapi.editor.colors.EditorColors
-import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.ui.UIUtil
-import com.sourcegraph.config.ThemeUtil
 import java.awt.*
 import java.awt.event.KeyEvent
 import java.awt.geom.GeneralPath
@@ -42,48 +40,51 @@ class CodySelectionInlayManager {
               }
 
               override fun paint(
-                inlay: Inlay<*>,
-                g: Graphics,
-                targetRegion: Rectangle,
-                textAttributes: TextAttributes
+                  inlay: Inlay<*>,
+                  g: Graphics,
+                  targetRegion: Rectangle,
+                  textAttributes: TextAttributes
               ) {
                 val font = UIUtil.getLabelFont()
                 val smallerFont = Font(font.name, font.style.or(Font.BOLD), font.size - 2)
                 g.font = smallerFont
 
-                val backgroundColor = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)?.darker()
+                val backgroundColor =
+                    editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)?.darker()
                 g.color = backgroundColor
 
                 val arcSize = 10
 
-                // Create a path for the custom rounded rectangle
                 val path = GeneralPath()
 
-                // Start at the top-left corner
+                // Start at top-left
                 path.moveTo(targetRegion.x.toDouble(), targetRegion.y.toDouble())
 
                 // Top edge
-                path.lineTo((targetRegion.x + targetRegion.width).toDouble(), targetRegion.y.toDouble())
+                path.lineTo(
+                    (targetRegion.x + targetRegion.width).toDouble(), targetRegion.y.toDouble())
 
                 // Right edge
-                path.lineTo((targetRegion.x + targetRegion.width).toDouble(), (targetRegion.y + targetRegion.height - arcSize).toDouble())
+                path.lineTo(
+                    (targetRegion.x + targetRegion.width).toDouble(),
+                    (targetRegion.y + targetRegion.height - arcSize).toDouble())
                 path.quadTo(
-                  (targetRegion.x + targetRegion.width).toDouble(),
-                  (targetRegion.y + targetRegion.height).toDouble(),
-                  (targetRegion.x + targetRegion.width - arcSize).toDouble(),
-                  (targetRegion.y + targetRegion.height).toDouble()
-                )
+                    (targetRegion.x + targetRegion.width).toDouble(),
+                    (targetRegion.y + targetRegion.height).toDouble(),
+                    (targetRegion.x + targetRegion.width - arcSize).toDouble(),
+                    (targetRegion.y + targetRegion.height).toDouble())
 
                 // Bottom edge
-                path.lineTo((targetRegion.x + arcSize).toDouble(), (targetRegion.y + targetRegion.height).toDouble())
-                path.lineTo(targetRegion.x.toDouble(), (targetRegion.y + targetRegion.height).toDouble())
+                path.lineTo(
+                    (targetRegion.x + arcSize).toDouble(),
+                    (targetRegion.y + targetRegion.height).toDouble())
+                path.lineTo(
+                    targetRegion.x.toDouble(), (targetRegion.y + targetRegion.height).toDouble())
 
                 // Left edge
                 path.lineTo(targetRegion.x.toDouble(), targetRegion.y.toDouble())
 
                 path.closePath()
-
-                // Fill the path
                 (g as Graphics2D).fill(path)
 
                 val descent = g.fontMetrics.descent
