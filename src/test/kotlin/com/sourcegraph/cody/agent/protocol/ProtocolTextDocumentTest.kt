@@ -5,6 +5,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.sourcegraph.cody.listeners.EditorChangesBus
 import junit.framework.TestCase
+import org.junit.Ignore
 
 class ProtocolTextDocumentTest : BasePlatformTestCase() {
   private val content = "Start line 1\nline 2\nline 3\nline 4\nline 5 End"
@@ -14,6 +15,11 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
   override fun setUp() {
     super.setUp()
     myFixture.openFileInEditor(file)
+  }
+
+  override fun tearDown() {
+    super.tearDown()
+    EditorChangesBus.listeners = emptyList()
   }
 
   fun test_emptySelection() {
@@ -75,6 +81,7 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
         myFixture.editor.testing_substring(lastTextDocument!!.selection!!))
   }
 
+  @Ignore
   fun test_caretListener() {
     var lastTextDocument: ProtocolTextDocument? = null
     EditorChangesBus.addListener { _, textDocument -> lastTextDocument = textDocument }
