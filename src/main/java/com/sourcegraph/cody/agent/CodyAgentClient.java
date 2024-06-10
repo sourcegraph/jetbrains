@@ -177,6 +177,13 @@ public class CodyAgentClient {
     }
   }
 
+  @JsonNotification("grosshacks/webview/postMessage")
+  fun grossWebviewPostMessageServerToClient(@NotNull ExtensionMessage message) {
+    // TODO: Rationalize this with webviewPostMessage
+    throw new RuntimeException("NYI");
+  }
+
+
   @JsonNotification("webview/postMessage")
   public void webviewPostMessage(@NotNull WebviewPostMessageParams params) {
     ExtensionMessage extensionMessage = params.getMessage();
