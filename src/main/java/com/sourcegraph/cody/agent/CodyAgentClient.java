@@ -30,6 +30,8 @@ public class CodyAgentClient {
   // onSetConfigFeatures
   @Nullable Consumer<WebviewPostMessageParams> onReceivedWebviewMessage;
 
+  @Nullable Consumer<ExtensionMessage> onReceivedGrossHacksWebviewMessage;
+
   // Callback for the "editTask/didUpdate" notification from the agent.
   @Nullable Consumer<EditTask> onEditTaskDidUpdate;
 
@@ -168,9 +170,11 @@ public class CodyAgentClient {
   }
 
   @JsonNotification("grosshacks/webview/postMessage")
-  fun grossWebviewPostMessageServerToClient(@NotNull ExtensionMessage message) {
-    // TODO: Rationalize this with webviewPostMessage
-    throw new RuntimeException("NYI");
+  public void grossWebviewPostMessageServerToClient(@NotNull ExtensionMessage message) {
+    if (onReceivedGrossHacksWebviewMessage != null) {
+      ApplicationManager.getApplication()
+              .invokeLater(() -> onReceivedGrossHacksWebviewMessage.accept(message));
+    }
   }
 
 
