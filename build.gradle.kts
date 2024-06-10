@@ -201,37 +201,42 @@ fun unzip(input: File, output: File, excludeMatcher: PathMatcher? = null) {
 val githubArchiveCache: File =
     Paths.get(System.getProperty("user.home"), ".sourcegraph", "caches", "jetbrains").toFile()
 
-fun Test.sharedIntegrationTestConfig(buildCodyDir: File) {
+fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
   group = "verification"
   testClassesDirs = sourceSets["integrationTest"].output.classesDirs
   classpath = sourceSets["integrationTest"].runtimeClasspath
 
-  val integrationTestSystemProps =
-      mapOf(
-          "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
-          "cody-agent.directory" to buildCodyDir.parent,
-          "sourcegraph.verbose-logging" to "true",
-          "cody.autocomplete.enableFormatting" to
-              (project.property("cody.autocomplete.enableFormatting") as String? ?: "true"),
-          "cody.integration.testing" to "true",
-          "idea.test.execution.policy" to "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy",
-          "test.resources.dir" to project.file("src/integrationTest/resources").absolutePath)
+  include("**/AllSuites.class")
 
-  integrationTestSystemProps.forEach { (k, v) -> systemProperty(k, v) }
+  val resourcesDir = project.file("src/integrationTest/resources")
+  systemProperties(
+      "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
+      "cody-agent.directory" to buildCodyDir.parent,
+      "sourcegraph.verbose-logging" to "true",
+      "cody.autocomplete.enableFormatting" to
+          (project.property("cody.autocomplete.enableFormatting") as String? ?: "true"),
+      "cody.integration.testing" to "true",
+      "idea.test.execution.policy" to "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy",
+      "test.resources.dir" to resourcesDir.absolutePath)
+
+  environment(
+      "CODY_INTEGRATION_TEST_TOKEN" to System.getenv("SRC_DOTCOM_PRO_ACCESS_TOKEN"),
+      "SRC_ACCESS_TOKEN" to System.getenv("SRC_DOTCOM_PRO_ACCESS_TOKEN"),
+      "CODY_RECORDING_MODE" to mode,
+      "CODY_RECORDING_NAME" to "integration-test",
+      "CODY_RECORDING_DIRECTORY" to resourcesDir.resolve("recordings").absolutePath,
+      "CODY_SHIM_TESTING" to "true",
+      "CODY_TEMPERATURE_ZERO" to "true",
+      "CODY_TELEMETRY_EXPORTER" to "testing",
+      // Fastpass has custom bearer tokens that are difficult to record with Polly
+      "CODY_DISABLE_FASTPATH" to "true",
+      // This flag is for Agent-side integration testing and interferes with ours.
+      // It seems to be sneaking in somewhere, so we explicitly set it to false.
+      //      "CODY_TESTING" to "false"
+  )
 
   useJUnit()
   dependsOn("buildCody")
-}
-
-fun Test.setupIntegrationTestEnvVars(mode: String) {
-  val integrationTestEnvVars =
-      mapOf(
-          "CODY_JETBRAINS_FEATURES" to "cody.feature.inline-edits=true",
-          "CODY_RECORDING_MODE" to mode,
-          "CODY_RECORDING_DIRECTORY" to "recordings",
-          "CODY_RECORD_IF_MISSING" to "false")
-
-  integrationTestEnvVars.forEach { (k, v) -> environment(k, v) }
 }
 
 tasks {
@@ -506,23 +511,20 @@ tasks {
 
   register<Test>("integrationTest") {
     description = "Runs the integration tests."
-    sharedIntegrationTestConfig(buildCodyDir)
-    setupIntegrationTestEnvVars("replay")
+    sharedIntegrationTestConfig(buildCodyDir, "replay")
     dependsOn("processIntegrationTestResources")
   }
 
   register<Test>("passthroughIntegrationTest") {
     description = "Runs the integration tests, passing everything through to the LLM."
-    sharedIntegrationTestConfig(buildCodyDir)
-    setupIntegrationTestEnvVars("passthrough")
+    sharedIntegrationTestConfig(buildCodyDir, "passthrough")
+    dependsOn("processIntegrationTestResources")
   }
 
   register<Test>("recordingIntegrationTest") {
     description = "Runs the integration tests and records the responses."
-    sharedIntegrationTestConfig(buildCodyDir)
-    setupIntegrationTestEnvVars("record")
-    environment("CODY_RECORDING_NAME", "integration-tests")
-    environment("CODY_RECORD_IF_MISSING", "true")
+    sharedIntegrationTestConfig(buildCodyDir, "record")
+    dependsOn("processIntegrationTestResources")
   }
 
   named<Copy>("processIntegrationTestResources") {

@@ -13,7 +13,6 @@ import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.ExtensionConfiguration
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.config.CodyPersistentAccountsHost
 import com.sourcegraph.cody.config.ServerAuthLoader
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
@@ -62,16 +61,6 @@ object ConfigUtil {
 
   @JvmStatic
   fun getAgentConfiguration(project: Project): ExtensionConfiguration {
-    if (isIntegrationTestModeEnabled()) {
-      CodyPersistentAccountsHost(project)
-          .addAccount(
-              from(DOTCOM_URL, ""),
-              login = "test_user",
-              displayName = "Test User",
-              token = System.getenv("CODY_INTEGRATION_TEST_TOKEN"),
-              id = "random-unique-testing-id-1337")
-    }
-
     val serverAuth = ServerAuthLoader.loadServerAuth(project)
 
     return ExtensionConfiguration(

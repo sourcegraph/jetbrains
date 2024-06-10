@@ -21,20 +21,20 @@ public class CodyAgentClient {
   private static final Logger logger = Logger.getInstance(CodyAgentClient.class);
 
   // Callback that is invoked when the agent sends a "chat/updateMessageInProgress" notification.
-  @Nullable public Consumer<WebviewPostMessageParams> onNewMessage;
+  @Nullable Consumer<WebviewPostMessageParams> onNewMessage;
 
   // Callback that is invoked when the agent sends a "setConfigFeatures" message.
-  @Nullable public ConfigFeaturesObserver onSetConfigFeatures;
+  @Nullable ConfigFeaturesObserver onSetConfigFeatures;
 
   // Callback that is invoked on webview messages which aren't handled by onNewMessage or
   // onSetConfigFeatures
-  @Nullable public Consumer<WebviewPostMessageParams> onReceivedWebviewMessage;
+  @Nullable Consumer<WebviewPostMessageParams> onReceivedWebviewMessage;
 
   // Callback for the "editTask/didUpdate" notification from the agent.
-  @Nullable public Consumer<EditTask> onEditTaskDidUpdate;
+  @Nullable Consumer<EditTask> onEditTaskDidUpdate;
 
   // Callback for the "editTask/didDelete" notification from the agent.
-  @Nullable public Consumer<EditTask> onEditTaskDidDelete;
+  @Nullable Consumer<EditTask> onEditTaskDidDelete;
 
   // Callback for the "textDocument/edit" request from the agent.
   @Nullable Function<TextDocumentEditParams, Boolean> onTextDocumentEdit;

@@ -548,23 +548,25 @@ class EditCommandPrompt(
   fun performOKAction() {
     try {
       val text = instructionsField.text
-      if (text.isBlank()) return
-
+      if (text.isBlank()) {
+        clearActivePrompt()
+        return
+      }
+      val activeSession = controller.getActiveSession()
       promptHistory.add(text)
-      val session = controller.getActiveSession()
-      validateProject(session)
-
-      val mode = if (session?.isInserted == true) "insert" else "edit"
-      fun editCode() = runInEdt {
-        EditCodeSession(controller, editor, text, llmDropdown.item, mode)
+      if (editor.project == null) {
+        val msg = "Null project for new edit session"
+        controller.getActiveSession()?.showErrorGroup(msg)
+        logger.warn(msg)
+        return
       }
 
-      if (session != null) {
-        session.afterSessionFinished { editCode() }
+      activeSession?.let { session ->
+        session.afterSessionFinished {
+          startEditCodeSession(text, if (session.isInserted) "insert" else "edit")
+        }
         session.undo()
-      } else {
-        editCode()
-      }
+      } ?: run { startEditCodeSession(text) }
     } finally {
       clearActivePrompt()
     }
