@@ -12,6 +12,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.net.HttpConfigurable
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.chat.AgentChatSessionService
+import com.sourcegraph.cody.sidebar.WebUIChatService
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.context.RemoteRepoSearcher
 import com.sourcegraph.cody.edit.EditService
@@ -70,6 +71,12 @@ class CodyAgentService(private val project: Project) : Disposable {
           AgentChatSessionService.getInstance(project)
               .getSession(params.id)
               ?.receiveWebviewExtensionMessage(params.message)
+        }
+      }
+
+      agent.client.onReceivedGrossHacksWebviewMessage = Consumer { message ->
+        if (!project.isDisposed) {
+          WebUIChatService.getInstance(project)?.receiveMessage(message)
         }
       }
 
