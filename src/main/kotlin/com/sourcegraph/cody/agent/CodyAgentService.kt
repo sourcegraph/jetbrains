@@ -12,7 +12,6 @@ import com.sourcegraph.cody.chat.AgentChatSessionService
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.context.RemoteRepoSearcher
 import com.sourcegraph.cody.edit.FixupService
-import com.sourcegraph.cody.error.CodyConsole
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
@@ -135,10 +134,6 @@ class CodyAgentService(private val project: Project) : Disposable {
 
       agent.client.onIgnoreDidChange = Consumer {
         IgnoreOracle.getInstance(project).onIgnoreDidChange()
-      }
-
-      agent.client.onDebugMessage = Consumer { message ->
-        CodyConsole.getInstance(project).addMessage(message)
       }
 
       if (!project.isDisposed) {
