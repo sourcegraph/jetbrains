@@ -4,7 +4,6 @@ import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
-import com.intellij.openapi.editor.InlayModel
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.editor.markup.TextAttributes
@@ -22,84 +21,84 @@ import java.util.*
 class CodySelectionInlayManager {
 
   private var currentInlay: Inlay<*>? = null
-  private var inlayBounds: Rectangle? = null
 
   private val disposable = Disposer.newDisposable()
 
   private fun updateInlay(editor: Editor, content: String, line: Int) {
     clearInlay()
 
-    val inlayModel: InlayModel = editor.inlayModel
-    val offset = editor.document.getLineEndOffset(line)
-
     val inlay =
-        inlayModel.addInlineElement(
-            offset,
-            object : EditorCustomElementRenderer {
-              override fun calcWidthInPixels(inlay: Inlay<*>): Int {
-                val font = UIUtil.getLabelFont()
-                val smallerFont = Font(font.name, font.style, font.size - 2)
-                val fontMetrics = inlay.editor.contentComponent.getFontMetrics(smallerFont)
-                return fontMetrics.stringWidth(content)
-              }
+      editor.inlayModel.addInlineElement(
+        editor.document.getLineEndOffset(line),
+        object : EditorCustomElementRenderer {
+          override fun calcWidthInPixels(inlay: Inlay<*>): Int {
+            val font = UIUtil.getLabelFont()
+            val smallerFont = Font(font.name, font.style, font.size - 2)
+            val fontMetrics = inlay.editor.contentComponent.getFontMetrics(smallerFont)
+            return fontMetrics.stringWidth(content)
+          }
 
-              override fun paint(
-                  inlay: Inlay<*>,
-                  g: Graphics,
-                  targetRegion: Rectangle,
-                  textAttributes: TextAttributes
-              ) {
-                val font = UIUtil.getLabelFont()
-                val smallerFont = Font(font.name, font.style.or(Font.BOLD), font.size - 2)
-                g.font = smallerFont
+          override fun paint(
+            inlay: Inlay<*>,
+            g: Graphics,
+            targetRegion: Rectangle,
+            textAttributes: TextAttributes
+          ) {
+            val font = UIUtil.getLabelFont()
+            val smallerFont = Font(font.name, font.style.or(Font.BOLD), font.size - 2)
+            g.font = smallerFont
 
-                val backgroundColor =
-                    editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)?.darker()
-                g.color = backgroundColor
+            val backgroundColor =
+              editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)?.darker()
+            g.color = backgroundColor
 
-                val arcSize = 10
+            val arcSize = 10
 
-                val path = GeneralPath()
+            val path = GeneralPath()
 
-                // Start at top-left
-                path.moveTo(targetRegion.x.toDouble(), targetRegion.y.toDouble())
+            // Start at top-left
+            path.moveTo(targetRegion.x.toDouble(), targetRegion.y.toDouble())
 
-                // Top edge
-                path.lineTo(
-                    (targetRegion.x + targetRegion.width).toDouble(), targetRegion.y.toDouble())
+            // Top edge
+            path.lineTo(
+              (targetRegion.x + targetRegion.width).toDouble(), targetRegion.y.toDouble()
+            )
 
-                // Right edge
-                path.lineTo(
-                    (targetRegion.x + targetRegion.width).toDouble(),
-                    (targetRegion.y + targetRegion.height - arcSize).toDouble())
-                path.quadTo(
-                    (targetRegion.x + targetRegion.width).toDouble(),
-                    (targetRegion.y + targetRegion.height).toDouble(),
-                    (targetRegion.x + targetRegion.width - arcSize).toDouble(),
-                    (targetRegion.y + targetRegion.height).toDouble())
+            // Right edge
+            path.lineTo(
+              (targetRegion.x + targetRegion.width).toDouble(),
+              (targetRegion.y + targetRegion.height - arcSize).toDouble()
+            )
+            path.quadTo(
+              (targetRegion.x + targetRegion.width).toDouble(),
+              (targetRegion.y + targetRegion.height).toDouble(),
+              (targetRegion.x + targetRegion.width - arcSize).toDouble(),
+              (targetRegion.y + targetRegion.height).toDouble()
+            )
 
-                // Bottom edge
-                path.lineTo(
-                    (targetRegion.x + arcSize).toDouble(),
-                    (targetRegion.y + targetRegion.height).toDouble())
-                path.lineTo(
-                    targetRegion.x.toDouble(), (targetRegion.y + targetRegion.height).toDouble())
+            // Bottom edge
+            path.lineTo(
+              (targetRegion.x + arcSize).toDouble(),
+              (targetRegion.y + targetRegion.height).toDouble()
+            )
+            path.lineTo(
+              targetRegion.x.toDouble(), (targetRegion.y + targetRegion.height).toDouble()
+            )
 
-                // Left edge
-                path.lineTo(targetRegion.x.toDouble(), targetRegion.y.toDouble())
+            // Left edge
+            path.lineTo(targetRegion.x.toDouble(), targetRegion.y.toDouble())
 
-                path.closePath()
-                (g as Graphics2D).fill(path)
+            path.closePath()
+            (g as Graphics2D).fill(path)
 
-                val descent = g.fontMetrics.descent
-                val textColor = editor.colorsScheme.getColor(EditorColors.CARET_COLOR)
-                g.color = textColor
+            val descent = g.fontMetrics.descent
+            val textColor = editor.colorsScheme.getColor(EditorColors.CARET_COLOR)
+            g.color = textColor
 
-                val baseline = targetRegion.y + targetRegion.height - descent - 4
-                g.drawString(content, targetRegion.x, baseline)
-                inlayBounds = targetRegion
-              }
-            })
+            val baseline = targetRegion.y + targetRegion.height - descent - 4
+            g.drawString(content, targetRegion.x, baseline)
+          }
+        })
 
     inlay?.let {
       Disposer.register(disposable, it)
@@ -110,7 +109,6 @@ class CodySelectionInlayManager {
   private fun clearInlay() {
     currentInlay?.let { Disposer.dispose(it) }
     currentInlay = null
-    inlayBounds = null
   }
 
   @Suppress("SameParameterValue")
