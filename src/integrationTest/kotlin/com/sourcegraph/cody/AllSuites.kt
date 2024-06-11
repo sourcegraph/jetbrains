@@ -8,11 +8,18 @@ import org.junit.AfterClass
 import org.junit.runner.RunWith
 import org.junit.runners.Suite
 
-// We need a single tearDown() method running after all tests are complete,
-// so agent can be closed gracefully and recordings can be saved properly.
-// Due to the limitations of JUnit 4 this can be done only using SuiteClasses and AfterClass.
-// Multiple recording files can be used, but each should have its own suite with tearDown() method
-// nad define unique CODY_RECORDING_NAME.
+/**
+ * We need a single tearDown() method running after all tests are complete, so agent can be closed
+ * gracefully and recordings can be saved properly.
+ *
+ * Due to the limitations of JUnit 4 this can be done only using SuiteClasses and AfterClass, and we
+ * are forced to use JUnit 4 because IntelliJ testing classes like `BasePlatformTestCase` are based
+ * on that version. JUnit 4 jar is part of the ideaIC package. We will upgrade to JUnit 5
+ * automatically after the platform version bump.
+ *
+ * Multiple recording files can be used, but each should have its own suite with tearDown() method
+ * nad define unique CODY_RECORDING_NAME.
+ */
 @RunWith(Suite::class)
 @Suite.SuiteClasses(DocumentCodeTest::class)
 class AllSuites {
@@ -30,7 +37,7 @@ class AllSuites {
                 |
                 |------------------------------------------------------------------------------------------
                 |To fix this problem please run `./gradlew :recordingIntegrationTest`.
-                |You need exported access tokens first, using script from the `sourcegraph/cody` repository:
+                |You need to export access tokens first, using script from the `sourcegraph/cody` repository:
                 |`agent/scripts/export-cody-http-recording-tokens.sh`
                 |------------------------------------------------------------------------------------------
               """

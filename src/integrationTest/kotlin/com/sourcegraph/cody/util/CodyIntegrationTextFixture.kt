@@ -16,7 +16,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
-import com.intellij.util.containers.map2Array
 import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.config.CodyPersistentAccountsHost
@@ -106,7 +105,8 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
         "Unable to start agent in a timely fashion!",
         CodyAgentService.getInstance(project)
             .startAgent(project)
-            .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS))
+            .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .get())
   }
 
   private fun checkInitialConditions() {
@@ -211,9 +211,16 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
       actionId: String,
       vararg topic: Topic<CodyInlineEditActionNotifier>
   ) {
-    val futures = topic.map2Array { subscribeToTopic(it) }
+    val futures = topic.associate { topic to subscribeToTopic(it) }
     triggerAction(actionId)
-    CompletableFuture.allOf(*futures).get()
+    futures.forEach { (t, f) ->
+      try {
+        f.get()
+      } catch (e: Exception) {
+        assertTrue(
+            "Error while awaiting ${t[0].displayName} notification: ${e.localizedMessage}", false)
+      }
+    }
   }
 
   // Returns a future that completes when the topic is published.

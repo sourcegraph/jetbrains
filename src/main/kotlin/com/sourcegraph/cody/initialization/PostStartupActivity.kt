@@ -40,8 +40,9 @@ class PostStartupActivity : StartupActivity.DumbAware {
     }
     // For integration tests we do not want to start agent immediately as we would like to first do
     // some setup
-    if (ConfigUtil.isCodyEnabled() && !ConfigUtil.isIntegrationTestModeEnabled())
-        CodyAgentService.getInstance(project).startAgent(project)
+    if (ConfigUtil.isCodyEnabled() && !ConfigUtil.isIntegrationTestModeEnabled()) {
+      CodyAgentService.getInstance(project).startAgent(project)
+    }
     CodyStatusService.resetApplication(project)
     EndOfTrialNotificationScheduler.createAndStart(project)
 
