@@ -145,7 +145,8 @@ class CodyAuthenticationManager(val project: Project) : Disposable {
       if (serverUrlChanged || accessTokenChanged || tierChanged) {
         CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
           agent.server.configurationDidChange(ConfigUtil.getAgentConfiguration(project))
-          publisher.afterAction(AccountSettingChangeContext(serverUrlChanged, accessTokenChanged))
+          publisher.afterAction(
+              AccountSettingChangeContext(serverUrlChanged, accessTokenChanged, tierChanged))
         }
       }
     }

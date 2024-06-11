@@ -91,8 +91,8 @@ dependencies {
   implementation("com.googlecode.java-diff-utils:diffutils:1.3.0")
   testImplementation("org.awaitility:awaitility-kotlin:4.2.0")
   testImplementation("org.mockito:mockito-core:5.12.0")
-  testImplementation("org.junit.jupiter:junit-jupiter:5.7.0")
-  testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.22")
+  testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+  testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.0.0")
   testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1")
 }
 

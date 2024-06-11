@@ -65,12 +65,15 @@ abstract class FixupSession(
     get() = editor.document
 
   // This is passed back by the Agent when we initiate the editing task.
-  @Volatile var taskId: String? = null
+  @Volatile
+  var taskId: String? = null
 
   // The current lens group. Changes as the state machine proceeds.
-  @VisibleForTesting var lensGroup: LensWidgetGroup? = null
+  @VisibleForTesting
+  var lensGroup: LensWidgetGroup? = null
 
-  @VisibleForTesting var selectionRange: RangeMarker? = null
+  @VisibleForTesting
+  var selectionRange: RangeMarker? = null
 
   // Whether the session has inserted text into the document.
   val isInserted: Boolean
@@ -160,7 +163,7 @@ abstract class FixupSession(
           .getFoldingRanges(GetFoldingRangeParams(uri = textFile.uri, range = selection))
           .thenApply { result ->
             selectionRange = result.range.toRangeMarker(document, true)
-            publishProgressOnEdt(CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES)
+            publishProgress(CodyInlineEditActionNotifier.TOPIC_FOLDING_RANGES)
             result
           }
           .get()
@@ -347,12 +350,15 @@ abstract class FixupSession(
         "create-file" -> {
           logger.warn("Workspace edit operation created a file: ${op.uri}")
         }
+
         "rename-file" -> {
           logger.warn("Workspace edit operation renamed a file: ${op.oldUri} -> ${op.newUri}")
         }
+
         "delete-file" -> {
           logger.warn("Workspace edit operation deleted a file: ${op.uri}")
         }
+
         "edit-file" -> {
           if (op.edits == null) {
             logger.warn("Workspace edit operation has no edits")
@@ -361,9 +367,10 @@ abstract class FixupSession(
             performInlineEdits(op.edits)
           }
         }
+
         else ->
-            logger.warn(
-                "DocumentCommand session received unknown workspace edit operation: ${op.type}")
+          logger.warn(
+              "DocumentCommand session received unknown workspace edit operation: ${op.type}")
       }
     }
     publishProgress(CodyInlineEditActionNotifier.TOPIC_WORKSPACE_EDIT)
@@ -408,6 +415,7 @@ abstract class FixupSession(
                   when (edit.type) {
                     "replace",
                     "delete" -> ReplaceUndoableAction(project, edit, document)
+
                     "insert" -> InsertUndoableAction(project, edit, document)
                     else -> {
                       logger.warn("Unknown edit type: ${edit.type}")
@@ -480,12 +488,6 @@ abstract class FixupSession(
 
   private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
     ApplicationManager.getApplication().invokeLater {
-      project.messageBus.syncPublisher(topic).afterAction()
-    }
-  }
-
-  private fun publishProgressOnEdt(topic: Topic<CodyInlineEditActionNotifier>) {
-    ApplicationManager.getApplication().invokeAndWait {
       project.messageBus.syncPublisher(topic).afterAction()
     }
   }

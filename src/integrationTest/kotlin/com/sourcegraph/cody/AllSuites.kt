@@ -22,9 +22,19 @@ class AllSuites {
     internal fun tearDown() {
       CodyAgentService.withAgent(CodyIntegrationTextFixture.myProject!!) { agent ->
         val errors = agent.server.testingRequestErrors().get()
+        // We extract polly.js errors to notify users about the missing recordings, if any
         val missingRecordings = errors.filter { it.error?.contains("`recordIfMissing` is") == true }
         missingRecordings.forEach { missing ->
-          System.err.println("Missing recording: ${missing.error}")
+          System.err.println(
+              """Recording is missing: ${missing.error}
+                |
+                |------------------------------------------------------------------------------------------
+                |To fix this problem please run `./gradlew :recordingIntegrationTest`.
+                |You need exported access tokens first, using script from the `sourcegraph/cody` repository:
+                |`agent/scripts/export-cody-http-recording-tokens.sh`
+                |------------------------------------------------------------------------------------------
+              """
+                  .trimMargin())
         }
 
         agent.server
