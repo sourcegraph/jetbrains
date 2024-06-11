@@ -54,8 +54,6 @@ class PositionTest : BasePlatformTestCase() {
     val position = Position(1, 10)
     val result = position.getRealColumn(document)
     assertEquals(5, result)
-
-    tearDown()
   }
 
   fun test_toOffsetReturnsCorrectOffsetOnEmptyFile() {
