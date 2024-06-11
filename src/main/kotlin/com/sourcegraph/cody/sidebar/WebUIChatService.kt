@@ -13,9 +13,17 @@ class WebUIChatService(private val project: Project) {
   }
 
   private var webUiProxy: WebUIProxy? = null
+  private var themeController = WebThemeController().apply {
+    setThemeChangeListener { updateTheme(it) }
+  }
+
+  private fun updateTheme(theme: WebTheme) {
+    webUiProxy?.updateTheme(theme)
+  }
 
   fun setWebUiProxy(proxy: WebUIProxy) {
     webUiProxy = proxy
+    updateTheme(themeController.getTheme())
   }
 
   fun receiveMessage(message: ExtensionMessage) {
