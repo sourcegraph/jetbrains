@@ -28,6 +28,7 @@ import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ModelUsage
+import com.sourcegraph.cody.chat.PromptHistory
 import com.sourcegraph.cody.chat.ui.LlmDropdown
 import com.sourcegraph.cody.edit.EditUtil.namedButton
 import com.sourcegraph.cody.edit.EditUtil.namedLabel
@@ -74,6 +75,7 @@ import javax.swing.ListCellRenderer
 import javax.swing.WindowConstants
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
+import javax.swing.text.DefaultEditorKit
 
 /** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
 class EditCommandPrompt(
@@ -89,6 +91,12 @@ class EditCommandPrompt(
   private var connection: MessageBusConnection? = null
 
   private val isDisposed: AtomicBoolean = AtomicBoolean(false)
+
+  // When "history mode" is enabled, pressing Up/Down arrow keys replaces the chat input with the
+  // previous/next chat message (via CodyChatMessageHistory). History mode can only be activated
+  // when the chat input is empty,
+  // and it's deactivated on the first key action that is not an Up/Down arrow key.
+  private var isInHistoryMode = true
 
   // Key for activating the OK button. It's not a globally registered action.
   // We use a local action and just wire it up manually.
@@ -255,7 +263,7 @@ class EditCommandPrompt(
         override fun windowGainedFocus(e: WindowEvent?) {}
 
         override fun windowLostFocus(e: WindowEvent?) {
-          clearActivePrompt()
+          //          clearActivePrompt()
         }
       }
 
@@ -346,6 +354,7 @@ class EditCommandPrompt(
   }
 
   private fun clearActivePrompt() {
+    isInHistoryMode = true
     performCancelAction()
   }
 
@@ -378,13 +387,38 @@ class EditCommandPrompt(
         object : KeyAdapter() {
           override fun keyPressed(e: KeyEvent) {
             when (e.keyCode) {
-              KeyEvent.VK_UP -> instructionsField.setTextAndSelectAll(promptHistory.getPrevious())
-              KeyEvent.VK_DOWN -> instructionsField.setTextAndSelectAll(promptHistory.getNext())
+              KeyEvent.VK_UP -> {
+                if (isInHistoryMode) {
+                  instructionsField.setTextAndSelectAll(promptHistory.getPrevious())
+                } else {
+                  val defaultAction = instructionsField.actionMap[DefaultEditorKit.upAction]
+                  defaultAction.actionPerformed(null)
+                }
+              }
+              KeyEvent.VK_DOWN -> {
+                if (isInHistoryMode) {
+                  instructionsField.setTextAndSelectAll(promptHistory.getNext())
+                } else {
+                  val defaultAction = instructionsField.actionMap[DefaultEditorKit.upAction]
+                  defaultAction.actionPerformed(null)
+                }
+              }
               KeyEvent.VK_ESCAPE -> {
                 clearActivePrompt()
               }
             }
+
+            if (e.keyCode != KeyEvent.VK_UP && e.keyCode != KeyEvent.VK_DOWN) {
+              isInHistoryMode = instructionsField.getText().isEmpty()
+            }
+
             updateOkButtonState()
+          }
+
+          override fun keyReleased(e: KeyEvent) {
+            if (e.keyCode != KeyEvent.VK_UP && e.keyCode != KeyEvent.VK_DOWN) {
+              isInHistoryMode = instructionsField.getText().isEmpty()
+            }
           }
         })
   }
@@ -637,7 +671,7 @@ class EditCommandPrompt(
     private const val FILE_PATH_404 = "unknown file"
 
     private const val HISTORY_CAPACITY = 100
-    val promptHistory = HistoryManager<String>(HISTORY_CAPACITY)
+    val promptHistory = PromptHistory(HISTORY_CAPACITY)
 
     // The last text the user typed in without saving it, for continuity.
     var lastPrompt: String = ""

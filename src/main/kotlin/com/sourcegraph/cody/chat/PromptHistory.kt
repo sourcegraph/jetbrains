@@ -1,23 +1,18 @@
-package com.sourcegraph.cody.edit
+package com.sourcegraph.cody.chat
 
-/** Manages user prompt history in memory for a session. */
-class HistoryManager<T>(private val capacity: Int) {
-  private val history = mutableListOf<T>()
+open class PromptHistory(private val capacity: Int) {
+  private val history = mutableListOf<String>()
   private var currentIndex = -1
 
-  fun add(item: T) {
-    history.remove(item) // avoid duplicates
-
-    history.add(item) // new items go at the end
-
+  fun add(item: String) {
+    history.add(item)
     if (history.size > capacity) {
       history.removeAt(0)
     }
-
-    currentIndex = history.size - 1
+    resetHistory()
   }
 
-  fun getPrevious(): T? {
+  fun getPrevious(): String? {
     if (currentIndex > 0) {
       currentIndex--
       return history[currentIndex]
@@ -25,7 +20,7 @@ class HistoryManager<T>(private val capacity: Int) {
     return if (history.size == 1) history[0] else null
   }
 
-  fun getNext(): T? {
+  fun getNext(): String? {
     if (currentIndex < history.size - 1) {
       currentIndex++
       return history[currentIndex]
@@ -33,7 +28,7 @@ class HistoryManager<T>(private val capacity: Int) {
     return if (history.size == 1) history[0] else null
   }
 
-  fun getCurrent(): T? {
+  fun getCurrent(): String? {
     return if (history.size > 0 && currentIndex < history.size) {
       history[currentIndex]
     } else {
@@ -43,7 +38,7 @@ class HistoryManager<T>(private val capacity: Int) {
 
   fun isNotEmpty() = history.isNotEmpty()
 
-  override fun toString(): String {
-    return "HistoryManager(capacity=$capacity, currentIndex=$currentIndex)"
+  fun resetHistory() {
+    currentIndex = history.size - 1
   }
 }
