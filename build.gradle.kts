@@ -338,6 +338,7 @@ tasks {
     copy {
       from(downloadNodeBinaries())
       into(buildCodyDir)
+      eachFile { permissions { unix("rwxrwxrwx") } }
     }
 
     return buildCodyDir
