@@ -113,12 +113,28 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     assertNoActiveSession()
   }
 
+  // testUndo is currently disabled because it is very flaky
   fun skip_testUndo() {
     val originalDocument = myFixture.editor.document.text
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
     assertNotSame(
         "Expected document to be changed", originalDocument, myFixture.editor.document.text)
     assertInlayIsShown()
+
+    /**
+     * Addition of that `Thread.sleep(2000)` changes the behaviour of the test.
+     *
+     * Without it test times out awaiting on the topic notification. With it test finishes, but
+     * content of the file seems to not be restored. In fact undo correctly reverts the change, but
+     * immediately after that we are receiving `textDocument/edit` which brings the change back.
+     *
+     * I believe the behaviour change is caused by a delayed `didChange` notification triggered from
+     * the IDE listener (without the `Thread.sleep` we are able to trigger undo before we notify the
+     * agent we applied the previous changes).
+     *
+     * Still, I'm not sure why the very last `textDocument/edit` is sent superfluously.
+     */
+    Thread.sleep(2000)
 
     runAndWaitForNotifications(FixupSession.ACTION_UNDO, TOPIC_PERFORM_UNDO, TOPIC_TASK_FINISHED)
     assertEquals(
