@@ -321,17 +321,19 @@ private constructor(
           // in the plugin directory.
           Files.deleteIfExists(binaryTarget)
         }
-        logger.info("extracting Node binary to " + binaryTarget.toAbsolutePath())
+        logger.info("Extracting Node binary to " + binaryTarget.toAbsolutePath())
         Files.copy(binarySource, binaryTarget, StandardCopyOption.REPLACE_EXISTING)
         val binary = binaryTarget.toFile()
         if (binary.setExecutable(true)) {
           binary
         } else {
-          throw CodyAgentException("failed to make executable " + binary.absolutePath)
+          throw CodyAgentException("Failed to make Node process executable " + binary.absolutePath)
         }
-      } catch (e: IOException) {
+      } catch (e: Exception) {
+        logger.warn(e)
+        logger.info("Failed to create a copy of the Node binary, proceeding with $binarySource")
         Files.deleteIfExists(binaryTarget)
-        throw CodyAgentException("failed to create Node binary", e)
+        binarySource.toFile()
       }
     }
 
