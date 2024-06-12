@@ -236,7 +236,6 @@ private constructor(
           "replay",
           "passthrough" -> {
             logger.warn("Cody integration test recording mode: $mode")
-            this["SRC_ACCESS_TOKEN"] = System.getenv("SRC_ACCESS_TOKEN")
             this["DISABLE_UPSTREAM_HEALTH_PINGS"] = "true"
             System.getenv()
                 .filter { it.key.startsWith("CODY_") }

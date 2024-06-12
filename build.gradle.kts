@@ -218,11 +218,6 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
       "idea.test.execution.policy" to "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy",
       "test.resources.dir" to resourcesDir.absolutePath)
 
-  val accessToken = System.getenv("SRC_DOTCOM_PRO_ACCESS_TOKEN")
-  if (accessToken != null) {
-    environment("SRC_ACCESS_TOKEN" to accessToken)
-  }
-
   environment(
       "CODY_RECORDING_MODE" to mode,
       "CODY_RECORDING_NAME" to "integration-test",
@@ -232,9 +227,6 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
       "CODY_TELEMETRY_EXPORTER" to "testing",
       // Fastpass has custom bearer tokens that are difficult to record with Polly
       "CODY_DISABLE_FASTPATH" to "true",
-      // This flag is for Agent-side integration testing and interferes with ours.
-      // It seems to be sneaking in somewhere, so we explicitly set it to false.
-      //      "CODY_TESTING" to "false"
   )
 
   useJUnit()
