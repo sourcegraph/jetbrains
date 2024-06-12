@@ -211,14 +211,14 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
       actionId: String,
       vararg topic: Topic<CodyInlineEditActionNotifier>
   ) {
-    val futures = topic.associate { topic to subscribeToTopic(it) }
+    val futures = topic.associateWith { subscribeToTopic(it) }
     triggerAction(actionId)
     futures.forEach { (t, f) ->
       try {
         f.get()
       } catch (e: Exception) {
         assertTrue(
-            "Error while awaiting ${t[0].displayName} notification: ${e.localizedMessage}", false)
+            "Error while awaiting ${t.displayName} notification: ${e.localizedMessage}", false)
       }
     }
   }

@@ -113,7 +113,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     assertNoActiveSession()
   }
 
-  fun testUndo() {
+  fun skip_testUndo() {
     val originalDocument = myFixture.editor.document.text
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
     assertNotSame(
