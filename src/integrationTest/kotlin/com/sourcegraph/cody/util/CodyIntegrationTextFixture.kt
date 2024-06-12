@@ -92,7 +92,10 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
   // Methods there are mostly idempotent though, so calling again for every test case should not
   // change anything.
   private fun initCredentialsAndAgent() {
-    assertNotNull("SRC_ACCESS_TOKEN must be defined", System.getenv("SRC_ACCESS_TOKEN"))
+    assertNotNull(
+        "Missing valid access token, please check CONTRIBUTING.md > Integration Testing.",
+        System.getenv("SRC_ACCESS_TOKEN"))
+
     CodyPersistentAccountsHost(project)
         .addAccount(
             SourcegraphServerPath.from(ConfigUtil.DOTCOM_URL, ""),

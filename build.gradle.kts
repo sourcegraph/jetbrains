@@ -218,9 +218,12 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
       "idea.test.execution.policy" to "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy",
       "test.resources.dir" to resourcesDir.absolutePath)
 
+  val accessToken = System.getenv("SRC_DOTCOM_PRO_ACCESS_TOKEN")
+  if (accessToken != null) {
+    environment("SRC_ACCESS_TOKEN" to accessToken)
+  }
+
   environment(
-      "CODY_INTEGRATION_TEST_TOKEN" to System.getenv("SRC_DOTCOM_PRO_ACCESS_TOKEN"),
-      "SRC_ACCESS_TOKEN" to System.getenv("SRC_DOTCOM_PRO_ACCESS_TOKEN"),
       "CODY_RECORDING_MODE" to mode,
       "CODY_RECORDING_NAME" to "integration-test",
       "CODY_RECORDING_DIRECTORY" to resourcesDir.resolve("recordings").absolutePath,
