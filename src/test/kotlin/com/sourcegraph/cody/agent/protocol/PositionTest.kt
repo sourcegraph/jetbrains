@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.agent.protocol
 
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class PositionTest : BasePlatformTestCase() {
@@ -12,6 +13,16 @@ class PositionTest : BasePlatformTestCase() {
   override fun setUp() {
     super.setUp()
     myFixture.openFileInEditor(file)
+  }
+
+  override fun tearDown() {
+    try {
+      super.tearDown()
+    } catch (ignored: ProcessCanceledException) {
+      // ProcessCanceledException is exception indicating that the currently running operation was
+      // terminated and should finish as soon as possible. That is not unexpected during the
+      // tearDown, we can ignore it.
+    }
   }
 
   fun test_isStartOrEndOfDocumentMarkerReturnsTrueWhenLineIsLessThanZero() {
