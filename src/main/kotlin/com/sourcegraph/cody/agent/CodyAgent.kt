@@ -236,7 +236,10 @@ private constructor(
           "replay",
           "passthrough" -> {
             logger.warn("Cody integration test recording mode: $mode")
+
             this["DISABLE_UPSTREAM_HEALTH_PINGS"] = "true"
+            this["DISABLE_FEATURE_FLAGS"] = "true"
+
             System.getenv()
                 .filter { it.key.startsWith("CODY_") }
                 .forEach { (key, value) -> this[key] = value }
