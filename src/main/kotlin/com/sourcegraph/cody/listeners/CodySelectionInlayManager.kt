@@ -74,7 +74,7 @@ class CodySelectionInlayManager {
                     editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)?.darker()
                 g.color = backgroundColor
 
-                val arcSize = getFont().size * 0.7
+                val arcSize = getFont().size // Larger number = arc is more round, smaller = more square
                 val x = targetRegion.x.toDouble()
                 val y = targetRegion.y.toDouble()
                 val width = targetRegion.width.toDouble()
