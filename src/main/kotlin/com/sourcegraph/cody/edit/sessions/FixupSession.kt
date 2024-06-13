@@ -274,8 +274,8 @@ abstract class FixupSession(
 
       CodyAgentService.withAgent(project) { agent ->
         agent.server.acceptEditTask(TaskIdParam(taskId!!))
+        publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
       }
-      publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
     } catch (x: Exception) {
       // Don't show error lens here; it's sort of pointless.
       logger.warn("Error sending editTask/accept for taskId", x)
