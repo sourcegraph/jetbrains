@@ -14,6 +14,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.EditorTestUtil
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.util.messages.Topic
@@ -179,7 +180,10 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
   }
 
   private fun triggerAction(actionId: String) {
-    runInEdt { EditorTestUtil.executeAction(myFixture.editor, actionId) }
+    runInEdt {
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      EditorTestUtil.executeAction(myFixture.editor, actionId)
+    }
   }
 
   protected fun activeSession(): FixupSession {
@@ -251,7 +255,7 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
   companion object {
     // TODO: find the lowest value this can be for production, and use it
     // If it's too low the test may be flaky.
-    const val ASYNC_WAIT_TIMEOUT_SECONDS = 10L
+    const val ASYNC_WAIT_TIMEOUT_SECONDS = 20L
     var myProject: Project? = null
   }
 }

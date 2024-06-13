@@ -22,7 +22,7 @@ log:
           - name: user-agent
             value: JetBrains / 6.0-localbuild
           - name: traceparent
-            value: 00-47bd9a798a459d1cb6a734f6615154bb-3c8e19911299aac0-01
+            value: 00-eef3c9ec53c7be62c61a06f68cbf1432-2930f92fa7990b02-01
           - name: connection
             value: keep-alive
           - name: host
@@ -131,14 +131,14 @@ log:
             value: 6.0-localbuild
         url: https://sourcegraph.com/.api/completions/stream?api-version=1&client-name=jetbrains&client-version=6.0-localbuild
       response:
-        bodySize: 15684
+        bodySize: 2091
         content:
           mimeType: text/event-stream
-          size: 15684
+          size: 2091
           text: >+
             event: completion
 
-            data: {"completion":"/**\n * Generates a Fibonacci sequence and prints the first 10 numbers in the sequence.\n * The Fibonacci sequence is a series of numbers in which each number is the sum\n * of the two preceding ones, usually starting with 0 and 1. This method\n * demonstrates how to build and display the sequence.\n */","stopReason":"stop_sequence"}
+            data: {"completion":"/**\n * Generates a sequence of Fibonacci numbers and prints them to the console.\n */","stopReason":"stop_sequence"}
 
 
             event: done
@@ -148,7 +148,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:04 GMT
+            value: Thu, 13 Jun 2024 09:09:22 GMT
           - name: content-type
             value: text/event-stream
           - name: transfer-encoding
@@ -156,7 +156,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "359"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -179,7 +179,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:03.514Z
+      startedDateTime: 2024-06-13T09:09:20.954Z
       time: 0
       timings:
         blocked: -1
@@ -206,7 +206,7 @@ log:
           - name: user-agent
             value: JetBrains / 6.0-localbuild
           - name: traceparent
-            value: 00-d8bb02510b1cb81005f1afac95d89136-045beeff02be9254-01
+            value: 00-c9fedd44807c84baccaf2d0a65e3b652-9635aaa5e1b59b7d-01
           - name: connection
             value: keep-alive
           - name: host
@@ -305,14 +305,14 @@ log:
             value: 6.0-localbuild
         url: https://sourcegraph.com/.api/completions/stream?api-version=1&client-name=jetbrains&client-version=6.0-localbuild
       response:
-        bodySize: 3322
+        bodySize: 3605
         content:
           mimeType: text/event-stream
-          size: 3322
+          size: 3605
           text: >+
             event: completion
 
-            data: {"completion":"\n/**\n * This import statement brings in the java.util package, which contains common data structures like ArrayList.\n */\n","stopReason":"stop_sequence"}
+            data: {"completion":"\n/**\n * Imports the necessary Java utility classes, including the `ArrayList` implementation of the `List` interface.\n */\n","stopReason":"stop_sequence"}
 
 
             event: done
@@ -322,7 +322,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:05 GMT
+            value: Thu, 13 Jun 2024 09:09:22 GMT
           - name: content-type
             value: text/event-stream
           - name: transfer-encoding
@@ -330,7 +330,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "359"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -353,7 +353,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:03.543Z
+      startedDateTime: 2024-06-13T09:09:20.992Z
       time: 0
       timings:
         blocked: -1
@@ -435,7 +435,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -443,7 +443,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -468,7 +468,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:03.312Z
+      startedDateTime: 2024-06-13T09:09:20.760Z
       time: 0
       timings:
         blocked: -1
@@ -539,7 +539,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -547,7 +547,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "475"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -572,7 +572,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.011Z
+      startedDateTime: 2024-06-13T09:09:19.523Z
       time: 0
       timings:
         blocked: -1
@@ -632,17 +632,22 @@ log:
             value: null
         url: https://sourcegraph.com/.api/graphql?ContextFilters
       response:
-        bodySize: 111
+        bodySize: 104
         content:
           encoding: base64
           mimeType: application/json
-          size: 111
+          size: 104
           text: "[\"H4sIAAAAAAAAA6pWSkksSVSyqlYqzixJBdHJ+SmVzvl5JakVJW6ZOSWpRcUg0aLEciWrv\
-            NKcnNra2loAAAAA//8=\",\"AwA2LshlNQAAAA==\"]"
+            NKcnNra2loAAAAA//8DADYuyGU1AAAA\"]"
+          textDecoded:
+            data:
+              site:
+                codyContextFilters:
+                  raw: null
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -650,7 +655,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -675,7 +680,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:03.057Z
+      startedDateTime: 2024-06-13T09:09:20.483Z
       time: 0
       timings:
         blocked: -1
@@ -762,7 +767,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -770,7 +775,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -795,7 +800,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.225Z
+      startedDateTime: 2024-06-13T09:09:19.700Z
       time: 0
       timings:
         blocked: -1
@@ -870,7 +875,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -878,7 +883,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -903,7 +908,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.227Z
+      startedDateTime: 2024-06-13T09:09:19.702Z
       time: 0
       timings:
         blocked: -1
@@ -978,7 +983,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -986,7 +991,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -1011,7 +1016,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.226Z
+      startedDateTime: 2024-06-13T09:09:19.701Z
       time: 0
       timings:
         blocked: -1
@@ -1100,7 +1105,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -1108,7 +1113,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -1133,7 +1138,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.228Z
+      startedDateTime: 2024-06-13T09:09:19.703Z
       time: 0
       timings:
         blocked: -1
@@ -1191,21 +1196,17 @@ log:
             value: null
         url: https://sourcegraph.com/.api/graphql?CurrentUserCodyProEnabled
       response:
-        bodySize: 100
+        bodySize: 107
         content:
           encoding: base64
           mimeType: application/json
-          size: 100
+          size: 107
           text: "[\"H4sIAAAAAAAAA6pWSkksSVSyqlZKLi0qSs0rCS1OLQJz81MqA4ryXfMSk3JSU5SsSopKU\
-            2trawEAAAD//wMAqqwCpjAAAAA=\"]"
-          textDecoded:
-            data:
-              currentUser:
-                codyProEnabled: true
+            2trawEAAAD//w==\",\"AwCqrAKmMAAAAA==\"]"
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:21 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -1213,7 +1214,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -1238,7 +1239,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:03.368Z
+      startedDateTime: 2024-06-13T09:09:20.807Z
       time: 0
       timings:
         blocked: -1
@@ -1323,7 +1324,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -1331,7 +1332,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -1356,7 +1357,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.464Z
+      startedDateTime: 2024-06-13T09:09:19.955Z
       time: 0
       timings:
         blocked: -1
@@ -1417,7 +1418,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:01 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -1425,7 +1426,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "475"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -1448,7 +1449,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:01.723Z
+      startedDateTime: 2024-06-13T09:09:19.273Z
       time: 0
       timings:
         blocked: -1
@@ -1470,7 +1471,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-03cd9074d3cb6fa611e2f98340828705-3aa609d9035c7383-01
+            value: 00-cd0711bb8fe250fe42e2b4006e2c0746-2d397be93dae2506-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -1512,7 +1513,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -1520,7 +1521,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -1543,7 +1544,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.220Z
+      startedDateTime: 2024-06-13T09:09:19.697Z
       time: 0
       timings:
         blocked: -1
@@ -1569,7 +1570,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-fb747f1bc7bac31c8472f17118188eb7-c44e8385b2a562ee-01
+            value: 00-3fc03bd0b98798606a88bdd9ee5c5e7a-61d3b66db60db6db-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -1611,7 +1612,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -1619,7 +1620,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -1642,7 +1643,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.820Z
+      startedDateTime: 2024-06-13T09:09:20.260Z
       time: 0
       timings:
         blocked: -1
@@ -1668,7 +1669,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-334ca71640939f8fccc8db7e4fcb1987-0c2ef041b4305ae4-01
+            value: 00-67e2a9e53eb293777685785f1a62b6a4-77e8aa13e2a18b42-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -1710,7 +1711,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -1718,7 +1719,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -1741,7 +1742,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.822Z
+      startedDateTime: 2024-06-13T09:09:20.262Z
       time: 0
       timings:
         blocked: -1
@@ -1767,7 +1768,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-2df64076599f31bcfa6b731cf99870b4-bce6dddaaa1f9e6c-01
+            value: 00-8b2dd2adf050194efbe6b501f38f41f0-01970417dc2bb755-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -1809,7 +1810,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -1817,7 +1818,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -1840,106 +1841,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.851Z
-      time: 0
-      timings:
-        blocked: -1
-        connect: -1
-        dns: -1
-        receive: 0
-        send: 0
-        ssl: -1
-        wait: 0
-    - _id: 6552b34385ec7d535e170808ade1dc42
-      _order: 0
-      cache: {}
-      request:
-        bodySize: 184
-        cookies: []
-        headers:
-          - _fromType: array
-            name: authorization
-            value: token
-              REDACTED_d5e0f0a37c9821e856b923fe14e67a605e3f6c0a517d5a4f46a4e35943ee0f6d
-          - _fromType: array
-            name: content-type
-            value: application/json; charset=utf-8
-          - _fromType: array
-            name: traceparent
-            value: 00-592e1b012ae11d74b429b98f6f1879e3-cfd18621ab4a83e3-01
-          - _fromType: array
-            name: user-agent
-            value: JetBrains / 6.0-localbuild
-          - _fromType: array
-            name: accept
-            value: "*/*"
-          - _fromType: array
-            name: content-length
-            value: "184"
-          - _fromType: array
-            name: accept-encoding
-            value: gzip,deflate
-          - name: host
-            value: sourcegraph.com
-        headersSize: 403
-        httpVersion: HTTP/1.1
-        method: POST
-        postData:
-          mimeType: application/json; charset=utf-8
-          params: []
-          textJSON:
-            query: |2
-              
-                  query EvaluateFeatureFlag($flagName: String!) {
-                      evaluateFeatureFlag(flagName: $flagName)
-                  }
-            variables:
-              flagName: cody-autocomplete-llama-code-13b
-        queryString:
-          - name: EvaluateFeatureFlag
-            value: null
-        url: https://sourcegraph.com/.api/graphql?EvaluateFeatureFlag
-      response:
-        bodySize: 37
-        content:
-          mimeType: application/json
-          size: 37
-          text: "{\"data\":{\"evaluateFeatureFlag\":null}}"
-        cookies: []
-        headers:
-          - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
-          - name: content-type
-            value: application/json
-          - name: content-length
-            value: "37"
-          - name: connection
-            value: keep-alive
-          - name: retry-after
-            value: "360"
-          - name: access-control-allow-credentials
-            value: "true"
-          - name: access-control-allow-origin
-            value: ""
-          - name: cache-control
-            value: no-cache, max-age=0
-          - name: vary
-            value: Cookie,Accept-Encoding,Authorization,Cookie, Authorization,
-              X-Requested-With,Cookie
-          - name: x-content-type-options
-            value: nosniff
-          - name: x-frame-options
-            value: DENY
-          - name: x-xss-protection
-            value: 1; mode=block
-          - name: strict-transport-security
-            value: max-age=31536000; includeSubDomains; preload
-        headersSize: 1408
-        httpVersion: HTTP/1.1
-        redirectURL: ""
-        status: 200
-        statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.872Z
+      startedDateTime: 2024-06-13T09:09:20.287Z
       time: 0
       timings:
         blocked: -1
@@ -1965,7 +1867,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-18298e24d598f68562e1a75e83042468-851a8cc08f6e4f22-01
+            value: 00-c4270692541080f50f7a453e4f6ac628-25610449092177e1-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -2007,7 +1909,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -2015,7 +1917,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -2038,7 +1940,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.888Z
+      startedDateTime: 2024-06-13T09:09:20.307Z
       time: 0
       timings:
         blocked: -1
@@ -2064,7 +1966,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-6c6ddaae448e0cb9b3562f376f262b31-4f2dac29747a1276-01
+            value: 00-8cdfa03ace254452185a4cb53dff73d7-fa1b17b56bceb06c-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -2106,7 +2008,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -2114,7 +2016,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -2137,7 +2039,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.905Z
+      startedDateTime: 2024-06-13T09:09:20.325Z
       time: 0
       timings:
         blocked: -1
@@ -2163,7 +2065,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-0a0dd7353d58163f8256096ac9118aec-b84b35f128bc343e-01
+            value: 00-9624038bb36ad1e616341266861bae46-85ffe903d67b1751-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -2205,7 +2107,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -2213,7 +2115,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -2236,7 +2138,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.921Z
+      startedDateTime: 2024-06-13T09:09:20.342Z
       time: 0
       timings:
         blocked: -1
@@ -2262,7 +2164,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-3a5429ad9f06f800698f2f99d9547c5f-49aaba94a54c7632-01
+            value: 00-b1e4d9fd4c0fa0b2a726f2b5a08ae497-ebcae6e8a499b533-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -2304,7 +2206,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -2312,7 +2214,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -2335,7 +2237,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.937Z
+      startedDateTime: 2024-06-13T09:09:20.359Z
       time: 0
       timings:
         blocked: -1
@@ -2361,7 +2263,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-261bc920c04767a6099337df80d1bc92-8318d5a0351a07eb-01
+            value: 00-50adb6d6c0c123f328b9a771cc7d6648-5238747069e7bcee-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -2403,7 +2305,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -2411,7 +2313,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -2434,7 +2336,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.954Z
+      startedDateTime: 2024-06-13T09:09:20.376Z
       time: 0
       timings:
         blocked: -1
@@ -2460,7 +2362,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-ae2a7da72fb6739edcf15eba0b6b8ff0-33039c2f4e93f28b-01
+            value: 00-a28193b781891dfa8fe2b759c58f5f97-a719ae65de419126-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -2502,7 +2404,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -2510,7 +2412,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -2533,106 +2435,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.970Z
-      time: 0
-      timings:
-        blocked: -1
-        connect: -1
-        dns: -1
-        receive: 0
-        send: 0
-        ssl: -1
-        wait: 0
-    - _id: 95aae476e563a49b2b13e40ac79416b0
-      _order: 0
-      cache: {}
-      request:
-        bodySize: 184
-        cookies: []
-        headers:
-          - _fromType: array
-            name: authorization
-            value: token
-              REDACTED_d5e0f0a37c9821e856b923fe14e67a605e3f6c0a517d5a4f46a4e35943ee0f6d
-          - _fromType: array
-            name: content-type
-            value: application/json; charset=utf-8
-          - _fromType: array
-            name: traceparent
-            value: 00-b94e23f1cbcb205ec0165765033bca11-a262675a36e1c63e-01
-          - _fromType: array
-            name: user-agent
-            value: JetBrains / 6.0-localbuild
-          - _fromType: array
-            name: accept
-            value: "*/*"
-          - _fromType: array
-            name: content-length
-            value: "184"
-          - _fromType: array
-            name: accept-encoding
-            value: gzip,deflate
-          - name: host
-            value: sourcegraph.com
-        headersSize: 403
-        httpVersion: HTTP/1.1
-        method: POST
-        postData:
-          mimeType: application/json; charset=utf-8
-          params: []
-          textJSON:
-            query: |2
-              
-                  query EvaluateFeatureFlag($flagName: String!) {
-                      evaluateFeatureFlag(flagName: $flagName)
-                  }
-            variables:
-              flagName: cody-autocomplete-smart-throttle
-        queryString:
-          - name: EvaluateFeatureFlag
-            value: null
-        url: https://sourcegraph.com/.api/graphql?EvaluateFeatureFlag
-      response:
-        bodySize: 37
-        content:
-          mimeType: application/json
-          size: 37
-          text: "{\"data\":{\"evaluateFeatureFlag\":null}}"
-        cookies: []
-        headers:
-          - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
-          - name: content-type
-            value: application/json
-          - name: content-length
-            value: "37"
-          - name: connection
-            value: keep-alive
-          - name: retry-after
-            value: "360"
-          - name: access-control-allow-credentials
-            value: "true"
-          - name: access-control-allow-origin
-            value: ""
-          - name: cache-control
-            value: no-cache, max-age=0
-          - name: vary
-            value: Cookie,Accept-Encoding,Authorization,Cookie, Authorization,
-              X-Requested-With,Cookie
-          - name: x-content-type-options
-            value: nosniff
-          - name: x-frame-options
-            value: DENY
-          - name: x-xss-protection
-            value: 1; mode=block
-          - name: strict-transport-security
-            value: max-age=31536000; includeSubDomains; preload
-        headersSize: 1408
-        httpVersion: HTTP/1.1
-        redirectURL: ""
-        status: 200
-        statusText: OK
-      startedDateTime: 2024-06-12T14:48:03.001Z
+      startedDateTime: 2024-06-13T09:09:20.392Z
       time: 0
       timings:
         blocked: -1
@@ -2658,7 +2461,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-bf05169fffeeee1bbcbbc5f8088d0e97-bda41c224d6df966-01
+            value: 00-95ce55cf0f922288ffd666cbed37043a-ac0e7c3ade646d08-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -2700,7 +2503,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -2708,7 +2511,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -2731,7 +2534,106 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:03.017Z
+      startedDateTime: 2024-06-13T09:09:20.425Z
+      time: 0
+      timings:
+        blocked: -1
+        connect: -1
+        dns: -1
+        receive: 0
+        send: 0
+        ssl: -1
+        wait: 0
+    - _id: 18c0723299bab37654867ab53ab5d1fc
+      _order: 0
+      cache: {}
+      request:
+        bodySize: 198
+        cookies: []
+        headers:
+          - _fromType: array
+            name: authorization
+            value: token
+              REDACTED_d5e0f0a37c9821e856b923fe14e67a605e3f6c0a517d5a4f46a4e35943ee0f6d
+          - _fromType: array
+            name: content-type
+            value: application/json; charset=utf-8
+          - _fromType: array
+            name: traceparent
+            value: 00-1b8cb2b9f6b3cf1b8d132ec083d43bf0-44325428a0949e36-01
+          - _fromType: array
+            name: user-agent
+            value: JetBrains / 6.0-localbuild
+          - _fromType: array
+            name: accept
+            value: "*/*"
+          - _fromType: array
+            name: content-length
+            value: "198"
+          - _fromType: array
+            name: accept-encoding
+            value: gzip,deflate
+          - name: host
+            value: sourcegraph.com
+        headersSize: 403
+        httpVersion: HTTP/1.1
+        method: POST
+        postData:
+          mimeType: application/json; charset=utf-8
+          params: []
+          textJSON:
+            query: |2
+              
+                  query EvaluateFeatureFlag($flagName: String!) {
+                      evaluateFeatureFlag(flagName: $flagName)
+                  }
+            variables:
+              flagName: cody-autocomplete-context-extend-language-pool
+        queryString:
+          - name: EvaluateFeatureFlag
+            value: null
+        url: https://sourcegraph.com/.api/graphql?EvaluateFeatureFlag
+      response:
+        bodySize: 37
+        content:
+          mimeType: application/json
+          size: 37
+          text: "{\"data\":{\"evaluateFeatureFlag\":null}}"
+        cookies: []
+        headers:
+          - name: date
+            value: Thu, 13 Jun 2024 09:09:20 GMT
+          - name: content-type
+            value: application/json
+          - name: content-length
+            value: "37"
+          - name: connection
+            value: keep-alive
+          - name: retry-after
+            value: "473"
+          - name: access-control-allow-credentials
+            value: "true"
+          - name: access-control-allow-origin
+            value: ""
+          - name: cache-control
+            value: no-cache, max-age=0
+          - name: vary
+            value: Cookie,Accept-Encoding,Authorization,Cookie, Authorization,
+              X-Requested-With,Cookie
+          - name: x-content-type-options
+            value: nosniff
+          - name: x-frame-options
+            value: DENY
+          - name: x-xss-protection
+            value: 1; mode=block
+          - name: strict-transport-security
+            value: max-age=31536000; includeSubDomains; preload
+        headersSize: 1408
+        httpVersion: HTTP/1.1
+        redirectURL: ""
+        status: 200
+        statusText: OK
+      startedDateTime: 2024-06-13T09:09:20.441Z
       time: 0
       timings:
         blocked: -1
@@ -2757,7 +2659,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-509868878713d38b1fec3190650bdbfb-017e5a5c1247907b-01
+            value: 00-a9e9f280a729def36bc92cca9fcd24a6-9ecc77fd7760057b-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -2799,7 +2701,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -2807,7 +2709,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -2830,7 +2732,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:03.056Z
+      startedDateTime: 2024-06-13T09:09:20.482Z
       time: 0
       timings:
         blocked: -1
@@ -2893,7 +2795,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:01 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -2901,7 +2803,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "475"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -2924,7 +2826,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:01.690Z
+      startedDateTime: 2024-06-13T09:09:19.238Z
       time: 0
       timings:
         blocked: -1
@@ -2950,7 +2852,7 @@ log:
             value: application/json; charset=utf-8
           - _fromType: array
             name: traceparent
-            value: 00-1baf393640fd2e4d4c4eba2e2e017645-fd14c8907d9c9dfe-01
+            value: 00-30572b1e2a0fc2fae35d4df252996337-d82e5710674eec25-01
           - _fromType: array
             name: user-agent
             value: JetBrains / 6.0-localbuild
@@ -2986,62 +2888,62 @@ log:
             value: null
         url: https://sourcegraph.com/.api/graphql?FeatureFlags
       response:
-        bodySize: 496
+        bodySize: 484
         content:
           encoding: base64
           mimeType: application/json
-          size: 496
-          text: "[\"H4sIAAAAAAAAA5SSwW4bMQxE/0Xn8NSbPyA/UfRAibNaAVpqQVGpDcP/Huw2aRMDXqN3j\
-            eYNZ65B2DmcrgFvXAc75BXsw/BaOfdw+nkNygvCKaQmF0ozO6WmjrNTHJLh4SVsUoST\
-            28Dt5a8g1hZp5Qzqv4unmdjAnfrczNPw/k84ce1flbvVsPrp9ORlUYdx8vIG8uHNCte\
-            HVLuCh7fUlrXCQanyENCPh5K2QlMTZON1fszSwZZmEsSRnxBjiRApmvuOQkUF56L5mH\
-            q1Rr6FI6hA/iPiVBaaim7nUQgtTVAJ5xVWFqjTVPkAeXRQ74mmZrT/3UfsycrqpekBh\
-            bpx3+ayrLWwOvWLOp9pLnmuJc/+LfG9Kw8pXlveOFn7sdV9YMHEozp1Z9uqM5ov0crj\
-            m32Utw9OnSJ3CFXWTAJHOkwKFRodRk1jY5OnRX5DdeP0VLFX0IalPyP8MqA73a/b7R0\
-            AAP//AwCWZR311AMAAA==\"]"
+          size: 484
+          text: "[\"H4sIAAAAAAAAA5SSS04DMQyG75I1XrHrAbgEYuHEniRSxhnZDrSqenc0LU/BDGLv73/YP\
+            gdCx3A4B37GNtCZHhh9KD80zBYOj+cgOHM4hNTpBDi8pz4vjZ2BeMLRHMxRUydWKKeo\
+            lcJdWMU4HFwHX+4+JGLrERbMDPZSPRVAZTSw0tXTcPsEJ2z2lbyaL9rBtWIDFuJtG2P\
+            UVCB1cRaHiMYEDSUDsXPy2mWT/dnSFVOVvE+kgn4zPDrEQZl9H6jirJi8PjP48L7W+k\
+            eo1HAQw/0mMozBLMHUFa64jWhJ67LbHgdVbz0DHxcU+9+ipjrDVGXtI0wwd+K2CrHWe\
+            b3D1DD/ceGh7X2L25N9YVnfLSsuZU9QXNHWs8xLqygOdhLHI5SaS6u5+Lez/hqI58hE\
+            VbJdu0IV4uOf33Bdfh+abhm/qGxyLLRiCl1iR6U9j7f/Jo7jR/6ny+UVAAD//wMANna\
+            89NQDAAA=\"]"
           textDecoded:
             data:
               evaluatedFeatureFlags:
-                - name: cody-chat-context-budget
+                - name: cody-autocomplete-default-starcoder-hybrid
                   value: true
                 - name: blob-page-switch-areas-shortcuts
                   value: false
-                - name: cody-url-context
-                  value: false
+                - name: cody-pro-trial-ended
+                  value: true
+                - name: search-content-based-lang-detection
+                  value: true
+                - name: cody-autocomplete-tracing
+                  value: true
+                - name: cody-chat-context-budget
+                  value: true
                 - name: cody-interactive-tutorial
                   value: true
                 - name: cody-autocomplete-claude-3
                   value: true
-                - name: opencodegraph
-                  value: false
-                - name: search-debug
-                  value: false
-                - name: cody-embeddings-auto-indexing
+                - name: use-ssc-for-cody-subscription
                   value: true
-                - name: cody-pro-trial-ended
+                - name: auditlog-expansion
                   value: true
                 - name: cody-autocomplete-fim-fine-tuned-model-experiment-flag
                   value: false
-                - name: use-ssc-for-cody-subscription
-                  value: true
+                - name: cody-url-context
+                  value: false
+                - name: opencodegraph
+                  value: false
                 - name: contrast-compliant-syntax-highlighting
                   value: false
-                - name: auditlog-expansion
-                  value: true
-                - name: cody-autocomplete-default-starcoder-hybrid
-                  value: true
-                - name: search-content-based-lang-detection
-                  value: true
-                - name: end-user-onboarding
-                  value: true
-                - name: cody-autocomplete-tracing
+                - name: cody-embeddings-auto-indexing
                   value: true
                 - name: cody-use-sourcegraph-embeddings
                   value: true
+                - name: end-user-onboarding
+                  value: true
+                - name: search-debug
+                  value: false
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:03 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -3049,7 +2951,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "473"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -3074,7 +2976,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:03.033Z
+      startedDateTime: 2024-06-13T09:09:20.458Z
       time: 0
       timings:
         blocked: -1
@@ -3152,7 +3054,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:01 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -3160,7 +3062,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "475"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -3185,7 +3087,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:01.655Z
+      startedDateTime: 2024-06-13T09:09:19.203Z
       time: 0
       timings:
         blocked: -1
@@ -3267,7 +3169,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:20 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -3275,7 +3177,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "360"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -3300,7 +3202,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.821Z
+      startedDateTime: 2024-06-13T09:09:20.261Z
       time: 0
       timings:
         blocked: -1
@@ -3359,16 +3261,16 @@ log:
           encoding: base64
           mimeType: application/json
           size: 136
-          text: "[\"H4sIAAAAAAAAA6pWSkksSVSyqlYqzixJBdEFRfkppcklYalFxZn5eUpWSkbmFgYGxvFGB\
-            kYmugZmuoZG8aZ6Jrqmickm5kaGialJJklKtbW1AAAAAP//AwD5HfAWSQAAAA==\"]"
+          text: "[\"H4sIAAAAAAAAA6pWSkksSVSyqlYqzixJBdEFRfkppcklYalFxZn5eUpWSkbmFoYmRvFGB\
+            kYmugZmuoZG8aZ6JroGFhbJiUaWyQZpZqZKtbW1AAAAAP//AwD3zfgjSQAAAA==\"]"
           textDecoded:
             data:
               site:
-                productVersion: 278003_2024-06-12_5.4-5ac4721aeb4b
+                productVersion: 278142_2024-06-12_5.4-088ca29c0f65
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -3376,7 +3278,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "475"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -3401,7 +3303,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:01.739Z
+      startedDateTime: 2024-06-13T09:09:19.290Z
       time: 0
       timings:
         blocked: -1
@@ -3464,16 +3366,16 @@ log:
           encoding: base64
           mimeType: application/json
           size: 136
-          text: "[\"H4sIAAAAAAAAA6pWSkksSVSyqlYqzixJBdEFRfkppcklYalFxZn5eUpWSkbmFgYGxvFGB\
-            kYmugZmuoZG8aZ6Jrqmickm5kaGialJJklKtbW1AAAAAP//AwD5HfAWSQAAAA==\"]"
+          text: "[\"H4sIAAAAAAAAA6pWSkksSVSyqlYqzixJBdEFRfkppcklYalFxZn5eUpWSkbmFoYmRvFGB\
+            kYmugZmuoZG8aZ6JroGFhbJiUaWyQZpZqZKtbW1AAAAAP//AwD3zfgjSQAAAA==\"]"
           textDecoded:
             data:
               site:
-                productVersion: 278003_2024-06-12_5.4-5ac4721aeb4b
+                productVersion: 278142_2024-06-12_5.4-088ca29c0f65
         cookies: []
         headers:
           - name: date
-            value: Wed, 12 Jun 2024 14:48:02 GMT
+            value: Thu, 13 Jun 2024 09:09:19 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -3481,7 +3383,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "361"
+            value: "474"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -3506,7 +3408,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-06-12T14:48:02.223Z
+      startedDateTime: 2024-06-13T09:09:19.699Z
       time: 0
       timings:
         blocked: -1
