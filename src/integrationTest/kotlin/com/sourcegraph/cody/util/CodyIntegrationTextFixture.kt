@@ -19,6 +19,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyPersistentAccountsHost
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier
@@ -83,6 +84,10 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
     val sourcePath = Paths.get(testDataPath.path, projectFile).toString()
     assertTrue(File(sourcePath).exists())
     myFixture.configureByFile(projectFile)
+
+    // Disable autocompletion to not pop out randomly in recordings
+    // Re-enable in a specific tests if needed
+    CodyApplicationSettings.instance.isCodyAutocompleteEnabled = false
 
     initCaretPosition()
     initCredentialsAndAgent()
