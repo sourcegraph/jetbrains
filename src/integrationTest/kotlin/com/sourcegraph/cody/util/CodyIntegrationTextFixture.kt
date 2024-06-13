@@ -11,6 +11,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.EditorTestUtil
@@ -52,7 +53,13 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
         }
       }
     } finally {
-      super.tearDown()
+      try {
+        super.tearDown()
+      } catch (ignored: ProcessCanceledException) {
+        // ProcessCanceledException is exception indicating that the currently running operation was
+        // terminated and should finish as soon as possible. That is not unexpected during the
+        // tearDown, we can ignore it.
+      }
     }
   }
 
