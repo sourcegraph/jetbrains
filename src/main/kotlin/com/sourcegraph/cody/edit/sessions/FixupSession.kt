@@ -113,7 +113,7 @@ abstract class FixupSession(
         fixupService.startNewSession(this)
         // Spend a turn to get folding ranges before showing lenses.
         ensureSelectionRange(agent, textFile)
-        showWorkingGroup()
+        runInEdt { showWorkingGroup() }
 
         makeEditingRequest(agent)
             .handle { result, error ->
@@ -238,6 +238,7 @@ abstract class FixupSession(
     lensGroup?.reset()
   }
 
+  @RequiresEdt
   private fun showWorkingGroup() {
     showLensGroup(LensGroupFactory(this).createTaskWorkingGroup())
     documentListener.setAcceptLensGroupShown(false)
