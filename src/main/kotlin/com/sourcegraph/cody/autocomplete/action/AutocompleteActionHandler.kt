@@ -10,7 +10,9 @@ import com.sourcegraph.cody.autocomplete.render.InlayModelUtil
 import com.sourcegraph.utils.CodyEditorUtil
 
 open class AutocompleteActionHandler : EditorActionHandler() {
+
   override fun isEnabledForCaret(editor: Editor, caret: Caret, dataContext: DataContext?): Boolean {
+    // Returns false to fall back to normal action if there is no suggestion at the caret.
     return CodyEditorUtil.isEditorInstanceSupported(editor) && hasAnyAutocompleteItems(caret)
   }
 
