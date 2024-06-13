@@ -253,9 +253,9 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
   }
 
   companion object {
-    // TODO: find the lowest value this can be for production, and use it
-    // If it's too low the test may be flaky.
-    const val ASYNC_WAIT_TIMEOUT_SECONDS = 20L
+    // CI is pretty slow and its performance might not be stable, locally we can stick to much lower
+    // values
+    val ASYNC_WAIT_TIMEOUT_SECONDS = if (System.getenv().containsKey("CI")) 30L else 10L
     var myProject: Project? = null
   }
 }
