@@ -1,5 +1,6 @@
 package com.sourcegraph.cody
 
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.application.ApplicationManager
@@ -16,13 +17,13 @@ import com.sourcegraph.cody.chat.ChatPromptHistory
 import com.sourcegraph.cody.chat.ChatSession
 import com.sourcegraph.cody.chat.ui.SendButton
 import com.sourcegraph.cody.ui.AutoGrowingTextArea
+import com.sourcegraph.cody.ui.TextAreaHistoryManager
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.ui.SimpleDumbAwareEDTAction
 import java.awt.Dimension
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
-import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -32,7 +33,6 @@ import javax.swing.KeyStroke
 import javax.swing.border.EmptyBorder
 import javax.swing.event.AncestorEvent
 import javax.swing.event.AncestorListener
-import javax.swing.text.DefaultEditorKit
 
 class PromptPanel(project: Project, private val chatSession: ChatSession) : JLayeredPane() {
 
@@ -45,18 +45,14 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
   private val contextFilesListView = JBList(contextFilesListViewModel)
   private val contextFilesContainer = JBScrollPane(contextFilesListView)
 
-  // When "history mode" is enabled, pressing Up/Down arrow keys replaces the chat input with the
-  // previous/next chat message (via CodyChatMessageHistory). History mode can only be activated
-  // when the chat input is empty,
-  // and it's deactivated on the first key action that is not an Up/Down arrow key.
-  private var isInHistoryMode = true
-
   /** Externally updated state */
   private val selectedContextItems: ArrayList<ContextItem> = ArrayList()
 
   /** Related components */
   private val promptMessageHistory =
       ChatPromptHistory(project, chatSession, CHAT_MESSAGE_HISTORY_CAPACITY)
+
+  private val historyManager = TextAreaHistoryManager(textArea, promptMessageHistory)
 
   init {
     /** Initialize view */
@@ -102,16 +98,6 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
       refreshSendButton()
       didUserInputChange()
     }
-    textArea.addKeyListener(
-        object : KeyAdapter() {
-          override fun keyReleased(e: KeyEvent) {
-            if (e.keyCode != KeyEvent.VK_UP && e.keyCode != KeyEvent.VK_DOWN) {
-              val shouldEnterHistoryMode = textArea.getText().isEmpty()
-              isInHistoryMode = shouldEnterHistoryMode
-              promptMessageHistory.resetHistory()
-            }
-          }
-        })
 
     contextFilesListView.addMouseListener(
         object : MouseAdapter() {
@@ -122,7 +108,7 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
           }
         })
     for (shortcut in listOf(ENTER, UP, DOWN, TAB)) { // key listeners
-      SimpleDumbAwareEDTAction { didUseShortcut(shortcut) }
+      SimpleDumbAwareEDTAction { didUseShortcut(it, shortcut) }
           .registerCustomShortcutSet(shortcut, textArea)
     }
 
@@ -131,7 +117,7 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
 
   fun focus() = textArea.requestFocusInWindow()
 
-  private fun didUseShortcut(shortcut: CustomShortcutSet) {
+  private fun didUseShortcut(anActionEvent: AnActionEvent, shortcut: CustomShortcutSet) {
     if (contextFilesListView.model.size > 0) {
       when (shortcut) {
         UP -> setSelectedContextFileIndex(-1)
@@ -146,21 +132,13 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
           if (sendButton.isEnabled) {
             didSubmitChatMessage()
           }
-      UP ->
-          if (isInHistoryMode) {
-            textArea.text = promptMessageHistory.getCurrent()
-            promptMessageHistory.getPrevious() // iterate back in the history
-          } else {
-            val defaultAction = textArea.actionMap[DefaultEditorKit.upAction]
-            defaultAction.actionPerformed(null)
-          }
-      DOWN ->
-          if (isInHistoryMode) {
-            textArea.text = promptMessageHistory.getNext()
-          } else {
-            val defaultAction = textArea.actionMap[DefaultEditorKit.downAction]
-            defaultAction.actionPerformed(null)
-          }
+      else -> {
+        val inputEvent = anActionEvent.inputEvent as? KeyEvent
+        val listener = textArea.keyListeners.firstOrNull()
+        if (inputEvent != null && listener != null) {
+          listener.keyPressed(inputEvent)
+        }
+      }
     }
   }
 
@@ -170,9 +148,8 @@ class PromptPanel(project: Project, private val chatSession: ChatSession) : JLay
     val text = textArea.text
 
     // Reset text
-    promptMessageHistory.add(text)
+    historyManager.addPrompt(text)
     textArea.text = ""
-    isInHistoryMode = true
     selectedContextItems.clear()
 
     chatSession.sendMessage(text, cf)

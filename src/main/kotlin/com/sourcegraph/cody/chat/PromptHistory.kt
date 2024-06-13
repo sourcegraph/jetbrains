@@ -2,7 +2,7 @@ package com.sourcegraph.cody.chat
 
 open class PromptHistory(private val capacity: Int) {
   private val history = mutableListOf<String>()
-  private var currentIndex = -1
+  private var currentIndex = 0
 
   fun add(item: String) {
     history.add(item)
@@ -15,30 +15,20 @@ open class PromptHistory(private val capacity: Int) {
   fun getPrevious(): String? {
     if (currentIndex > 0) {
       currentIndex--
-      return history[currentIndex]
     }
-    return if (history.size == 1) history[0] else null
+    return history.getOrNull(currentIndex)
   }
 
   fun getNext(): String? {
-    if (currentIndex < history.size - 1) {
+    if (currentIndex < history.size) {
       currentIndex++
-      return history[currentIndex]
     }
-    return if (history.size == 1) history[0] else null
-  }
-
-  fun getCurrent(): String? {
-    return if (history.size > 0 && currentIndex < history.size) {
-      history[currentIndex]
-    } else {
-      null
-    }
+    return history.getOrNull(currentIndex)
   }
 
   fun isNotEmpty() = history.isNotEmpty()
 
   fun resetHistory() {
-    currentIndex = history.size - 1
+    currentIndex = history.size
   }
 }

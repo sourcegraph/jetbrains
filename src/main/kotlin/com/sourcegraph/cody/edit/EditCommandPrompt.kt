@@ -35,8 +35,8 @@ import com.sourcegraph.cody.edit.EditUtil.namedLabel
 import com.sourcegraph.cody.edit.EditUtil.namedPanel
 import com.sourcegraph.cody.edit.sessions.EditCodeSession
 import com.sourcegraph.cody.edit.sessions.FixupSession
-import com.sourcegraph.cody.edit.widget.LensAction
 import com.sourcegraph.cody.ui.FrameMover
+import com.sourcegraph.cody.ui.TextAreaHistoryManager
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
@@ -46,20 +46,18 @@ import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.Point
 import java.awt.Toolkit
-import java.awt.event.ActionEvent
+import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
-import java.awt.event.FocusListener
 import java.awt.event.InputEvent
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
-import java.awt.event.WindowFocusListener
 import java.awt.geom.RoundRectangle2D
 import java.awt.image.BufferedImage
 import java.util.concurrent.atomic.AtomicBoolean
-import javax.swing.AbstractAction
 import javax.swing.BorderFactory
 import javax.swing.Box
 import javax.swing.BoxLayout
@@ -75,7 +73,6 @@ import javax.swing.ListCellRenderer
 import javax.swing.WindowConstants
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
-import javax.swing.text.DefaultEditorKit
 
 /** Pop up a user interface for giving Cody instructions to fix up code at the cursor. */
 class EditCommandPrompt(
@@ -91,12 +88,6 @@ class EditCommandPrompt(
   private var connection: MessageBusConnection? = null
 
   private val isDisposed: AtomicBoolean = AtomicBoolean(false)
-
-  // When "history mode" is enabled, pressing Up/Down arrow keys replaces the chat input with the
-  // previous/next chat message (via CodyChatMessageHistory). History mode can only be activated
-  // when the chat input is empty,
-  // and it's deactivated on the first key action that is not an Up/Down arrow key.
-  private var isInHistoryMode = true
 
   // Key for activating the OK button. It's not a globally registered action.
   // We use a local action and just wire it up manually.
@@ -130,20 +121,15 @@ class EditCommandPrompt(
         addMouseListener( // Make it work like ESC key if you click it.
             object : MouseAdapter() {
               override fun mouseClicked(e: MouseEvent) {
-                clearActivePrompt()
+                performCancelAction()
               }
             })
       }
 
   private val instructionsField =
-      InstructionsInputTextArea(this).apply {
-        text = instruction ?: lastPrompt
-        if (text.isNullOrBlank() &&
-            promptHistory.isNotEmpty() &&
-            !LensAction.wasLastLensActionAnAccept()) {
-          text = promptHistory.getCurrent()
-        }
-      }
+      InstructionsInputTextArea(this).apply { text = instruction ?: lastPrompt }
+
+  private val historyManager = TextAreaHistoryManager(instructionsField, promptHistory)
 
   private val llmDropdown =
       LlmDropdown(
@@ -160,7 +146,7 @@ class EditCommandPrompt(
                 object : KeyAdapter() {
                   override fun keyPressed(e: KeyEvent) {
                     if (e.keyCode == KeyEvent.VK_ESCAPE) {
-                      clearActivePrompt()
+                      performCancelAction()
                     }
                   }
                 })
@@ -219,6 +205,7 @@ class EditCommandPrompt(
           runInEdt {
             updateOkButtonState()
             checkForInterruptions()
+            historyLabel.isEnabled = historyManager.isHistoryAvailable()
           }
         }
       }
@@ -226,7 +213,7 @@ class EditCommandPrompt(
   private val documentListener =
       object : BulkAwareDocumentListener {
         override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
-          clearActivePrompt()
+          performCancelAction()
         }
       }
 
@@ -235,7 +222,7 @@ class EditCommandPrompt(
         override fun editorReleased(event: EditorFactoryEvent) {
           if (editor != event.editor) return
           // Tab was closed.
-          clearActivePrompt()
+          performCancelAction()
         }
       }
 
@@ -245,26 +232,29 @@ class EditCommandPrompt(
           val oldEditor = event.oldEditor ?: return
           if (oldEditor != editor) return
           // Our tab lost the focus.
-          clearActivePrompt()
+          performCancelAction()
         }
       }
 
   private val focusListener =
-      object : FocusListener {
-        override fun focusGained(e: FocusEvent?) {}
-
+      object : FocusAdapter() {
         override fun focusLost(e: FocusEvent?) {
-          clearActivePrompt()
+          performCancelAction()
         }
       }
 
   private val windowFocusListener =
-      object : WindowFocusListener {
-        override fun windowGainedFocus(e: WindowEvent?) {}
-
+      object : WindowAdapter() {
         override fun windowLostFocus(e: WindowEvent?) {
-          //          clearActivePrompt()
+          performCancelAction()
         }
+      }
+
+  private val historyLabel =
+      namedLabel("history-label").apply {
+        text = "↑↓ for history"
+        horizontalAlignment = JLabel.CENTER
+        isEnabled = historyManager.isHistoryAvailable()
       }
 
   init {
@@ -276,7 +266,7 @@ class EditCommandPrompt(
     connection = ApplicationManager.getApplication().messageBus.connect(this)
     registerListeners()
     // Don't reset the session, just any previous instructions dialog.
-    controller.currentEditPrompt.get()?.clearActivePrompt()
+    controller.currentEditPrompt.get()?.performCancelAction()
 
     setupTextField()
     setupKeyListener()
@@ -353,11 +343,6 @@ class EditCommandPrompt(
     }
   }
 
-  private fun clearActivePrompt() {
-    isInHistoryMode = true
-    performCancelAction()
-  }
-
   private fun getFrameForEditor(editor: Editor): JFrame? {
     return WindowManager.getInstance().getFrame(editor.project ?: return null)
   }
@@ -377,7 +362,7 @@ class EditCommandPrompt(
   @RequiresEdt
   private fun checkForInterruptions() {
     if (editor.isDisposed || editor.isViewer || !editor.document.isWritable) {
-      clearActivePrompt()
+      performCancelAction()
     }
   }
 
@@ -387,57 +372,12 @@ class EditCommandPrompt(
         object : KeyAdapter() {
           override fun keyPressed(e: KeyEvent) {
             when (e.keyCode) {
-              KeyEvent.VK_UP -> {
-                if (isInHistoryMode) {
-                  instructionsField.setTextAndSelectAll(promptHistory.getPrevious())
-                } else {
-                  val defaultAction = instructionsField.actionMap[DefaultEditorKit.upAction]
-                  defaultAction.actionPerformed(null)
-                }
-              }
-              KeyEvent.VK_DOWN -> {
-                if (isInHistoryMode) {
-                  instructionsField.setTextAndSelectAll(promptHistory.getNext())
-                } else {
-                  val defaultAction = instructionsField.actionMap[DefaultEditorKit.upAction]
-                  defaultAction.actionPerformed(null)
-                }
-              }
               KeyEvent.VK_ESCAPE -> {
-                clearActivePrompt()
+                performCancelAction()
               }
             }
-
-            if (e.keyCode != KeyEvent.VK_UP && e.keyCode != KeyEvent.VK_DOWN) {
-              isInHistoryMode = instructionsField.getText().isEmpty()
-            }
-
-            updateOkButtonState()
-          }
-
-          override fun keyReleased(e: KeyEvent) {
-            if (e.keyCode != KeyEvent.VK_UP && e.keyCode != KeyEvent.VK_DOWN) {
-              isInHistoryMode = instructionsField.getText().isEmpty()
-            }
           }
         })
-  }
-
-  override fun getRootPane(): JRootPane {
-    val rootPane = super.getRootPane()
-    val inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
-    val actionMap = rootPane.actionMap
-
-    inputMap.put(escapeKeyStroke, "ESCAPE")
-    actionMap.put(
-        "ESCAPE",
-        object : AbstractAction() {
-          override fun actionPerformed(e: ActionEvent?) {
-            clearActivePrompt()
-          }
-        })
-
-    return rootPane
   }
 
   private fun performCancelAction() {
@@ -547,16 +487,10 @@ class EditCommandPrompt(
     return namedPanel("bottom-row-outer").apply {
       layout = BoxLayout(this, BoxLayout.X_AXIS)
       border = BorderFactory.createEmptyBorder(0, 20, 0, 12)
+
       add(cancelLabel)
-
       add(Box.createHorizontalGlue())
-
-      add(
-          namedLabel("history-label").apply {
-            text = if (promptHistory.isNotEmpty()) "↑↓ for history" else ""
-            horizontalAlignment = JLabel.CENTER
-          })
-
+      add(historyLabel)
       add(Box.createHorizontalGlue())
       add(createOKButtonGroup())
     }
@@ -583,11 +517,11 @@ class EditCommandPrompt(
     try {
       val text = instructionsField.text
       if (text.isBlank()) {
-        clearActivePrompt()
+        performCancelAction()
         return
       }
       val activeSession = controller.getActiveSession()
-      promptHistory.add(text)
+      historyManager.addPrompt(text)
       if (editor.project == null) {
         val msg = "Null project for new edit session"
         controller.getActiveSession()?.showErrorGroup(msg)
@@ -602,7 +536,7 @@ class EditCommandPrompt(
         session.undo()
       } ?: run { startEditCodeSession(text) }
     } finally {
-      clearActivePrompt()
+      performCancelAction()
     }
   }
 
