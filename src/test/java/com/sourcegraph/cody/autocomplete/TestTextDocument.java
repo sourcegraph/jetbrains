@@ -1,12 +1,10 @@
 package com.sourcegraph.cody.autocomplete;
 
-import com.google.common.collect.Iterables;
 import com.sourcegraph.cody.agent.protocol.Position;
 import com.sourcegraph.cody.agent.protocol.Range;
 import com.sourcegraph.cody.vscode.TextDocument;
 import java.net.URI;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,16 +54,6 @@ public class TestTextDocument implements TextDocument {
   @Override
   public Position positionAt(int offset) {
     return new Position(0, 0);
-  }
-
-  @Override
-  public AutocompleteDocumentContext getAutocompleteContext(int offset) {
-    String sameLinePrefix =
-        Iterables.getLast(this.text.substring(0, offset).lines().collect(Collectors.toList()));
-    String sameLineSuffix =
-        Iterables.getFirst(this.text.substring(offset).lines().collect(Collectors.toList()), "");
-    assert sameLineSuffix != null;
-    return new AutocompleteDocumentContext(sameLinePrefix, sameLineSuffix);
   }
 
   @Override
