@@ -181,15 +181,6 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
   }
 
   private fun triggerAction(actionId: String) {
-    // This `sleep` is a hack which we shouldn't need, but it's hard to avoid with the current
-    // design. Problem is that we send a file change notifications asynchronously and there is no
-    // way to know if server already processed them. So e.g. in the setup we set the selection, and
-    // then immediately after that we run the edit command in the test.
-    // Race in processing the change notification and the edit command leads to unstable test
-    // results (visible as missing recordings, as file state does not match what we expect).
-    // I do not see an easy way to avoid that right now, but I'm working on a document which will
-    // highlight current design problems and propose solutions - when ready I will create a tickets.
-    Thread.sleep(500)
     runInEdt {
       PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
       EditorTestUtil.executeAction(myFixture.editor, actionId)
