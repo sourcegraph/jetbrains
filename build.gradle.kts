@@ -12,7 +12,9 @@ import java.util.EnumSet
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
@@ -29,8 +31,7 @@ val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") 
 // Remove unsupported old versions from this list.
 // Update gradle.properties pluginSinceBuild, pluginUntilBuild to match the min, max versions in
 // this list.
-val versionsOfInterest =
-    listOf("2022.1", "2022.2", "2022.3", "2023.1", "2023.2", "2023.3", "2024.1").sorted()
+val versionsOfInterest = listOf("2022.3", "2023.1", "2023.2", "2023.3", "2024.1", "2024.2").sorted()
 val versionsToValidate =
     when (project.properties["validation"]?.toString()) {
       "lite" -> listOf(versionsOfInterest.first(), versionsOfInterest.last())
@@ -52,7 +53,8 @@ plugins {
   id("java")
   id("jvm-test-suite")
   id("org.jetbrains.kotlin.jvm") version "1.9.24"
-  id("org.jetbrains.intellij") version "1.17.3"
+  id("org.jetbrains.intellij.platform") version "2.0.0-beta7"
+  id("org.jetbrains.intellij.platform.migration") version "2.0.0-beta7"
   id("org.jetbrains.changelog") version "2.2.0"
   id("com.diffplug.spotless") version "6.25.0"
 }
@@ -67,20 +69,59 @@ version = properties("pluginVersion")
 repositories {
   maven { url = uri("https://www.jetbrains.com/intellij-repository/releases") }
   mavenCentral()
+  intellijPlatform { defaultRepositories() }
 }
 
-intellij {
-  pluginName.set(properties("pluginName"))
-  version.set(platformVersion)
-  type.set(properties("platformType"))
+intellijPlatform {
+  pluginConfiguration {
+    name = properties("pluginName")
+    version = properties("pluginVersion")
+    ideaVersion {
+      sinceBuild = "223"
+      untilBuild = "242.*"
+    }
+    // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's
+    // manifest
+    description =
+        projectDir
+            .resolve("README.md")
+            .readText()
+            .lines()
+            .run {
+              val start = "<!-- Plugin description -->"
+              val end = "<!-- Plugin description end -->"
 
-  // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
-  plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+              if (!containsAll(listOf(start, end))) {
+                throw GradleException(
+                    "Plugin description section not found in README.md:\n$start ... $end")
+              }
+              subList(indexOf(start) + 1, indexOf(end))
+            }
+            .joinToString("\n")
+            .run { markdownToHTML(this) }
+  }
 
-  updateSinceUntilBuild.set(false)
+  verifyPlugin {
+    ides {
+      recommended()
+
+      //FIXME use versionsToValidate
+//      for (v in versionsToValidate) {
+//        ide(IntelliJPlatformType.IntellijIdeaCommunity, v)
+//      }
+    }
+  }
 }
 
 dependencies {
+  intellijPlatform {
+    create(properties("platformType"), platformVersion)
+    bundledPlugins(
+        properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+    instrumentationTools()
+    pluginVerifier()
+    testFramework(TestFrameworkType.Bundled)
+  }
   // ActionUpdateThread.jar contains copy of the
   // com.intellij.openapi.actionSystem.ActionUpdateThread class
   compileOnly(files("libs/ActionUpdateThread.jar"))
@@ -123,7 +164,7 @@ java {
   }
 }
 
-tasks.named("classpathIndexCleanup") { dependsOn("compileIntegrationTestKotlin") }
+// tasks.named("classpathIndexCleanup") { dependsOn("compileIntegrationTestKotlin") }
 
 fun download(url: String, output: File) {
   if (output.exists()) {
@@ -377,31 +418,6 @@ tasks {
     withType<KotlinCompile> { kotlinOptions.jvmTarget = it }
   }
 
-  patchPluginXml {
-    version.set(properties("pluginVersion"))
-
-    // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's
-    // manifest
-    pluginDescription.set(
-        projectDir
-            .resolve("README.md")
-            .readText()
-            .lines()
-            .run {
-              val start = "<!-- Plugin description -->"
-              val end = "<!-- Plugin description end -->"
-
-              if (!containsAll(listOf(start, end))) {
-                throw GradleException(
-                    "Plugin description section not found in README.md:\n$start ... $end")
-              }
-              subList(indexOf(start) + 1, indexOf(end))
-            }
-            .joinToString("\n")
-            .run { markdownToHTML(this) },
-    )
-  }
-
   buildPlugin {
     dependsOn(project.tasks.getByPath("buildCody"))
     from(
@@ -440,24 +456,24 @@ tasks {
 
     agentProperties.forEach { (key, value) -> systemProperty(key, value) }
 
-    val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
-    if (platformRuntimeVersion != null) {
-      val ideaInstallDir =
-          getIdeaInstallDir(platformRuntimeVersion.toString())
-              ?: throw GradleException(
-                  "Could not find IntelliJ install for $platformRuntimeVersion")
-      ideDir.set(ideaInstallDir)
-    }
+    //    val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
+    //    if (platformRuntimeVersion != null) {
+    //      val ideaInstallDir =
+    //          getIdeaInstallDir(platformRuntimeVersion.toString())
+    //              ?: throw GradleException(
+    //                  "Could not find IntelliJ install for $platformRuntimeVersion")
+    //      ideDir.set(ideaInstallDir)
+    //    }
   }
 
-  runPluginVerifier {
+  /*runPluginVerifier {
     ideVersions.set(versionsToValidate)
     failureLevel.set(EnumSet.complementOf(skippedFailureLevels))
-  }
+  }*/
 
   // Configure UI tests plugin
   // Read more: https://github.com/JetBrains/intellij-ui-test-robot
-  runIdeForUiTests {
+  testIdeUi {
     systemProperty("robot-server.port", "8082")
     systemProperty("ide.mac.message.dialogs.as.sheets", "false")
     systemProperty("jb.privacy.policy.text", "<!--999.999-->")
@@ -500,7 +516,9 @@ tasks {
     create("integrationTest") {
       kotlin.srcDir("src/integrationTest/kotlin")
       compileClasspath += main.get().output
+      compileClasspath += test.get().compileClasspath
       runtimeClasspath += main.get().output
+      runtimeClasspath += test.get().runtimeClasspath
     }
   }
 
@@ -532,7 +550,7 @@ tasks {
 
   withType<Test> { systemProperty("idea.test.src.dir", "$buildDir/resources/integrationTest") }
 
-  named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }
+  // named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }
 
   named("check") { dependsOn("integrationTest") }
 
