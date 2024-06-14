@@ -85,8 +85,8 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
     assertTrue(File(sourcePath).exists())
     myFixture.configureByFile(projectFile)
 
-    initCaretPosition()
     initCredentialsAndAgent()
+    initCaretPosition()
   }
 
   // Ideally we should call this method only once per recording session, but since we need a
