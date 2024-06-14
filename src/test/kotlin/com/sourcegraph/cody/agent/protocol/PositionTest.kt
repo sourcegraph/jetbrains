@@ -1,7 +1,5 @@
 package com.sourcegraph.cody.agent.protocol
 
-import com.intellij.openapi.application.runInEdt
-import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class PositionTest : BasePlatformTestCase() {
@@ -14,11 +12,6 @@ class PositionTest : BasePlatformTestCase() {
   override fun setUp() {
     super.setUp()
     myFixture.openFileInEditor(file)
-  }
-
-  override fun tearDown() {
-    runInEdt { PlatformTestUtil.dispatchAllEventsInIdeEventQueue() }
-    super.tearDown()
   }
 
   fun test_isStartOrEndOfDocumentMarkerReturnsTrueWhenLineIsLessThanZero() {

@@ -51,7 +51,6 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
         }
       }
     } finally {
-      runInEdt { PlatformTestUtil.dispatchAllEventsInIdeEventQueue() }
       super.tearDown()
     }
   }
