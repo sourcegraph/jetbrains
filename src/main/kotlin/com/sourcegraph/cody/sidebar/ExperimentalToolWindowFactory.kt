@@ -1,11 +1,15 @@
 package com.sourcegraph.cody.sidebar
 
+import com.intellij.codeInsight.codeVision.ui.popup.layouter.getCenter
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.Balloon
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowserBuilder
@@ -18,6 +22,8 @@ import javax.swing.JTextField
 import org.cef.browser.CefBrowser
 import org.cef.handler.CefFocusHandler
 import org.cef.handler.CefFocusHandlerAdapter
+import java.awt.Component
+import javax.swing.JComponent
 
 class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
@@ -118,7 +124,27 @@ class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
     if (!offscreenRendering) {
       panel.add(findButton, BorderLayout.EAST)
     }
+
+    // Show the web content in the sidebar
+/*
     ContentFactory.SERVICE.getInstance().createContent(panel, "TODO Content Title", false).apply {
+      isCloseable = false
+      isPinnable = true
+      isPinned = true
+      toolWindow.contentManager.addContent(this)
+    }
+*/
+    // Show the web content in a popup
+    // Get the focused editor, if any, or the window if not.
+    val showPopupButton = JButton("Show popup")
+    showPopupButton.addActionListener {
+      JBPopupFactory.getInstance().createBalloonBuilder(panel).apply {
+        setShadow(true)
+        setBlockClicksThroughBalloon(true)
+        setHideOnFrameResize(false)
+      }.createBalloon().show(RelativePoint(showPopupButton, showPopupButton.bounds.getCenter()), Balloon.Position.atRight)
+    }
+    ContentFactory.SERVICE.getInstance().createContent(showPopupButton, "TODO Content Title", false).apply {
       isCloseable = false
       isPinnable = true
       isPinned = true
