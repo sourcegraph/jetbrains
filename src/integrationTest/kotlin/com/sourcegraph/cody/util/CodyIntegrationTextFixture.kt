@@ -189,6 +189,7 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
   private fun triggerAction(actionId: String) {
     runInEdt {
       PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      assertTrue(CodyAgentService.getInstance(project).waitForIdleAgent())
       EditorTestUtil.executeAction(myFixture.editor, actionId)
     }
   }

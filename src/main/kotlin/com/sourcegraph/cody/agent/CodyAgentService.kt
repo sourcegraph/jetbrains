@@ -22,6 +22,7 @@ import java.util.TimerTask
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 import java.util.function.Function
@@ -37,6 +38,8 @@ class CodyAgentService(private val project: Project) : Disposable {
   private var previousProxyHost: String? = null
   private var previousProxyPort: Int? = null
   private val timer = Timer()
+
+  private var callbacksInProgress = AtomicInteger(0)
 
   init {
     // Initialize with current proxy settings
@@ -169,6 +172,18 @@ class CodyAgentService(private val project: Project) : Disposable {
 
   private fun onStartup(action: (CodyAgent) -> Unit) {
     synchronized(startupActions) { startupActions.add(action) }
+  }
+
+  // Naive implementation, but it is supposed to be used only for tests so there is no need to
+  // pollute CodyAgentService with more sophisticated multithreading constructs
+  fun waitForIdleAgent(): Boolean {
+    var retries = 0
+    val maxRetries = 50
+    while (callbacksInProgress.get() > 0 && retries < maxRetries) {
+      Thread.sleep(50)
+      retries += 1
+    }
+    return retries < maxRetries
   }
 
   fun startAgent(project: Project): CompletableFuture<CodyAgent> {
@@ -314,7 +329,8 @@ class CodyAgentService(private val project: Project) : Disposable {
         throw Exception("Cody is not enabled")
       }
       try {
-        val instance = CodyAgentService.getInstance(project)
+        val instance = getInstance(project)
+        instance.callbacksInProgress.incrementAndGet()
         val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
         val agent =
             if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
@@ -328,6 +344,8 @@ class CodyAgentService(private val project: Project) : Disposable {
           getInstance(project).restartAgent(project)
         }
         throw e
+      } finally {
+        getInstance(project).callbacksInProgress.decrementAndGet()
       }
     }
   }
