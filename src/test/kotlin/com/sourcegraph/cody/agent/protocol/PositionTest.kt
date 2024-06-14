@@ -1,7 +1,7 @@
 package com.sourcegraph.cody.agent.protocol
 
-import com.intellij.openapi.progress.ProcessCanceledException
-import com.intellij.serviceContainer.AlreadyDisposedException
+import com.intellij.openapi.application.runInEdt
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class PositionTest : BasePlatformTestCase() {
@@ -17,13 +17,8 @@ class PositionTest : BasePlatformTestCase() {
   }
 
   override fun tearDown() {
-    try {
-      super.tearDown()
-    } catch (ignored: ProcessCanceledException) {
-      // ProcessCanceledException is exception indicating that the currently running operation was
-      // terminated and should finish as soon as possible. That is not unexpected during the
-      // tearDown, we can ignore it.
-    } catch (ignored: AlreadyDisposedException) {}
+    runInEdt { PlatformTestUtil.dispatchAllEventsInIdeEventQueue() }
+    super.tearDown()
   }
 
   fun test_isStartOrEndOfDocumentMarkerReturnsTrueWhenLineIsLessThanZero() {
