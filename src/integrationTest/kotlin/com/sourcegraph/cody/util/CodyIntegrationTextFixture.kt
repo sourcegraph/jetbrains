@@ -14,6 +14,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.serviceContainer.AlreadyDisposedException
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -58,7 +59,7 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
         // ProcessCanceledException is exception indicating that the currently running operation was
         // terminated and should finish as soon as possible. That is not unexpected during the
         // tearDown, we can ignore it.
-      }
+      } catch (ignored: AlreadyDisposedException) {}
     }
   }
 
