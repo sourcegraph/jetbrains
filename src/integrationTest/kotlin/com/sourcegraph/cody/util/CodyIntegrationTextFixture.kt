@@ -200,21 +200,30 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
   }
 
   protected fun assertNoInlayShown() {
-    assertFalse(
-        "Lens group inlay should NOT be displayed", myFixture.editor.inlayModel.hasBlockElements())
+    runInEdt {
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      assertFalse(
+          "Lens group inlay should NOT be displayed",
+          myFixture.editor.inlayModel.hasBlockElements())
+    }
   }
 
   protected fun assertInlayIsShown() {
-    assertTrue(
-        "Lens group inlay should be displayed", myFixture.editor.inlayModel.hasBlockElements())
+    runInEdt {
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      assertTrue(
+          "Lens group inlay should be displayed", myFixture.editor.inlayModel.hasBlockElements())
+    }
   }
 
   protected fun assertNoActiveSession() {
+    assertTrue(CodyAgentService.getInstance(project).waitForIdleAgent())
     assertNull(
         "NO active session was expected", FixupService.getInstance(project).getActiveSession())
   }
 
   protected fun assertActiveSession() {
+    assertTrue(CodyAgentService.getInstance(project).waitForIdleAgent())
     assertNotNull(
         "Active session was expected", FixupService.getInstance(project).getActiveSession())
   }
