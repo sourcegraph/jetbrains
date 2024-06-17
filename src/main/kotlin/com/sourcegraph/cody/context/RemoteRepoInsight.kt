@@ -414,11 +414,9 @@ class RemoteRepoCompletionContributor : CompletionContributor(), DumbAware {
               // ignored.
               for (repo in searcher.cancellableSearch(query)) {
                 prefixedResult
-                  .caseInsensitive()
-                  .addElement(
-                    LookupElementBuilder.create(repo)
-                      .withIcon(RemoteRepo.iconForName(repo))
-                  )
+                    .caseInsensitive()
+                    .addElement(
+                        LookupElementBuilder.create(repo).withIcon(RemoteRepo.iconForName(repo)))
               }
             } catch (e: Exception) {
               if (e is CancellationException) {

@@ -8,16 +8,9 @@ import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentException
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.*
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
-import java.util.concurrent.CompletableFuture
 
 @Service(Service.Level.PROJECT)
 class RemoteRepoSearcher(private val project: Project) {
@@ -41,9 +34,7 @@ class RemoteRepoSearcher(private val project: Project) {
     }
   }
 
-  /**
-   * Gets whether `repoName` is a known remote repo.
-   */
+  /** Gets whether `repoName` is a known remote repo. */
   fun has(repoName: String): CompletableFuture<Boolean> {
     val result = CompletableFuture<Boolean>()
     CodyAgentService.withAgent(project) { agent ->
@@ -72,32 +63,33 @@ class RemoteRepoSearcher(private val project: Project) {
     CodyAgentService.withAgent(project) { agent ->
       do {
         val stepDone = CompletableFuture<Boolean>()
-        agent.server.remoteRepoList(
-          RemoteRepoListParams(
-            query = query,
-            first = 500,
-            after = repos.lastOrNull()?.id,
-          )
-        ).thenApply { partialResult ->
-          if (partialResult.state.error != null) {
-            logger.warn("remote repository search had error: ${partialResult.state.error?.title}")
-            if (partialResult.repos.isEmpty() && repos.isEmpty()) {
-              result.completeExceptionally(CodyAgentException(partialResult.state.error?.title))
-              stepDone.complete(false)
-              return@thenApply
+        agent.server
+            .remoteRepoList(
+                RemoteRepoListParams(
+                    query = query,
+                    first = 500,
+                    after = repos.lastOrNull()?.id,
+                ))
+            .thenApply { partialResult ->
+              if (partialResult.state.error != null) {
+                logger.warn(
+                    "remote repository search had error: ${partialResult.state.error?.title}")
+                if (partialResult.repos.isEmpty() && repos.isEmpty()) {
+                  result.completeExceptionally(CodyAgentException(partialResult.state.error?.title))
+                  stepDone.complete(false)
+                  return@thenApply
+                }
+              }
+              logger.debug(
+                  "remote repo search $query adding ${partialResult.repos.size} results (${partialResult.state.state})")
+              repos.addAll(partialResult.repos)
+              if (partialResult.state.state != "fetching") {
+                result.complete(repos.map { it.name })
+                stepDone.complete(false)
+                return@thenApply
+              }
+              stepDone.complete(true)
             }
-          }
-          logger.debug(
-            "remote repo search $query adding ${partialResult.repos.size} results (${partialResult.state.state})"
-          )
-          repos.addAll(partialResult.repos)
-          if (partialResult.state.state != "fetching") {
-            result.complete(repos.map { it.name })
-            stepDone.complete(false)
-            return@thenApply
-          }
-          stepDone.complete(true)
-        }
       } while (stepDone.get())
     }
     return result

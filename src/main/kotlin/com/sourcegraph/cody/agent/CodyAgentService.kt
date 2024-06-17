@@ -25,7 +25,6 @@ import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 import java.util.function.Function
-import kotlinx.coroutines.runBlocking
 
 @Service(Service.Level.PROJECT)
 class CodyAgentService(private val project: Project) : Disposable {
@@ -249,57 +248,47 @@ class CodyAgentService(private val project: Project) : Disposable {
 
     @JvmStatic
     private fun withAgent(
-      project: Project,
-      restartIfNeeded: Boolean,
-      callback: Consumer<CodyAgent>,
-      onFailure: Consumer<Exception> = Consumer {}
-    ): CompletableFuture<Void> {
-      // TODO: Why does this need success *and* failure callbacks *and* a boolean result? Rationalize this.
-      val future = CompletableFuture<Void>()
+        project: Project,
+        restartIfNeeded: Boolean,
+        callback: Consumer<CodyAgent>,
+        onFailure: Consumer<Exception> = Consumer {}
+    ) {
       if (CodyApplicationSettings.instance.isCodyEnabled) {
         ApplicationManager.getApplication().executeOnPooledThread {
           try {
             val instance = getInstance(project)
             val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
             val agent =
-              if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
-              else instance.codyAgent
+                if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
+                else instance.codyAgent
             callback.accept(agent.get())
             setAgentError(project, null)
-            future.complete(/* true */ null)
           } catch (e: Exception) {
             logger.warn("Failed to execute call to agent", e)
             if (restartIfNeeded && e !is ProcessCanceledException) {
               getInstance(project).restartAgent(project)
             }
             onFailure.accept(e)
-            future.complete(/* true */ null) // We failed, but agent is enabled.
             throw e
           }
         }
-      } else {
-        future.complete(/* false */ null) // Complete the future with false indicating Cody is disabled.
       }
-      return future
     }
 
     @JvmStatic
-    fun withAgent(project: Project, callback: Consumer<CodyAgent>): CompletableFuture<Void> =
-      withAgent(project, restartIfNeeded = false, callback = callback)
+    fun withAgent(project: Project, callback: Consumer<CodyAgent>) =
+        withAgent(project, restartIfNeeded = false, callback = callback)
+
+    @JvmStatic
+    fun withAgentRestartIfNeeded(project: Project, callback: Consumer<CodyAgent>) =
+        withAgent(project, restartIfNeeded = true, callback = callback)
 
     @JvmStatic
     fun withAgentRestartIfNeeded(
-      project: Project,
-      callback: Consumer<CodyAgent>
-    ): CompletableFuture<Void> = withAgent(project, restartIfNeeded = true, callback = callback)
-
-    @JvmStatic
-    fun withAgentRestartIfNeeded(
-      project: Project,
-      callback: Consumer<CodyAgent>,
-      onFailure: Consumer<Exception>
-    ): CompletableFuture<Void> =
-      withAgent(project, restartIfNeeded = true, callback = callback, onFailure = onFailure)
+        project: Project,
+        callback: Consumer<CodyAgent>,
+        onFailure: Consumer<Exception>
+    ) = withAgent(project, restartIfNeeded = true, callback = callback, onFailure = onFailure)
 
     @JvmStatic
     fun isConnected(project: Project): Boolean {
