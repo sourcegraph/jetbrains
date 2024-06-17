@@ -249,49 +249,57 @@ class CodyAgentService(private val project: Project) : Disposable {
 
     @JvmStatic
     private fun withAgent(
-        project: Project,
-        restartIfNeeded: Boolean,
-        callback: Consumer<CodyAgent>,
-        onFailure: Consumer<Exception> = Consumer {}
-    ): CompletableFuture<Boolean> {
-      val future = CompletableFuture<Boolean>()
+      project: Project,
+      restartIfNeeded: Boolean,
+      callback: Consumer<CodyAgent>,
+      onFailure: Consumer<Exception> = Consumer {}
+    ): CompletableFuture<Void> {
+      // TODO: Why does this need success *and* failure callbacks *and* a boolean result? Rationalize this.
+      val future = CompletableFuture<Void>()
       if (CodyApplicationSettings.instance.isCodyEnabled) {
         ApplicationManager.getApplication().executeOnPooledThread {
-          runBlocking {
-            val task: suspend (CodyAgent) -> Unit = { agent ->
-              try {
-                callback.accept(agent)
-              } catch (e: Exception) {
-                logger.warn(e)
-                onFailure.accept(e)
-              }
+          try {
+            val instance = getInstance(project)
+            val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
+            val agent =
+              if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
+              else instance.codyAgent
+            callback.accept(agent.get())
+            setAgentError(project, null)
+            future.complete(/* true */ null)
+          } catch (e: Exception) {
+            logger.warn("Failed to execute call to agent", e)
+            if (restartIfNeeded && e !is ProcessCanceledException) {
+              getInstance(project).restartAgent(project)
             }
-            coWithAgent(project, restartIfNeeded, task)
+            onFailure.accept(e)
+            future.complete(/* true */ null) // We failed, but agent is enabled.
+            throw e
           }
         }
       } else {
-        future.complete(false) // Complete the future with false indicating Cody is disabled.
+        future.complete(/* false */ null) // Complete the future with false indicating Cody is disabled.
       }
       return future
     }
 
     @JvmStatic
-    fun withAgent(project: Project, callback: Consumer<CodyAgent>): CompletableFuture<Boolean> =
-        withAgent(project, restartIfNeeded = false, callback = callback)
+    fun withAgent(project: Project, callback: Consumer<CodyAgent>): CompletableFuture<Void> =
+      withAgent(project, restartIfNeeded = false, callback = callback)
 
     @JvmStatic
     fun withAgentRestartIfNeeded(
-        project: Project,
-        callback: Consumer<CodyAgent>
-    ): CompletableFuture<Boolean> = withAgent(project, restartIfNeeded = true, callback = callback)
+      project: Project,
+      callback: Consumer<CodyAgent>
+    ): CompletableFuture<Void> = withAgent(project, restartIfNeeded = true, callback = callback)
 
     @JvmStatic
     fun withAgentRestartIfNeeded(
-        project: Project,
-        callback: Consumer<CodyAgent>,
-        onFailure: Consumer<Exception>
-    ): CompletableFuture<Boolean> =
-        withAgent(project, restartIfNeeded = true, callback = callback, onFailure = onFailure)
+      project: Project,
+      callback: Consumer<CodyAgent>,
+      onFailure: Consumer<Exception>
+    ): CompletableFuture<Void> =
+      withAgent(project, restartIfNeeded = true, callback = callback, onFailure = onFailure)
 
     @JvmStatic
     fun isConnected(project: Project): Boolean {
@@ -299,35 +307,6 @@ class CodyAgentService(private val project: Project) : Disposable {
         getInstance(project).codyAgent.getNow(null)?.isConnected() == true
       } catch (e: Exception) {
         false
-      }
-    }
-
-    suspend fun <T> coWithAgent(project: Project, callback: suspend (CodyAgent) -> T) =
-        coWithAgent(project, false, callback)
-
-    private suspend fun <T> coWithAgent(
-        project: Project,
-        restartIfNeeded: Boolean,
-        callback: suspend (CodyAgent) -> T
-    ): T {
-      if (!CodyApplicationSettings.instance.isCodyEnabled) {
-        throw Exception("Cody is not enabled")
-      }
-      try {
-        val instance = getInstance(project)
-        val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
-        val agent =
-            if (isReadyButNotFunctional && restartIfNeeded) instance.restartAgent(project)
-            else instance.codyAgent
-        val result = callback(agent.get())
-        setAgentError(project, null)
-        return result
-      } catch (e: Exception) {
-        logger.warn("Failed to execute call to agent", e)
-        if (restartIfNeeded && e !is ProcessCanceledException) {
-          getInstance(project).restartAgent(project)
-        }
-        throw e
       }
     }
   }
