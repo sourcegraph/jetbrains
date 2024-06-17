@@ -73,9 +73,9 @@ class RemoteRepoSearcher(private val project: Project) {
             .thenApply { partialResult ->
               if (partialResult.state.error != null) {
                 logger.warn(
-                    "remote repository search had error: ${partialResult.state.error?.title}")
+                    "remote repository search had error: ${partialResult.state.error.title}")
                 if (partialResult.repos.isEmpty() && repos.isEmpty()) {
-                  result.completeExceptionally(CodyAgentException(partialResult.state.error?.title))
+                  result.completeExceptionally(CodyAgentException(partialResult.state.error.title))
                   stepDone.complete(false)
                   return@thenApply
                 }
