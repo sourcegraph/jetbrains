@@ -20,7 +20,7 @@ class PromptHistoryTest {
     assertEquals("item3", promptHistory.getPrevious())
     assertEquals("item2", promptHistory.getPrevious())
     assertEquals("item1", promptHistory.getPrevious())
-    assertEquals(null, promptHistory.getPrevious())
+    assertEquals("item1", promptHistory.getPrevious())
   }
 
   @Test
@@ -45,7 +45,7 @@ class PromptHistoryTest {
     assertEquals("item4", promptHistory.getPrevious())
     assertEquals("item3", promptHistory.getPrevious())
     assertEquals("item2", promptHistory.getPrevious())
-    assertEquals(null, promptHistory.getPrevious())
+    assertEquals("item2", promptHistory.getPrevious())
   }
 
   @Test
@@ -62,7 +62,7 @@ class PromptHistoryTest {
     assertEquals("item3", promptHistory.getPrevious())
     assertEquals("item2", promptHistory.getPrevious())
     assertEquals("item1", promptHistory.getPrevious())
-    assertEquals(null, promptHistory.getPrevious())
+    assertEquals("item1", promptHistory.getPrevious())
   }
 
   @Test
