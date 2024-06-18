@@ -112,7 +112,7 @@ private constructor(
               .initialize(
                   ClientInfo(
                       version = ConfigUtil.getPluginVersion(),
-                      ideVersion = ApplicationInfo.getInstance().fullVersion,
+                      ideVersion = ApplicationInfo.getInstance().build.toString(),
                       workspaceRootUri =
                           ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
                       extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
