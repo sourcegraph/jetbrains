@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
 import kotlin.math.roundToInt
-import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
@@ -362,7 +361,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     }
   }
 
-  private fun <T> onEventThread(handler: Supplier<T>): @NotNull CompletableFuture<T> {
+  private fun <T> onEventThread(handler: Supplier<T>): CompletableFuture<T> {
     val result = CompletableFuture<T>()
     val executeAndComplete: () -> Unit = {
       try {
