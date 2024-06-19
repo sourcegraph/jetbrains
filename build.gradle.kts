@@ -14,6 +14,7 @@ import java.util.zip.ZipFile
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.CustomTestIdeTask
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -164,8 +165,6 @@ java {
   }
 }
 
-// tasks.named("classpathIndexCleanup") { dependsOn("compileIntegrationTestKotlin") }
-
 fun download(url: String, output: File) {
   if (output.exists()) {
     println("Cached $output")
@@ -249,7 +248,16 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
   include("**/AllSuites.class")
 
   val resourcesDir = project.file("src/integrationTest/resources")
+
+  jvmArgs(
+    "--add-opens", "java.desktop/java.awt=ALL-UNNAMED",
+    "--add-opens", "java.desktop/javax.swing=ALL-UNNAMED",
+    "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
+    "--add-opens", "java.base/java.lang=ALL-UNNAMED"
+  )
+
   systemProperties(
+      "java.system.class.loader" to "com.intellij.util.lang.PathClassLoader",
       "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
       "cody-agent.directory" to buildCodyDir.parent,
       "sourcegraph.verbose-logging" to "true",
@@ -518,23 +526,24 @@ tasks {
       compileClasspath += main.get().output
       compileClasspath += test.get().compileClasspath
       runtimeClasspath += main.get().output
+      runtimeClasspath += test.get().compileClasspath
       runtimeClasspath += test.get().runtimeClasspath
     }
   }
 
-  register<Test>("integrationTest") {
+  register<CustomTestIdeTask>("integrationTest") {
     description = "Runs the integration tests."
     sharedIntegrationTestConfig(buildCodyDir, "replay")
     dependsOn("processIntegrationTestResources")
   }
 
-  register<Test>("passthroughIntegrationTest") {
+  register<CustomTestIdeTask>("passthroughIntegrationTest") {
     description = "Runs the integration tests, passing everything through to the LLM."
     sharedIntegrationTestConfig(buildCodyDir, "passthrough")
     dependsOn("processIntegrationTestResources")
   }
 
-  register<Test>("recordingIntegrationTest") {
+  register<CustomTestIdeTask>("recordingIntegrationTest") {
     description = "Runs the integration tests and records the responses."
     sharedIntegrationTestConfig(buildCodyDir, "record")
     dependsOn("processIntegrationTestResources")
@@ -549,8 +558,6 @@ tasks {
   }
 
   withType<Test> { systemProperty("idea.test.src.dir", "$buildDir/resources/integrationTest") }
-
-  // named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }
 
   named("check") { dependsOn("integrationTest") }
 
