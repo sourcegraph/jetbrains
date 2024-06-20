@@ -12,7 +12,6 @@ import java.util.EnumSet
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.tasks.CustomRunIdeTask
 import org.jetbrains.intellij.platform.gradle.tasks.CustomTestIdeTask
@@ -33,7 +32,8 @@ val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") 
 // Remove unsupported old versions from this list.
 // Update gradle.properties pluginSinceBuild, pluginUntilBuild to match the min, max versions in
 // this list.
-val versionsOfInterest = listOf("2022.3", "2023.1", "2023.2", "2023.3", "2024.1", "242.15523.18").sorted()
+val versionsOfInterest =
+    listOf("2022.3", "2023.1", "2023.2", "2023.3", "2024.1", "242.15523.18").sorted()
 val versionsToValidate =
     when (project.properties["validation"]?.toString()) {
       "lite" -> listOf(versionsOfInterest.first(), versionsOfInterest.last())
@@ -104,9 +104,7 @@ intellijPlatform {
   }
 
   verifyPlugin {
-    ides {
-      ides(versionsToValidate)
-    }
+    ides { ides(versionsToValidate) }
     failureLevel = EnumSet.complementOf(skippedFailureLevels)
   }
 }
@@ -247,11 +245,14 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
   val resourcesDir = project.file("src/integrationTest/resources")
 
   jvmArgs(
-    "--add-opens", "java.desktop/java.awt=ALL-UNNAMED",
-    "--add-opens", "java.desktop/javax.swing=ALL-UNNAMED",
-    "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
-    "--add-opens", "java.base/java.lang=ALL-UNNAMED"
-  )
+      "--add-opens",
+      "java.desktop/java.awt=ALL-UNNAMED",
+      "--add-opens",
+      "java.desktop/javax.swing=ALL-UNNAMED",
+      "--add-opens",
+      "java.desktop/sun.awt=ALL-UNNAMED",
+      "--add-opens",
+      "java.base/java.lang=ALL-UNNAMED")
 
   systemProperties(
       "java.system.class.loader" to "com.intellij.util.lang.PathClassLoader",
@@ -450,17 +451,18 @@ tasks {
     }
   }
 
-  val runCustomVersion by registering(CustomRunIdeTask::class) {
-    dependsOn(project.tasks.getByPath("buildCody"))
-    jvmArgs("-Djdk.module.illegalAccess.silent=true")
+  val runCustomVersion by
+      registering(CustomRunIdeTask::class) {
+        dependsOn(project.tasks.getByPath("buildCody"))
+        jvmArgs("-Djdk.module.illegalAccess.silent=true")
 
-    agentProperties.forEach { (key, value) -> systemProperty(key, value) }
+        agentProperties.forEach { (key, value) -> systemProperty(key, value) }
 
         val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
         if (platformRuntimeVersion != null) {
           version = platformRuntimeVersion.toString()
         }
-  }
+      }
 
   // Configure UI tests plugin
   // Read more: https://github.com/JetBrains/intellij-ui-test-robot
