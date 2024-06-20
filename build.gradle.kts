@@ -14,6 +14,7 @@ import java.util.zip.ZipFile
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.CustomRunIdeTask
 import org.jetbrains.intellij.platform.gradle.tasks.CustomTestIdeTask
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -32,7 +33,7 @@ val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") 
 // Remove unsupported old versions from this list.
 // Update gradle.properties pluginSinceBuild, pluginUntilBuild to match the min, max versions in
 // this list.
-val versionsOfInterest = listOf("2022.3", "2023.1", "2023.2", "2023.3", "2024.1", "2024.2").sorted()
+val versionsOfInterest = listOf("2022.3", "2023.1", "2023.2", "2023.3", "2024.1", "242.15523.18").sorted()
 val versionsToValidate =
     when (project.properties["validation"]?.toString()) {
       "lite" -> listOf(versionsOfInterest.first(), versionsOfInterest.last())
@@ -78,8 +79,8 @@ intellijPlatform {
     name = properties("pluginName")
     version = properties("pluginVersion")
     ideaVersion {
-      sinceBuild = "223"
-      untilBuild = "242.*"
+      sinceBuild = properties("pluginSinceBuild")
+      untilBuild = properties("pluginUntilBuild")
     }
     // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's
     // manifest
@@ -104,13 +105,9 @@ intellijPlatform {
 
   verifyPlugin {
     ides {
-      recommended()
-
-      //FIXME use versionsToValidate
-//      for (v in versionsToValidate) {
-//        ide(IntelliJPlatformType.IntellijIdeaCommunity, v)
-//      }
+      ides(versionsToValidate)
     }
+    failureLevel = EnumSet.complementOf(skippedFailureLevels)
   }
 }
 
@@ -453,31 +450,17 @@ tasks {
     }
   }
 
-  patchPluginXml {
-    sinceBuild = properties("pluginSinceBuild")
-    untilBuild = properties("pluginUntilBuild")
-  }
-
-  runIde {
+  val runCustomVersion by registering(CustomRunIdeTask::class) {
     dependsOn(project.tasks.getByPath("buildCody"))
     jvmArgs("-Djdk.module.illegalAccess.silent=true")
 
     agentProperties.forEach { (key, value) -> systemProperty(key, value) }
 
-    //    val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
-    //    if (platformRuntimeVersion != null) {
-    //      val ideaInstallDir =
-    //          getIdeaInstallDir(platformRuntimeVersion.toString())
-    //              ?: throw GradleException(
-    //                  "Could not find IntelliJ install for $platformRuntimeVersion")
-    //      ideDir.set(ideaInstallDir)
-    //    }
+        val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
+        if (platformRuntimeVersion != null) {
+          version = platformRuntimeVersion.toString()
+        }
   }
-
-  /*runPluginVerifier {
-    ideVersions.set(versionsToValidate)
-    failureLevel.set(EnumSet.complementOf(skippedFailureLevels))
-  }*/
 
   // Configure UI tests plugin
   // Read more: https://github.com/JetBrains/intellij-ui-test-robot
