@@ -64,7 +64,7 @@ class CodyToolWindowContent(private val project: Project) {
       refreshPanelsVisibility()
     }
     allContentPanel.add(codyOnboardingGuidancePanel, ONBOARDING_PANEL, ONBOARDING_PANEL_INDEX)
-    allContentLayout.show(allContentPanel, ONBOARDING_PANEL)
+    allContentLayout.show(allContentPanel, MAIN_PANEL)
 
     refreshMyAccountTab()
     removeAllChatSessions()
