@@ -244,18 +244,7 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
 
   val resourcesDir = project.file("src/integrationTest/resources")
 
-  jvmArgs(
-      "--add-opens",
-      "java.desktop/java.awt=ALL-UNNAMED",
-      "--add-opens",
-      "java.desktop/javax.swing=ALL-UNNAMED",
-      "--add-opens",
-      "java.desktop/sun.awt=ALL-UNNAMED",
-      "--add-opens",
-      "java.base/java.lang=ALL-UNNAMED")
-
   systemProperties(
-      "java.system.class.loader" to "com.intellij.util.lang.PathClassLoader",
       "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
       "cody-agent.directory" to buildCodyDir.parent,
       "sourcegraph.verbose-logging" to "true",
