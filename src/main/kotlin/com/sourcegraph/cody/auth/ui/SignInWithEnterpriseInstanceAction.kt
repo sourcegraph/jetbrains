@@ -17,10 +17,7 @@ class SignInWithEnterpriseInstanceAction(
     val project = e.project ?: return
     val accountsHost = CodyPersistentAccountsHost(project)
     val dialog =
-        signInWithSourcegraphDialog(
-                project,
-                e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT),
-                accountsHost::isAccountUnique)
+        signInWithSourcegraphDialog(project, e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT))
             .apply {
               contentPane.minimumSize = Dimension(MIN_DIALOG_WIDTH, MIN_DIALOG_HEIGHT)
               setServer(defaultServer)

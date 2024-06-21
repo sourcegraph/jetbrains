@@ -14,8 +14,4 @@ class CodyPersistentAccountsHost(private val project: Project) : CodyAccountsHos
     CodyAuthenticationManager.getInstance(project).updateAccountToken(codyAccount, token)
     CodyAuthenticationManager.getInstance(project).setActiveAccount(codyAccount)
   }
-
-  override fun isAccountUnique(login: String, server: SourcegraphServerPath): Boolean {
-    return CodyAuthenticationManager.getInstance(project).isAccountUnique(login, server)
-  }
 }
