@@ -129,10 +129,9 @@ class CodyAuthenticationManager(val project: Project) : Disposable {
     else null
   }
 
-  fun setActiveAccount(account: CodyAccount?) {
+  fun setActiveAccount(account: CodyAccount?, previousToken: String?) {
     if (!project.isDisposed) {
       val previousAccount = getActiveAccount()
-      val previousToken = previousAccount?.let { getTokenForAccount(it) }
       val previousUrl = previousAccount?.server?.url
       val previousTier = previousAccount?.isDotcomAccount()
 
