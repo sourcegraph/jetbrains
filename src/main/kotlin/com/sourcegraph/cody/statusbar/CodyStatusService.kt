@@ -102,7 +102,9 @@ class CodyStatusService(val project: Project) : Disposable {
 
     @JvmStatic
     fun notifyApplication(project: Project, status: CodyStatus) {
-      getInstance(project).onCodyAutocompleteStatus(status)
+      if (!project.isDisposed) {
+        getInstance(project).onCodyAutocompleteStatus(status)
+      }
     }
 
     @JvmStatic
