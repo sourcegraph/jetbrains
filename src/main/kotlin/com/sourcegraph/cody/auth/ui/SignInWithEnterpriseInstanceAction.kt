@@ -17,7 +17,7 @@ class SignInWithEnterpriseInstanceAction(
   override fun actionPerformed(e: AnActionEvent) {
     val project = e.project ?: return
     val accountsHost = CodyPersistentAccountsHost(project)
-    val authManager = project.getService(CodyAuthenticationManager::class.java)
+    val authManager = CodyAuthenticationManager.getInstance(project)
     val serverUrl = authManager.getActiveAccount()?.server?.url ?: defaultServer
     val dialog =
         signInWithSourcegraphDialog(project, e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT))

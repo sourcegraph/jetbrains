@@ -150,11 +150,7 @@ class CodyAuthenticationManager(val project: Project) : Disposable {
           }
 
       submitIOTask.exceptionally { error ->
-        if (error.cause?.message == UNAUTHORIZED_ERROR_MESSAGE) { // invalid or expired access token
-          isTokenInvalidFuture.complete(true)
-        } else {
-          isTokenInvalidFuture.complete(false)
-        }
+        isTokenInvalidFuture.complete(error.cause?.message == UNAUTHORIZED_ERROR_MESSAGE)
         null
       }
     }
