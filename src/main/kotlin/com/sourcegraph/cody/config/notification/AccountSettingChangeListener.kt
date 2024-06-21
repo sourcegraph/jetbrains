@@ -3,7 +3,6 @@ package com.sourcegraph.cody.config.notification
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.CodyToolWindowContent
-import com.sourcegraph.cody.statusbar.CodyStatus
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil
@@ -29,16 +28,13 @@ class AccountSettingChangeListener(project: Project) : ChangeListener(project) {
 
             UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
             UpgradeToCodyProNotification.chatRateLimitError.set(null)
+            CodyStatusService.resetApplication(project)
 
             if (ConfigUtil.isCodyEnabled()) {
               CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
                 refreshPanelsVisibility()
                 refreshMyAccountTab()
                 refreshChatHistoryPanel()
-              }
-
-              if (context.isTokenInvalidChanged) {
-                CodyStatusService.notifyApplication(project, CodyStatus.CodyInvalidToken)
               }
             }
 

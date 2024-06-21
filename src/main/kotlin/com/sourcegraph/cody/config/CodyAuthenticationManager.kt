@@ -132,8 +132,8 @@ class CodyAuthenticationManager(val project: Project) : Disposable {
     val isTokenInvalidFuture = CompletableFuture<Boolean?>()
     isTokenInvalid = isTokenInvalidFuture
 
-    isTokenInvalidFuture.thenApply { newAuthStatus ->
-      if (previousIsTokenInvalid != newAuthStatus) {
+    isTokenInvalidFuture.thenApply { isTokenInvalid ->
+      if (previousIsTokenInvalid != isTokenInvalid) {
         publisher.afterAction(AccountSettingChangeContext(isTokenInvalidChanged = true))
       }
     }
