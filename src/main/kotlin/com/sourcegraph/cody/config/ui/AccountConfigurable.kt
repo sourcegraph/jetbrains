@@ -109,8 +109,7 @@ class AccountConfigurable(val project: Project) :
       activeAccount = accountsModel.accounts.getFirstAccountOrNull()
     }
 
-    CodyAuthenticationManager.getInstance(project)
-        .setActiveAccount(activeAccount, previousToken = initialToken)
+    CodyAuthenticationManager.getInstance(project).setActiveAccount(activeAccount)
     accountsModel.activeAccount = activeAccount
 
     codyApplicationSettings.shouldCheckForUpdates = settingsModel.shouldCheckForUpdates

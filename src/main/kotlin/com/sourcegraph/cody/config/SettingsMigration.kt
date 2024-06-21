@@ -234,8 +234,7 @@ class SettingsMigration : Activity {
       val codyAccount = CodyAccount(it.name, it.displayName, server, it.id)
       addAccount(project, codyAccount, accessToken)
       if (CodyAuthenticationManager.getInstance(project).hasNoActiveAccount())
-          CodyAuthenticationManager.getInstance(project)
-              .setActiveAccount(codyAccount, previousToken = null)
+          CodyAuthenticationManager.getInstance(project).setActiveAccount(codyAccount)
     }
   }
 

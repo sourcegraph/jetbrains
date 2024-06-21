@@ -171,7 +171,14 @@ class CodyAuthenticationManager(val project: Project) : Disposable {
 
   @RequiresEdt
   internal fun updateAccountToken(account: CodyAccount, newToken: String) {
+    val oldToken = getTokenForAccount(account)
     accountManager.updateAccount(account, newToken)
+    if (oldToken != newToken && account == getActiveAccount()) {
+      CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
+        agent.server.configurationDidChange(ConfigUtil.getAgentConfiguration(project))
+        publisher.afterAction(AccountSettingChangeContext(accessTokenChanged = true))
+      }
+    }
   }
 
   fun getActiveAccount(): CodyAccount? {
@@ -179,7 +186,7 @@ class CodyAuthenticationManager(val project: Project) : Disposable {
     else null
   }
 
-  fun setActiveAccount(account: CodyAccount?, previousToken: String?) {
+  fun setActiveAccount(account: CodyAccount?) {
     if (!project.isDisposed) {
       val previousAccount = getActiveAccount()
       val previousUrl = previousAccount?.server?.url
@@ -190,14 +197,14 @@ class CodyAuthenticationManager(val project: Project) : Disposable {
       isTokenInvalid = null
 
       val serverUrlChanged = previousUrl != account?.server?.url
-      val accessTokenChanged = previousToken != account?.let { getTokenForAccount(it) }
       val tierChanged = previousTier != account?.isDotcomAccount()
 
-      if (serverUrlChanged || accessTokenChanged || tierChanged) {
+      if (serverUrlChanged || tierChanged) {
         CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
           agent.server.configurationDidChange(ConfigUtil.getAgentConfiguration(project))
           publisher.afterAction(
-              AccountSettingChangeContext(serverUrlChanged, accessTokenChanged, tierChanged))
+              AccountSettingChangeContext(
+                  serverUrlChanged = serverUrlChanged, accountTierChanged = tierChanged))
         }
       }
     }

@@ -12,8 +12,7 @@ class CodyPersistentAccountsHost(private val project: Project) : CodyAccountsHos
   ) {
     val codyAccount = CodyAccount(login, displayName, server, id)
     val authManager = CodyAuthenticationManager.getInstance(project)
-    val previousToken = codyAccount.let { authManager.getTokenForAccount(it) }
     authManager.updateAccountToken(codyAccount, token)
-    authManager.setActiveAccount(codyAccount, previousToken)
+    authManager.setActiveAccount(codyAccount)
   }
 }
