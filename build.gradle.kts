@@ -118,9 +118,6 @@ dependencies {
     pluginVerifier()
     testFramework(TestFrameworkType.Bundled)
   }
-  // ActionUpdateThread.jar contains copy of the
-  // com.intellij.openapi.actionSystem.ActionUpdateThread class
-  compileOnly(files("libs/ActionUpdateThread.jar"))
   implementation("org.commonmark:commonmark:0.22.0")
   implementation("org.commonmark:commonmark-ext-gfm-tables:0.22.0")
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.23.1")
