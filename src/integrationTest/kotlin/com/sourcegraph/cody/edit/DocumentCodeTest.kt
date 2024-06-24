@@ -37,7 +37,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         selection.startOffset == caret && selection.endOffset == caret)
   }
 
-  fun skip_testGetsWorkingGroupLens() {
+  fun testGetsWorkingGroupLens() {
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_WORKING_GROUP)
     assertInlayIsShown()
 
@@ -46,7 +46,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     assertNotNull("Lens group should be displayed", lenses)
 
     val widgets = lenses!!.widgets
-    assertEquals("Lens group should have 6 widgets", 8, widgets.size)
+    assertEquals("Lens group should have 8 widgets", 8, widgets.size)
     assertTrue("Zeroth lens group should be an icon", widgets[0] is LensIcon)
     assertTrue("First lens group is space separator label", (widgets[1] as LensLabel).text == " ")
     assertTrue("Second lens group is a spinner", widgets[2] is LensSpinner)
