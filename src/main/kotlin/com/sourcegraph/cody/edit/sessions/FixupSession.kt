@@ -420,7 +420,7 @@ abstract class FixupSession(
                 }
               }
 
-          currentActions.forEach { action ->
+          currentActions.reversed().forEach { action ->
             try {
               action.apply()
             } catch (e: RuntimeException) {
