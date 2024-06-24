@@ -15,7 +15,10 @@ import com.sourcegraph.cody.edit.widget.LensHotkey
 import com.sourcegraph.cody.edit.widget.LensIcon
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
+import com.sourcegraph.cody.edit.widget.LensWidget
+import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import com.sourcegraph.cody.util.CodyIntegrationTextFixture
+import junit.framework.TestCase
 
 class DocumentCodeTest : CodyIntegrationTextFixture() {
 
@@ -38,27 +41,44 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
   }
 
   fun testGetsWorkingGroupLens() {
+    var lenses: LensWidgetGroup? = null
+    var widgets: MutableList<LensWidget>? = null
+    val showWorkingGroupSessionStateListener =
+        object : FixupService.ActiveFixupSessionStateListener {
+          override fun fixupSessionStateChanged(isInProgress: Boolean) {
+            if (isInProgress) {
+              TestCase.assertNull("Value already set", lenses)
+              TestCase.assertNull("Value already set", widgets)
+              lenses = activeSession().lensGroup
+              widgets = lenses?.widgets
+            }
+          }
+        }
+    FixupService.getInstance(project).addListener(showWorkingGroupSessionStateListener)
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_WORKING_GROUP)
     assertInlayIsShown()
 
     // Lens group should match the expected structure.
-    val lenses = activeSession().lensGroup
     assertNotNull("Lens group should be displayed", lenses)
+    val theWidgets = widgets!!
 
-    val widgets = lenses!!.widgets
-    assertEquals("Lens group should have 8 widgets", 8, widgets.size)
-    assertTrue("Zeroth lens group should be an icon", widgets[0] is LensIcon)
-    assertTrue("First lens group is space separator label", (widgets[1] as LensLabel).text == " ")
-    assertTrue("Second lens group is a spinner", widgets[2] is LensSpinner)
-    assertTrue("Third lens group is space separator label", (widgets[3] as LensLabel).text == " ")
+    assertEquals("Lens group should have 8 widgets", 8, theWidgets.size)
+    assertTrue("Zeroth lens group should be an icon", theWidgets[0] is LensIcon)
+    assertTrue(
+        "First lens group is space separator label", (theWidgets[1] as LensLabel).text == " ")
+    assertTrue("Second lens group is a spinner", theWidgets[2] is LensSpinner)
+    assertTrue(
+        "Third lens group is space separator label", (theWidgets[3] as LensLabel).text == " ")
     assertTrue(
         "Fourth lens group is a description label",
-        (widgets[4] as LensLabel).text == "Generating Code Edits")
+        (theWidgets[4] as LensLabel).text == "Generating Code Edits")
     assertTrue(
         "Fifth lens group is separator label",
-        (widgets[5] as LensLabel).text == LensGroupFactory.SEPARATOR)
-    assertTrue("Sixth lens group should be an action", widgets[6] is LensAction)
-    assertTrue("Seventh lens group should be a label with a hotkey", widgets[7] is LensHotkey)
+        (theWidgets[5] as LensLabel).text == LensGroupFactory.SEPARATOR)
+    assertTrue("Sixth lens group should be an action", theWidgets[6] is LensAction)
+    assertTrue("Seventh lens group should be a label with a hotkey", theWidgets[7] is LensHotkey)
+
+    FixupService.getInstance(project).removeListener(showWorkingGroupSessionStateListener)
   }
 
   fun testShowsAcceptLens() {
