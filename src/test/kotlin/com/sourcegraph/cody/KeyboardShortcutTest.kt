@@ -4,10 +4,10 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import javax.swing.KeyStroke
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import javax.swing.KeyStroke
 
 @RunWith(JUnit4::class)
 class KeyboardShortcutTest : BasePlatformTestCase() {
@@ -21,7 +21,6 @@ class KeyboardShortcutTest : BasePlatformTestCase() {
     private val keysToActionIds =
         mapOf(
             "cody.acceptAutocompleteAction" to arrayOf("TAB", "TAB"), // Windows, macOS
-
             "cody.command.Explain" to arrayOf("ctrl alt 1", "ctrl alt 1"),
             "cody.command.Smell" to arrayOf("ctrl alt 2", "ctrl alt 2"),
 
@@ -32,15 +31,11 @@ class KeyboardShortcutTest : BasePlatformTestCase() {
 
             // Handles cody.inlineEditUndoAction, inlineEditCancelAction, & inlineEditDismissAction:
             "cody.editCancelOrUndoAction" to arrayOf("ctrl alt BACK_SPACE", "ctrl alt BACK_SPACE"),
-
             "cody.editShowDiffAction" to arrayOf("ctrl alt D", "ctrl alt K"),
             "cody.inlineEditAcceptAction" to arrayOf("ctrl shift EQUALS", "ctrl shift EQUALS"),
-
             "cody.newChat" to arrayOf("ctrl alt 0", "ctrl alt 0"),
             "cody.openChat" to arrayOf("ctrl alt 9", "ctrl alt 9"),
-
             "cody.triggerAutocomplete" to arrayOf("control alt P", "control alt P"),
-
             "sourcegraph.openFindPopup" to arrayOf("alt S", "alt S"),
         )
   }
