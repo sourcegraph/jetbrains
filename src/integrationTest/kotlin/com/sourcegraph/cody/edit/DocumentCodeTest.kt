@@ -39,7 +39,7 @@ class DocumentCodeTest : CodyIntegrationTestFixture() {
   }
 
   @Test
-  @TestFile("testProjects/documentCode/src/main/java/Foo.java")
+  @TestFile(TEST_FILE_PATH)
   fun testGetsFoldingRanges() {
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_FOLDING_RANGES)
 
@@ -59,7 +59,7 @@ class DocumentCodeTest : CodyIntegrationTestFixture() {
   }
 
   @Test
-  @TestFile("testProjects/documentCode/src/main/java/Foo.java")
+  @TestFile(TEST_FILE_PATH)
   fun testGetsWorkingGroupLens() {
     val assertsExecuted = AtomicInteger(0)
     val showWorkingGroupSessionStateListener =
@@ -109,7 +109,7 @@ class DocumentCodeTest : CodyIntegrationTestFixture() {
   }
 
   @Test
-  @TestFile("testProjects/documentCode/src/main/java/Foo.java")
+  @TestFile(TEST_FILE_PATH)
   fun testShowsAcceptLens() {
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
     assertInlayIsShown()
@@ -147,7 +147,7 @@ class DocumentCodeTest : CodyIntegrationTestFixture() {
   }
 
   @Test
-  @TestFile("testProjects/documentCode/src/main/java/Foo.java")
+  @TestFile(TEST_FILE_PATH)
   fun testAccept() {
     assertNoActiveSession()
     assertNoInlayShown()
@@ -165,7 +165,7 @@ class DocumentCodeTest : CodyIntegrationTestFixture() {
   }
 
   @Test
-  @TestFile("testProjects/documentCode/src/main/java/Foo.java")
+  @TestFile(TEST_FILE_PATH)
   fun testUndo() {
     val originalDocument = myFixture.editor.document.text
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
@@ -183,5 +183,6 @@ class DocumentCodeTest : CodyIntegrationTestFixture() {
 
   companion object {
     private val logger = Logger.getInstance(DocumentCodeTest::class.java)
+    private const val TEST_FILE_PATH = "testProjects/documentCode/src/main/java/Foo.java"
   }
 }
