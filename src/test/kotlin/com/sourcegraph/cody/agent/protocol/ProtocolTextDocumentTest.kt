@@ -70,7 +70,8 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
         ProtocolTextDocument.fromVirtualFile(myFixture.editor, emptyFile).selection)
   }
 
-  fun test_selectionListener() {
+  // TODO: https://linear.app/sourcegraph/issue/CODY-2576
+  fun skip_test_selectionListener() {
     var lastTextDocument: ProtocolTextDocument? = null
     EditorChangesBus.addListener { _, textDocument -> lastTextDocument = textDocument }
 
@@ -80,14 +81,13 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
         myFixture.editor.testing_substring(lastTextDocument!!.selection!!))
   }
 
-  //  FIXME: test fails
-  //  fun test_caretListener() {
-  //    var lastTextDocument: ProtocolTextDocument? = null
-  //    EditorChangesBus.addListener { _, textDocument -> lastTextDocument = textDocument }
-  //
-  //    myFixture.editor.caretModel.moveToOffset(5)
-  //    assertEquals(Range(Position(0, 5), Position(0, 5)), lastTextDocument!!.selection!!)
-  //  }
+  fun skip_test_caretListener() {
+    var lastTextDocument: ProtocolTextDocument? = null
+    EditorChangesBus.addListener { _, textDocument -> lastTextDocument = textDocument }
+
+    myFixture.editor.caretModel.moveToOffset(5)
+    assertEquals(Range(Position(0, 5), Position(0, 5)), lastTextDocument!!.selection!!)
+  }
 
   fun test_openListener() {
     var lastTextDocument: ProtocolTextDocument? = null
