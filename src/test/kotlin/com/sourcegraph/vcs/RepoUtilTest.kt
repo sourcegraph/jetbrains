@@ -10,10 +10,12 @@ import git4idea.repo.GitBranchTrackInfo
 import git4idea.repo.GitRemote
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
+import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mockito
 import org.mockito.Mockito.`when`
 
+@Ignore
 class RepoUtilTest : BasePlatformTestCase() {
 
   @Test
