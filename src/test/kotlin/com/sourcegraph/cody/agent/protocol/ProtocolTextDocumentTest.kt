@@ -18,7 +18,6 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
 
   override fun tearDown() {
     super.tearDown()
-    println(EditorChangesBus.listeners)
     EditorChangesBus.listeners = emptyList()
   }
 
