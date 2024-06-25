@@ -15,6 +15,8 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
 
   override fun setUp() {
     super.setUp()
+    // We need to specify the provider so that the created editor has EditorKind.MAIN_EDITOR.
+    // Without putting that data, the default is UNTYPED - that breaks some tests.
     file.putUserData(FileEditorProvider.KEY, TextEditorProvider.getInstance())
     myFixture.openFileInEditor(file)
   }
