@@ -155,18 +155,12 @@ class CodyAuthenticationManager(val project: Project) : Disposable {
    */
   @CalledInAny
   fun getActiveAccountTier(): CompletableFuture<AccountTier> {
-    tier?.let {
-      return it
-    }
-    return getAuthenticationState().tier
+    return tier ?: getAuthenticationState().tier
   }
 
   @CalledInAny
   fun getIsTokenInvalid(): CompletableFuture<Boolean> {
-    isTokenInvalid?.let {
-      return it
-    }
-    return getAuthenticationState().isTokenInvalid
+    return isTokenInvalid ?: getAuthenticationState().isTokenInvalid
   }
 
   @CalledInAny
