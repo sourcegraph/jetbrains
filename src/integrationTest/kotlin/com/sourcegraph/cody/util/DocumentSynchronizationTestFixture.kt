@@ -15,9 +15,30 @@ abstract class DocumentSynchronizationTestFixture : CodyIntegrationTestFixture()
       expectedContent: String,
       writeAction: (Editor) -> Unit
   ) {
-    val tempFile = myFixture.createFile("tempFile.java", beforeContent)
+    // Extract caret and selection markers
+    var content = beforeContent
+    var caretOffset = -1
+    var selectionStart = -1
+    var selectionEnd = -1
+
+    // Find and remove caret position marker "^"
+    val caretIndex = content.indexOf("^")
+    if (caretIndex != -1) {
+      caretOffset = caretIndex
+      content = content.removeRange(caretIndex, caretIndex + 1)
+    }
+
+    // Find and remove selection range marker "@"
+    val selectionIndex = content.indexOf("@")
+    if (caretIndex != -1 && selectionIndex != -1) {
+      selectionStart = caretOffset
+      selectionEnd = selectionIndex - 1 // Adjust for the removal of "@"
+      content = content.removeRange(selectionIndex, selectionIndex + 1)
+    }
+
+    val tempFile = myFixture.createFile("tempFile.java", content)
     configureFixtureWithFile(tempFile)
-    setCaretAndSelection()
+    setCaretAndSelection(caretOffset, selectionStart, selectionEnd)
 
     val editor = myFixture.editor // Will not be set until we configure the fixture above.
     val document = editor.document
@@ -63,30 +84,8 @@ abstract class DocumentSynchronizationTestFixture : CodyIntegrationTestFixture()
     future.get()
   }
 
-  private fun setCaretAndSelection() {
+  private fun setCaretAndSelection(caretOffset: Int, selectionStart: Int, selectionEnd: Int) {
     WriteCommandAction.runWriteCommandAction(project) {
-      var text = myFixture.editor.document.text
-      var caretOffset = -1
-      var selectionStart = -1
-      var selectionEnd = -1
-
-      // Find and remove caret position marker "@"
-      val caretIndex = text.indexOf("@")
-      if (caretIndex != -1) {
-        caretOffset = caretIndex
-        text = text.removeRange(caretIndex, caretIndex + 1)
-      }
-
-      // Find and remove selection range marker "!"
-      val selectionIndex = text.indexOf("!")
-      if (caretIndex != -1 && selectionIndex != -1) {
-        selectionStart = caretOffset
-        selectionEnd = selectionIndex - 1 // Adjust for the removal of "!"
-        text = text.removeRange(selectionIndex, selectionIndex + 1)
-      }
-
-      myFixture.editor.document.setText(text)
-
       // Set caret position if specified
       if (caretOffset != -1) {
         myFixture.editor.caretModel.moveToOffset(caretOffset)
