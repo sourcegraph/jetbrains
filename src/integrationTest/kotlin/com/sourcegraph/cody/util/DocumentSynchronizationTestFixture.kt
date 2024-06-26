@@ -8,27 +8,30 @@ import com.sourcegraph.cody.agent.protocol.GetDocumentsParams
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import java.util.concurrent.CompletableFuture
 
+/**
+ * Lets you specify before/after tests that modify the document and check the Agent's copy.
+ * You can specify the starting caret with "^" and optionally the selection with "@".
+ */
 abstract class DocumentSynchronizationTestFixture : CodyIntegrationTestFixture() {
 
   protected fun runDocumentSynchronizationTest(
-      beforeContent: String,
-      expectedContent: String,
+      beforeSpec: String,
+      expectedSpec: String,
       writeAction: (Editor) -> Unit
   ) {
-    // Extract caret and selection markers
-    var content = beforeContent
+    val expectedContent = expectedSpec.trimIndent().removePrefix("\n")
+    var content = beforeSpec.trimIndent().removePrefix("\n")
+
     var caretOffset = -1
     var selectionStart = -1
     var selectionEnd = -1
 
-    // Find and remove caret position marker "^"
     val caretIndex = content.indexOf("^")
     if (caretIndex != -1) {
       caretOffset = caretIndex
       content = content.removeRange(caretIndex, caretIndex + 1)
     }
 
-    // Find and remove selection range marker "@"
     val selectionIndex = content.indexOf("@")
     if (caretIndex != -1 && selectionIndex != -1) {
       selectionStart = caretOffset
@@ -40,16 +43,13 @@ abstract class DocumentSynchronizationTestFixture : CodyIntegrationTestFixture()
     configureFixtureWithFile(tempFile)
     setCaretAndSelection(caretOffset, selectionStart, selectionEnd)
 
-    val editor = myFixture.editor // Will not be set until we configure the fixture above.
-    val document = editor.document
-
     WriteCommandAction.runWriteCommandAction(project) {
       // Execute the test-specific editing operation.
-      writeAction(editor)
+      writeAction(myFixture.editor)
     }
 
     // Make sure our own copy of the document was edited properly.
-    assertEquals(expectedContent, document.text)
+    assertEquals(expectedContent, myFixture.editor.document.text)
 
     checkAgentResults(tempFile, expectedContent)
   }

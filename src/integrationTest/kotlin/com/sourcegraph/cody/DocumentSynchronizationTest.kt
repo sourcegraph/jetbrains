@@ -6,25 +6,26 @@ import org.junit.Test
 
 class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
 
+  // TODO: More tests that would be useful:
+  //  - Test bulk updates with the com.intellij.util.DocumentUtil#executeInBulk method.
+  //  - Changes to multiple files.
+  //  - (your test idea here)
+
   @Test
   fun testInsertCharacter() {
     val beforeContent =
         """
-            class Foo {
-              console.log("hello there@")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("hello there^")
+             }
+         """
 
     val expectedContent =
         """
-            class Foo {
-              console.log("hello there!")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("hello there!")
+             }
+         """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
       val document = editor.document
@@ -36,21 +37,17 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
   fun testDeleteCharacter() {
     val beforeContent =
         """
-            class Foo {
-              console.log("hello there^!")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("hello there^!")
+             }
+         """
 
     val expectedContent =
         """
-            class Foo {
-              console.log("hello there")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("hello there")
+             }
+         """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
       val document = editor.document
@@ -63,21 +60,17 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
   fun testDeleteRange() {
     val beforeContent =
         """
-            class Foo {
-              ^console.log("hello there!")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               ^console.log("hello there!")
+             }
+         """
 
     val expectedContent =
         """
-            class Foo {
-              ("hello there!")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               ("hello there!")
+             }
+         """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
       val document = editor.document
@@ -90,21 +83,17 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
   fun testReplaceRangeAtomically() {
     val beforeContent =
         """
-            class Foo {
-              ^System.out.println("hello there!")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               ^System.out.println("hello there!")
+             }
+         """
 
     val expectedContent =
         """
-            class Foo {
-              console.log("hello there!")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("hello there!")
+             }
+         """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
       val document = editor.document
@@ -117,28 +106,24 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
   fun testReplaceRangeNonAtomically() {
     val beforeContent =
         """
-            class Foo {
-              ^System.out.println("Cześć!")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               ^System.out.println("Cześć!")
+             }
+         """
 
     val expectedContent =
         """
-            class Foo {
-              console.log("Cześć!")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("Cześć!")
+             }
+         """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
       val document = editor.document
       val offset = editor.caretModel.offset
-      document.deleteString(offset, "System.".length)
-      document.deleteString(offset, "out.".length)
-      document.deleteString(offset, "println".length)
+      document.deleteString(offset, offset + "System.".length)
+      document.deleteString(offset, offset + "out.".length)
+      document.deleteString(offset, offset + "println".length)
       document.insertString(offset, "console.log")
     }
   }
@@ -147,29 +132,27 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
   fun testInsertWithNewlines() {
     val beforeContent =
         """
-            class Foo {
-              console.log("hello there!")@
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("hello there!")^
+             }
+         """
 
     val expectedContent =
         """
-            class Foo {
-              console.log("hello there!")
-              console.log("this is a test")
-              console.log("hello hello")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("hello there!")
+               console.log("this is a test")
+               console.log("hello hello")
+             }
+         """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
       val document = editor.document
       val offset = editor.caretModel.offset
-      document.insertString(offset, "\n  console.log(\"this is a test\")")
-      document.insertString(offset + 29, "\n  console.log(\"hello hello\")")
+      val firstInsertion = "\n  console.log(\"this is a test\")"
+      val secondInsertion = "\n  console.log(\"hello hello\")"
+      document.insertString(offset, firstInsertion)
+      document.insertString(offset + firstInsertion.length, secondInsertion)
     }
   }
 
@@ -177,18 +160,15 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
   fun testEraseDocument() {
     val beforeContent =
         """
-            class Foo {
-              ^console.log("hello there!")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               ^console.log("hello there!")
+             }
+         """
 
     val expectedContent = ""
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
-      val document = editor.document
-      document.deleteString(0, document.textLength)
+      editor.document.setText("")
     }
   }
 
@@ -196,29 +176,27 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
   fun testAppendToEndOfDocument() {
     val beforeContent =
         """
-            class Foo {
-              console.log("hello there!")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("hello there!")
+             }
+         """
 
     val expectedContent =
         """
-            class Foo {
-              console.log("hello there!")
-            }
-            // antidisestablishmentarianism
-            // pneumonoultramicroscopicsilicovolcanoconiosis
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("hello there!")
+             }
+             // antidisestablishmentarianism
+             // pneumonoultramicroscopicsilicovolcanoconiosis
+         """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
       val document = editor.document
       val offset = document.textLength
-      document.insertString(offset, "\n// antidisestablishmentarianism")
-      document.insertString(offset + 34, "\n// pneumonoultramicroscopicsilicovolcanoconiosis")
+      val firstString = "\n// antidisestablishmentarianism"
+      val secondString = "\n// pneumonoultramicroscopicsilicovolcanoconiosis"
+      document.insertString(offset, firstString)
+      document.insertString(offset + firstString.length, secondString)
     }
   }
 
@@ -226,31 +204,29 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
   fun testDeleteRangesWithNewlines() {
     val beforeContent =
         """
-            class Foo {
-              console.log("item 1")@
-              console.log("item 2")
-              console.log("item 3")
-              console.log("item 4")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("item 1")^
+               console.log("item 2")
+               console.log("item 3")
+               console.log("item 4")
+             }
+         """
 
     val expectedContent =
         """
-            class Foo {
-              console.log("item 1")
-              console.log("item 4")
-            }
-        """
-            .trimIndent()
-            .removePrefix("\n")
+             class Foo {
+               console.log("item 1")
+               console.log("item 4")
+             }
+         """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
       val document = editor.document
       val offset = editor.caretModel.offset
-      val endOffset = document.getLineEndOffset(document.getLineNumber(offset) + 2)
-      document.deleteString(offset, endOffset)
+      val startLine = document.getLineNumber(offset) // line 1
+      val startOffset = document.getLineStartOffset(startLine + 1)
+      val endOffset = document.getLineStartOffset(startLine + 3)
+      document.deleteString(startOffset, endOffset)
     }
   }
 
@@ -262,8 +238,6 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
               console.log("hello there^")
             }
         """
-            .trimIndent()
-            .removePrefix("\n")
 
     val expectedContent =
         """
@@ -272,26 +246,21 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
               🥳🎈")
             }
         """
-            .trimIndent()
-            .removePrefix("\n")
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
-      val document = editor.document
       val offset = editor.caretModel.offset
-      document.insertString(offset, "!🎉🎂\n🥳🎈")
+      editor.document.insertString(offset, "!🎉🎂\n  🥳🎈")
     }
   }
 
   @Test
-  fun testMultipleEdits() {
+  fun testMultipleDisjointEdits() {
     val beforeContent =
         """
             class Foo {
               console.log("hello there")
             }
         """
-            .trimIndent()
-            .removePrefix("\n")
 
     val expectedContent =
         """
@@ -303,16 +272,19 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
             }
             // end class Foo
         """
-            .trimIndent()
-            .removePrefix("\n")
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
       val document = editor.document
-      document.insertString(0, "import com.foo.Bar;\n\n")
-      val offset = document.getLineEndOffset(2)
-      document.insertString(offset, "\n  // no comment")
-      document.insertString(document.textLength - 1, ";")
-      document.insertString(document.textLength, "\n// end class Foo")
+      val importStatement = "import com.foo.Bar;\n\n"
+      val comment = "\n  // no comment"
+      val endClassComment = "\n// end class Foo"
+
+      document.insertString(0, importStatement)
+      val classLine = document.getLineNumber(document.text.indexOf("class Foo {"))
+      val offset = document.getLineEndOffset(classLine)
+      document.insertString(offset, comment)
+      document.insertString(document.getLineEndOffset(classLine + 2), ";")
+      document.insertString(document.textLength, endClassComment)
     }
   }
 }
