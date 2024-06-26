@@ -56,7 +56,7 @@ class LlmDropdown(
   private fun updateModelsInUI(models: List<ChatModelsResponse.ChatModelProvider>) {
     if (project.isDisposed) return
 
-    models.sortedBy { it.codyProOnly }.forEach(::addItem)
+    models.filterNot { it.deprecated }.sortedBy { it.codyProOnly }.forEach(::addItem)
 
     CodyAuthenticationManager.getInstance(project).getActiveAccountTier().thenApply { accountTier ->
       if (accountTier == null) return@thenApply
