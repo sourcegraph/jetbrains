@@ -35,9 +35,9 @@ import com.sourcegraph.cody.agent.protocol.ServerInfo
 import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
 import com.sourcegraph.cody.chat.ConnectionId
+import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
-import java.util.concurrent.CompletableFuture
 
 /**
  * Interface for the server-part of the Cody agent protocol. The implementation of this interface is
@@ -60,7 +60,8 @@ interface CodyAgentServer {
   @JsonRequest("graphql/logEvent") fun logEvent(event: Event): CompletableFuture<Void?>
 
   @Suppress("unused")
-  @JsonRequest("graphql/currentUserId") fun currentUserId(): CompletableFuture<String>
+  @JsonRequest("graphql/currentUserId")
+  fun currentUserId(): CompletableFuture<String>
 
   @JsonRequest("graphql/getRepoIds")
   fun getRepoIds(repoName: GetRepoIdsParam): CompletableFuture<GetRepoIdsResponse>
@@ -160,8 +161,9 @@ interface CodyAgentServer {
   fun testingRequestErrors(): CompletableFuture<List<NetworkRequest>>
 
   @JsonRequest("testing/requestWorkspaceDocuments")
-  fun testingRequestWorkspaceDocuments(params: GetDocumentsParams): CompletableFuture<GetDocumentsResult>
+  fun testingRequestWorkspaceDocuments(
+      params: GetDocumentsParams
+  ): CompletableFuture<GetDocumentsResult>
 
-  @JsonRequest("testing/awaitPendingPromises")
-  fun awaitPendingPromises(): CompletableFuture<Unit>
+  @JsonRequest("testing/awaitPendingPromises") fun awaitPendingPromises(): CompletableFuture<Unit>
 }
