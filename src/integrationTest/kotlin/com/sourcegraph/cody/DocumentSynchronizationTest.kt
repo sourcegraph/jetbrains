@@ -1,10 +1,12 @@
 package com.sourcegraph.cody
 
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.vfs.VirtualFile
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.GetDocumentsParams
 import com.sourcegraph.cody.util.CodyIntegrationTestFixture
 import org.junit.Test
+import java.util.concurrent.CompletableFuture
 
 class DocumentSynchronizationTest : CodyIntegrationTestFixture() {
 
@@ -16,59 +18,68 @@ class DocumentSynchronizationTest : CodyIntegrationTestFixture() {
               console.log(\"hello there@\")
             }
         """
-            .trimIndent()
-            .removePrefix("\n")
+        .trimIndent()
+        .removePrefix("\n")
 
     val expectedContent =
-        """
+      """
             class Foo {
               console.log(\"hello there!\")
             }
         """
-            .trimIndent()
-            .removePrefix("\n")
+        .trimIndent()
+        .removePrefix("\n")
 
     val tempFile = myFixture.createFile("tempFile.java", beforeContent)
-    val myUri = tempFile.url
-    myFixture.configureByText("tempFile.java", beforeContent)
+    configureFixtureWithFile(tempFile)
+    setCaretAndSelection()
 
-    insertBeforeText(beforeContent)
+    val editor = myFixture.editor // Will not be set until we configure the fixture above.
+    val document = editor.document
 
-    val document = myFixture.editor.document
-    // Write our initial content to the Editor
-    WriteCommandAction.runWriteCommandAction(project) { document.setText(beforeContent) }
-
-    // Perform our editing action.
     WriteCommandAction.runWriteCommandAction(project) {
-      val offset = document.text.indexOf('@')
-      document.replaceString(offset, offset + 1, "!")
+      // This is the test-specific editing operation to test.
+      // TODO: Move everything else here except before/after text, into the test fixture.
+      document.insertString(editor.caretModel.offset, "!")
     }
 
-    // Ensure that the Editor's after-text matches expected
+    // Make sure our own copy of the document was edited properly.
     assertEquals(expectedContent, document.text)
 
+    checkAgentResults(tempFile, expectedContent)
+  }
+
+  private fun checkAgentResults(tempFile: VirtualFile, expectedContent: String) {
+    // Verify that Agent has the correct content, caret, and optionally, selection.
+    val future = CompletableFuture<Void>()
     CodyAgentService.withAgent(project) { agent ->
-      agent.server.awaitPendingPromises() // Wait for Agent to complete its computations.
+      agent.server.awaitPendingPromises()
 
       val result =
-          agent.server.testingRequestWorkspaceDocuments(GetDocumentsParams(uris = listOf(myUri)))
+          agent.server.testingRequestWorkspaceDocuments(
+              GetDocumentsParams(uris = listOf(tempFile.url)))
 
       result.thenAccept { response ->
         // There should be one document in the response.
         assertEquals(1, response.documents.size)
         // It should have our URI.
         val agentDocument = response.documents[0]
-        assertEquals(myUri, agentDocument.uri)
+        assertEquals(tempFile.url, agentDocument.uri)
 
         // It should have the same content as the Editor's after-text.
         assertEquals(expectedContent, agentDocument.content)
+        future.complete(null)
+      }.exceptionally { ex ->
+        future.completeExceptionally(ex)
+        null
       }
     }
+    future.get() // Wait for the CompletableFuture to complete
   }
 
-  private fun insertBeforeText(content: String) {
+  private fun setCaretAndSelection() {
     WriteCommandAction.runWriteCommandAction(project) {
-      var text = content
+      var text = myFixture.editor.document.text
       var caretOffset = -1
       var selectionStart = -1
       var selectionEnd = -1

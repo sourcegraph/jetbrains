@@ -12,13 +12,13 @@ import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
+import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.*
 import java.net.Socket
 import java.net.URI
 import java.nio.file.*
 import java.util.*
 import java.util.concurrent.*
-import org.eclipse.lsp4j.jsonrpc.Launcher
 
 /**
  * Orchestrator for the Cody agent, which is a Node.js program that implements the prompt logic for
@@ -192,7 +192,7 @@ private constructor(
 
       logger.info("starting Cody agent ${command.joinToString(" ")}")
       logger.info(
-          "Cody agent proxyUrl ${proxyUrl} PROXY_TYPE_IS_SOCKS ${proxy.PROXY_TYPE_IS_SOCKS}")
+          "Cody agent proxyUrl $proxyUrl PROXY_TYPE_IS_SOCKS ${proxy.PROXY_TYPE_IS_SOCKS}")
 
       val process =
           processBuilder

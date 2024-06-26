@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -22,13 +23,13 @@ import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier
 import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.config.ConfigUtil
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {
@@ -86,6 +87,16 @@ abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {
     val sourcePath = Paths.get(testDataPath.path, testFile).toString()
     assertTrue(File(sourcePath).exists())
     myFixture.configureByFile(testFile)
+
+    initCredentialsAndAgent()
+    initCaretPosition()
+  }
+
+  protected fun configureFixtureWithFile(testFile: VirtualFile) {
+    val policy = System.getProperty("idea.test.execution.policy")
+    assertTrue(policy == "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
+
+    myFixture.configureFromExistingVirtualFile(testFile)
 
     initCredentialsAndAgent()
     initCaretPosition()
