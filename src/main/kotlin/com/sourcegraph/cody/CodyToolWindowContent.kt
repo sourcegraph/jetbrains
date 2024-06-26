@@ -128,7 +128,6 @@ class CodyToolWindowContent(private val project: Project) {
       allContentLayout.show(allContentPanel, ONBOARDING_PANEL)
       return
     }
-    //    allContentLayout.show(allContentPanel, MAIN_PANEL)
   }
 
   @RequiresEdt
