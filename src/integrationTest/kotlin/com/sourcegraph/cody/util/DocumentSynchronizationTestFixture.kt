@@ -9,8 +9,8 @@ import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import java.util.concurrent.CompletableFuture
 
 /**
- * Lets you specify before/after tests that modify the document and check the Agent's copy.
- * You can specify the starting caret with "^" and optionally the selection with "@".
+ * Lets you specify before/after tests that modify the document and check the Agent's copy. You can
+ * specify the starting caret with "^" and optionally the selection with "@".
  */
 abstract class DocumentSynchronizationTestFixture : CodyIntegrationTestFixture() {
 

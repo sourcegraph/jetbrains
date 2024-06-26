@@ -218,6 +218,9 @@ abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {
   protected fun assertInlayIsShown() {
     runInEdtAndWait {
       PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      assertNotNull(myFixture)
+      assertNotNull(myFixture.editor)
+      assertNotNull(myFixture.editor.inlayModel)
       assertTrue(
           "Lens group inlay should be displayed", myFixture.editor.inlayModel.hasBlockElements())
     }
