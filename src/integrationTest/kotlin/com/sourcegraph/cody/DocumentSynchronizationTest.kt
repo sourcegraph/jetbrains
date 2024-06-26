@@ -4,6 +4,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.vfs.VirtualFile
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.GetDocumentsParams
+import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.util.CodyIntegrationTestFixture
 import org.junit.Test
 import java.util.concurrent.CompletableFuture
@@ -18,17 +19,17 @@ class DocumentSynchronizationTest : CodyIntegrationTestFixture() {
               console.log(\"hello there@\")
             }
         """
-        .trimIndent()
-        .removePrefix("\n")
+            .trimIndent()
+            .removePrefix("\n")
 
     val expectedContent =
-      """
+        """
             class Foo {
               console.log(\"hello there!\")
             }
         """
-        .trimIndent()
-        .removePrefix("\n")
+            .trimIndent()
+            .removePrefix("\n")
 
     val tempFile = myFixture.createFile("tempFile.java", beforeContent)
     configureFixtureWithFile(tempFile)
@@ -55,24 +56,26 @@ class DocumentSynchronizationTest : CodyIntegrationTestFixture() {
     CodyAgentService.withAgent(project) { agent ->
       agent.server.awaitPendingPromises()
 
+      val tempUri = ProtocolTextDocument.uriFor(tempFile)
       val result =
-          agent.server.testingRequestWorkspaceDocuments(
-              GetDocumentsParams(uris = listOf(tempFile.url)))
+          agent.server.testingRequestWorkspaceDocuments(GetDocumentsParams(uris = listOf(tempUri)))
 
-      result.thenAccept { response ->
-        // There should be one document in the response.
-        assertEquals(1, response.documents.size)
-        // It should have our URI.
-        val agentDocument = response.documents[0]
-        assertEquals(tempFile.url, agentDocument.uri)
+      result
+          .thenAccept { response ->
+            // There should be one document in the response.
+            assertEquals(1, response.documents.size)
+            // It should have our URI.
+            val agentDocument = response.documents[0]
+            assertEquals(tempUri, agentDocument.uri)
 
-        // It should have the same content as the Editor's after-text.
-        assertEquals(expectedContent, agentDocument.content)
-        future.complete(null)
-      }.exceptionally { ex ->
-        future.completeExceptionally(ex)
-        null
-      }
+            // It should have the same content as the Editor's after-text.
+            assertEquals(expectedContent, agentDocument.content)
+            future.complete(null)
+          }
+          .exceptionally { ex ->
+            future.completeExceptionally(ex)
+            null
+          }
     }
     future.get() // Wait for the CompletableFuture to complete
   }
