@@ -205,14 +205,17 @@ class CodyAuthenticationManager(val project: Project) : Disposable {
 
       val serverUrlChanged = previousUrl != account?.server?.url
       val tierChanged = previousTier != account?.isDotcomAccount()
+      val accountChanged = previousAccount != account
 
       CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
         if (!project.isDisposed) {
           agent.server.configurationDidChange(ConfigUtil.getAgentConfiguration(project))
-          if (serverUrlChanged || tierChanged) {
+          if (serverUrlChanged || tierChanged || accountChanged) {
             publisher.afterAction(
                 AccountSettingChangeContext(
-                    serverUrlChanged = serverUrlChanged, accountTierChanged = tierChanged))
+                    serverUrlChanged = serverUrlChanged,
+                    accountTierChanged = tierChanged,
+                    accessTokenChanged = accountChanged))
           }
         }
       }
