@@ -28,8 +28,7 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
          """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
-      val document = editor.document
-      document.insertString(editor.caretModel.offset, "!")
+      editor.document.insertString(editor.caretModel.offset, "!")
     }
   }
 
@@ -50,9 +49,8 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
          """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
-      val document = editor.document
       val offset = editor.caretModel.offset
-      document.deleteString(offset, offset + 1)
+      editor.document.deleteString(offset, offset + 1)
     }
   }
 
@@ -73,9 +71,8 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
          """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
-      val document = editor.document
       val offset = editor.caretModel.offset
-      document.deleteString(offset, offset + "console.log".length)
+      editor.document.deleteString(offset, offset + "console.log".length)
     }
   }
 
@@ -96,9 +93,8 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
          """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
-      val document = editor.document
       val offset = editor.caretModel.offset
-      document.replaceString(offset, offset + "System.out.println".length, "console.log")
+      editor.document.replaceString(offset, offset + "System.out.println".length, "console.log")
     }
   }
 
@@ -248,8 +244,7 @@ class DocumentSynchronizationTest : DocumentSynchronizationTestFixture() {
         """
 
     runDocumentSynchronizationTest(beforeContent, expectedContent) { editor: Editor ->
-      val offset = editor.caretModel.offset
-      editor.document.insertString(offset, "!🎉🎂\n  🥳🎈")
+      editor.document.insertString(editor.caretModel.offset, "!🎉🎂\n  🥳🎈")
     }
   }
 
