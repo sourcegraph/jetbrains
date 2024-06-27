@@ -22,9 +22,7 @@ import org.junit.runners.Suite
  * and define a unique CODY_RECORDING_NAME.
  */
 @RunWith(Suite::class)
-@Suite.SuiteClasses(
-    DocumentCodeTest::class, /*DocumentSynchronizationTest::class*/
-)
+@Suite.SuiteClasses(DocumentCodeTest::class, DocumentSynchronizationTest::class)
 class AllSuites {
   companion object {
     private val logger = Logger.getInstance(AllSuites::class.java)
