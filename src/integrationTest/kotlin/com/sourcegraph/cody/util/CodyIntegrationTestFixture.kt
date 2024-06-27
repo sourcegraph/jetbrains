@@ -20,16 +20,17 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.config.CodyPersistentAccountsHost
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier
+import com.sourcegraph.cody.edit.DocumentCodeTest
 import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.config.ConfigUtil
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {
@@ -41,21 +42,28 @@ abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {
         this.javaClass.getMethod(methodName)
             ?: throw IllegalStateException(
                 "No method with name $methodName found in ${this.javaClass.name}")
-    if (method.isAnnotationPresent(TestFile::class.java)) {
-      val testFile = method.getAnnotation(TestFile::class.java).value
-      configureFixture(testFile)
-    }
+    val testFile =
+        if (method.isAnnotationPresent(TestFile::class.java)) {
+          method.getAnnotation(TestFile::class.java).value
+        } else {
+          DEFAULT_TEST_FILE
+        }
+    configureFixture(testFile)
+
     checkInitialConditions()
     myProject = project
   }
 
   override fun tearDown() {
     try {
-      FixupService.getInstance(myFixture.project).getActiveSession()?.apply {
-        try {
-          dispose()
-        } catch (x: Exception) {
-          logger.warn("Error shutting down session", x)
+      val project = myFixture.project
+      if (project != null) {
+        FixupService.getInstance(project).getActiveSession()?.apply {
+          try {
+            dispose()
+          } catch (x: Exception) {
+            logger.warn("Error shutting down session", x)
+          }
         }
       }
     } finally {
@@ -279,6 +287,10 @@ abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {
 
   companion object {
     private val logger = Logger.getInstance(CodyIntegrationTestFixture::class.java)
+
+    // We'll probably need to change this to a per-suite configuration setting when we get more
+    // tests.
+    private const val DEFAULT_TEST_FILE = DocumentCodeTest.TEST_FILE_PATH
 
     const val ASYNC_WAIT_TIMEOUT_SECONDS = 10L
     var myProject: Project? = null

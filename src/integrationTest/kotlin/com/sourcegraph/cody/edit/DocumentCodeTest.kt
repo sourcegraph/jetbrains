@@ -183,6 +183,6 @@ class DocumentCodeTest : CodyIntegrationTestFixture() {
 
   companion object {
     private val logger = Logger.getInstance(DocumentCodeTest::class.java)
-    private const val TEST_FILE_PATH = "testProjects/documentCode/src/main/java/Foo.java"
+    const val TEST_FILE_PATH = "testProjects/documentCode/src/main/java/Foo.java"
   }
 }
