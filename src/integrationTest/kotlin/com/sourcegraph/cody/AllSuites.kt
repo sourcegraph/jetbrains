@@ -2,7 +2,6 @@ package com.sourcegraph.cody
 
 import com.intellij.openapi.diagnostic.Logger
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.edit.DocumentCodeTest
 import com.sourcegraph.cody.util.CodyIntegrationTestFixture
 import java.util.concurrent.TimeUnit
 import org.junit.AfterClass

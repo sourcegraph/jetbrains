@@ -24,13 +24,13 @@ import com.sourcegraph.cody.edit.DocumentCodeTest
 import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.config.ConfigUtil
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {

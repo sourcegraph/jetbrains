@@ -66,10 +66,14 @@ abstract class DocumentSynchronizationTestFixture : CodyIntegrationTestFixture()
 
       result
           .thenAccept { response ->
-            assertEquals("There should only be one document in the response", 1, response.documents.size)
+            assertEquals(
+                "There should only be one document in the response", 1, response.documents.size)
             val agentDocument = response.documents[0]
             assertEquals("The document should have the expected URI", tempUri, agentDocument.uri)
-            assertEquals("Agent document should have same content as Editor", expectedContent, agentDocument.content)
+            assertEquals(
+                "Agent document should have same content as Editor",
+                expectedContent,
+                agentDocument.content)
             future.complete(null)
           }
           .exceptionally { ex ->

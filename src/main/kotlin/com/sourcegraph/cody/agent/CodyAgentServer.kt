@@ -161,7 +161,7 @@ interface CodyAgentServer {
   fun testingRequestErrors(): CompletableFuture<List<NetworkRequest>>
 
   @JsonRequest("testing/workspaceDocuments")
-  fun testingWorkspaceDocuments( params: GetDocumentsParams): CompletableFuture<GetDocumentsResult>
+  fun testingWorkspaceDocuments(params: GetDocumentsParams): CompletableFuture<GetDocumentsResult>
 
   @JsonRequest("testing/awaitPendingPromises") fun awaitPendingPromises(): CompletableFuture<Unit>
 }
