@@ -84,7 +84,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          plugin-location: plugin.zip
+          plugin-location: '*.zip'
           ide-versions: |
             ideaIC:2021.1
             ideaIC:2024.1
