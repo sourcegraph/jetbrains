@@ -26,6 +26,8 @@ class CodyAgentCodebase(val project: Project) {
       else inferredUrl
 
   fun onFileOpened(file: VirtualFile?) {
+    // This can happen during testing with certain temporary files.
+    if (file == null) return
     ApplicationManager.getApplication().executeOnPooledThread {
       val repositoryName = RepoUtil.findRepositoryName(project, file)
       if (repositoryName != null && inferredUrl.getNow(null) != repositoryName) {
