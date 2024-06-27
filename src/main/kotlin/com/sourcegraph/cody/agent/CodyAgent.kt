@@ -318,18 +318,20 @@ private constructor(
       }
       val binaryTarget = Files.createTempFile("cody-agent", binarySuffix())
       return try {
-        binaryTarget?.toFile()?.deleteOnExit()
-        token.onFinished {
-          // Important: delete the file from disk after the process exists
-          // Ideally, we should eventually replace this temporary file with a permanent location
-          // in the plugin directory.
-          Files.deleteIfExists(binaryTarget)
-        }
         logger.info("Extracting Node binary to " + binaryTarget.toAbsolutePath())
         Files.copy(binarySource, binaryTarget, StandardCopyOption.REPLACE_EXISTING)
         val binary = binaryTarget.toFile()
         if (!binary.exists()) {
           throw CodyAgentException("Failed to extract Node binary to " + binary.absolutePath)
+        }
+        // N.B.: Make sure you set these deletion triggers -after- the Files.copy() call, or the
+        // copy will delete the target file during integration tests on certain machines.
+        binary.deleteOnExit()
+        token.onFinished {
+          // Important: delete the file from disk after the process exists
+          // Ideally, we should eventually replace this temporary file with a permanent location
+          // in the plugin directory.
+          Files.deleteIfExists(binaryTarget)
         }
         if (binary.setExecutable(true)) {
           binary
