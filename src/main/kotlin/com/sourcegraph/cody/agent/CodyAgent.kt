@@ -134,7 +134,11 @@ private constructor(
           throw e
         }
       } catch (e: Exception) {
-        logger.warn("Unable to start Cody agent", e)
+        if (ConfigUtil.shouldConnectToDebugAgent()) {
+          logger.warn("Unable to connect to remote Cody agent", e)
+        } else {
+          logger.warn("Unable to start Cody agent", e)
+        }
         throw e
       }
     }

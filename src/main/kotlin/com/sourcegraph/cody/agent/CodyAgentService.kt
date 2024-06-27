@@ -18,9 +18,9 @@ import com.sourcegraph.cody.error.CodyConsole
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
+import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.utils.CodyEditorUtil
-import java.util.Timer
-import java.util.TimerTask
+import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -182,6 +182,7 @@ class CodyAgentService(private val project: Project) : Disposable {
 
   fun startAgent(project: Project): CompletableFuture<CodyAgent> {
     ApplicationManager.getApplication().executeOnPooledThread {
+      val isRemote = ConfigUtil.shouldConnectToDebugAgent()
       try {
         val future =
             CodyAgent.create(project).exceptionally { err ->
@@ -191,7 +192,7 @@ class CodyAgentService(private val project: Project) : Disposable {
             }
         val agent = future.get(45, TimeUnit.SECONDS)
         if (!agent.isConnected()) {
-          val msg = "Failed to connect to agent Cody agent"
+          val msg = "Failed to connect to Cody agent"
           logger.error(msg)
           throw CodyAgentException(msg) // This will be caught by the catch blocks below
         } else {
@@ -202,7 +203,8 @@ class CodyAgentService(private val project: Project) : Disposable {
       } catch (e: Exception) {
         val msg =
             if (e is TimeoutException)
-                "Failed to start Cody agent in timely manner, please run any Cody action to retry"
+                "Failed to start Cody agent in a timely manner, please run any Cody action to retry"
+            else if (isRemote) "Failed to connect to remote Cody agent"
             else "Failed to start Cody agent"
         logger.error(msg, e)
         setAgentError(project, msg)
