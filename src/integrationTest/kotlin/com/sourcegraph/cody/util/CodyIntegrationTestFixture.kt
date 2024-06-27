@@ -20,7 +20,6 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.config.CodyPersistentAccountsHost
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier
-import com.sourcegraph.cody.edit.DocumentCodeTest
 import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.config.ConfigUtil
@@ -42,13 +41,14 @@ abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {
         this.javaClass.getMethod(methodName)
             ?: throw IllegalStateException(
                 "No method with name $methodName found in ${this.javaClass.name}")
-    val testFile =
-        if (method.isAnnotationPresent(TestFile::class.java)) {
-          method.getAnnotation(TestFile::class.java).value
-        } else {
-          DEFAULT_TEST_FILE
-        }
-    configureFixture(testFile)
+    // It doesn't work to use a default path here if there is no annotation,
+    // because we have tests that use this fixture without an associated test resource file.
+    // We wind up opening the default file for these tests, breaking many of them because
+    // the count of Agent documents is wrong.
+    if (method.isAnnotationPresent(TestFile::class.java)) {
+      val testFile = method.getAnnotation(TestFile::class.java).value
+      configureFixture(testFile)
+    } // else the test needs to configure the fixture manually
 
     checkInitialConditions()
     myProject = project
@@ -287,10 +287,6 @@ abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {
 
   companion object {
     private val logger = Logger.getInstance(CodyIntegrationTestFixture::class.java)
-
-    // We'll probably need to change this to a per-suite configuration setting when we get more
-    // tests.
-    private const val DEFAULT_TEST_FILE = DocumentCodeTest.TEST_FILE_PATH
 
     const val ASYNC_WAIT_TIMEOUT_SECONDS = 10L
     var myProject: Project? = null
