@@ -71,7 +71,7 @@ jobs:
       - uses: thepieterdc/intellij-plugin-verifier-action@1.3.0
         with:
           plugin: plugin.zip
-          verifier_version: 1.369
+          # verifier_version: 1.369
           versions: |
             2021.1
             2024.1
