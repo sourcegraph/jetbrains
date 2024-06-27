@@ -75,6 +75,10 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: plugin.zip
+      - run: |
+          pwd
+          ls -l
+          find . -type f -name 'plugin.zip'
       - name: Verify Plugin on IntelliJ Platforms
         uses: ChrisCarini/intellij-platform-plugin-verifier-action@latest
         env:
