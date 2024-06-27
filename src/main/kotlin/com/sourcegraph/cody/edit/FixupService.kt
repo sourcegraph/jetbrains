@@ -13,6 +13,7 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.CodyStartingNotification
 import com.sourcegraph.cody.agent.EditingNotAvailableNotification
 import com.sourcegraph.cody.edit.sessions.DocumentCodeSession
+import com.sourcegraph.cody.edit.sessions.FixProblemSession
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.cody.edit.sessions.TestCodeSession
 import com.sourcegraph.cody.ignore.ActionInIgnoredFileNotification
@@ -59,6 +60,15 @@ class FixupService(val project: Project) : Disposable {
     runInEdt {
       if (isEligibleForInlineEdit(editor)) {
         TestCodeSession(this, editor, editor.project ?: return@runInEdt)
+      }
+    }
+  }
+
+  /** Entry point for the fix problem command, called by the action handler. */
+  fun startFixProblem(editor: Editor) {
+    runInEdt {
+      if (isEligibleForInlineEdit(editor)) {
+        FixProblemSession(this, editor, editor.project ?: return@runInEdt)
       }
     }
   }

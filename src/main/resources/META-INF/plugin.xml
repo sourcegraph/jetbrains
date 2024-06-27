@@ -294,6 +294,11 @@
             <override-text place="GoToAction" text="Cody: Generate Unit Tests"/>
         </action>
 
+        <action id="cody.fixProblemAction"
+          class="com.sourcegraph.cody.edit.actions.FixProblemAction" text="Fix Problems">
+            <add-to-group group-id="CodyEditorActions" anchor="first"/>
+        </action>
+
         <action id="cody.documentCodeAction"
                 icon="/icons/edit/document_code.svg"
                 class="com.sourcegraph.cody.edit.actions.DocumentCodeAction"
