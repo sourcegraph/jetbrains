@@ -74,7 +74,9 @@ class DocumentCodeTest : CodyIntegrationTestFixture() {
               val lenses = activeSession().lensGroup
               // Lens group should match the expected structure.
               assertNotNull("Lens group should be displayed", lenses)
-              val theWidgets = lenses!!.widgets
+              assertFalse("Error lens group should not be displayed", lenses!!.isErrorGroup)
+
+              val theWidgets = lenses.widgets
 
               assertEquals("Lens group should have 8 widgets", 8, theWidgets.size)
               assertTrue("Zeroth lens group should be an icon", theWidgets[0] is LensIcon)

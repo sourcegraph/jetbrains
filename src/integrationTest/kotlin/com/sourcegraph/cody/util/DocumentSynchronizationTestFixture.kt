@@ -62,7 +62,7 @@ abstract class DocumentSynchronizationTestFixture : CodyIntegrationTestFixture()
 
       val tempUri = ProtocolTextDocument.uriFor(tempFile)
       val result =
-          agent.server.testingRequestWorkspaceDocuments(GetDocumentsParams(uris = listOf(tempUri)))
+          agent.server.testingWorkspaceDocuments(GetDocumentsParams(uris = listOf(tempUri)))
 
       result
           .thenAccept { response ->

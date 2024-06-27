@@ -25,6 +25,7 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.sessions.FixupSession
+import org.jetbrains.annotations.NotNull
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -36,7 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
 import kotlin.math.roundToInt
-import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
@@ -235,7 +235,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     for (widget in widgets) {
       val widgetWidth = widget.calcWidthInPixels(fontMetrics)
       val rightEdgeX = currentX + widgetWidth
-      if (x >= currentX && x <= rightEdgeX) { // In widget's bounds?
+      if (x in currentX..rightEdgeX) { // In widget's bounds?
         return widget
       }
       currentX = rightEdgeX
@@ -392,7 +392,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     // was found empirically and seems to work well for all font sizes.
     private const val INLAY_HEIGHT_SCALE_FACTOR = 1.2
 
-    // Flag to force recomputation of left margin.
+    // Flag to force recalculation of left margin.
     private const val RECOMPUTE = -1
   }
 }
