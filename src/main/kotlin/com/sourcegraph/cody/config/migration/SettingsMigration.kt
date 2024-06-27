@@ -1,11 +1,8 @@
-package com.sourcegraph.cody.config
+package com.sourcegraph.cody.config.migration
 
 import com.intellij.collaboration.async.CompletableFutureUtil.submitIOTask
 import com.intellij.collaboration.async.CompletableFutureUtil.successOnEdt
 import com.intellij.ide.util.RunOnceUtil
-import com.intellij.notification.Notification
-import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.service
@@ -14,21 +11,22 @@ import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindowManager
-import com.sourcegraph.Icons
 import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.CodyToolWindowFactory
-import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.ChatModelsParams
-import com.sourcegraph.cody.agent.protocol.ModelUsage
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
+import com.sourcegraph.cody.config.CodyAccount
+import com.sourcegraph.cody.config.CodyAccountDetails
+import com.sourcegraph.cody.config.CodyApplicationSettings
+import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.config.CodyProjectSettings
+import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.AccountData
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.initialization.Activity
-import com.sourcegraph.common.NotificationGroups
 import com.sourcegraph.config.AccessTokenStorage
 import com.sourcegraph.config.CodyApplicationService
 import com.sourcegraph.config.CodyProjectService
@@ -36,7 +34,6 @@ import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.config.UserLevelConfig
 import com.sourcegraph.vcs.convertGitCloneURLToCodebaseNameOrError
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
 
 class SettingsMigration : Activity {
 
@@ -66,7 +63,7 @@ class SettingsMigration : Activity {
       migrateOrphanedChatsToActiveAccount(project)
     }
 
-    migrateDeprecatedChatLlms(project)
+    DeprecatedChatLlmMigration.migrate(project)
   }
 
   private fun migrateOrphanedChatsToActiveAccount(project: Project) {
@@ -127,54 +124,6 @@ class SettingsMigration : Activity {
           llmState.provider = provider
           it.llm = llmState
         }
-  }
-
-  fun migrateDeprecatedChatLlms(project: Project) {
-    CodyAgentService.withAgent(project) { agent ->
-      val chatModels = agent.server.chatModels(ChatModelsParams(ModelUsage.CHAT.value))
-      val models =
-          chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get()?.models ?: return@withAgent
-      val defaultModel = models.find { it.default } ?: return@withAgent
-
-      fun isDeprecated(modelState: LLMState): Boolean =
-          models.firstOrNull { it.model == modelState.model }?.deprecated ?: false
-
-      val migratedLlms = mutableSetOf<String>()
-      HistoryService.getInstance(project).state.accountData.forEach { accountData ->
-        accountData.chats
-            .mapNotNull { it.llm }
-            .forEach { llm ->
-              if (isDeprecated(llm)) {
-                llm.title?.let { migratedLlms.add(it) }
-                llm.model = defaultModel.model
-                llm.title = defaultModel.title
-                llm.provider = defaultModel.provider
-              }
-            }
-      }
-
-      if (migratedLlms.isNotEmpty()) {
-        ApplicationManager.getApplication().invokeLater {
-          val msg =
-              """
-              <html>
-              All chats have been upgraded to newer, more capable models. Some old models are no longer supported:<br>
-                <ul>
-                ${migratedLlms.joinToString("</li><li>", "<li>", "</li>")}
-                </ul>
-              </html>
-            """
-                  .trimIndent()
-
-          val title = "Cody models upgrade"
-          val notification =
-              Notification(
-                  NotificationGroups.CODY_UPDATES, title, msg, NotificationType.INFORMATION)
-          notification.setIcon(Icons.CodyLogo)
-          Notifications.Bus.notify(notification)
-        }
-      }
-    }
   }
 
   private fun migrateUrlsToCodebaseNames(project: Project) {
