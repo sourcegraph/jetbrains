@@ -4,10 +4,10 @@ import com.intellij.openapi.diagnostic.Logger
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.edit.DocumentCodeTest
 import com.sourcegraph.cody.util.CodyIntegrationTestFixture
-import java.util.concurrent.TimeUnit
 import org.junit.AfterClass
 import org.junit.runner.RunWith
 import org.junit.runners.Suite
+import java.util.concurrent.TimeUnit
 
 /**
  * We need a single tearDown() method running after all tests are complete, so agent can be closed
