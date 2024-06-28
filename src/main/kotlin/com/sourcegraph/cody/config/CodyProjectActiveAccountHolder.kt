@@ -19,11 +19,11 @@ class CodyProjectActiveAccountHolder(val project: Project) :
   override fun accountManager() = service<CodyAccountManager>()
 
   override fun loadState(state: AccountState) {
-    val newAccount =
+    account =
         state.activeAccountId?.let { id -> accountManager().accounts.find { it.id == id } }
             ?: accountManager().accounts.getFirstAccountOrNull()
 
-    CodyAuthenticationManager.getInstance(project).setActiveAccount(newAccount)
+    CodyAuthenticationManager.getInstance(project).setActiveAccount(account)
   }
 
   companion object {
