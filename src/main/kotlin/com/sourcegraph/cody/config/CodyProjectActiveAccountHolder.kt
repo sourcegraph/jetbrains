@@ -13,11 +13,16 @@ import com.sourcegraph.cody.auth.PersistentActiveAccountHolder
     storages = [Storage(StoragePathMacros.WORKSPACE_FILE)],
     reportStatistic = false)
 @Service(Service.Level.PROJECT)
-class CodyProjectActiveAccountHolder : PersistentActiveAccountHolder<CodyAccount>() {
+class CodyProjectActiveAccountHolder(val project: Project) :
+    PersistentActiveAccountHolder<CodyAccount>() {
 
   override fun accountManager() = service<CodyAccountManager>()
 
-  override fun notifyActiveAccountMissing() {}
+  override fun loadState(state: AccountState) {
+    account = state.activeAccountId?.let { id -> accountManager().accounts.find { it.id == id } }
+
+    CodyAuthenticationManager.getInstance(project).setActiveAccount(account)
+  }
 
   companion object {
     @JvmStatic
