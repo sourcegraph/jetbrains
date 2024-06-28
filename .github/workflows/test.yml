@@ -46,15 +46,17 @@ jobs:
       - run: echo "SKIP_CODE_SEARCH_BUILD=true" >> $GITHUB_ENV
       - run: ./gradlew spotlessCheck
       - run: ./gradlew check
-      - name: Upload test report
+      - name: Upload the test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-report
           path: build/reports/tests/
+          compression-level: 9
       - run: ./gradlew buildPlugin
       - run: ./gradlew --stop
-      - uses: actions/upload-artifact@v4
+      - name: Upload the plugin package
+        uses: actions/upload-artifact@v4
         with:
           name: plugin
           path: './build/distributions/Sourcegraph-*.zip'
@@ -87,7 +89,9 @@ jobs:
             PLUGIN_STRUCTURE_WARNINGS
             MISSING_DEPENDENCIES
             INVALID_PLUGIN
-      - uses: actions/upload-artifact@v4
+      - name: Upload the verification reports
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: plugin-verifier-reports
           path: 'verification-*'
