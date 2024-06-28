@@ -352,9 +352,7 @@ tasks {
       commandLine("pnpm", "run", "_build:webviews")
     }
     copy {
-      from(vscodeDir.resolve("dist/webviews")) {
-        include("*")
-      }
+      from(vscodeDir.resolve("dist/webviews")) { include("*") }
       into(buildCodyDir.resolve("webviews"))
     }
 
