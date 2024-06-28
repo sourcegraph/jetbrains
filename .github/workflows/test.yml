@@ -1,4 +1,4 @@
-name: JetBrains Tests
+name: Build, test and verify
 on:
   pull_request:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 jobs:
   test:
-    name: JetBrains tests
+    name: Build and test
     runs-on: ubuntu-latest
     steps:
       - name: Fetch Sources
@@ -56,8 +56,10 @@ jobs:
       - run: ./gradlew --stop
       - uses: actions/upload-artifact@v4
         with:
-          name: plugin.zip
+          name: plugin
           path: './build/distributions/Sourcegraph-*.zip'
+          compression-level: 0
+          retention-days: 7
   plugin-verifier:
     name: IntelliJ Plugin Verifier
     runs-on: ubuntu-latest
@@ -66,7 +68,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: plugin.zip
+          name: plugin
       - name: Verify Plugin on IntelliJ Platforms
         id: verify
         uses: ChrisCarini/intellij-platform-plugin-verifier-action@v2.0.1
@@ -89,4 +91,5 @@ jobs:
         with:
           name: plugin-verifier-reports
           path: 'verification-*'
+          compression-level: 9
         
