@@ -311,8 +311,8 @@ private constructor(
     }
 
     /**
-     * Gets the plugin path, or null if not found. Can be overridden with the cody-agent.directory system property. Does
-     * not consider CODY_DIR environment variable overrides.
+     * Gets the plugin path, or null if not found. Can be overridden with the cody-agent.directory
+     * system property. Does not consider CODY_DIR environment variable overrides.
      */
     fun pluginDirectory(): Path? {
       val fromProperty = System.getProperty("cody-agent.directory", "")
