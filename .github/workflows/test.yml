@@ -74,7 +74,7 @@ jobs:
           find . -type f -name 'plugin.zip'
       - name: Verify Plugin on IntelliJ Platforms
         id: verify
-        uses: ChrisCarini/intellij-platform-plugin-verifier-action@latest
+        uses: ChrisCarini/intellij-platform-plugin-verifier-action@v2.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
