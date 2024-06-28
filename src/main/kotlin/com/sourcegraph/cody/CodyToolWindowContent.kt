@@ -68,7 +68,6 @@ class CodyToolWindowContent(private val project: Project) {
 
     refreshMyAccountTab()
     removeAllChatSessions()
-    refreshPanelsVisibility()
   }
 
   fun removeAllChatSessions() {
