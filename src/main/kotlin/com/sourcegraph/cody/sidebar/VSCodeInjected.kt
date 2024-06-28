@@ -1,7 +1,8 @@
 package com.sourcegraph.cody.sidebar
 
 // #_vscodeApiScript
-val VSCODE_INJECTED_API_SCRIPT = """
+val VSCODE_INJECTED_API_SCRIPT =
+    """
 					globalThis.acquireVsCodeApi = (function() {
 						const originalPostMessage = window.parent['__vscode_post_message__'].bind(window.parent);
 						const doPostMessage = (channel, data, transfer) => {
@@ -35,4 +36,5 @@ val VSCODE_INJECTED_API_SCRIPT = """
 					delete window.parent;
 					delete window.top;
 					delete window.frameElement;
-""".trimIndent()
+"""
+        .trimIndent()

@@ -10,7 +10,6 @@ import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.util.net.HttpConfigurable
 import com.sourcegraph.cody.chat.AgentChatSessionService
-import com.sourcegraph.cody.sidebar.WebUIChatService
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.context.RemoteRepoSearcher
 import com.sourcegraph.cody.edit.FixupService
@@ -18,6 +17,7 @@ import com.sourcegraph.cody.edit.sessions.CodyEditingNotAvailableException
 import com.sourcegraph.cody.error.CodyConsole
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
+import com.sourcegraph.cody.sidebar.WebUIChatService
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.utils.CodyEditorUtil
 import java.util.Timer
