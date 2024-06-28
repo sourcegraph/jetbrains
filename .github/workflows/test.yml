@@ -45,14 +45,14 @@ jobs:
       # Skip Code Search build in CI because it's slow, and we don't use it anyway for testing purposes.
       - run: echo "SKIP_CODE_SEARCH_BUILD=true" >> $GITHUB_ENV
       - run: ./gradlew spotlessCheck
-      # - run: ./gradlew check
+      - run: ./gradlew check
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-report
           path: build/reports/tests/
-      - run: ./gradlew buildPlugin -x test
+      - run: ./gradlew buildPlugin
       # - run: ./gradlew runPluginVerifier -Pvalidation=lite
       - run: ./gradlew --stop
       - uses: actions/upload-artifact@v4
