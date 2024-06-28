@@ -9,6 +9,7 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ChatModelsParams
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ModelUsage
+import com.sourcegraph.cody.config.AccountTier
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.history.HistoryService
@@ -52,12 +53,17 @@ class LlmDropdown(
 
     models.filterNot { it.deprecated }.sortedBy { it.codyProOnly }.forEach(::addItem)
 
-    val selectedFromState = chatModelProviderFromState
-    val selectedFromHistory = HistoryService.getInstance(project).getDefaultLlm()
-    selectedItem =
-        models.find { it.model == selectedFromState?.model && !it.deprecated }
-            ?: models.find { it.model == selectedFromHistory?.model && !it.deprecated }
-            ?: models.find { it.default }
+    CodyAuthenticationManager.getInstance(project).getActiveAccountTier().thenApply { accountTier ->
+      if (accountTier == null) return@thenApply
+      isCurrentUserFree = accountTier == AccountTier.DOTCOM_FREE
+
+      val selectedFromState = chatModelProviderFromState
+      val selectedFromHistory = HistoryService.getInstance(project).getDefaultLlm()
+      selectedItem =
+          models.find { it.model == selectedFromState?.model && !it.deprecated }
+              ?: models.find { it.model == selectedFromHistory?.model && !it.deprecated }
+              ?: models.find { it.default }
+    }
 
     val isEnterpriseAccount =
         CodyAuthenticationManager.getInstance(project).getActiveAccount()?.isEnterpriseAccount()
