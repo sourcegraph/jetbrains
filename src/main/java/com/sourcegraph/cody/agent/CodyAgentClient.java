@@ -183,10 +183,9 @@ public class CodyAgentClient {
   public void grossWebviewPostMessageServerToClient(@NotNull ExtensionMessage message) {
     if (onReceivedGrossHacksWebviewMessage != null) {
       ApplicationManager.getApplication()
-              .invokeLater(() -> onReceivedGrossHacksWebviewMessage.accept(message));
+          .invokeLater(() -> onReceivedGrossHacksWebviewMessage.accept(message));
     }
   }
-
 
   @JsonNotification("webview/postMessage")
   public void webviewPostMessage(@NotNull WebviewPostMessageParams params) {
