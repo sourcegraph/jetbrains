@@ -92,6 +92,6 @@ jobs:
             INVALID_PLUGIN
       - uses: actions/upload-artifact@v4
         with:
-          name: plugin-verifier-reports.log
-          path: ${{steps.verify.outputs.verification-output-log-filename}}
+          name: plugin-verifier-reports
+          path: 'verification-*'
         
