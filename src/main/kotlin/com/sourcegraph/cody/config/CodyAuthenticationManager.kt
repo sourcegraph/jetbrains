@@ -258,6 +258,11 @@ class CodyAuthenticationManager(val project: Project) :
     }
   }
 
+  override fun noStateLoaded() {
+    super.noStateLoaded()
+    loadState(AccountState())
+  }
+
   companion object {
 
     @JvmStatic
