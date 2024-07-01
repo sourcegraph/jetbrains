@@ -16,6 +16,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.util.AuthData
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
@@ -246,7 +247,15 @@ class CodyAuthenticationManager(val project: Project) :
   }
 
   override fun loadState(state: AccountState) {
-    account = state.activeAccountId?.let { id -> accountManager.accounts.find { it.id == id } }
+    val initialAccount =
+        state.activeAccountId?.let { id -> accountManager.accounts.find { it.id == id } }
+            ?: getAccounts().firstOrNull()
+    if (initialAccount == null) {
+      // The call to refreshPanelsVisibility() is needed to update the UI when there is no account.
+      CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) { refreshPanelsVisibility() }
+    } else {
+      setActiveAccount(initialAccount)
+    }
   }
 
   companion object {
