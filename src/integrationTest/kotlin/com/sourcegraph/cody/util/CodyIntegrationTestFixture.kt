@@ -27,22 +27,15 @@ import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import org.junit.Rule
-import org.junit.rules.TestName
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {
 
-  @JvmField @Rule var testName = TestName()
-
   override fun setUp() {
     super.setUp()
-    val methodName =
-        testName.methodName
-            ?: throw IllegalStateException(
-                "testName.methodName is null. Make sure the test has this rule set up correctly.")
+    val methodName = name
     val method =
         this.javaClass.getMethod(methodName)
             ?: throw IllegalStateException(
