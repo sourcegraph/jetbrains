@@ -1,5 +1,8 @@
 package com.sourcegraph.cody.edit
 
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.testFramework.runInEdtAndGet
 import com.jetbrains.rd.util.AtomicInteger
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_DISPLAY_ACCEPT_GROUP
@@ -16,11 +19,27 @@ import com.sourcegraph.cody.edit.widget.LensHotkey
 import com.sourcegraph.cody.edit.widget.LensIcon
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
-import com.sourcegraph.cody.util.CodyIntegrationTextFixture
+import com.sourcegraph.cody.util.CodyIntegrationTestFixture
+import com.sourcegraph.cody.util.TestFile
 import junit.framework.TestCase
+import org.junit.Test
 
-class DocumentCodeTest : CodyIntegrationTextFixture() {
+class DocumentCodeTest : CodyIntegrationTestFixture() {
 
+  override fun checkInitialConditions() {
+    super.checkInitialConditions()
+    // Make sure our action is enabled and visible.
+    val action = ActionManager.getInstance().getAction("cody.documentCodeAction")
+    val event =
+        AnActionEvent.createFromAnAction(action, null, "", createEditorContext(myFixture.editor))
+    action.update(event)
+    val presentation = event.presentation
+    assertTrue("Action should be enabled", presentation.isEnabled)
+    assertTrue("Action should be visible", presentation.isVisible)
+  }
+
+  @Test
+  @TestFile("testProjects/documentCode/src/main/java/Foo.java")
   fun testGetsFoldingRanges() {
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_FOLDING_RANGES)
 
@@ -39,7 +58,9 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         selection.startOffset == caret && selection.endOffset == caret)
   }
 
-  fun skip_testGetsWorkingGroupLens() {
+  @Test
+  @TestFile("testProjects/documentCode/src/main/java/Foo.java")
+  fun testGetsWorkingGroupLens() {
     val assertsExecuted = AtomicInteger(0)
     val showWorkingGroupSessionStateListener =
         object : FixupService.ActiveFixupSessionStateListener {
@@ -87,6 +108,8 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     }
   }
 
+  @Test
+  @TestFile("testProjects/documentCode/src/main/java/Foo.java")
   fun testShowsAcceptLens() {
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
     assertInlayIsShown()
@@ -123,6 +146,8 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     assertTrue(hasJavadocComment(myFixture.editor.document.text))
   }
 
+  @Test
+  @TestFile("testProjects/documentCode/src/main/java/Foo.java")
   fun testAccept() {
     assertNoActiveSession()
     assertNoInlayShown()
@@ -139,7 +164,9 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     assertNoActiveSession()
   }
 
-  fun skip_testUndo() {
+  @Test
+  @TestFile("testProjects/documentCode/src/main/java/Foo.java")
+  fun testUndo() {
     val originalDocument = myFixture.editor.document.text
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
     assertNotSame(
@@ -152,5 +179,9 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         originalDocument,
         myFixture.editor.document.text)
     assertNoInlayShown()
+  }
+
+  companion object {
+    private val logger = Logger.getInstance(DocumentCodeTest::class.java)
   }
 }

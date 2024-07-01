@@ -1,8 +1,9 @@
 package com.sourcegraph.cody
 
+import com.intellij.openapi.diagnostic.Logger
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.edit.DocumentCodeTest
-import com.sourcegraph.cody.util.CodyIntegrationTextFixture
+import com.sourcegraph.cody.util.CodyIntegrationTestFixture
 import java.util.concurrent.TimeUnit
 import org.junit.AfterClass
 import org.junit.runner.RunWith
@@ -18,16 +19,25 @@ import org.junit.runners.Suite
  * automatically after the platform version bump.
  *
  * Multiple recording files can be used, but each should have its own suite with tearDown() method
- * nad define unique CODY_RECORDING_NAME.
+ * and define unique CODY_RECORDING_NAME.
  */
 @RunWith(Suite::class)
 @Suite.SuiteClasses(DocumentCodeTest::class)
 class AllSuites {
   companion object {
+    private val logger = Logger.getInstance(AllSuites::class.java)
+
     @AfterClass
     @JvmStatic
     internal fun tearDown() {
-      CodyAgentService.withAgent(CodyIntegrationTextFixture.myProject!!) { agent ->
+      val project = CodyIntegrationTestFixture.myProject
+      // Can happen if a test or fixture introduces a bug, and it makes it hard to read test output
+      // if we are throwing an NPE.
+      if (project == null) {
+        logger.warn("No project found - unable to shut down agent gracefully.")
+        return
+      }
+      CodyAgentService.withAgent(project) { agent ->
         val errors = agent.server.testingRequestErrors().get()
         // We extract polly.js errors to notify users about the missing recordings, if any
         val missingRecordings = errors.filter { it.error?.contains("`recordIfMissing` is") == true }
@@ -46,7 +56,7 @@ class AllSuites {
 
         agent.server
             .shutdown()
-            .get(CodyIntegrationTextFixture.ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .get(CodyIntegrationTestFixture.ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         agent.server.exit()
       }
     }

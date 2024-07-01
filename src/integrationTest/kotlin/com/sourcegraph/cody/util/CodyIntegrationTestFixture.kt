@@ -1,8 +1,6 @@
 package com.sourcegraph.cody.util
 
 import com.intellij.ide.lightEdit.LightEdit
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
@@ -29,13 +27,30 @@ import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import org.junit.Rule
+import org.junit.rules.TestName
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 
-open class CodyIntegrationTextFixture : BasePlatformTestCase() {
-  private val logger = Logger.getInstance(CodyIntegrationTextFixture::class.java)
+@RunWith(JUnit4::class)
+abstract class CodyIntegrationTestFixture : BasePlatformTestCase() {
+
+  @JvmField @Rule var testName = TestName()
 
   override fun setUp() {
     super.setUp()
-    configureFixture()
+    val methodName =
+        testName.methodName
+            ?: throw IllegalStateException(
+                "testName.methodName is null. Make sure the test has this rule set up correctly.")
+    val method =
+        this.javaClass.getMethod(methodName)
+            ?: throw IllegalStateException(
+                "No method with name $methodName found in ${this.javaClass.name}")
+    if (method.isAnnotationPresent(TestFile::class.java)) {
+      val testFile = method.getAnnotation(TestFile::class.java).value
+      configureFixture(testFile)
+    }
     checkInitialConditions()
     myProject = project
   }
@@ -54,7 +69,7 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
     }
   }
 
-  private fun configureFixture() {
+  private fun configureFixture(testFile: String) {
     // If you don't specify this system property with this setting when running the tests,
     // the tests will fail, because IntelliJ will run them from the EDT, which can't block.
     // Setting this property invokes the tests from an executor pool thread, which lets us
@@ -67,24 +82,30 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
     assertTrue(testResourcesDir.exists())
 
     // During test runs this is set by IntelliJ to a private temp folder.
-    // We pass it to the Agent during initialization.
-    val workspaceRootUri = ConfigUtil.getWorkspaceRootPath(project)
-
     // We copy the test resources there manually, bypassing Gradle, which is picky.
-    val testDataPath = Paths.get(workspaceRootUri.toString(), "src/").toFile()
+    val testDataPath = Paths.get(getTestDataPath()).toFile()
     testResourcesDir.copyRecursively(testDataPath, overwrite = true)
 
     // This useful setting lets us tell the fixture to look where we copied them.
     myFixture.testDataPath = testDataPath.path
 
     // The file we pass to configureByFile must be relative to testDataPath.
-    val projectFile = "testProjects/documentCode/src/main/java/Foo.java"
-    val sourcePath = Paths.get(testDataPath.path, projectFile).toString()
+    val sourcePath = Paths.get(testDataPath.path, testFile).toString()
     assertTrue(File(sourcePath).exists())
-    myFixture.configureByFile(projectFile)
+    myFixture.configureByFile(testFile)
 
     initCredentialsAndAgent()
     initCaretPosition()
+  }
+
+  override fun getTestDataPath(): String {
+    if (project == null) {
+      return super.getTestDataPath()
+    }
+    // During test runs this is set by IntelliJ to a private temp folder.
+    // We pass it to the Agent during initialization.
+    val workspaceRootUri = ConfigUtil.getWorkspaceRootPath(project)
+    return Paths.get(workspaceRootUri.toString(), "src/").toString()
   }
 
   // Ideally we should call this method only once per recording session, but since we need a
@@ -109,7 +130,7 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
             .get())
   }
 
-  private fun checkInitialConditions() {
+  protected open fun checkInitialConditions() {
     val project = myFixture.project
 
     // Check if the project is in dumb mode
@@ -119,18 +140,9 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
     // Check if the project is in LightEdit mode
     val isLightEditMode = LightEdit.owns(project)
     assertFalse("Project should not be in LightEdit mode", isLightEditMode)
-
-    // Check the initial state of the action's presentation
-    val action = ActionManager.getInstance().getAction("cody.documentCodeAction")
-    val event =
-        AnActionEvent.createFromAnAction(action, null, "", createEditorContext(myFixture.editor))
-    action.update(event)
-    val presentation = event.presentation
-    assertTrue("Action should be enabled", presentation.isEnabled)
-    assertTrue("Action should be visible", presentation.isVisible)
   }
 
-  private fun createEditorContext(editor: Editor): DataContext {
+  protected fun createEditorContext(editor: Editor): DataContext {
     return (editor as? EditorEx)?.dataContext ?: DataContext.EMPTY_CONTEXT
   }
 
@@ -259,6 +271,8 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
   }
 
   companion object {
+    private val logger = Logger.getInstance(CodyIntegrationTestFixture::class.java)
+
     const val ASYNC_WAIT_TIMEOUT_SECONDS = 10L
     var myProject: Project? = null
   }
