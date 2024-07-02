@@ -738,7 +738,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Thu, 27 Jun 2024 17:23:32 GMT
+            value: Tue, 02 Jul 2024 15:48:38 GMT
           - name: content-type
             value: text/plain; charset=utf-8
           - name: content-length
@@ -746,7 +746,7 @@ log:
           - name: connection
             value: keep-alive
           - name: retry-after
-            value: "63"
+            value: "69"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -768,7 +768,7 @@ log:
         redirectURL: ""
         status: 401
         statusText: Unauthorized
-      startedDateTime: 2024-06-27T17:23:32.481Z
+      startedDateTime: 2024-07-02T15:48:38.248Z
       time: 0
       timings:
         blocked: -1

@@ -74,7 +74,8 @@ class DocumentCodeTest : CodyIntegrationTestFixture() {
               val lenses = activeSession().lensGroup
               // Lens group should match the expected structure.
               assertNotNull("Lens group should be displayed", lenses)
-              assertFalse("Error lens group should not be displayed", lenses!!.isErrorGroup)
+              val isErrorGroup = lenses!!.isErrorGroup
+              assertFalse("Should not be an error group: " + lenses.errorMessage, isErrorGroup)
 
               val theWidgets = lenses.widgets
 
