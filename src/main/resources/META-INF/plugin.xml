@@ -230,6 +230,11 @@
             <keyboard-shortcut replace-all="true" first-keystroke="ctrl alt G" keymap="Mac OS X 10.5+"/>
         </action>
 
+        <action id="cody.fixProblemAction"
+          class="com.sourcegraph.cody.edit.actions.FixProblemAction">
+            <add-to-group group-id="CodyEditorActions" anchor="first"/>
+        </action>
+
         <action id="cody.documentCodeAction"
                 icon="/icons/edit/document_code.svg"
                 class="com.sourcegraph.cody.edit.actions.DocumentCodeAction">
