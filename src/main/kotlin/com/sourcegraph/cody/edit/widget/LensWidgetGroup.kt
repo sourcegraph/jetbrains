@@ -57,6 +57,9 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   val widgets = mutableListOf<LensWidget>()
 
+  // Set on Error groups.
+  var errorMessage: String? = null
+
   private val mouseClickListener =
       object : EditorMouseListener {
         override fun mouseClicked(e: EditorMouseEvent) {
@@ -235,7 +238,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     for (widget in widgets) {
       val widgetWidth = widget.calcWidthInPixels(fontMetrics)
       val rightEdgeX = currentX + widgetWidth
-      if (x >= currentX && x <= rightEdgeX) { // In widget's bounds?
+      if (x in currentX..rightEdgeX) { // In widget's bounds?
         return widget
       }
       currentX = rightEdgeX
@@ -392,7 +395,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     // was found empirically and seems to work well for all font sizes.
     private const val INLAY_HEIGHT_SCALE_FACTOR = 1.2
 
-    // Flag to force recomputation of left margin.
+    // Flag to force recalculation of left margin.
     private const val RECOMPUTE = -1
   }
 }

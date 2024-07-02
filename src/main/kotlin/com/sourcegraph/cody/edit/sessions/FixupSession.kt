@@ -94,8 +94,11 @@ abstract class FixupSession(
       }
 
   init {
-    document.addDocumentListener(documentListener, /* parentDisposable= */ this)
-    Disposer.register(controller, this)
+    // There is a race condition here, but it keeps us from leaking 'this' in the constructor.
+    ApplicationManager.getApplication().invokeAndWait {
+      Disposer.register(controller, this)
+      document.addDocumentListener(documentListener, /* parentDisposable= */ this)
+    }
     triggerFixupAsync()
   }
 
@@ -464,10 +467,6 @@ abstract class FixupSession(
 
   fun isShowingErrorLens(): Boolean {
     return lensGroup?.isErrorGroup == true
-  }
-
-  fun hasAcceptLensBeenShown(): Boolean {
-    return documentListener.isAcceptLensGroupShown.get()
   }
 
   private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {

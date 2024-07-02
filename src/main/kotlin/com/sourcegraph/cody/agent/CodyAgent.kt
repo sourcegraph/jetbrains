@@ -134,7 +134,11 @@ private constructor(
           throw e
         }
       } catch (e: Exception) {
-        logger.warn("Unable to start Cody agent", e)
+        if (ConfigUtil.shouldConnectToDebugAgent()) {
+          logger.warn("Unable to connect to remote Cody agent", e)
+        } else {
+          logger.warn("Unable to start Cody agent", e)
+        }
         throw e
       }
     }
@@ -191,8 +195,7 @@ private constructor(
       }
 
       logger.info("starting Cody agent ${command.joinToString(" ")}")
-      logger.info(
-          "Cody agent proxyUrl ${proxyUrl} PROXY_TYPE_IS_SOCKS ${proxy.PROXY_TYPE_IS_SOCKS}")
+      logger.info("Cody agent proxyUrl $proxyUrl PROXY_TYPE_IS_SOCKS ${proxy.PROXY_TYPE_IS_SOCKS}")
 
       val process =
           processBuilder
@@ -319,16 +322,21 @@ private constructor(
       }
       val binaryTarget = Files.createTempFile("cody-agent", binarySuffix())
       return try {
-        binaryTarget?.toFile()?.deleteOnExit()
+        logger.info("Extracting Node binary to " + binaryTarget.toAbsolutePath())
+        Files.copy(binarySource, binaryTarget, StandardCopyOption.REPLACE_EXISTING)
+        val binary = binaryTarget.toFile()
+        if (!binary.exists()) {
+          throw CodyAgentException("Failed to extract Node binary to " + binary.absolutePath)
+        }
+        // N.B.: Make sure you set these deletion triggers -after- the Files.copy() call, or the
+        // copy will delete the target file during integration tests on certain machines.
+        binary.deleteOnExit()
         token.onFinished {
           // Important: delete the file from disk after the process exists
           // Ideally, we should eventually replace this temporary file with a permanent location
           // in the plugin directory.
           Files.deleteIfExists(binaryTarget)
         }
-        logger.info("Extracting Node binary to " + binaryTarget.toAbsolutePath())
-        Files.copy(binarySource, binaryTarget, StandardCopyOption.REPLACE_EXISTING)
-        val binary = binaryTarget.toFile()
         if (binary.setExecutable(true)) {
           binary
         } else {

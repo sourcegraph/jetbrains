@@ -14,6 +14,8 @@ import com.sourcegraph.cody.agent.protocol.CompletionItemParams
 import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.Event
+import com.sourcegraph.cody.agent.protocol.GetDocumentsParams
+import com.sourcegraph.cody.agent.protocol.GetDocumentsResult
 import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.agent.protocol.GetFoldingRangeParams
 import com.sourcegraph.cody.agent.protocol.GetFoldingRangeResult
@@ -57,7 +59,9 @@ interface CodyAgentServer {
 
   @JsonRequest("graphql/logEvent") fun logEvent(event: Event): CompletableFuture<Void?>
 
-  @JsonRequest("graphql/currentUserId") fun currentUserId(): CompletableFuture<String>
+  @Suppress("unused")
+  @JsonRequest("graphql/currentUserId")
+  fun currentUserId(): CompletableFuture<String>
 
   @JsonRequest("graphql/getRepoIds")
   fun getRepoIds(repoName: GetRepoIdsParam): CompletableFuture<GetRepoIdsResponse>
@@ -155,4 +159,9 @@ interface CodyAgentServer {
 
   @JsonRequest("testing/requestErrors")
   fun testingRequestErrors(): CompletableFuture<List<NetworkRequest>>
+
+  @JsonRequest("testing/workspaceDocuments")
+  fun testingWorkspaceDocuments(params: GetDocumentsParams): CompletableFuture<GetDocumentsResult>
+
+  @JsonRequest("testing/awaitPendingPromises") fun awaitPendingPromises(): CompletableFuture<Unit>
 }

@@ -40,6 +40,7 @@ class LensGroupFactory(val session: FixupSession) {
 
   fun createErrorGroup(tooltip: String, isDocumentCode: Boolean = false): LensWidgetGroup {
     return LensWidgetGroup(session, session.editor).apply {
+      errorMessage = tooltip
       addLogo(this)
       addErrorIcon(this)
       val verb = if (isDocumentCode) "document" else "edit"

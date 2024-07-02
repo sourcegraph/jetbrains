@@ -93,6 +93,7 @@ dependencies {
   testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.0.0")
   testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1")
+  testImplementation("junit:junit:4.13.2")
 }
 
 spotless {
