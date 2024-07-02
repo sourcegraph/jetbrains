@@ -126,18 +126,18 @@ We trigger the stable channel release only after the nightly channel release pas
 
 ```mermaid
 graph TD;
-    Title["JetBrains plugin release"] --> stable;
-    Title --> nightly;
-    stable --> push_stable["push git tag"];
-    push_stable --> release_job_stable["wait for release job to complete"];
-    release_job_stable --> marketplace_approval["wait for marketplace approval"];
-    marketplace_approval -->|Automated approval, up to 48hr| unhide["unhide"];
-    unhide --> available_to_end_users_stable["available for download"];
-    marketplace_approval -->|Manual quick-approve| slack_approval["request JetBrains Marketplace team to manually approve update via Slack"];
-    slack_approval --> unhide["unhide approved release (requires admin access)"];
-    nightly --> push_nightly["push git tag\nwith '-nightly' suffix"];
-    push_nightly --> release_job_nightly["wait for release job to complete"];
-    release_job_nightly --> available_to_end_users_nightly["available for download"];
+    Title --> nightly["Nightly Release"];
+    Title["JetBrains Plugin Release"] --> stable["Stable Release"];
+    stable -->  trigger_stable["Manually trigger 'Stable Release' workflow\nin GitHub Actions"];
+    release_stable --> marketplace_approval["Wait for JetBrains approval"];
+    marketplace_approval --> |Automated approval, up to 48hr| unhide["unhide"];
+    unhide --> available_to_end_users_stable["Available for download"];
+    marketplace_approval --> |Manual quick-approve| slack_approval["Request JetBrains Marketplace team\nto manually approve it via Slack"];
+    slack_approval --> unhide["Unhide the approved release\n(requires admin access)"];
+    nightly --> push_nightly["Run `push-git-tag-for-next-release.sh`"];
+    trigger_stable --> release_stable["Wait for 'Stable Release' workflow to complete"];
+    push_nightly --> release_nightly["Wait for 'Nightly Release' workflow to complete"];
+    release_nightly --> available_to_end_users_nightly["Available for download"];
 ```
 
 We aim to cut a new Stable release every other week on Mondays.
