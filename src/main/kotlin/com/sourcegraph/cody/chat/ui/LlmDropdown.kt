@@ -41,12 +41,6 @@ class LlmDropdown(
       val response =
           chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get() ?: return@withAgent
 
-      // The value is not used directly here, but we need to initialize the account trier cache.
-      CodyAuthenticationManager.getInstance(project)
-          .getActiveAccountTier()
-          .completeOnTimeout(AccountTier.DOTCOM_FREE, 10, TimeUnit.SECONDS)
-          .get()
-
       invokeLater { updateModelsInUI(response.models) }
     }
   }
@@ -55,14 +49,19 @@ class LlmDropdown(
   private fun updateModelsInUI(models: List<ChatModelsResponse.ChatModelProvider>) {
     if (project.isDisposed) return
 
-    models.filterNot { it.deprecated }.sortedBy { it.codyProOnly }.forEach(::addItem)
+    val availableModels = models.filterNot { it.deprecated }
+    availableModels.sortedBy { it.codyProOnly }.forEach(::addItem)
 
     val selectedFromState = chatModelProviderFromState
     val selectedFromHistory = HistoryService.getInstance(project).getDefaultLlm()
+    val selectedModel =
+        availableModels.find { it.model == selectedFromState?.model }
+            ?: availableModels.find { it.model == selectedFromHistory?.model }
+
     selectedItem =
-        models.find { it.model == selectedFromState?.model && !it.deprecated }
-            ?: models.find { it.model == selectedFromHistory?.model && !it.deprecated }
-            ?: models.find { it.default }
+        if (selectedModel?.codyProOnly == true && isCurrentUserFree())
+            availableModels.find { it.default }
+        else selectedModel
 
     val isEnterpriseAccount =
         CodyAuthenticationManager.getInstance(project).account?.isEnterpriseAccount() ?: false
