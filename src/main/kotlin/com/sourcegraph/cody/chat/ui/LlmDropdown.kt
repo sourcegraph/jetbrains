@@ -41,6 +41,12 @@ class LlmDropdown(
       val response =
           chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get() ?: return@withAgent
 
+      // The value is not used directly here, but we need to initialize the account trier cache.
+      CodyAuthenticationManager.getInstance(project)
+          .getActiveAccountTier()
+          .completeOnTimeout(AccountTier.DOTCOM_FREE, 10, TimeUnit.SECONDS)
+          .get()
+
       invokeLater { updateModelsInUI(response.models) }
     }
   }
@@ -91,11 +97,10 @@ class LlmDropdown(
     }
   }
 
-  fun isCurrentUserFree(): Boolean {
-    return CodyAuthenticationManager.getInstance(project)
-        .getActiveAccountTier()
-        .getNow(AccountTier.DOTCOM_FREE) === AccountTier.DOTCOM_FREE
-  }
+  fun isCurrentUserFree(): Boolean =
+      CodyAuthenticationManager.getInstance(project)
+          .getActiveAccountTier()
+          .getNow(AccountTier.DOTCOM_FREE) == AccountTier.DOTCOM_FREE
 
   @RequiresEdt
   fun updateAfterFirstMessage() {
