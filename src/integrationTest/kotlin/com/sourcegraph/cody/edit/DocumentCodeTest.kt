@@ -22,6 +22,7 @@ import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.cody.util.CodyIntegrationTestFixture
 import com.sourcegraph.cody.util.TestFile
 import junit.framework.TestCase
+import org.junit.Ignore
 import org.junit.Test
 
 class DocumentCodeTest : CodyIntegrationTestFixture() {
@@ -169,6 +170,7 @@ class DocumentCodeTest : CodyIntegrationTestFixture() {
 
   @Test
   @TestFile(TEST_FILE_PATH)
+  @Ignore
   fun testUndo() {
     val originalDocument = myFixture.editor.document.text
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)

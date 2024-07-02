@@ -95,7 +95,7 @@ abstract class FixupSession(
 
   init {
     // There is a race condition here, but it keeps us from leaking 'this' in the constructor.
-    ApplicationManager.getApplication().invokeLater {
+    ApplicationManager.getApplication().invokeAndWait {
       Disposer.register(controller, this)
       document.addDocumentListener(documentListener, /* parentDisposable= */ this)
     }

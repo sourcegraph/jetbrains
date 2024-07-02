@@ -8,7 +8,7 @@ import java.nio.file.Paths
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
-import java.util.*
+import java.util.EnumSet
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import org.jetbrains.changelog.markdownToHTML
@@ -224,7 +224,6 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
       "CODY_RECORDING_MODE" to mode,
       "CODY_RECORDING_NAME" to "integration-test",
       "CODY_RECORDING_DIRECTORY" to resourcesDir.resolve("recordings").absolutePath,
-      "CODY_RECORD_IF_MISSING" to "true",
       "CODY_SHIM_TESTING" to "true",
       "CODY_TEMPERATURE_ZERO" to "true",
       "CODY_TELEMETRY_EXPORTER" to "testing",
