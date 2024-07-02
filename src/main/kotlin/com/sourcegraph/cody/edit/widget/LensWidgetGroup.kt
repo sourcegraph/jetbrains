@@ -25,7 +25,6 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.sessions.FixupSession
-import org.jetbrains.annotations.NotNull
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -37,6 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
 import kotlin.math.roundToInt
+import org.jetbrains.annotations.NotNull
 
 operator fun Point.component1() = this.x
 
