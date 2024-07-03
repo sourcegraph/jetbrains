@@ -1,4 +1,4 @@
-name: JetBrains Tests
+name: Build, test and verify
 on:
   pull_request:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 jobs:
   test:
-    name: Build and test
+    name: JetBrains tests
     runs-on: ubuntu-latest
     steps:
       - name: Fetch Sources
