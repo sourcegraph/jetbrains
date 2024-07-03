@@ -1,4 +1,4 @@
-name: Build, test and verify
+name: JetBrains Tests
 on:
   pull_request:
   push:
