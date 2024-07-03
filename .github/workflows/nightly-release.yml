@@ -29,7 +29,6 @@ jobs:
           echo "RELEASE_VERSION=$(./scripts/version-from-git-tag.sh)" >> $GITHUB_ENV
       - run: echo "Publishing version $RELEASE_VERSION"
       - name: Publish nightly version
-        if: "!endsWith(env.RELEASE_VERSION, '-nightly')"
         run: |
           echo "Publishing nightly version ${RELEASE_VERSION}-nightly"
           ./gradlew "-PpluginVersion=${RELEASE_VERSION}-nightly" publishPlugin
