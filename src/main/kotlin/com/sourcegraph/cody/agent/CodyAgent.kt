@@ -119,7 +119,9 @@ private constructor(
                               codeLenses = "enabled",
                               showDocument = "enabled",
                               ignore = "enabled",
-                              untitledDocuments = "enabled")))
+                              untitledDocuments = "enabled",
+                              webview = "native",
+                              webviewMessages = "string-encoded")))
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)
                 server.initialized()
