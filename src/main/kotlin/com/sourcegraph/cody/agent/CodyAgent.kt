@@ -126,7 +126,7 @@ private constructor(
                               ignore = ClientCapabilities.IgnoreEnum.Enabled,
                               untitledDocuments = ClientCapabilities.UntitledDocumentsEnum.Enabled,
                               codeActions = ClientCapabilities.CodeActionsEnum.Enabled,
-                              webview = "native",
+//                              webview = WebviewCapabilities("native", "'self' https://*.sourcegraphstatic.com", "https://file+.sourcegraphstatic.com/"),
                               webviewMessages = ClientCapabilities.WebviewMessagesEnum.`String-encoded`)))
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)
