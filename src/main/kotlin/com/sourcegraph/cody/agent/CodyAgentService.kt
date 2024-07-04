@@ -17,8 +17,8 @@ import com.sourcegraph.cody.edit.sessions.CodyEditingNotAvailableException
 import com.sourcegraph.cody.error.CodyConsole
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
-import com.sourcegraph.cody.sidebar.WebUIChatService
 import com.sourcegraph.cody.statusbar.CodyStatusService
+import com.sourcegraph.cody.ui.WebUIService
 import com.sourcegraph.utils.CodyEditorUtil
 import java.util.Timer
 import java.util.TimerTask
@@ -71,10 +71,13 @@ class CodyAgentService(private val project: Project) : Disposable {
         }
       }
 
+      agent.client.onWebviewCreateWebviewPanel = Consumer { params ->
+        WebUIService.getInstance(project)?.createWebviewPanel(params)
+      }
+
       agent.client.onReceivedWebviewPostMessage = Consumer { params ->
         if (!project.isDisposed) {
-          // TODO: Look up the specific chat
-          WebUIChatService.getInstance(project)?.receiveMessage(params.stringEncodedMessage)
+          WebUIService.getInstance(project)?.postMessageHostToWebview(params.id, params.stringEncodedMessage)
         }
       }
 
