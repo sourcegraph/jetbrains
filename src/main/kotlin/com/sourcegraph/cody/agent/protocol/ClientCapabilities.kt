@@ -1,5 +1,11 @@
 package com.sourcegraph.cody.agent.protocol
 
+data class WebviewCapabilities(
+    var type: String,
+    var cspSource: String,
+    var webviewBundleServingPrefix: String,
+)
+
 data class ClientCapabilities(
     var completions: String? = null,
     var chat: String? = null,
@@ -11,6 +17,6 @@ data class ClientCapabilities(
     val showDocument: String? = null,
     val ignore: String? = null,
     val untitledDocuments: String? = null,
-    val webview: String? = null,
+    val webview: WebviewCapabilities? = null,
     val webviewMessages: String? = null,
 )
