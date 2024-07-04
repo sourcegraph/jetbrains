@@ -30,9 +30,9 @@ public class CodyAgentClient {
 
   // Callback that is invoked on webview messages which aren't handled by onNewMessage or
   // onSetConfigFeatures
-  @Nullable Consumer<WebviewPostMessageParams> onReceivedWebviewMessage;
+  @Nullable Consumer<WebviewPostMessageParams> onReceivedWebviewMessageTODODeleteThis;
 
-  @Nullable Consumer<ExtensionMessage> onReceivedGrossHacksWebviewMessage;
+  @Nullable Consumer<WebviewPostMessageStringEncodedParams> onReceivedWebviewPostMessage;
 
   // Callback for the "editTask/didUpdate" notification from the agent.
   @Nullable Consumer<EditTask> onEditTaskDidUpdate;
@@ -179,19 +179,18 @@ public class CodyAgentClient {
     }
   }
 
-  @JsonNotification("grosshacks/webview/postMessage")
-  public void grossWebviewPostMessageServerToClient(@NotNull ExtensionMessage message) {
-    if (onReceivedGrossHacksWebviewMessage != null) {
+  @JsonNotification("webview/postMessageStringEncoded")
+  public void webviewPostMessageStringEncoded(@NotNull WebviewPostMessageStringEncodedParams params) {
+    if (onReceivedWebviewPostMessage != null) {
       ApplicationManager.getApplication()
-          .invokeLater(() -> onReceivedGrossHacksWebviewMessage.accept(message));
+          .invokeLater(() -> onReceivedWebviewPostMessage.accept(params));
     }
   }
 
+  // TODO: Remove this
   @JsonNotification("webview/postMessage")
   public void webviewPostMessage(@NotNull WebviewPostMessageParams params) {
     ExtensionMessage extensionMessage = params.getMessage();
-
-    // TODO: When using WebView Chat UX, all messages should be forwarded to the webview.
 
     if (onNewMessage != null
         && extensionMessage.getType().equals(ExtensionMessage.Type.TRANSCRIPT)) {
@@ -206,9 +205,9 @@ public class CodyAgentClient {
       return;
     }
 
-    if (onReceivedWebviewMessage != null) {
+    if (onReceivedWebviewMessageTODODeleteThis != null) {
       ApplicationManager.getApplication()
-          .invokeLater(() -> onReceivedWebviewMessage.accept(params));
+          .invokeLater(() -> onReceivedWebviewMessageTODODeleteThis.accept(params));
       return;
     }
 
