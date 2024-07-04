@@ -173,12 +173,11 @@ interface _LegacyAgentServer {
 
   @JsonRequest("editCommands/test") fun commandsTest(): CompletableFuture<EditTask>
 
-  @JsonRequest("chat/new") fun chatNew(): CompletableFuture<String>
+  @JsonRequest("chat/new") fun chatNewTODODeleteMe(): CompletableFuture<String>
+  @JsonRequest("chat/web/new") fun chatNew(): CompletableFuture<Any>
 
-  @JsonRequest("grosshacks/chat/new") fun grossChatNew(): CompletableFuture<Void?>
-
-  @JsonRequest("grosshacks/webview/postMessageClientToServer")
-  fun grossWebviewPostMessageClientToServer(params: WebviewMessage): CompletableFuture<Void?>
+  @JsonRequest("webview/receiveMessageStringEncoded")
+  fun webviewReceiveMessageStringEncoded(params: WebviewReceiveMessageStringEncodedParams): CompletableFuture<Void?>
 
   @JsonRequest("chat/submitMessage")
   fun chatSubmitMessage(params: ChatSubmitMessageParams): CompletableFuture<ExtensionMessage>

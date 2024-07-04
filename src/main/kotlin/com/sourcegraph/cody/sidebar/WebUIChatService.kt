@@ -26,7 +26,7 @@ class WebUIChatService(private val project: Project) {
     updateTheme(themeController.getTheme())
   }
 
-  fun receiveMessage(message: ExtensionMessage) {
-    webUiProxy?.postMessage(message)
+  fun receiveMessage(stringEncodedJsonMessage: String) {
+    webUiProxy?.postMessageStringEncodedJson(stringEncodedJsonMessage)
   }
 }
