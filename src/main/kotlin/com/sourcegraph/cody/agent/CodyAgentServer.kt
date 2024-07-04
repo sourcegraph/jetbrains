@@ -1,37 +1,6 @@
 package com.sourcegraph.cody.agent
 
-import com.sourcegraph.cody.agent.protocol.AttributionSearchParams
-import com.sourcegraph.cody.agent.protocol.AttributionSearchResponse
-import com.sourcegraph.cody.agent.protocol.AutocompleteParams
-import com.sourcegraph.cody.agent.protocol.AutocompleteResult
-import com.sourcegraph.cody.agent.protocol.ChatHistoryResponse
-import com.sourcegraph.cody.agent.protocol.ChatModelsParams
-import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
-import com.sourcegraph.cody.agent.protocol.ChatRestoreParams
-import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
-import com.sourcegraph.cody.agent.protocol.ClientInfo
-import com.sourcegraph.cody.agent.protocol.CompletionItemParams
-import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
-import com.sourcegraph.cody.agent.protocol.EditTask
-import com.sourcegraph.cody.agent.protocol.Event
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
-import com.sourcegraph.cody.agent.protocol.GetFoldingRangeParams
-import com.sourcegraph.cody.agent.protocol.GetFoldingRangeResult
-import com.sourcegraph.cody.agent.protocol.GetRepoIdsParam
-import com.sourcegraph.cody.agent.protocol.GetRepoIdsResponse
-import com.sourcegraph.cody.agent.protocol.IgnorePolicySpec
-import com.sourcegraph.cody.agent.protocol.IgnoreTestParams
-import com.sourcegraph.cody.agent.protocol.IgnoreTestResponse
-import com.sourcegraph.cody.agent.protocol.InlineEditParams
-import com.sourcegraph.cody.agent.protocol.NetworkRequest
-import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
-import com.sourcegraph.cody.agent.protocol.RemoteRepoHasParams
-import com.sourcegraph.cody.agent.protocol.RemoteRepoHasResponse
-import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
-import com.sourcegraph.cody.agent.protocol.RemoteRepoListResponse
-import com.sourcegraph.cody.agent.protocol.ServerInfo
-import com.sourcegraph.cody.agent.protocol.TaskIdParam
-import com.sourcegraph.cody.agent.protocol.TelemetryEvent
+import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.chat.ConnectionId
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -123,12 +92,11 @@ interface CodyAgentServer {
 
   @JsonRequest("editCommands/test") fun commandsTest(): CompletableFuture<EditTask>
 
-  @JsonRequest("chat/new") fun chatNew(): CompletableFuture<String>
+  @JsonRequest("chat/new") fun chatNewTODODeleteMe(): CompletableFuture<String>
+  @JsonRequest("chat/web/new") fun chatNew(): CompletableFuture<ChatNewResponse>
 
-  @JsonRequest("grosshacks/chat/new") fun grossChatNew(): CompletableFuture<Void?>
-
-  @JsonRequest("grosshacks/webview/postMessageClientToServer")
-  fun grossWebviewPostMessageClientToServer(params: WebviewMessage): CompletableFuture<Void?>
+  @JsonRequest("webview/receiveMessageStringEncoded")
+  fun webviewReceiveMessageStringEncoded(params: WebviewReceiveMessageStringEncodedParams): CompletableFuture<Void?>
 
   @JsonRequest("chat/submitMessage")
   fun chatSubmitMessage(params: ChatSubmitMessageParams): CompletableFuture<ExtensionMessage>

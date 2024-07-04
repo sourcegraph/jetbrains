@@ -40,6 +40,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import org.slf4j.LoggerFactory
 
+// TODO: Remove everything except the minimum needed to migrate chat state into web-based chat.
 class AgentChatSession
 private constructor(
     private val project: Project,
@@ -285,7 +286,7 @@ private constructor(
   companion object {
     @RequiresEdt
     fun createNew(project: Project): AgentChatSession {
-      val connectionId = createNewPanel(project) { it.server.chatNew() }
+      val connectionId = createNewPanel(project) { it.server.chatNewTODODeleteMe() }
       val chatSession = AgentChatSession(project, connectionId)
       AgentChatSessionService.getInstance(project).addSession(chatSession)
       return chatSession
@@ -363,7 +364,7 @@ private constructor(
                 tags = it.tags.toMutableList())
           }
 
-      val connectionId = createNewPanel(project) { it.server.chatNew() }
+      val connectionId = createNewPanel(project) { it.server.chatNewTODODeleteMe() }
       val chatSession =
           AgentChatSession(project, connectionId, state.internalId!!, chatModelProvider)
 
