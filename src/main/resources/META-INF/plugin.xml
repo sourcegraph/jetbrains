@@ -102,9 +102,15 @@
         <annotator language="SourcegraphRemoteRepoList"
                    implementationClass="com.sourcegraph.cody.context.RemoteRepoAnnotator"/>
 
+
         <keymapExtension implementation="com.sourcegraph.cody.config.CodyKeymapExtension"/>
 
-        <!-- WebView-based chat sidebar experiment -->
+        <!-- Web UI Sidebar Views
+             For each sourcegraph/cody/vscode/package.json "views" entry with type "webview",
+             add a toolWindow with factoryClass="com.sourcegraph.cody.sidebar.WebUIToolWindowFactory"
+             (or a subtype.) For now, VSCode view "when" conditions need to be manually ported to
+             ToolWindow.isAvailable updates.
+         -->
         <toolWindow
                 id="Cody Web Content Experiments"
                 icon="/icons/experiment-icon.svg"
@@ -113,11 +119,11 @@
                 factoryClass="com.sourcegraph.cody.sidebar.ExperimentalToolWindowFactory"/>
 
         <toolWindow
-                id="Cody Experimental Chat UX"
+                id="Cody (UI Refresh)"
                 icon="/icons/codyLogoMonochromatic.svg"
                 anchor="right"
                 secondary="false"
-                factoryClass="com.sourcegraph.cody.sidebar.WebUIChatWindowFactory" />
+                factoryClass="com.sourcegraph.cody.ui.WebUIToolWindowFactory" />
     </extensions>
 
     <applicationListeners>

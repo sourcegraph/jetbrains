@@ -22,9 +22,12 @@ import javax.swing.JTextField
 import org.cef.browser.CefBrowser
 import org.cef.handler.CefFocusHandler
 import org.cef.handler.CefFocusHandlerAdapter
+import javax.swing.JLabel
 
 class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+    // TODO: Remove this experimental tool window.
+    toolWindow.isAvailable = false
     doStuff(project, toolWindow)
   }
 
@@ -32,12 +35,20 @@ class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
     val textField = JTextField()
     val button =
         JButton().apply {
-          text = "Delayed focus to north text field"
+          text = "Delayed focus to north text field + add"
           addActionListener {
             ApplicationManager.getApplication().executeOnPooledThread {
               Thread.sleep(1000)
               runInEdt { textField.requestFocus() }
             }
+            ContentFactory.SERVICE.getInstance()
+              .createContent(JLabel("hello, world"), "Title ${System.currentTimeMillis() % 100}", false)
+              .apply {
+                isCloseable = true
+                isPinnable = true
+                isPinned = true
+                toolWindow.contentManager.addContent(this)
+              }
           }
         }
 
