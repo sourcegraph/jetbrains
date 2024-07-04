@@ -66,7 +66,7 @@ class CodyAgentService(private val project: Project) : Disposable {
         }
       }
 
-      agent.client.onReceivedWebviewMessage = Consumer { params ->
+      agent.client.onReceivedWebviewMessageTODODeleteThis = Consumer { params ->
         if (!project.isDisposed) {
           AgentChatSessionService.getInstance(project)
               .getSession(params.id)
@@ -74,9 +74,10 @@ class CodyAgentService(private val project: Project) : Disposable {
         }
       }
 
-      agent.client.onReceivedGrossHacksWebviewMessage = Consumer { message ->
+      agent.client.onReceivedWebviewPostMessage = Consumer { params ->
         if (!project.isDisposed) {
-          WebUIChatService.getInstance(project)?.receiveMessage(message)
+          // TODO: Look up the specific chat
+          WebUIChatService.getInstance(project)?.receiveMessage(params.stringEncodedMessage)
         }
       }
 

@@ -21,6 +21,7 @@ data class ClientCapabilities(
   val showWindowMessage: ShowWindowMessageEnum? = null, // Oneof: notification, request
   val ignore: IgnoreEnum? = null, // Oneof: none, enabled
   val codeActions: CodeActionsEnum? = null, // Oneof: none, enabled
+  val webview: String? = null, // TODO: this is about to change later in rebase, needs regen
   val webviewMessages: WebviewMessagesEnum? = null, // Oneof: object-encoded, string-encoded
 ) {
 

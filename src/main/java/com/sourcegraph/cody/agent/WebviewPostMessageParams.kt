@@ -53,6 +53,9 @@ data class ExtensionMessage(
 
 data class WebviewPostMessageParams(val id: String, val message: ExtensionMessage)
 
+data class WebviewPostMessageStringEncodedParams(val id: String, val stringEncodedMessage: String)
+data class WebviewReceiveMessageStringEncodedParams(val id: String, val messageStringEncoded: String)
+
 data class ConfigFeatures(val attribution: Boolean, val serverSentModels: Boolean)
 
 data class EnhancedContextContextT(val groups: List<ContextGroup>)
