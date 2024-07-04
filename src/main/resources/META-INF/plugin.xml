@@ -114,64 +114,6 @@
     -->
     <actions>
         <group id="Cody.AllActions">
-            <group id="SourcegraphEditor" popup="true" searchable="false" text="Sourcegraph"
-                   description="Sourcegraph actions">
-
-                <add-to-group anchor="last" group-id="EditorPopupMenu"/>
-                <override-text place="GoToAction" text="Cody: Sourcegraph"/>
-
-                <action id="sourcegraph.openFile"
-                        class="com.sourcegraph.website.OpenFileAction"
-                        icon="/icons/sourcegraphLogo.svg"
-                        text="Open Selection in Sourcegraph Web"
-                        description="Open selection in Sourcegraph Web">
-                    <override-text place="GoToAction" text="Cody: Open Selection in Sourcegraph Web"/>
-                </action>
-                <action id="sourcegraph.searchSelection"
-                        class="com.sourcegraph.website.SearchSelectionAction"
-                        icon="/icons/sourcegraphLogo.svg"
-                        text="Search Selection on Sourcegraph Web"
-                        description="Search selection on Sourcegraph web">
-                    <override-text place="GoToAction" text="Cody: Search Selection on Sourcegraph Web"/>
-                </action>
-                <action id="sourcegraph.searchRepository"
-                        class="com.sourcegraph.website.SearchRepositoryAction"
-                        icon="/icons/sourcegraphLogo.svg"
-                        text="Search Selection in Repository on Sourcegraph Web"
-                        description="Search selection in repository on Sourcegraph web">
-                    <override-text place="GoToAction" text="Cody: Search Selection in Repository on Sourcegraph Web"/>
-                </action>
-                <action id="sourcegraph.copy"
-                        class="com.sourcegraph.website.CopyAction"
-                        icon="/icons/sourcegraphLogo.svg"
-                        text="Copy Sourcegraph File Link"
-                        description="Copy Sourcegraph file link">
-                    <override-text place="GoToAction" text="Cody: Copy Sourcegraph File Link"/>
-                </action>
-                <action id="com.sourcegraph.website.OpenRevisionAction"
-                        class="com.sourcegraph.website.OpenRevisionAction"
-                        icon="/icons/sourcegraphLogo.svg"
-                        text="Open Revision Diff in Sourcegraph Web"
-                        description="Opens a revision">
-                    <add-to-group group-id="VcsHistoryActionsGroup" anchor="last"/>
-                    <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
-                    <add-to-group group-id="VcsHistoryActionsGroup.Toolbar"
-                                  anchor="last"/>
-                    <add-to-group group-id="VcsSelectionHistoryDialog.Popup"
-                                  anchor="last"/>
-                    <override-text place="GoToAction" text="Cody: Open Revision Diff in Sourcegraph Web"/>
-                </action>
-                <action id="sourcegraph.openFindPopup"
-                        class="com.sourcegraph.find.OpenFindAction"
-                        icon="/icons/sourcegraphLogo.svg"
-                        text="Find with Sourcegraph..."
-                        description="Search all your repos on Sourcegraph">
-                    <keyboard-shortcut replace-all="true" first-keystroke="alt s" keymap="$default"/>
-                    <keyboard-shortcut replace-all="true" first-keystroke="alt s" keymap="Mac OS X 10.5+"/>
-                    <add-to-group group-id="FindMenuGroup" anchor="after" relative-to-action="ReplaceInPath"/>
-                    <override-text place="GoToAction" text="Cody: Find with Sourcegraph..."/>
-                </action>
-            </group>
 
             <group id="Cody.Autocomplete" popup="true" searchable="false" text="Autocomplete"
                    description="Cody autocomplete actions">
@@ -369,6 +311,65 @@
                         text="Log In with Token to Sourcegraph Enterprise"
                         description="Logs in to Sourcegraph Enterprise with a token">
                     <override-text place="GoToAction" text="Cody: Log In with Token to Sourcegraph Enterprise"/>
+                </action>
+            </group>
+
+            <group id="SourcegraphEditor" popup="true" searchable="false" text="Sourcegraph"
+                   description="Sourcegraph actions">
+
+                <add-to-group anchor="last" group-id="EditorPopupMenu"/>
+                <override-text place="GoToAction" text="Cody: Sourcegraph"/>
+
+                <action id="sourcegraph.openFile"
+                        class="com.sourcegraph.website.OpenFileAction"
+                        icon="/icons/sourcegraphLogo.svg"
+                        text="Open Selection in Sourcegraph Web"
+                        description="Open selection in Sourcegraph Web">
+                    <override-text place="GoToAction" text="Cody: Open Selection in Sourcegraph Web"/>
+                </action>
+                <action id="sourcegraph.searchSelection"
+                        class="com.sourcegraph.website.SearchSelectionAction"
+                        icon="/icons/sourcegraphLogo.svg"
+                        text="Search Selection on Sourcegraph Web"
+                        description="Search selection on Sourcegraph web">
+                    <override-text place="GoToAction" text="Cody: Search Selection on Sourcegraph Web"/>
+                </action>
+                <action id="sourcegraph.searchRepository"
+                        class="com.sourcegraph.website.SearchRepositoryAction"
+                        icon="/icons/sourcegraphLogo.svg"
+                        text="Search Selection in Repository on Sourcegraph Web"
+                        description="Search selection in repository on Sourcegraph web">
+                    <override-text place="GoToAction" text="Cody: Search Selection in Repository on Sourcegraph Web"/>
+                </action>
+                <action id="sourcegraph.copy"
+                        class="com.sourcegraph.website.CopyAction"
+                        icon="/icons/sourcegraphLogo.svg"
+                        text="Copy Sourcegraph File Link"
+                        description="Copy Sourcegraph file link">
+                    <override-text place="GoToAction" text="Cody: Copy Sourcegraph File Link"/>
+                </action>
+                <action id="com.sourcegraph.website.OpenRevisionAction"
+                        class="com.sourcegraph.website.OpenRevisionAction"
+                        icon="/icons/sourcegraphLogo.svg"
+                        text="Open Revision Diff in Sourcegraph Web"
+                        description="Opens a revision">
+                    <add-to-group group-id="VcsHistoryActionsGroup" anchor="last"/>
+                    <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
+                    <add-to-group group-id="VcsHistoryActionsGroup.Toolbar"
+                                  anchor="last"/>
+                    <add-to-group group-id="VcsSelectionHistoryDialog.Popup"
+                                  anchor="last"/>
+                    <override-text place="GoToAction" text="Cody: Open Revision Diff in Sourcegraph Web"/>
+                </action>
+                <action id="sourcegraph.openFindPopup"
+                        class="com.sourcegraph.find.OpenFindAction"
+                        icon="/icons/sourcegraphLogo.svg"
+                        text="Find with Sourcegraph..."
+                        description="Search all your repos on Sourcegraph">
+                    <keyboard-shortcut replace-all="true" first-keystroke="alt s" keymap="$default"/>
+                    <keyboard-shortcut replace-all="true" first-keystroke="alt s" keymap="Mac OS X 10.5+"/>
+                    <add-to-group group-id="FindMenuGroup" anchor="after" relative-to-action="ReplaceInPath"/>
+                    <override-text place="GoToAction" text="Cody: Find with Sourcegraph..."/>
                 </action>
             </group>
 
