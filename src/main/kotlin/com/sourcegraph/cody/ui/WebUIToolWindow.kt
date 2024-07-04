@@ -1,6 +1,8 @@
-package com.sourcegraph.cody.sidebar
+package com.sourcegraph.cody.ui
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
@@ -14,7 +16,10 @@ import com.intellij.util.io.isAncestor
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.WebviewReceiveMessageStringEncodedParams
+import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
+import com.sourcegraph.cody.sidebar.WebTheme
+import com.sourcegraph.cody.sidebar.WebThemeController
 import java.io.IOException
 import java.net.URI
 import java.nio.ByteBuffer
@@ -35,8 +40,62 @@ import org.cef.network.CefCookie
 import org.cef.network.CefRequest
 import org.cef.network.CefResponse
 import org.cef.network.CefURLRequest
+import javax.swing.JComponent
 
-// TODO: Hook up webview/didDispose
+// Responsibilities:
+// - Creates, tracks all WebUI instances.
+// - Pushes theme updates into WebUI instances.
+// - Routes messages from host to WebUI instances.
+@Service(Service.Level.PROJECT)
+class WebUIService(private val project: Project) {
+  companion object {
+    // TODO: If not disposed, etc.
+    @JvmStatic
+    fun getInstance(project: Project): WebUIService = project.service<WebUIService>()
+  }
+
+  private var proxies: MutableMap<String, WebUIProxy> = mutableMapOf()
+
+  private var themeController =
+    WebThemeController().apply { setThemeChangeListener { updateTheme(it) } }
+
+  private fun updateTheme(theme: WebTheme) {
+    proxies.values.forEach { it.updateTheme(theme) }
+  }
+
+  fun postMessageHostToWebview(handle: String, stringEncodedJsonMessage: String) {
+    val proxy = this.proxies[handle] ?: return
+    proxy.postMessageHostToWebview(stringEncodedJsonMessage)
+  }
+
+  fun createWebviewPanel(params: WebviewCreateWebviewPanelParams) {
+    val handle = params.handle
+    var view: WebviewViewDelegate? = null
+    val delegate = object : WebUIHost {
+      override fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
+        CodyAgentService.withAgent(project) {
+          it.server.webviewReceiveMessageStringEncoded(
+            WebviewReceiveMessageStringEncodedParams(
+              handle,
+              stringEncodedJsonMessage
+            )
+          )
+        }
+      }
+      override fun setTitle(value: String) {
+        view?.setTitle(value)
+      }
+    }
+    val proxy = WebUIProxy.create(delegate)
+    proxies[params.handle] = proxy
+
+    // TODO: This should create a panel, but it creates a sidebar view.
+    // TODO: Manage tearing down the view when we are done.
+    view = CodyViewService.getInstance(project).createView(proxy)
+
+    proxy.updateTheme(themeController.getTheme())
+  }
+}
 
 // We make up a host name and serve the static resources into the webview apparently from this host.
 val PSEUDO_HOST = "file+.sourcegraphstatic.com"
@@ -48,103 +107,27 @@ val MAIN_RESOURCE_URL =
     "${PSEUDO_HOST_URL_PREFIX}webviews/index.html" // "cody:///webviews/index.html"
 
 // TODO:
-// - Run await vscode.commands.executeCommand('cody.chat.panel.new') to create a new chat panel.
-// - That command's WebView shim should be able to thunk to through to this web view.
-// - query should route to onDidReceiveMessage of the remote proxy for the WebView
-// - remote proxy's postMessage should inject an event here.
+// - Hook up webview/didDispose, etc.
 
-interface PostMessageSink {
-  fun postMessage(stringEncodedJsonMessage: String)
+interface WebUIHost {
+  fun setTitle(value: String)
+  fun postMessageWebviewToHost(stringEncodedJsonMessage: String)
 }
 
-class WebUIProxy(private val browser: JBCefBrowserBase) {
-  var postMessageSink: PostMessageSink? = null
-  private var isDOMContentLoaded = false
-  private val logger = Logger.getInstance(WebUIProxy::class.java)
-  private var theme: WebTheme? = null
-
-  fun onDOMContentLoaded() {
-    isDOMContentLoaded = true
-    theme?.let { updateTheme(it) }
-  }
-
-  fun updateTheme(theme: WebTheme) {
-    this.theme = theme
-    if (!this.isDOMContentLoaded) {
-      logger.info("not updating WebView theme before DOMContentLoaded")
-      return
-    }
-    val code =
-        """
-    (() => {
-      let e = new CustomEvent('message');
-      e.data = {
-        type: 'ui/theme',
-        agentIDE: 'JetBrains',
-        cssVariables: ${gson.toJson(theme.variables)},
-        isDark: ${theme.isDark}
-      };
-      window.dispatchEvent(e);
-    })()
-    """
-            .trimIndent()
-
-    browser.cefBrowser.mainFrame?.executeJavaScript(code, "cody://updateTheme", 0)
-  }
-
-  fun postMessageStringEncodedJson(message: String) {
-    val code =
-        """
-      (() => {
-        let e = new CustomEvent('message');
-        e.data = ${message};
-        window.dispatchEvent(e);
-      })()
-      """
-            .trimIndent()
-
-    // TODO: Consider a better origin that this random made-up origin.
-    browser.cefBrowser.mainFrame?.executeJavaScript(code, "cody://postMessage", 0)
-  }
-
-  fun receiveMessage(stringEncodedJsonMessage: String) {
-    postMessageSink?.postMessage(stringEncodedJsonMessage)
-  }
-}
-
-class ChatProxy(private val project: Project, private val id: String) {
-  var webUIProxy: WebUIProxy? = null
-
-  fun postMessageWebViewToHost(stringEncodedJsonMessage: String) {
-    CodyAgentService.withAgent(project) { agent ->
-      agent.server.webviewReceiveMessageStringEncoded(WebviewReceiveMessageStringEncodedParams(id, stringEncodedJsonMessage))
-    }
-  }
-
-  fun postMessageHostToWebView(stringEncodedJsonMessage: String) {
-    webUIProxy?.postMessageStringEncodedJson(stringEncodedJsonMessage)
-  }
-}
-
-class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
-  override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    val webUiProxy = createWindow(project, toolWindow)
-    // TODO: This should be per-panel ID
-    WebUIChatService.getInstance(project).setWebUiProxy(webUiProxy)
-  }
-
-  private fun createWindow(project: Project, toolWindow: ToolWindow): WebUIProxy {
-    val browser =
+class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserBase) {
+  companion object {
+    fun create(host: WebUIHost): WebUIProxy {
+      val browser =
         JBCefBrowserBuilder()
-            .apply {
-              setOffScreenRendering(false)
-              // TODO: Make this conditional on running in a debug configuration.
-              setEnableOpenDevToolsMenuItem(true)
-            }
-            .build()
-    val proxy = WebUIProxy(browser)
+          .apply {
+            setOffScreenRendering(false)
+            // TODO: Make this conditional on running in a debug configuration.
+            setEnableOpenDevToolsMenuItem(true)
+          }
+          .build()
+      val proxy = WebUIProxy(host, browser)
 
-    val viewToHost =
+      val viewToHost =
         JBCefJSQuery.create(browser as JBCefBrowserBase).apply {
           addHandler { query: String ->
             println("webview -> host: $query")
@@ -159,8 +142,8 @@ class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
             val postMessagePrefix = "{\"what\":\"postMessage\","
             if (query.startsWith(postMessagePrefix)) {
               val message = query.substring(postMessagePrefix.length, query.length - 1)
-              println("webview <- host: $message")
-              proxy.receiveMessage(message)
+              println("host <- webview: $message")
+              proxy.postMessageWebviewToHost(message)
             }
 
             // TODO: Remove these fake messages.
@@ -169,14 +152,14 @@ class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
               ApplicationManager.getApplication().executeOnPooledThread {
                 messages.forEach {
                   val code =
-                      """
+                    """
               (() => {
                 let e = new CustomEvent('message');
                 e.data = $it;
                 window.dispatchEvent(e);
               })()
               """
-                          .trimIndent()
+                      .trimIndent()
                   println("sending message to webview: $code")
                   browser.cefBrowser.mainFrame.executeJavaScript(code, "cody://postMessage", 0)
                 }
@@ -186,8 +169,8 @@ class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
             JBCefJSQuery.Response(null)
           }
         }
-    // TODO: We could add a second script tag and run when the body element is created.
-    val apiScript =
+      // TODO: We could add a second script tag and run when the body element is created.
+      val apiScript =
         """
       globalThis.acquireVsCodeApi = (function() {
           let acquired = false;
@@ -224,18 +207,119 @@ class WebUIChatWindowFactory : ToolWindowFactory, DumbAware {
         ${viewToHost.inject("JSON.stringify({what:'DOMContentLoaded'})")}
       });
     """
-            .trimIndent()
-    browser.jbCefClient.addRequestHandler(ExtensionRequestHandler(apiScript), browser.cefBrowser)
-
-    // TODO: What is "lockable" content?
-    val lockable = false
-    toolWindow.contentManager.addContent(
-        ContentFactory.SERVICE.getInstance()
-            .createContent(browser.component, "TODO: Content Display Name", lockable))
-
-    browser.loadURL(MAIN_RESOURCE_URL)
-    return proxy
+          .trimIndent()
+      browser.jbCefClient.addRequestHandler(ExtensionRequestHandler(apiScript), browser.cefBrowser)
+      // TODO: The extension sets the HTML property, causing this navigation. Move that there.
+      browser.loadURL(MAIN_RESOURCE_URL)
+      return proxy
+    }
   }
+
+  private var isDOMContentLoaded = false
+  private val logger = Logger.getInstance(WebUIProxy::class.java)
+  private var theme: WebTheme? = null
+
+  private var _title: String = ""
+  var title: String
+    get() = _title
+    set(value) {
+      host.setTitle(value)
+      _title = value
+    }
+
+  val component: JComponent? get() = browser.component
+
+  fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
+    host.postMessageWebviewToHost(stringEncodedJsonMessage)
+  }
+
+  fun postMessageHostToWebview(stringEncodedJsonMessage: String) {
+    val code =
+      """
+      (() => {
+        let e = new CustomEvent('message');
+        e.data = ${stringEncodedJsonMessage};
+        window.dispatchEvent(e);
+      })()
+      """
+        .trimIndent()
+
+    // TODO: Consider a better origin that this random made-up origin.
+    browser.cefBrowser.mainFrame?.executeJavaScript(code, "cody://postMessage", 0)
+  }
+
+  fun onDOMContentLoaded() {
+    isDOMContentLoaded = true
+    theme?.let { updateTheme(it) }
+  }
+
+  fun updateTheme(theme: WebTheme) {
+    this.theme = theme
+    if (!this.isDOMContentLoaded) {
+      logger.info("not updating WebView theme before DOMContentLoaded")
+      return
+    }
+    val code =
+        """
+    (() => {
+      let e = new CustomEvent('message');
+      e.data = {
+        type: 'ui/theme',
+        agentIDE: 'JetBrains',
+        cssVariables: ${gson.toJson(theme.variables)},
+        isDark: ${theme.isDark}
+      };
+      window.dispatchEvent(e);
+    })()
+    """
+            .trimIndent()
+
+    browser.cefBrowser.mainFrame?.executeJavaScript(code, "cody://updateTheme", 0)
+  }
+}
+
+// TODO: Rationalize this with the other Cody view service.
+@Service(Service.Level.PROJECT)
+class CodyViewService(val project: Project) {
+  var toolWindow: ToolWindow? = null
+
+  fun createView(proxy: WebUIProxy): WebviewViewDelegate? {
+    // TODO: Handle lazily creating views when the tool window is not available yet.
+    val toolWindow = this.toolWindow ?: return null
+    toolWindow.isAvailable = true
+
+    // TODO: Design question, do we want to reflect titles at the ToolWindow or at the Content level?
+
+    val lockable = true
+    // TODO: Hook up dispose, etc.
+    val content = ContentFactory.SERVICE.getInstance()
+      .createContent(proxy.component, proxy.title, lockable)
+    this.toolWindow?.contentManager?.addContent(content)
+    return object : WebviewViewDelegate {
+      override fun setTitle(newTitle: String) {
+        content.toolwindowTitle = newTitle
+      }
+      // TODO: Add icon support.
+    }
+  }
+
+  companion object {
+    fun getInstance(project: Project): CodyViewService {
+      return project.service()
+    }
+  }
+}
+
+class WebUIToolWindowFactory : ToolWindowFactory, DumbAware {
+  override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+    toolWindow.isAvailable = false
+    // TODO: Generalize this to support multiple tool windows.
+    CodyViewService.getInstance(project).toolWindow = toolWindow
+  }
+}
+
+interface WebviewViewDelegate {
+  fun setTitle(newTitle: String)
 }
 
 class ExtensionRequestHandler(private val apiScript: String) : CefRequestHandler {
@@ -597,6 +681,7 @@ class ExtensionResourceHandler(private val apiScript: String) : CefResourceHandl
   }
 }
 
+// TODO: Remove these pre-canned messages.
 val messages =
     listOf(
         "{\"type\":\"transcript\",\"messages\":[],\"isMessageInProgress\":false,\"chatID\":\"Thu, 30 May 2024 09:39:23 GMT\"}",
