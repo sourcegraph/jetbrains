@@ -160,6 +160,7 @@ public class CodyAgentClient {
     return acceptOnEventThread(name, fun, params);
   }
 
+  // TODO: Delete this
   // Webviews
   @JsonRequest("webview/create")
   public CompletableFuture<Void> webviewCreate(WebviewCreateParams params) {
@@ -176,6 +177,16 @@ public class CodyAgentClient {
     logger.warn(String.format("%s: %s", msg.getChannel(), msg.getMessage()));
     if (onDebugMessage != null) {
       onDebugMessage.accept(msg);
+    }
+  }
+
+  @Nullable Consumer<WebviewCreateWebviewPanelParams> onWebviewCreateWebviewPanel;
+
+  @JsonNotification("webview/createWebviewPanel")
+  public void webviewCreateWebviewPanel(@NotNull WebviewCreateWebviewPanelParams params) {
+    if (onWebviewCreateWebviewPanel != null) {
+      ApplicationManager.getApplication()
+              .invokeLater(() -> onWebviewCreateWebviewPanel.accept(params));
     }
   }
 
