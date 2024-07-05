@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.ui
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
@@ -13,6 +14,7 @@ import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefBrowserBuilder
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.intellij.util.io.isAncestor
+import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.WebviewReceiveMessageStringEncodedParams
@@ -41,6 +43,7 @@ import org.cef.network.CefRequest
 import org.cef.network.CefResponse
 import org.cef.network.CefURLRequest
 import javax.swing.JComponent
+import javax.swing.UIManager
 
 // Responsibilities:
 // - Creates, tracks all WebUI instances.
@@ -94,6 +97,11 @@ class WebUIService(private val project: Project) {
     view = CodyViewService.getInstance(project).createView(proxy)
 
     proxy.updateTheme(themeController.getTheme())
+  }
+
+  fun setTitle(handle: String, title: String) {
+    val proxy = this.proxies[handle] ?: return
+    proxy.title = title
   }
 }
 
@@ -276,7 +284,9 @@ class CodyViewService(val project: Project) {
     this.toolWindow?.contentManager?.addContent(content)
     return object : WebviewViewDelegate {
       override fun setTitle(newTitle: String) {
-        content.toolwindowTitle = newTitle
+        runInEdt {
+          content.displayName = newTitle
+        }
       }
       // TODO: Add icon support.
     }
