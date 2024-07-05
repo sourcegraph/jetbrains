@@ -75,7 +75,8 @@ class CodyToolWindowContent(private val project: Project) {
     AgentChatSessionService.getInstance(project).removeAllSessions()
     val codyAuthenticationManager = CodyAuthenticationManager.getInstance(project)
     if (codyAuthenticationManager.hasActiveAccount()) {
-      switchToChatSession(AgentChatSession.createNew(project), showChatWindow = false)
+      // TODO: Replace this with a switch to WebUI.
+      // switchToChatSession(AgentChatSession.createNew(project), showChatWindow = false)
     }
   }
 

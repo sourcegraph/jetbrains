@@ -312,7 +312,8 @@ class CodyViewService(val project: Project) {
 
 class WebUIToolWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    toolWindow.isAvailable = false
+    // TODO: support this happening AFTER chats are created
+    toolWindow.isAvailable = true
     // TODO: Generalize this to support multiple tool windows.
     CodyViewService.getInstance(project).toolWindow = toolWindow
   }

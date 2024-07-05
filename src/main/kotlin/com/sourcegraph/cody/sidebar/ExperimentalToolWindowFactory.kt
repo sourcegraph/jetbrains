@@ -13,6 +13,7 @@ import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowserBuilder
+import com.sourcegraph.cody.agent.CodyAgentService
 import java.awt.BorderLayout
 import java.awt.KeyboardFocusManager
 import java.awt.Rectangle
@@ -27,7 +28,7 @@ import javax.swing.JLabel
 class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
     // TODO: Remove this experimental tool window.
-    toolWindow.isAvailable = false
+    toolWindow.isAvailable = true
     doStuff(project, toolWindow)
   }
 
@@ -35,6 +36,7 @@ class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
     val textField = JTextField()
     val button =
         JButton().apply {
+          /*
           text = "Delayed focus to north text field + add"
           addActionListener {
             ApplicationManager.getApplication().executeOnPooledThread {
@@ -49,6 +51,14 @@ class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
                 isPinned = true
                 toolWindow.contentManager.addContent(this)
               }
+          }
+           */
+          text = "New Chat"
+          addActionListener {
+            CodyAgentService.withAgent(project) {
+              val response = it.server.chatNew().get()
+              println("chat: ${response.chatId}, panel: ${response.panelId}")
+            }
           }
         }
 
