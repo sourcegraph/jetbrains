@@ -194,10 +194,14 @@ public class CodyAgentClient {
     System.out.println("TODO, implement webview/setIconPath");
   }
 
+  @Nullable Consumer<WebviewSetTitleParams> onWebviewSetTitle;
+
   @JsonNotification("webview/setTitle")
   public void webviewTitle(@NotNull WebviewSetTitleParams params) {
-    // TODO: Implement this.
-    System.out.println("TODO, implement webview/setTitle");
+    if (onWebviewSetTitle != null) {
+      ApplicationManager.getApplication()
+              .invokeLater(() -> onWebviewSetTitle.accept(params));
+    }
   }
 
   @JsonNotification("webview/reveal")
