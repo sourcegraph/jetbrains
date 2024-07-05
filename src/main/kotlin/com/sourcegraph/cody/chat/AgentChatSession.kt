@@ -286,10 +286,13 @@ private constructor(
   companion object {
     @RequiresEdt
     fun createNew(project: Project): AgentChatSession {
+/*
       val connectionId = createNewPanel(project) { it.server.chatNewTODODeleteMe() }
       val chatSession = AgentChatSession(project, connectionId)
       AgentChatSessionService.getInstance(project).addSession(chatSession)
       return chatSession
+ */
+      TODO("un-implement this")
     }
 
     @RequiresEdt
@@ -339,7 +342,7 @@ private constructor(
         chatModelProvider: ChatModelsResponse.ChatModelProvider?,
         internalId: String
     ): CompletableFuture<ConnectionId> {
-
+/*
       val messages =
           chatMessages
               .dropWhile { it.speaker == Speaker.ASSISTANT }
@@ -349,6 +352,8 @@ private constructor(
 
       val restoreParams = ChatRestoreParams(chatModelProvider?.model, messages, internalId)
       return agent.server.chatRestore(restoreParams)
+ */
+      return CompletableFuture.completedFuture(ConnectionId())
     }
 
     @RequiresEdt
