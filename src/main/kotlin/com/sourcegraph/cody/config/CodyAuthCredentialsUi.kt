@@ -18,7 +18,7 @@ class CodyAuthCredentialsUi(val factory: SourcegraphApiRequestExecutor.Factory) 
 
   override fun getPreferredFocusableComponent(): JComponent? = null
 
-  override fun getValidator(): Validator = { null }
+  override fun getValidationInfo(): ValidationInfo? = null
 
   override fun createExecutor(server: SourcegraphServerPath): SourcegraphApiRequestExecutor =
       factory.create(server, "")
@@ -28,7 +28,7 @@ class CodyAuthCredentialsUi(val factory: SourcegraphApiRequestExecutor.Factory) 
       indicator: ProgressIndicator,
       authMethod: SsoAuthMethod
   ): Pair<CodyAccountDetails, String> {
-    val token = acquireToken(indicator, authMethod)
+    val token = acquireToken(indicator, executor.server.url, authMethod)
     // The token has changed, so create a new executor to talk to the same server with the new
     // token.
     val newExecutor = factory.create(executor.server, token)
@@ -52,8 +52,12 @@ class CodyAuthCredentialsUi(val factory: SourcegraphApiRequestExecutor.Factory) 
     }
   }
 
-  private fun acquireToken(indicator: ProgressIndicator, authMethod: SsoAuthMethod): String {
-    val credentialsFuture = SourcegraphAuthService.instance.authorize(authMethod)
+  private fun acquireToken(
+      indicator: ProgressIndicator,
+      server: String,
+      authMethod: SsoAuthMethod
+  ): String {
+    val credentialsFuture = SourcegraphAuthService.instance.authorize(server, authMethod)
     try {
       return ProgressIndicatorUtils.awaitWithCheckCanceled(credentialsFuture, indicator)
     } catch (pce: ProcessCanceledException) {

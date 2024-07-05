@@ -42,7 +42,7 @@ internal class CodyTokenCredentialsUi(
     row("Server: ") { serverField = cell(serverTextField).horizontalAlign(HorizontalAlign.FILL) }
     row("Token: ") { cell(tokenTextField).horizontalAlign(HorizontalAlign.FILL) }
     row("") {
-      link("Generate new token") { BrowserOpener.openInBrowser(null, buildNewTokenUrl()) }
+      link("Generate token manually") { BrowserOpener.openInBrowser(null, buildNewTokenUrl()) }
           .enabledIf(
               serverField.component.enteredTextSatisfies {
                 it.isNotEmpty() && isServerPathValid(it)
@@ -78,15 +78,14 @@ internal class CodyTokenCredentialsUi(
     return sourcegraphServerPath.url + "user/settings/tokens/new?description=" + productNameEncoded
   }
 
-  override fun getValidator(): () -> ValidationInfo? = {
-    getServerPathValidationInfo()
-        ?: notBlank(tokenTextField, "Token cannot be empty")
-        ?: custom(tokenTextField, "Invalid access token") {
-          AuthorizationUtil.isValidAccessToken(tokenTextField.text)
-        }
-  }
+  override fun getValidationInfo() =
+      getServerPathValidationInfo()
+          ?: notBlank(tokenTextField, "Token cannot be empty")
+          ?: custom(tokenTextField, "Invalid access token") {
+            AuthorizationUtil.isValidAccessToken(tokenTextField.text)
+          }
 
-  private fun getServerPathValidationInfo(): ValidationInfo? {
+  fun getServerPathValidationInfo(): ValidationInfo? {
     return notBlank(serverTextField, "Server url cannot be empty")
         ?: validateServerPath(serverTextField)
   }
