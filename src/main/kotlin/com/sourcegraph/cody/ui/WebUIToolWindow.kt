@@ -139,9 +139,9 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
               proxy.onDOMContentLoaded()
             }
 
-            val postMessagePrefix = "{\"what\":\"postMessage\","
+            val postMessagePrefix = "{\"what\":\"postMessage\",\"value\":"
             if (query.startsWith(postMessagePrefix)) {
-              val message = query.substring(postMessagePrefix.length, query.length - 1)
+              val message = query.substring(postMessagePrefix.length, query.length - "}".length)
               println("host <- webview: $message")
               proxy.postMessageWebviewToHost(message)
             }
