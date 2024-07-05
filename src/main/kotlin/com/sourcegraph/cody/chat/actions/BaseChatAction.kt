@@ -14,11 +14,7 @@ abstract class BaseChatAction : DumbAwareEDTAction() {
 
   override fun actionPerformed(event: AnActionEvent) {
     val project = event.project ?: return
-
-    ToolWindowManager.getInstance(project)
-        .getToolWindow(CodyToolWindowFactory.TOOL_WINDOW_ID)
-        ?.show()
-
+    showToolbar(project)
     doAction(project)
   }
 
@@ -32,8 +28,11 @@ abstract class BaseChatAction : DumbAwareEDTAction() {
     }
   }
 
+  protected open val toolWindowId: String
+    get() = CodyToolWindowFactory.TOOL_WINDOW_ID
+
   private fun showToolbar(project: Project) =
       ToolWindowManager.getInstance(project)
-          .getToolWindow(CodyToolWindowFactory.TOOL_WINDOW_ID)
+          .getToolWindow(toolWindowId)
           ?.show()
 }

@@ -6,6 +6,8 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.chat.AgentChatSession
 
 class NewChatAction : BaseChatAction() {
+  override val toolWindowId
+    get() = "Cody (UI Refresh)"
 
   override fun doAction(project: Project) {
     CodyAgentService.withAgent(project) { agent ->
