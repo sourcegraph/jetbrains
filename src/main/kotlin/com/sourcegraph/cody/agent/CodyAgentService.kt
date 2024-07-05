@@ -85,6 +85,12 @@ class CodyAgentService(private val project: Project) : Disposable {
         }
       }
 
+      agent.client.onWebviewSetTitle = Consumer { params ->
+        if (!project.isDisposed) {
+          WebUIService.getInstance(project).setTitle(params.handle, params.title)
+        }
+      }
+
       agent.client.onWorkspaceEdit = Function { params ->
         try {
           EditService.getInstance(project).performWorkspaceEdit(params)
