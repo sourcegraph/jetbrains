@@ -126,9 +126,9 @@ class ExperimentalToolWindowFactory : ToolWindowFactory, DumbAware {
     }
     wrapper.add(browserComponent)
 
-    KeyboardFocusManager.getCurrentKeyboardFocusManager().addPropertyChangeListener() { event ->
-      println("KFM ${event.propertyName}: ${event.newValue} <= ${event.oldValue}")
-    }
+    //KeyboardFocusManager.getCurrentKeyboardFocusManager().addPropertyChangeListener() { event ->
+    //  println("KFM ${event.propertyName}: ${event.newValue} <= ${event.oldValue}")
+    //}
 
     val panel = JPanel().apply { layout = BorderLayout() }
     panel.add(textField, BorderLayout.NORTH)
