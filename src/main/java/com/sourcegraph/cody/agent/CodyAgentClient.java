@@ -188,6 +188,30 @@ public class CodyAgentClient {
     }
   }
 
+  @JsonNotification("webview/setIconPath")
+  public void webviewSetIconPath(@NotNull WebviewSetIconPathParams params) {
+    // TODO: Implement this.
+    System.out.println("TODO, implement webview/setIconPath");
+  }
+
+  @JsonNotification("webview/setTitle")
+  public void webviewTitle(@NotNull WebviewSetTitleParams params) {
+    // TODO: Implement this.
+    System.out.println("TODO, implement webview/setTitle");
+  }
+
+  @JsonNotification("webview/reveal")
+  public void webviewReveal(@NotNull WebviewRevealParams params) {
+    // TODO: Implement this.
+    System.out.println("TODO, implement webview/reveal");
+  }
+
+  @JsonNotification("webview/dispose")
+  public void webviewDispose(@NotNull WebviewDisposeParams params) {
+    // TODO: Implement this.
+    System.out.println("TODO, implement webview/dispose");
+  }
+
   // TODO: Remove this
   @JsonNotification("webview/postMessage")
   public void webviewPostMessage(@NotNull WebviewPostMessageParams params) {
