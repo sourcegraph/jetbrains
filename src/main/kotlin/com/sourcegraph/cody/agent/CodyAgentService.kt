@@ -55,6 +55,7 @@ class CodyAgentService(private val project: Project) : Disposable {
         0,
         5000) // Check every 5 seconds
     onStartup { agent ->
+      /* TODO delete this
       agent.client.onNewMessage = Consumer { params ->
         if (!project.isDisposed) {
           AgentChatSessionService.getInstance(project)
@@ -70,14 +71,14 @@ class CodyAgentService(private val project: Project) : Disposable {
               ?.receiveWebviewExtensionMessage(params.message)
         }
       }
-
+*/
       agent.client.onWebviewCreateWebviewPanel = Consumer { params ->
-        WebUIService.getInstance(project)?.createWebviewPanel(params)
+        WebUIService.getInstance(project).createWebviewPanel(params)
       }
 
       agent.client.onReceivedWebviewPostMessage = Consumer { params ->
         if (!project.isDisposed) {
-          WebUIService.getInstance(project)?.postMessageHostToWebview(params.id, params.stringEncodedMessage)
+          WebUIService.getInstance(project).postMessageHostToWebview(params.id, params.stringEncodedMessage)
         }
       }
 
