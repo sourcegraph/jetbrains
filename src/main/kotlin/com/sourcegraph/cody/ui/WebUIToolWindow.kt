@@ -1,5 +1,8 @@
 package com.sourcegraph.cody.ui
 
+import com.google.gson.Gson
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.Service
@@ -17,6 +20,7 @@ import com.intellij.util.io.isAncestor
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.CommandExecuteParams
 import com.sourcegraph.cody.agent.WebviewReceiveMessageStringEncodedParams
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
@@ -42,6 +46,7 @@ import org.cef.network.CefCookie
 import org.cef.network.CefRequest
 import org.cef.network.CefResponse
 import org.cef.network.CefURLRequest
+import java.net.URLDecoder
 import javax.swing.JComponent
 import javax.swing.UIManager
 
@@ -88,6 +93,31 @@ class WebUIService(private val project: Project) {
       override fun setTitle(value: String) {
         view?.setTitle(value)
       }
+
+      override fun onCommand(command: String) {
+        val regex = """^command:([^?]+)(?:\?(.+))?$""".toRegex()
+        val matchResult = regex.find(command) ?: return
+        val (commandName, encodedArguments) = matchResult.destructured
+        val arguments = encodedArguments.takeIf { it.isNotEmpty() }?.let { encoded ->
+          val decoded = URLDecoder.decode(encoded, "UTF-8")
+          try {
+            Gson().fromJson(decoded, JsonArray::class.java).toList()
+          } catch (e: Exception) {
+            null
+          }
+        } ?: emptyList()
+        println("$arguments")
+        if (params.options.enableCommandUris === true || (params.options.enableCommandUris as List<String>).contains(commandName)) {
+          CodyAgentService.withAgent(project) {
+            it.server.commandExecute(CommandExecuteParams(
+              commandName,
+              arguments
+            ))
+          }
+        } else {
+          println("no")
+        }
+      }
     }
     val proxy = WebUIProxy.create(delegate)
     proxies[params.handle] = proxy
@@ -105,6 +135,7 @@ class WebUIService(private val project: Project) {
   }
 }
 
+val COMMAND_PREFIX = "command:"
 // We make up a host name and serve the static resources into the webview apparently from this host.
 val PSEUDO_HOST = "file+.sourcegraphstatic.com"
 val PSEUDO_HOST_URL_PREFIX = "https://$PSEUDO_HOST/"
@@ -120,6 +151,7 @@ val MAIN_RESOURCE_URL =
 interface WebUIHost {
   fun setTitle(value: String)
   fun postMessageWebviewToHost(stringEncodedJsonMessage: String)
+  fun onCommand(command: String)
 }
 
 class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserBase) {
@@ -195,7 +227,7 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
       });
     """
           .trimIndent()
-      browser.jbCefClient.addRequestHandler(ExtensionRequestHandler(apiScript), browser.cefBrowser)
+      browser.jbCefClient.addRequestHandler(ExtensionRequestHandler(proxy, apiScript), browser.cefBrowser)
       // TODO: The extension sets the HTML property, causing this navigation. Move that there.
       browser.loadURL(MAIN_RESOURCE_URL)
       return proxy
@@ -215,6 +247,10 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
     }
 
   val component: JComponent? get() = browser.component
+
+  fun onCommand(command: String) {
+    host.onCommand(command)
+  }
 
   fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
     host.postMessageWebviewToHost(stringEncodedJsonMessage)
@@ -312,15 +348,18 @@ interface WebviewViewDelegate {
   fun setTitle(newTitle: String)
 }
 
-class ExtensionRequestHandler(private val apiScript: String) : CefRequestHandler {
+class ExtensionRequestHandler(private val proxy: WebUIProxy, private val apiScript: String) : CefRequestHandler {
   override fun onBeforeBrowse(
       browser: CefBrowser?,
       frame: CefFrame?,
-      request: CefRequest?,
+      request: CefRequest,
       userGesture: Boolean,
       isRedirect: Boolean
   ): Boolean {
-    // TODO: Consider blocking navigations away from the extension.
+    if (request.url.startsWith(COMMAND_PREFIX)) {
+      proxy.onCommand(request.url)
+      return true
+    }
     return false
   }
 
