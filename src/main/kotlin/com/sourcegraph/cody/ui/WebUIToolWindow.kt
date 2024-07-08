@@ -26,6 +26,7 @@ import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
 import com.sourcegraph.cody.sidebar.WebTheme
 import com.sourcegraph.cody.sidebar.WebThemeController
+import com.sourcegraph.common.BrowserOpener
 import java.io.IOException
 import java.net.URI
 import java.nio.ByteBuffer
@@ -107,7 +108,7 @@ class WebUIService(private val project: Project) {
           }
         } ?: emptyList()
         println("$arguments")
-        if (params.options.enableCommandUris === true || (params.options.enableCommandUris as List<String>).contains(commandName)) {
+        if (params.options.enableCommandUris == true || (params.options.enableCommandUris as List<String>).contains(commandName)) {
           CodyAgentService.withAgent(project) {
             it.server.commandExecute(CommandExecuteParams(
               commandName,
@@ -228,6 +229,34 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
     """
           .trimIndent()
       browser.jbCefClient.addRequestHandler(ExtensionRequestHandler(proxy, apiScript), browser.cefBrowser)
+      browser.jbCefClient.addLifeSpanHandler(object : CefLifeSpanHandler {
+        override fun onBeforePopup(
+          browser: CefBrowser,
+          frame: CefFrame?,
+          targetUrl: String,
+          targetFrameName: String?
+        ): Boolean {
+          if (browser.mainFrame !== frame) {
+            BrowserOpener.openInBrowser(null, targetUrl)
+            return true
+          }
+          return false
+        }
+
+        override fun onAfterCreated(browser: CefBrowser?) {
+        }
+
+        override fun onAfterParentChanged(browser: CefBrowser?) {
+        }
+
+        override fun doClose(browser: CefBrowser?): Boolean {
+          TODO("Not yet implemented")
+        }
+
+        override fun onBeforeClose(browser: CefBrowser?) {
+          TODO("Not yet implemented")
+        }
+      }, browser.cefBrowser)
       // TODO: The extension sets the HTML property, causing this navigation. Move that there.
       browser.loadURL(MAIN_RESOURCE_URL)
       return proxy
