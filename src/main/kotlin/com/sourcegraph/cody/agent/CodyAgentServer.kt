@@ -12,6 +12,7 @@ import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
 import com.sourcegraph.cody.agent.protocol.ClientInfo
 import com.sourcegraph.cody.agent.protocol.CompletionItemParams
 import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
+import com.sourcegraph.cody.agent.protocol.DiagnosticsPublishParams
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.Event
 import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
@@ -32,6 +33,8 @@ import com.sourcegraph.cody.agent.protocol.RemoteRepoListResponse
 import com.sourcegraph.cody.agent.protocol.ServerInfo
 import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
+import com.sourcegraph.cody.agent.protocol.TestingDiagnosticsParams
+import com.sourcegraph.cody.agent.protocol.TestingDiagnosticsResult
 import com.sourcegraph.cody.chat.ConnectionId
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -155,4 +158,12 @@ interface CodyAgentServer {
 
   @JsonRequest("testing/requestErrors")
   fun testingRequestErrors(): CompletableFuture<List<NetworkRequest>>
+
+  @JsonRequest("testing/diagnostics")
+  fun testingDiagnostics(
+      params: TestingDiagnosticsParams
+  ): CompletableFuture<List<TestingDiagnosticsResult>>
+
+  @JsonRequest("diagnostics/publish")
+  fun diagnosticsPublish(params: DiagnosticsPublishParams): CompletableFuture<Unit>
 }
