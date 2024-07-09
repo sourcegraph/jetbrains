@@ -88,6 +88,12 @@ class CodyAgentService(private val project: Project) : Disposable {
         }
       }
 
+      agent.client.onWebviewSetHtml = Consumer { params ->
+        if (!project.isDisposed) {
+          WebUIService.getInstance(project).setHtml(params.handle, params.html)
+        }
+      }
+
       agent.client.onEditTaskDidUpdate = Consumer { task ->
         FixupService.getInstance(project).getActiveSession()?.update(task)
       }
