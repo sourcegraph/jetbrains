@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.edit.FixupService
 import java.awt.Font
 import java.awt.Graphics
@@ -41,17 +42,22 @@ class CodySelectionInlayManager(val project: Project) {
     val startOffset = event.newRange.startOffset
     val endOffset = event.newRange.endOffset
     if (startOffset == endOffset) {
-      // Don't show if there's no selection.
+      return // Don't show if there's no selection.
+    }
+    val document = editor.document
+    val startLine = document.getLineNumber(startOffset)
+    val endLine = document.getLineNumber(endOffset)
+    val selectionEndLine = if (startOffset > endOffset) startLine else endLine
+    // Don't show if selection is only on one line, as it can be distracting.
+    if (startLine == selectionEndLine) {
       return
     }
-    val startLine = editor.document.getLineNumber(startOffset)
-    val endLine = editor.document.getLineNumber(endOffset)
-    val selectionEndLine = if (startOffset > endOffset) startLine else endLine
-
     val editShortcutText = getKeyStrokeText("cody.editCodeAction")
     val inlayContent = "$editShortcutText  to Edit"
 
-    updateInlay(editor, inlayContent, selectionEndLine)
+    val bottomLine = // Try to put it beneath the selection. At the end was unpopular.
+        if (selectionEndLine + 1 < document.lineCount) selectionEndLine + 1 else selectionEndLine
+    updateInlay(editor, inlayContent, bottomLine)
   }
 
   private fun updateInlay(editor: Editor, content: String, line: Int) {
