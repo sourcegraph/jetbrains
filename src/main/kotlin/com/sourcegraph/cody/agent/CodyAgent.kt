@@ -120,7 +120,7 @@ private constructor(
                               showDocument = "enabled",
                               ignore = "enabled",
                               untitledDocuments = "enabled",
-                              webview = WebviewCapabilities("native", "'self' https://*.sourcegraphstatic.com", "https://file+.sourcegraphstatic.com/"),
+                              webview = WebviewCapabilities("native", "'self' https://*.sourcegraphstatic.com", "https://file+.sourcegraphstatic.com"),
                               webviewMessages = "string-encoded")))
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)

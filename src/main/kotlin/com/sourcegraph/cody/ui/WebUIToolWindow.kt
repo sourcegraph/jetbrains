@@ -134,17 +134,21 @@ class WebUIService(private val project: Project) {
     val proxy = this.proxies[handle] ?: return
     proxy.title = title
   }
+
+  fun setHtml(handle: String, html: String) {
+    val proxy = this.proxies[handle] ?: return
+    proxy.html = html
+  }
 }
 
 val COMMAND_PREFIX = "command:"
 // We make up a host name and serve the static resources into the webview apparently from this host.
 val PSEUDO_HOST = "file+.sourcegraphstatic.com"
-val PSEUDO_HOST_URL_PREFIX = "https://$PSEUDO_HOST/"
-// VSCode does this differently and uses a cross-origin request for subresources.
-// This requires rewriting relative URLs, so for now stick everything on the HTTPS + pseudo host
-// origin.
+val PSEUDO_ORIGIN = "https://$PSEUDO_HOST"
+val PSEUDO_HOST_URL_PREFIX = "$PSEUDO_ORIGIN/"
+// TODO, remove this because JB loadHTML uses file URLs.
 val MAIN_RESOURCE_URL =
-    "${PSEUDO_HOST_URL_PREFIX}webviews/index.html" // "cody:///webviews/index.html"
+    "${PSEUDO_HOST_URL_PREFIX}webviews/index.html"
 
 // TODO:
 // - Hook up webview/didDispose, etc.
@@ -258,7 +262,7 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
         }
       }, browser.cefBrowser)
       // TODO: The extension sets the HTML property, causing this navigation. Move that there.
-      browser.loadURL(MAIN_RESOURCE_URL)
+      // browser.loadURL(MAIN_RESOURCE_URL)
       return proxy
     }
   }
@@ -273,6 +277,14 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
     set(value) {
       host.setTitle(value)
       _title = value
+    }
+
+  private var _html: String = ""
+  var html: String
+    get() = _html
+    set(value) {
+      _html = value
+      browser.loadHTML(value, MAIN_RESOURCE_URL)
     }
 
   val component: JComponent? get() = browser.component
@@ -406,14 +418,15 @@ class ExtensionRequestHandler(private val proxy: WebUIProxy, private val apiScri
   override fun getResourceRequestHandler(
       browser: CefBrowser?,
       frame: CefFrame?,
-      request: CefRequest?,
+      request: CefRequest,
       isNavigation: Boolean,
       isDownload: Boolean,
       requestInitiator: String?,
       disableDefaultHandling: BoolRef?
   ): CefResourceRequestHandler? {
-    if (request?.url == MAIN_RESOURCE_URL ||
-        request?.url?.startsWith(PSEUDO_HOST_URL_PREFIX) == true) {
+    // JBCef-style loadHTML URLs dump the desired resource URL into a hash in a file:// URL :shrug:
+    if (request.url.endsWith("#url=$MAIN_RESOURCE_URL") ||
+        request.url.startsWith(PSEUDO_HOST_URL_PREFIX)) {
       disableDefaultHandling?.set(true)
       return ExtensionResourceRequestHandler(apiScript)
     }
@@ -581,16 +594,18 @@ class ExtensionResourceHandler(private val apiScript: String) : CefResourceHandl
               // effective.
               val injectedStyles = VSCODE_INJECTED_DEFAULT_STYLES
               content
-                  .replace("{cspSource}", "'self' https://*.sourcegraphstatic.com")
+                  // .replace("{cspSource}", "'self' https://*.sourcegraphstatic.com")
                   .replace(
                       "<head>", "<head><script>${apiScript}</script><style>$injectedStyles</style>")
             }
         else -> null
       }
 
-  override fun processRequest(request: CefRequest?, callback: CefCallback?): Boolean {
-    val uri = URI(request?.url ?: return false)
-    val requestPath = uri.path.removePrefix("/")
+  override fun processRequest(request: CefRequest, callback: CefCallback?): Boolean {
+    val urlRegex = Regex("^file://.*#url=(.*)$")
+    val jbLoadHtmlUrl = urlRegex.find(request.url)
+    val requestPath = URI(jbLoadHtmlUrl?.groupValues?.get(1) ?: request.url).path.removePrefix("/")
+
     ApplicationManager.getApplication().executeOnPooledThread {
       // Find the plugin resources.
       val codyDirOverride = System.getenv("CODY_DIR")
@@ -665,6 +680,8 @@ class ExtensionResourceHandler(private val apiScript: String) : CefResourceHandl
   ) {
     response?.status = status
     response?.mimeType = contentType
+    // TODO: Security, if we host malicious third-party content would this let them retrieve resources they should not?
+    response?.setHeaderByName("access-control-allow-origin", "*", false)
     // TODO: Do we need to set content-encoding here?
     responseLength?.set(contentLength.toInt())
   }
