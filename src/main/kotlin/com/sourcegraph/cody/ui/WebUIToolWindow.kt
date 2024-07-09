@@ -48,6 +48,8 @@ import org.cef.network.CefRequest
 import org.cef.network.CefResponse
 import org.cef.network.CefURLRequest
 import java.net.URLDecoder
+import java.nio.CharBuffer
+import java.nio.charset.StandardCharsets
 import javax.swing.JComponent
 import javax.swing.UIManager
 
@@ -148,7 +150,7 @@ val PSEUDO_ORIGIN = "https://$PSEUDO_HOST"
 val PSEUDO_HOST_URL_PREFIX = "$PSEUDO_ORIGIN/"
 // TODO, remove this because JB loadHTML uses file URLs.
 val MAIN_RESOURCE_URL =
-    "${PSEUDO_HOST_URL_PREFIX}webviews/index.html"
+    "${PSEUDO_HOST_URL_PREFIX}main-resource-nonce"
 
 // TODO:
 // - Hook up webview/didDispose, etc.
@@ -284,7 +286,7 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
     get() = _html
     set(value) {
       _html = value
-      browser.loadHTML(value, MAIN_RESOURCE_URL)
+      browser.loadURL("$MAIN_RESOURCE_URL?${value.hashCode()}")
     }
 
   val component: JComponent? get() = browser.component
@@ -425,10 +427,9 @@ class ExtensionRequestHandler(private val proxy: WebUIProxy, private val apiScri
       disableDefaultHandling: BoolRef?
   ): CefResourceRequestHandler? {
     // JBCef-style loadHTML URLs dump the desired resource URL into a hash in a file:// URL :shrug:
-    if (request.url.endsWith("#url=$MAIN_RESOURCE_URL") ||
-        request.url.startsWith(PSEUDO_HOST_URL_PREFIX)) {
+    if (request.url.startsWith(PSEUDO_HOST_URL_PREFIX)) {
       disableDefaultHandling?.set(true)
-      return ExtensionResourceRequestHandler(apiScript)
+      return ExtensionResourceRequestHandler(proxy, apiScript)
     }
     disableDefaultHandling?.set(false)
     return null
@@ -484,7 +485,7 @@ class ExtensionRequestHandler(private val proxy: WebUIProxy, private val apiScri
   }
 }
 
-class ExtensionResourceRequestHandler(private val apiScript: String) : CefResourceRequestHandler {
+class ExtensionResourceRequestHandler(private val proxy: WebUIProxy, private val apiScript: String) : CefResourceRequestHandler {
   override fun getCookieAccessFilter(
       browser: CefBrowser?,
       frame: CefFrame?,
@@ -526,9 +527,13 @@ class ExtensionResourceRequestHandler(private val apiScript: String) : CefResour
   override fun getResourceHandler(
       browser: CefBrowser?,
       frame: CefFrame?,
-      request: CefRequest?
+      request: CefRequest
   ): CefResourceHandler {
-    return ExtensionResourceHandler(apiScript)
+    return when {
+      request.url.startsWith(MAIN_RESOURCE_URL) -> MainResourceHandler(proxy.html.replace(
+        "<head>", "<head><script>$apiScript</script>"))
+      else -> ExtensionResourceHandler()
+    }
   }
 
   override fun onResourceRedirect(
@@ -572,39 +577,21 @@ class ExtensionResourceRequestHandler(private val apiScript: String) : CefResour
   }
 }
 
-class ExtensionResourceHandler(private val apiScript: String) : CefResourceHandler {
+class ExtensionResourceHandler() : CefResourceHandler {
   private val logger = Logger.getInstance(ExtensionResourceHandler::class.java)
   var status = 0
   var bytesReadFromResource = 0L
   private var bytesSent = 0L
   private var bytesWaitingSend =
-      ByteBuffer.allocate(2 * 1024 * 1024)
+      ByteBuffer.allocate(512 * 1024)
           .flip()
   // correctly
   private var contentLength = 0L
   var contentType = "text/plain"
   var readChannel: AsynchronousFileChannel? = null
 
-  // Some response bodies need to be rewritten. Gets the rewriter, if any, for the specified request
-  // path.
-  private fun rewriterForRequestPath(requestPath: String): ((content: String) -> String)? =
-      when {
-        requestPath.endsWith(".html") -> { content: String ->
-              // TODO: It is cheesy to look for <head> instead of parsing DOM content. But it is
-              // effective.
-              val injectedStyles = VSCODE_INJECTED_DEFAULT_STYLES
-              content
-                  // .replace("{cspSource}", "'self' https://*.sourcegraphstatic.com")
-                  .replace(
-                      "<head>", "<head><script>${apiScript}</script><style>$injectedStyles</style>")
-            }
-        else -> null
-      }
-
   override fun processRequest(request: CefRequest, callback: CefCallback?): Boolean {
-    val urlRegex = Regex("^file://.*#url=(.*)$")
-    val jbLoadHtmlUrl = urlRegex.find(request.url)
-    val requestPath = URI(jbLoadHtmlUrl?.groupValues?.get(1) ?: request.url).path.removePrefix("/")
+    val requestPath = URI(request.url).path.removePrefix("/")
 
     ApplicationManager.getApplication().executeOnPooledThread {
       // Find the plugin resources.
@@ -646,24 +633,16 @@ class ExtensionResourceHandler(private val apiScript: String) : CefResourceHandl
             else -> "text/plain"
           }
 
-      val rewriter = rewriterForRequestPath(requestPath)
-      if (rewriter == null) {
-        // Prepare to read the file contents.
-        try {
-          readChannel = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ)
-        } catch (e: IOException) {
-          logger.warn(
-              "Failed to open file ${file.absolutePath} to serve extension WebView request $requestPath",
-              e)
-          status = 404
-          callback?.Continue()
-          return@executeOnPooledThread
-        }
-      } else {
-        // Read and rewrite the file contents.
-        val content = file.readText()
-        val rewrittenContent = rewriter(content)
-        bytesWaitingSend = ByteBuffer.wrap(rewrittenContent.toByteArray())
+      // Prepare to read the file contents.
+      try {
+        readChannel = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ)
+      } catch (e: IOException) {
+        logger.warn(
+            "Failed to open file ${file.absolutePath} to serve extension WebView request $requestPath",
+            e)
+        status = 404
+        callback?.Continue()
+        return@executeOnPooledThread
       }
 
       // We're ready to synthesize headers.
@@ -753,6 +732,40 @@ class ExtensionResourceHandler(private val apiScript: String) : CefResourceHandl
       readChannel?.close()
     } catch (e: IOException) {}
     readChannel = null
+  }
+}
+
+class MainResourceHandler(content: String) : CefResourceHandler {
+  // Copying this all in memory is awful, but Java is awful.
+  private val buffer = StandardCharsets.UTF_8.encode(content)
+
+  override fun processRequest(request: CefRequest?, callback: CefCallback?): Boolean {
+      callback?.Continue()
+      return true
+  }
+
+  override fun getResponseHeaders(
+    response: CefResponse,
+    responseLength: IntRef,
+    redirectUrl: StringRef
+  ) {
+    response.status = 200
+    response.mimeType = "text/html"
+    responseLength.set(buffer.remaining())
+  }
+
+  override fun readResponse(dataOut: ByteArray, bytesToRead: Int, bytesRead: IntRef?, callback: CefCallback?): Boolean {
+    if (!buffer.hasRemaining()) {
+      return false
+    }
+    val bytesAvailable = buffer.remaining()
+    val bytesToCopy = minOf(bytesAvailable, bytesToRead)
+    buffer.get(dataOut, 0, bytesToCopy)
+    bytesRead?.set(bytesToCopy)
+    return true
+  }
+
+  override fun cancel() {
   }
 }
 
