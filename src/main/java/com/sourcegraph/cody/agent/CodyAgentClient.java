@@ -198,6 +198,16 @@ public class CodyAgentClient {
     }
   }
 
+  @Nullable Consumer<WebviewSetHtmlParams> onWebviewSetHtml;
+
+  @JsonNotification("webview/setHtml")
+  public void webviewTitle(@NotNull WebviewSetHtmlParams params) {
+    if (onWebviewSetHtml != null) {
+      ApplicationManager.getApplication()
+              .invokeLater(() -> onWebviewSetHtml.accept(params));
+    }
+  }
+
   @JsonNotification("webview/setIconPath")
   public void webviewSetIconPath(@NotNull WebviewSetIconPathParams params) {
     // TODO: Implement this.
