@@ -12,6 +12,7 @@ import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.sourcegraph.cody.edit.FixupService
+import com.sourcegraph.config.ConfigUtil
 import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
@@ -28,7 +29,6 @@ class CodySelectionInlayManager(val project: Project) {
 
   fun handleSelectionChanged(editor: Editor, event: SelectionEvent) {
     clearInlay()
-
     val service = FixupService.getInstance(project)
     if (!service.isEligibleForInlineEdit(editor)) {
       return
@@ -37,6 +37,7 @@ class CodySelectionInlayManager(val project: Project) {
     if (service.getActiveSession() != null) {
       return
     }
+    if (!ConfigUtil.isCodyUIHintsEnabled()) return // User-disabled.
 
     val startOffset = event.newRange.startOffset
     val endOffset = event.newRange.endOffset

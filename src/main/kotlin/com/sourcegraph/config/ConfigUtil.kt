@@ -16,10 +16,10 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.ServerAuthLoader
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
-import java.nio.file.Path
-import java.nio.file.Paths
 import org.jetbrains.annotations.Contract
 import org.jetbrains.annotations.VisibleForTesting
+import java.nio.file.Path
+import java.nio.file.Paths
 
 object ConfigUtil {
   const val DOTCOM_URL = "https://sourcegraph.com/"
@@ -130,6 +130,8 @@ object ConfigUtil {
   @JvmStatic fun isCodyEnabled(): Boolean = CodyApplicationSettings.instance.isCodyEnabled
 
   @JvmStatic fun isCodyDebugEnabled(): Boolean = CodyApplicationSettings.instance.isCodyDebugEnabled
+
+  @JvmStatic fun isCodyUIHintsEnabled(): Boolean = CodyApplicationSettings.instance.isCodyUIHintsEnabled
 
   @JvmStatic
   fun isCodyVerboseDebugEnabled(): Boolean =
