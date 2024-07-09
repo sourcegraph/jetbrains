@@ -102,7 +102,7 @@ class SettingsMigrationTest : BasePlatformTestCase() {
                       "Cyberdyne",
                       "Terminator",
                       "T-800",
-                      mutableListOf("pro"),
+                      mutableListOf("free"),
                       mutableListOf("chat", "edit")))
           it.defaultEnhancedContext =
               EnhancedContextState().also {
