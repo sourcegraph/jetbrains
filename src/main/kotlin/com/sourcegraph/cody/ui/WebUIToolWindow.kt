@@ -565,8 +565,8 @@ class ExtensionResourceHandler(private val apiScript: String) : CefResourceHandl
   var bytesReadFromResource = 0L
   private var bytesSent = 0L
   private var bytesWaitingSend =
-      ByteBuffer.allocate(100)
-          .flip() // TODO: increase this, just testing we handle exceeding the buffer capacity
+      ByteBuffer.allocate(2 * 1024 * 1024)
+          .flip()
   // correctly
   private var contentLength = 0L
   var contentType = "text/plain"
