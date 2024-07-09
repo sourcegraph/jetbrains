@@ -99,7 +99,11 @@ class SettingsMigrationTest : BasePlatformTestCase() {
           it.defaultLlm =
               LLMState.fromChatModel(
                   ChatModelsResponse.ChatModelProvider(
-                      true, false, "Cyberdyne", "Terminator", "T-800"))
+                      "Cyberdyne",
+                      "Terminator",
+                      "T-800",
+                      mutableListOf("pro"),
+                      mutableListOf("chat", "edit")))
           it.defaultEnhancedContext =
               EnhancedContextState().also {
                 it.isEnabled = true
@@ -144,7 +148,11 @@ class SettingsMigrationTest : BasePlatformTestCase() {
                     it.llm =
                         LLMState.fromChatModel(
                             ChatModelsResponse.ChatModelProvider(
-                                false, true, "Uni of IL", "HAL", "HAL 9000"))
+                                "Uni of IL",
+                                "HAL",
+                                "HAL 9000",
+                                mutableListOf("pro"),
+                                mutableListOf("chat", "edit")))
                     it.messages =
                         mutableListOf(
                             MessageState().also {
@@ -190,22 +198,20 @@ class SettingsMigrationTest : BasePlatformTestCase() {
   fun `test DeprecatedChatLlmMigration`() {
     fun createLlmModel(
         version: String,
-        isDefault: Boolean,
-        isDeprecated: Boolean
+        tags: List<String>,
     ): ChatModelsResponse.ChatModelProvider {
       return ChatModelsResponse.ChatModelProvider(
-          isDefault,
-          false,
           "Anthropic",
           "Claude $version",
           "anthropic/claude-$version",
-          isDeprecated)
+          tags.toMutableList(),
+          mutableListOf("chat", "edit"))
     }
 
-    val claude20 = createLlmModel("2.0", isDefault = false, isDeprecated = true)
-    val claude21 = createLlmModel("2.1", isDefault = false, isDeprecated = true)
-    val claude30 = createLlmModel("3.0", isDefault = true, isDeprecated = false)
-    val models = listOf(claude20, claude21, claude30)
+    val claude20 = createLlmModel("2.0", listOf("deprecated"))
+    val claude21 = createLlmModel("2.1", listOf("deprecated"))
+    val claude30 = createLlmModel("3.0", listOf())
+    val models = listOf(claude30, claude20, claude21)
 
     val accountData =
         mutableListOf(

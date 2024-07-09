@@ -59,8 +59,7 @@ class LlmDropdown(
             ?: availableModels.find { it.model == selectedFromHistory?.model }
 
     selectedItem =
-        if (selectedModel?.codyProOnly == true && isCurrentUserFree())
-            availableModels.find { it.default }
+        if (selectedModel?.codyProOnly == true && isCurrentUserFree()) availableModels.getOrNull(0)
         else selectedModel
 
     val isEnterpriseAccount =

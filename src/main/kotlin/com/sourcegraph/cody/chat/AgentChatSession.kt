@@ -356,11 +356,11 @@ private constructor(
       val chatModelProvider =
           state.llm?.let {
             ChatModelsResponse.ChatModelProvider(
-                default = it.model == null,
-                codyProOnly = false,
                 provider = it.provider,
                 title = it.title,
-                model = it.model ?: "")
+                model = it.model ?: "",
+                usage = it.usage,
+                tags = it.tags)
           }
 
       val connectionId = createNewPanel(project) { it.server.chatNew() }
