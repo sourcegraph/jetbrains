@@ -11,7 +11,6 @@ import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.edit.FixupService
 import java.awt.Font
 import java.awt.Graphics
