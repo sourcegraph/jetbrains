@@ -23,8 +23,8 @@ class LLMState : BaseState() {
         it.model = chatModelProvider.model
         it.title = chatModelProvider.title
         it.provider = chatModelProvider.provider
-        it.tags = chatModelProvider.tags
-        it.usage = chatModelProvider.usage
+        it.tags = chatModelProvider.tags ?: mutableListOf()
+        it.usage = chatModelProvider.usage ?: mutableListOf()
       }
     }
   }

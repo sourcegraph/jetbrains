@@ -359,8 +359,8 @@ private constructor(
                 provider = it.provider,
                 title = it.title,
                 model = it.model ?: "",
-                usage = it.usage,
-                tags = it.tags)
+                usage = it.usage.toMutableList(),
+                tags = it.tags.toMutableList())
           }
 
       val connectionId = createNewPanel(project) { it.server.chatNew() }

@@ -38,7 +38,7 @@ object DeprecatedChatLlmMigration {
       notify: (Set<String>) -> Unit
   ) {
 
-    val defaultModel = models.getOrNull(0) ?: return
+    val defaultModel = models.find { it.default } ?: return
 
     fun isDeprecated(modelState: LLMState): Boolean =
         models.firstOrNull { it.model == modelState.model }?.deprecated ?: false

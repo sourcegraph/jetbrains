@@ -49,8 +49,8 @@ class LlmDropdown(
   private fun updateModelsInUI(models: List<ChatModelsResponse.ChatModelProvider>) {
     if (project.isDisposed) return
 
-    val availableModels = models.filterNot { it.deprecated }
-    availableModels.sortedBy { it.codyProOnly }.forEach(::addItem)
+    val availableModels = models.filterNot { it.isDeprecated() }
+    availableModels.sortedBy { it.isCodyProOnly() }.forEach(::addItem)
 
     val selectedFromState = chatModelProviderFromState
     val selectedFromHistory = HistoryService.getInstance(project).getDefaultLlm()
@@ -59,7 +59,8 @@ class LlmDropdown(
             ?: availableModels.find { it.model == selectedFromHistory?.model }
 
     selectedItem =
-        if (selectedModel?.codyProOnly == true && isCurrentUserFree()) availableModels.getOrNull(0)
+        if (selectedModel?.isCodyProOnly() == true && isCurrentUserFree())
+            availableModels.getOrNull(0)
         else selectedModel
 
     val isEnterpriseAccount =
@@ -83,7 +84,7 @@ class LlmDropdown(
     if (project.isDisposed) return
     val modelProvider = anObject as? ChatModelsResponse.ChatModelProvider
     if (modelProvider != null) {
-      if (modelProvider.codyProOnly && isCurrentUserFree()) {
+      if (modelProvider.isCodyProOnly() && isCurrentUserFree()) {
         BrowserOpener.openInBrowser(project, "https://sourcegraph.com/cody/subscription")
         return
       }
