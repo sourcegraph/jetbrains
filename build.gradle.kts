@@ -345,18 +345,6 @@ tasks {
       from(agentDir.resolve("dist"))
       into(buildCodyDir)
     }
-
-    // Build the webviews
-    val vscodeDir = codyDir.resolve("vscode")
-    exec {
-      workingDir(vscodeDir)
-      commandLine("pnpm", "run", "_build:webviews")
-    }
-    copy {
-      from(vscodeDir.resolve("dist/webviews")) { include("*") }
-      into(buildCodyDir.resolve("webviews"))
-    }
-
     copy {
       from(downloadNodeBinaries())
       into(buildCodyDir)
