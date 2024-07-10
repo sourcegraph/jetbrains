@@ -12,8 +12,10 @@ import java.util.EnumSet
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.or
 import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.incremental.deleteDirectoryContents
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -22,6 +24,7 @@ val isForceAgentBuild =
     isForceBuild ||
         properties("forceCodyBuild") == "true" ||
         properties("forceAgentBuild") == "true"
+val isForceProtocolCopy = properties("forceProtocolCopy") == "true"
 val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") == "true"
 
 // As https://www.jetbrains.com/updates/updates.xml adds a new "IntelliJ IDEA" YYYY.N version, add
@@ -209,7 +212,7 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
 
   val resourcesDir = project.file("src/integrationTest/resources")
   systemProperties(
-      "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
+      "cody-agent.trace-path" to "${layout.buildDirectory}/sourcegraph/cody-agent-trace.json",
       "cody-agent.directory" to buildCodyDir.parent,
       "sourcegraph.verbose-logging" to "true",
       "cody.autocomplete.enableFormatting" to
@@ -310,7 +313,7 @@ tasks {
     return destination
   }
 
-  val buildCodyDir = buildDir.resolve("sourcegraph").resolve("agent")
+  val buildCodyDir = layout.buildDirectory.asFile.get().resolve("sourcegraph").resolve("agent")
   fun buildCody(): File {
     if (!isForceAgentBuild && (buildCodyDir.listFiles()?.size ?: 0) > 0) {
       println("Cached $buildCodyDir")
@@ -341,12 +344,74 @@ tasks {
     return buildCodyDir
   }
 
+  fun copyProtocol(): Unit {
+    // This is just a temporary solution to make it easier to use certain generated protocol
+    // messages.
+    // Ultimately this should entirely be replaced by use of the generated protocol.
+    if (!isForceProtocolCopy) {
+      return
+    }
+    val fromEnvironmentVariable = System.getenv("CODY_DIR")
+    if (fromEnvironmentVariable.isNullOrEmpty()) {
+      throw IllegalStateException("CODY_DIR environment variable is not set")
+    }
+    // "~" works fine from the terminal, however it breaks IntelliJ's run configurations
+    val pathString =
+        if (fromEnvironmentVariable.startsWith("~")) {
+          System.getProperty("user.home") + fromEnvironmentVariable.substring(1)
+        } else {
+          fromEnvironmentVariable
+        }
+    val codyDir = Paths.get(pathString).toFile()
+    val sourceDir =
+        codyDir.resolve(
+            Paths.get(
+                    "agent",
+                    "bindings",
+                    "kotlin",
+                    "lib",
+                    "src",
+                    "main",
+                    "kotlin",
+                    "com",
+                    "sourcegraph",
+                    "cody",
+                    "protocol_generated")
+                .toString())
+    val targetDir =
+        layout.projectDirectory.asFile.resolve(
+            "src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated")
+
+    targetDir.deleteDirectoryContents()
+    sourceDir.copyRecursively(targetDir, overwrite = true)
+    // in each file replace the package name
+    for (file in targetDir.walkTopDown()) {
+      if (file.isFile && file.extension == "kt") {
+        val content = file.readText()
+        val newContent =
+            """
+        |/*
+        | * Generated file - DO NOT EDIT MANUALLY
+        | * They are copied from the cody agent project using the copyProtocol gradle task.
+        | * This is only a temporary solution before we fully migrate to generated protocol messages.
+        | */
+        |
+    """
+                .trimMargin() +
+                content.replace(
+                    "com.sourcegraph.cody.protocol_generated",
+                    "com.sourcegraph.cody.agent.protocol_generated")
+        file.writeText(newContent)
+      }
+    }
+  }
+
   // System properties that are used for testing purposes. These properties
   // should be consistently set in different local dev environments, like `./gradlew :runIde`,
   // `./gradlew test` or when testing inside IntelliJ
   val agentProperties =
       mapOf<String, Any>(
-          "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
+          "cody-agent.trace-path" to "${layout.buildDirectory}/sourcegraph/cody-agent-trace.json",
           "cody-agent.directory" to buildCodyDir.parent,
           "sourcegraph.verbose-logging" to "true",
           "cody-agent.panic-when-out-of-sync" to
@@ -530,13 +595,15 @@ tasks {
 
   named<Copy>("processIntegrationTestResources") {
     from(sourceSets["integrationTest"].resources)
-    into("$buildDir/resources/integrationTest")
+    into("${layout.buildDirectory}/resources/integrationTest")
     exclude("**/.idea/**")
     exclude("**/*.xml")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
   }
 
-  withType<Test> { systemProperty("idea.test.src.dir", "$buildDir/resources/integrationTest") }
+  withType<Test> {
+    systemProperty("idea.test.src.dir", "${layout.buildDirectory}/resources/integrationTest")
+  }
 
   named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }
 

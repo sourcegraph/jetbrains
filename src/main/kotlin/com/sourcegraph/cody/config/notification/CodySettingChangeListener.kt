@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindowManager
 import com.sourcegraph.cody.CodyToolWindowFactory
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.protocol_helpers.toProtocol
 import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager
 import com.sourcegraph.cody.autocomplete.render.AutocompleteRenderUtil
 import com.sourcegraph.cody.statusbar.CodyStatusService
@@ -33,7 +34,8 @@ class CodySettingChangeListener(project: Project) : ChangeListener(project) {
             // Notify Cody Agent about config changes.
             CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
               if (ConfigUtil.isCodyEnabled()) {
-                agent.server.configurationDidChange(ConfigUtil.getAgentConfiguration(project))
+                agent.server.extensionConfiguration_didChange(
+                    ConfigUtil.getAgentConfiguration(project).toProtocol())
               }
             }
 

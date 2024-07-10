@@ -10,6 +10,9 @@ import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.util.net.HttpConfigurable
 import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
+import com.sourcegraph.cody.agent.protocol_helpers.ClientCapabilities
+import com.sourcegraph.cody.agent.protocol_helpers.ClientInfo
+import com.sourcegraph.cody.agent.protocol_helpers.toProtocol
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
 import java.io.*
@@ -111,19 +114,20 @@ private constructor(
           return server
               .initialize(
                   ClientInfo(
-                      version = ConfigUtil.getPluginVersion(),
-                      ideVersion = ApplicationInfo.getInstance().build.toString(),
-                      workspaceRootUri =
-                          ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
-                      extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
-                      capabilities =
-                          ClientCapabilities(
-                              edit = "enabled",
-                              editWorkspace = "enabled",
-                              codeLenses = "enabled",
-                              showDocument = "enabled",
-                              ignore = "enabled",
-                              untitledDocuments = "enabled")))
+                          version = ConfigUtil.getPluginVersion(),
+                          ideVersion = ApplicationInfo.getInstance().build.toString(),
+                          workspaceRootUri =
+                              ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
+                          extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
+                          capabilities =
+                              ClientCapabilities(
+                                  edit = "enabled",
+                                  editWorkspace = "enabled",
+                                  codeLenses = "enabled",
+                                  showDocument = "enabled",
+                                  ignore = "enabled",
+                                  untitledDocuments = "enabled"))
+                      .toProtocol())
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)
                 server.initialized()

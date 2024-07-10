@@ -17,6 +17,7 @@ import com.intellij.openapi.wm.WindowManager
 import com.intellij.util.AuthData
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.protocol_helpers.toProtocol
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
 import com.sourcegraph.cody.config.notification.AccountSettingChangeActionNotifier
@@ -197,7 +198,8 @@ class CodyAuthenticationManager(val project: Project) :
     if (oldToken != newToken && newAccount == account) {
       CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
         if (!project.isDisposed) {
-          agent.server.configurationDidChange(ConfigUtil.getAgentConfiguration(project))
+          agent.server.extensionConfiguration_didChange(
+              ConfigUtil.getAgentConfiguration(project).toProtocol())
           publisher.afterAction(AccountSettingChangeContext(accessTokenChanged = true))
         }
       }
@@ -220,7 +222,8 @@ class CodyAuthenticationManager(val project: Project) :
 
       CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
         if (!project.isDisposed) {
-          agent.server.configurationDidChange(ConfigUtil.getAgentConfiguration(project))
+          agent.server.extensionConfiguration_didChange(
+              ConfigUtil.getAgentConfiguration(project).toProtocol())
           if (serverUrlChanged || tierChanged || accountChanged) {
             publisher.afterAction(
                 AccountSettingChangeContext(
