@@ -12,6 +12,7 @@ import com.intellij.psi.PsiFile
 
 class DiagnosticCollectorHighlightingPass(val file: PsiFile, document: Document) :
     TextEditorHighlightingPass(file.project, document) {
+  // TODO make sure that the highlighting logic and the agent requests don't run in EDT
 
   private val logger = Logger.getInstance(DiagnosticCollectorHighlightingPass::class.java)
 
@@ -27,6 +28,7 @@ class DiagnosticCollectorHighlightingPass(val file: PsiFile, document: Document)
 
     logger.warn("Collecting highlight information")
     infoHolder = createInfoHolder(file)
+    // TODO when the HighlightVisitor is instantiated, use it to populate the infoHolder
   }
 
   override fun doApplyInformationToEditor() {
@@ -37,6 +39,7 @@ class DiagnosticCollectorHighlightingPass(val file: PsiFile, document: Document)
     } else {
       logger.warn("Collected ${infoHolder!!.size()} highlight infos")
     }
+    // TODO Convert this information to a list of ProtocolDiagnostic and send them to the agent
   }
 
   private fun createInfoHolder(file: PsiFile?): HighlightInfoHolder {
