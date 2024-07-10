@@ -100,11 +100,11 @@ Few tips and tricks regarding versioning of the tooling:
 The fastest way to develop the Web UI is to use Storybook. However for some tasks loading the webview in JetBrains is
 unavoidable. The process to do this is:
 
-1. Use the "Run the plugin locally with fresh build of a local clone of Cody" setup (see above.)
-2. After changing the Web UI, in `$CODY_DIR` run `pnpm -C vscode _build:webviews`
+1. Use the "Run the plugin locally with fresh build of a local clone of Cody" setup (see above.) Specifically, you must have `CODY_DIR` set.
+2. After changing the Web UI, in `$CODY_DIR` run `pnpm -C agent build:webviews`
 3. Start a new chat to load the new webview bundle.
 
-For changes in the TypeScript extension, you must use one of the agent workflows described above.
+For changes in the TypeScript extension outside of the webview bundle, you must use one of the agent workflows described above.
 
 ## Using Nightly channel releases
 
