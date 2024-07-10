@@ -598,7 +598,7 @@ class ExtensionResourceHandler() : CefResourceHandler {
       val codyDirOverride = System.getenv("CODY_DIR")
       val resourcesPath =
           if (codyDirOverride != null) {
-            Path(codyDirOverride).resolve("vscode/dist")
+            Path(codyDirOverride).resolve("agent/dist")
           } else {
             CodyAgent.pluginDirectory()?.resolve("agent")
           }
