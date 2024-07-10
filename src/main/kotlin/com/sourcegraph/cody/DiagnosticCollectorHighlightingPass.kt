@@ -2,6 +2,7 @@ package com.sourcegraph.cody
 
 import com.intellij.codeHighlighting.*
 import com.intellij.codeInsight.daemon.impl.HighlightInfoFilter
+import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.codeInsight.daemon.impl.analysis.HighlightInfoHolder
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
@@ -17,6 +18,13 @@ class DiagnosticCollectorHighlightingPass(val file: PsiFile, document: Document)
   private var infoHolder: HighlightInfoHolder? = null
 
   override fun doCollectInformation(progress: ProgressIndicator) {
+    // FIXME find the default visitor
+    val highlightVisitors = HighlightVisitor.EP_HIGHLIGHT_VISITOR.extensionList
+    logger.warn("Found ${highlightVisitors.size} highlight visitors")
+    for (x in highlightVisitors) {
+      logger.warn(x.javaClass.name)
+    }
+
     logger.warn("Collecting highlight information")
     infoHolder = createInfoHolder(file)
   }
