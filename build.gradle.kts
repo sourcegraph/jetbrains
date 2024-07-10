@@ -356,13 +356,15 @@ tasks {
           "cody.autocomplete.enableFormatting" to
               (project.property("cody.autocomplete.enableFormatting") ?: "true"))
 
-  fun getIdeaInstallDir(ideaVersion: String): File? {
+  fun getIdeaInstallDir(ideaVersion: String, ideaType: String): File? {
     val gradleHome = project.gradle.gradleUserHomeDir
-    val cacheDir = File(gradleHome, "caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC")
+    val cacheDir =
+        File(gradleHome, "caches/modules-2/files-2.1/com.jetbrains.intellij.idea/idea$ideaType")
     val ideaDir = File(cacheDir, ideaVersion)
-    return ideaDir.walk().find { it.name == "ideaIC-$ideaVersion" }
+    return ideaDir.walk().find { it.name == "idea$ideaType-$ideaVersion" }
   }
 
+  register("copyProtocol") { copyProtocol() }
   register("buildCodeSearch") { buildCodeSearch() }
   register("buildCody") { buildCody() }
 
@@ -441,11 +443,14 @@ tasks {
     agentProperties.forEach { (key, value) -> systemProperty(key, value) }
 
     val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
-    if (platformRuntimeVersion != null) {
+    val platformRuntimeType = project.findProperty("platformRuntimeType")
+    if (platformRuntimeVersion != null || platformRuntimeType != null) {
       val ideaInstallDir =
-          getIdeaInstallDir(platformRuntimeVersion.toString())
+          getIdeaInstallDir(
+              platformRuntimeVersion.or(project.property("platformVersion")).toString(),
+              platformRuntimeType.or(project.property("platformType")).toString())
               ?: throw GradleException(
-                  "Could not find IntelliJ install for $platformRuntimeVersion")
+                  "Could not find IntelliJ install for {version: $platformRuntimeVersion")
       ideDir.set(ideaInstallDir)
     }
   }
