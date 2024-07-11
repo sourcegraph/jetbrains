@@ -10,50 +10,56 @@ import java.beans.PropertyChangeListener
 import javax.swing.JComponent
 import javax.swing.JLabel
 
+class WebPanelEditor(private val file: VirtualFile) : FileEditor {
+  companion object {
+    val WEBVIEW_COMPONENT_KEY = Key.create<JComponent>("WebViewComponent")
+  }
+
+  override fun <T : Any?> getUserData(key: Key<T>): T? {
+    // TODO: Implement this
+    return null
+  }
+
+  override fun <T : Any?> putUserData(key: Key<T>, value: T?) {
+    // TODO: Implement this
+  }
+
+  override fun dispose() {
+    // TODO: Implement this
+  }
+
+  override fun getComponent(): JComponent = file.getUserData(WEBVIEW_COMPONENT_KEY) ?: JLabel("No WebView created.")
+
+  override fun getPreferredFocusedComponent(): JComponent? = getComponent()
+
+  override fun getName(): String = "Cody Web Panel"
+
+  override fun getFile(): VirtualFile = file
+
+  override fun setState(state: FileEditorState) {
+    // TODO: Implement this.
+  }
+
+  override fun isModified(): Boolean = false
+
+  override fun isValid(): Boolean = true
+
+  override fun addPropertyChangeListener(listener: PropertyChangeListener) {
+    // TODO: Do we need to implement this?
+  }
+
+  override fun removePropertyChangeListener(listener: PropertyChangeListener) {
+    // TODO: Do we need to implement this?
+  }
+
+  override fun getCurrentLocation(): FileEditorLocation? = null
+}
+
 class WebPanelProvider : FileEditorProvider, DumbAware {
   override fun accept(project: Project, file: VirtualFile): Boolean = file.fileType == WebPanelFileType.INSTANCE
 
   override fun createEditor(project: Project, file: VirtualFile): FileEditor {
-    return object : FileEditor {
-      val component = JLabel("Hello, world")
-
-      override fun <T : Any?> getUserData(key: Key<T>): T? {
-        // TODO: Implement this
-        return null
-      }
-
-      override fun <T : Any?> putUserData(key: Key<T>, value: T?) {
-        // TODO: Implement this
-      }
-
-      override fun dispose() {
-        // TODO: Implement this
-      }
-
-      override fun getComponent(): JComponent = component
-
-      override fun getPreferredFocusedComponent(): JComponent? = component
-
-      override fun getName(): String = "Cody Web Panel"
-
-      override fun setState(state: FileEditorState) {
-        // TODO: Implement this.
-      }
-
-      override fun isModified(): Boolean = false
-
-      override fun isValid(): Boolean = true
-
-      override fun addPropertyChangeListener(listener: PropertyChangeListener) {
-        // TODO: Do we need to implement this?
-      }
-
-      override fun removePropertyChangeListener(listener: PropertyChangeListener) {
-        // TODO: Do we need to implement this?
-      }
-
-      override fun getCurrentLocation(): FileEditorLocation? = null
-    }
+    return WebPanelEditor(file)
   }
 
   // TODO: Implement dispose, readState, writeState if we need this to manage, restore.

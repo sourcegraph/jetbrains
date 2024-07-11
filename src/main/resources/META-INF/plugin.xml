@@ -94,6 +94,7 @@
                 name="SourcegraphWebPanel"
                 implementationClass="com.sourcegraph.cody.ui.WebPanelFileType"
                 fieldName="INSTANCE"/>
+        <editorTabTitleProvider implementation="com.sourcegraph.cody.ui.WebPanelTabTitleProvider"/>
 
         <!-- Remote repo input TODO, remove this now we have web UI for chats -->
         <fileType
