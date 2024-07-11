@@ -1,11 +1,14 @@
 package com.sourcegraph.cody.initialization
 
+import com.intellij.openapi.actionSystem.AnActionEvent.createFromAnAction
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ex.EditorEventMulticasterEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.config.CodyAccountsHost
 import com.sourcegraph.cody.config.migration.SettingsMigration
 import com.sourcegraph.cody.config.ui.CheckUpdatesTask
 import com.sourcegraph.cody.listeners.CodyCaretListener
@@ -43,6 +46,19 @@ class PostStartupActivity : StartupActivity.DumbAware {
     if (ConfigUtil.isCodyEnabled() && !ConfigUtil.isIntegrationTestModeEnabled()) {
       CodyAgentService.getInstance(project).startAgent(project)
       EndOfTrialNotificationScheduler.createAndStart(project)
+    }
+
+    // todo: remove me
+    val actionManager = com.intellij.openapi.actionSystem.ActionManager.getInstance()
+    val action = actionManager.getAction("Cody.Accounts.AddCodyEnterpriseAccount")
+    if (action != null) {
+      val accountsModel = com.sourcegraph.cody.config.CodyPersistentAccountsHost(project)
+      val event =
+          createFromAnAction(action, null, "sourcegraph") { key ->
+            if (CodyAccountsHost.DATA_KEY.`is`(key)) accountsModel else null
+          }
+
+      invokeLater { action.actionPerformed(event) }
     }
 
     CodyStatusService.resetApplication(project)

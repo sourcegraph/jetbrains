@@ -43,12 +43,11 @@ class CodyAuthCredentialsUi(val factory: SourcegraphApiRequestExecutor.Factory) 
 
   override fun Panel.centerPanel() {
     row {
-      val progressLabel =
+      cell(
           JBLabel("Logging in, check your browser").apply {
             icon = AnimatedIcon.Default.INSTANCE
             foreground = getInactiveTextColor()
-          }
-      cell(progressLabel)
+          })
     }
   }
 
