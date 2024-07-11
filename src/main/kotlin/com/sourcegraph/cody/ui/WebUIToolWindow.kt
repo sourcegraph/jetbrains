@@ -8,10 +8,14 @@ import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefBrowserBuilder
@@ -117,8 +121,6 @@ class WebUIService(private val project: Project) {
               arguments
             ))
           }
-        } else {
-          println("no")
         }
       }
     }
@@ -126,6 +128,11 @@ class WebUIService(private val project: Project) {
     proxies[params.handle] = proxy
 
     // TODO: This should create a panel, but it creates a sidebar view.
+    val file = LightVirtualFile("TODO Untitled")
+    file.fileType = WebPanelFileType.INSTANCE
+    FileEditorManager.getInstance(project).openFile(file, !params.showOptions.preserveFocus)
+    // TODO: Connect this document's EDITOR with the webview we will create.
+
     // TODO: Manage tearing down the view when we are done.
     view = CodyViewService.getInstance(project).createView(proxy)
 
@@ -263,8 +270,6 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
           TODO("Not yet implemented")
         }
       }, browser.cefBrowser)
-      // TODO: The extension sets the HTML property, causing this navigation. Move that there.
-      // browser.loadURL(MAIN_RESOURCE_URL)
       return proxy
     }
   }
@@ -604,7 +609,7 @@ class ExtensionResourceHandler() : CefResourceHandler {
           }
       if (resourcesPath == null) {
         logger.warn(
-            "Aborting WebView request for ${requestPath}, extension resource directory not found found")
+            "Aborting WebView request for ${requestPath}, extension resource directory not found")
         status = 500
         callback?.Continue()
         return@executeOnPooledThread
