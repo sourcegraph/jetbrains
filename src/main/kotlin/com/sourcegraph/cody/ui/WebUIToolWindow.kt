@@ -127,14 +127,8 @@ class WebUIService(private val project: Project) {
     val proxy = WebUIProxy.create(delegate)
     proxies[params.handle] = proxy
 
-    // TODO: This should create a panel, but it creates a sidebar view.
-    val file = LightVirtualFile("TODO Untitled")
-    file.fileType = WebPanelFileType.INSTANCE
-    FileEditorManager.getInstance(project).openFile(file, !params.showOptions.preserveFocus)
-    // TODO: Connect this document's EDITOR with the webview we will create.
-
-    // TODO: Manage tearing down the view when we are done.
-    view = CodyViewService.getInstance(project).createView(proxy)
+    // TODO: Manage tearing down the panel when we are done.
+    view = CodyViewService.getInstance(project).createPanel(proxy, params)
 
     proxy.updateTheme(themeController.getTheme())
   }
@@ -370,6 +364,25 @@ class CodyViewService(val project: Project) {
       override fun setTitle(newTitle: String) {
         runInEdt {
           content.displayName = newTitle
+        }
+      }
+      // TODO: Add icon support.
+    }
+  }
+
+  fun createPanel(proxy: WebUIProxy, params: WebviewCreateWebviewPanelParams): WebviewViewDelegate? {
+    // TODO: Give these files unique names.
+    val file = LightVirtualFile("WebPanel")
+    file.fileType = WebPanelFileType.INSTANCE
+    file.putUserData(WebPanelTabTitleProvider.WEB_PANEL_TITLE_KEY, params.title)
+    file.putUserData(WebPanelEditor.WEBVIEW_COMPONENT_KEY, proxy.component)
+    // TODO: Hang onto this editor to dispose of it, etc.
+    FileEditorManager.getInstance(project).openFile(file, !params.showOptions.preserveFocus)
+    return object : WebviewViewDelegate {
+      override fun setTitle(newTitle: String) {
+        runInEdt {
+          file.putUserData(WebPanelTabTitleProvider.WEB_PANEL_TITLE_KEY, newTitle)
+          FileEditorManager.getInstance(project).updateFilePresentation(file)
         }
       }
       // TODO: Add icon support.
