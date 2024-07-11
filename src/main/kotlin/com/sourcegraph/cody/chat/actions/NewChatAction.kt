@@ -6,15 +6,13 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.chat.AgentChatSession
 
 class NewChatAction : BaseChatAction() {
-  override val toolWindowId
-    get() = "Cody (UI Refresh)"
-
   override fun doAction(project: Project) {
     CodyAgentService.withAgent(project) { agent ->
-      agent.server.chatNew().thenAccept {
-        // TODO: Rendezvous with the chat, panel ID that result
-        println("Chat ID: ${it.chatId}, panel ID: ${it.panelId}")
-      }
+      agent.server.chatNew().thenAccept {}
     }
+  }
+
+  override fun showToolbar(project: Project) {
+    // no-op, new chats are in panels right now.
   }
 }

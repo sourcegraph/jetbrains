@@ -28,11 +28,9 @@ abstract class BaseChatAction : DumbAwareEDTAction() {
     }
   }
 
-  protected open val toolWindowId: String
-    get() = CodyToolWindowFactory.TOOL_WINDOW_ID
-
-  private fun showToolbar(project: Project) =
-      ToolWindowManager.getInstance(project)
-          .getToolWindow(toolWindowId)
-          ?.show()
+  protected open fun showToolbar(project: Project) {
+    ToolWindowManager.getInstance(project)
+      .getToolWindow(CodyToolWindowFactory.TOOL_WINDOW_ID)
+      ?.show()
+  }
 }
