@@ -4,16 +4,15 @@
  * This is only a temporary solution before we fully migrate to generated protocol messages.
  */
 @file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName", "UnusedImport")
+package com.sourcegraph.cody.agent.protocol_generated;
 
-package com.sourcegraph.cody.agent.protocol_generated
-
-import com.google.gson.annotations.SerializedName
+import com.google.gson.annotations.SerializedName;
 
 data class ShowWindowMessageParams(
-    val severity: SeverityEnum, // Oneof: error, warning, information
-    val message: String,
-    val options: MessageOptions? = null,
-    val items: List<String>? = null,
+  val severity: SeverityEnum, // Oneof: error, warning, information
+  val message: String,
+  val options: MessageOptions? = null,
+  val items: List<String>? = null,
 ) {
 
   enum class SeverityEnum {
@@ -22,3 +21,4 @@ data class ShowWindowMessageParams(
     @SerializedName("information") Information,
   }
 }
+

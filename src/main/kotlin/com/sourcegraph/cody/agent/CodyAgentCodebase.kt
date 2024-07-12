@@ -5,7 +5,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.sourcegraph.cody.agent.protocol_helpers.toProtocol
 import com.sourcegraph.cody.config.CodyProjectSettings
 import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.vcs.RepoUtil
@@ -33,7 +32,7 @@ class CodyAgentCodebase(val project: Project) {
         inferredUrl.complete(repositoryName)
         CodyAgentService.withAgent(project) {
           it.server.extensionConfiguration_didChange(
-              ConfigUtil.getAgentConfiguration(project).toProtocol())
+              ConfigUtil.getAgentConfiguration(project))
         }
       }
     }

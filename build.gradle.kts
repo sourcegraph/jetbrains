@@ -113,6 +113,7 @@ spotless {
     ktfmt()
     trimTrailingWhitespace()
     target("src/**/*.kt")
+    targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**/*.kt")
     toggleOffOn()
   }
 }
@@ -351,18 +352,7 @@ tasks {
     if (!isForceProtocolCopy) {
       return
     }
-    val fromEnvironmentVariable = System.getenv("CODY_DIR")
-    if (fromEnvironmentVariable.isNullOrEmpty()) {
-      throw IllegalStateException("CODY_DIR environment variable is not set")
-    }
-    // "~" works fine from the terminal, however it breaks IntelliJ's run configurations
-    val pathString =
-        if (fromEnvironmentVariable.startsWith("~")) {
-          System.getProperty("user.home") + fromEnvironmentVariable.substring(1)
-        } else {
-          fromEnvironmentVariable
-        }
-    val codyDir = Paths.get(pathString).toFile()
+    val codyDir = downloadCody()
     val sourceDir =
         codyDir.resolve(
             Paths.get(
@@ -398,9 +388,10 @@ tasks {
         |
     """
                 .trimMargin() +
+                //TODO: these are several "mods" until we can fix the code generation
                 content.replace(
                     "com.sourcegraph.cody.protocol_generated",
-                    "com.sourcegraph.cody.agent.protocol_generated")
+                    "com.sourcegraph.cody.agent.protocol_generated").replace("@file:Suppress(\"FunctionName\", \"ClassName\")", "@file:Suppress(\"FunctionName\", \"ClassName\", \"REDUNDANT_NULLABLE\")")
         file.writeText(newContent)
       }
     }
@@ -518,6 +509,9 @@ tasks {
                   "Could not find IntelliJ install for {version: $platformRuntimeVersion")
       ideDir.set(ideaInstallDir)
     }
+    // TODO: we need to wait to switch to Platform Gradle Plugin 2.0.0 to be able to have separate runtime plugins
+    // https://github.com/JetBrains/intellij-platform-gradle-plugin/issues/1489
+    // val platformRuntimePlugins = project.findProperty("platformRuntimePlugins")
   }
 
   runPluginVerifier {

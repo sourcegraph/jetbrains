@@ -4,17 +4,16 @@
  * This is only a temporary solution before we fully migrate to generated protocol messages.
  */
 @file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName", "UnusedImport")
+package com.sourcegraph.cody.agent.protocol_generated;
 
-package com.sourcegraph.cody.agent.protocol_generated
-
-import com.google.gson.annotations.SerializedName
+import com.google.gson.annotations.SerializedName;
 
 data class AutocompleteParams(
-    val uri: String,
-    val filePath: String? = null,
-    val position: Position,
-    val triggerKind: TriggerKindEnum? = null, // Oneof: Automatic, Invoke
-    val selectedCompletionInfo: SelectedCompletionInfo? = null,
+  val uri: String,
+  val filePath: String? = null,
+  val position: Position,
+  val triggerKind: TriggerKindEnum? = null, // Oneof: Automatic, Invoke
+  val selectedCompletionInfo: SelectedCompletionInfo? = null,
 ) {
 
   enum class TriggerKindEnum {
@@ -22,3 +21,4 @@ data class AutocompleteParams(
     @SerializedName("Invoke") Invoke,
   }
 }
+

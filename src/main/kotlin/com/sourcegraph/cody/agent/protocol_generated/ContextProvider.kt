@@ -4,36 +4,33 @@
  * This is only a temporary solution before we fully migrate to generated protocol messages.
  */
 @file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName", "UnusedImport")
+package com.sourcegraph.cody.agent.protocol_generated;
 
-package com.sourcegraph.cody.agent.protocol_generated
-
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
-import com.google.gson.JsonElement
-import com.google.gson.annotations.SerializedName
-import java.lang.reflect.Type
+import com.google.gson.annotations.SerializedName;
+import com.google.gson.Gson;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import java.lang.reflect.Type;
 
 sealed class ContextProvider {
   companion object {
     val deserializer: JsonDeserializer<ContextProvider> =
-        JsonDeserializer { element: JsonElement, _: Type, context: JsonDeserializationContext ->
-          when (element.getAsJsonObject().get("kind").getAsString()) {
-            "embeddings" ->
-                context.deserialize<LocalEmbeddingsProvider>(
-                    element, LocalEmbeddingsProvider::class.java)
-            "search" ->
-                context.deserialize<LocalSearchProvider>(element, LocalSearchProvider::class.java)
-            else -> throw Exception("Unknown discriminator ${element}")
-          }
+      JsonDeserializer { element: JsonElement, _: Type, context: JsonDeserializationContext ->
+        when (element.getAsJsonObject().get("kind").getAsString()) {
+          "embeddings" -> context.deserialize<LocalEmbeddingsProvider>(element, LocalEmbeddingsProvider::class.java)
+          "search" -> context.deserialize<LocalSearchProvider>(element, LocalSearchProvider::class.java)
+          else -> throw Exception("Unknown discriminator ${element}")
         }
+      }
   }
 }
 
 data class LocalEmbeddingsProvider(
-    val kind: KindEnum, // Oneof: embeddings
-    val state: StateEnum, // Oneof: indeterminate, no-match, unconsented, indexing, ready
-    val errorReason: ErrorReasonEnum? = null, // Oneof: not-a-git-repo, git-repo-has-no-remote
-    val embeddingsAPIProvider: EmbeddingsProvider, // Oneof: sourcegraph
+  val kind: KindEnum, // Oneof: embeddings
+  val state: StateEnum, // Oneof: indeterminate, no-match, unconsented, indexing, ready
+  val errorReason: ErrorReasonEnum? = null, // Oneof: not-a-git-repo, git-repo-has-no-remote
+  val embeddingsAPIProvider: EmbeddingsProvider, // Oneof: sourcegraph
 ) : ContextProvider() {
 
   enum class KindEnum {
@@ -55,9 +52,9 @@ data class LocalEmbeddingsProvider(
 }
 
 data class LocalSearchProvider(
-    val kind: KindEnum, // Oneof: search
-    val type: TypeEnum, // Oneof: local
-    val state: StateEnum, // Oneof: unindexed, indexing, ready, failed
+  val kind: KindEnum, // Oneof: search
+  val type: TypeEnum, // Oneof: local
+  val state: StateEnum, // Oneof: unindexed, indexing, ready, failed
 ) : ContextProvider() {
 
   enum class KindEnum {
@@ -77,12 +74,12 @@ data class LocalSearchProvider(
 }
 
 data class RemoteSearchProvider(
-    val kind: KindEnum, // Oneof: search
-    val type: TypeEnum, // Oneof: remote
-    val state: StateEnum, // Oneof: ready, no-match
-    val id: String,
-    val inclusion: InclusionEnum, // Oneof: auto, manual
-    val isIgnored: Boolean,
+  val kind: KindEnum, // Oneof: search
+  val type: TypeEnum, // Oneof: remote
+  val state: StateEnum, // Oneof: ready, no-match
+  val id: String,
+  val inclusion: InclusionEnum, // Oneof: auto, manual
+  val isIgnored: Boolean,
 ) : ContextProvider() {
 
   enum class KindEnum {
@@ -103,3 +100,4 @@ data class RemoteSearchProvider(
     @SerializedName("manual") Manual,
   }
 }
+

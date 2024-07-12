@@ -4,10 +4,10 @@
  * This is only a temporary solution before we fully migrate to generated protocol messages.
  */
 @file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName", "UnusedImport")
-
-package com.sourcegraph.cody.agent.protocol_generated
+package com.sourcegraph.cody.agent.protocol_generated;
 
 data class CodeActions_ProvideParams(
-    val location: ProtocolLocation,
-    val triggerKind: CodeActionTriggerKind, // Oneof: Invoke, Automatic
+  val location: ProtocolLocation,
+  val triggerKind: CodeActionTriggerKind, // Oneof: Invoke, Automatic
 )
+

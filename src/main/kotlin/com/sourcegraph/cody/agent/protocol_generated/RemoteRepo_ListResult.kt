@@ -4,12 +4,12 @@
  * This is only a temporary solution before we fully migrate to generated protocol messages.
  */
 @file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName", "UnusedImport")
-
-package com.sourcegraph.cody.agent.protocol_generated
+package com.sourcegraph.cody.agent.protocol_generated;
 
 data class RemoteRepo_ListResult(
-    val startIndex: Int,
-    val count: Int,
-    val repos: List<ReposParams>,
-    val state: RemoteRepoFetchState,
+  val startIndex: Int,
+  val count: Int,
+  val repos: List<ReposParams>,
+  val state: RemoteRepoFetchState,
 )
+

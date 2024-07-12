@@ -4,8 +4,7 @@
  * This is only a temporary solution before we fully migrate to generated protocol messages.
  */
 @file:Suppress("unused", "ConstPropertyName")
-
-package com.sourcegraph.cody.agent.protocol_generated
+package com.sourcegraph.cody.agent.protocol_generated;
 
 object Constants {
   const val paused = "paused"
@@ -35,7 +34,6 @@ object Constants {
   const val `context_remote-repos` = "context/remote-repos"
   const val setConfigFeatures = "setConfigFeatures"
   const val allMentionProvidersMetadata = "allMentionProvidersMetadata"
-  const val updateEditorState = "updateEditorState"
   const val embeddings = "embeddings"
   const val indeterminate = "indeterminate"
   const val `no-match` = "no-match"
@@ -139,7 +137,6 @@ object Constants {
   const val `attribution-search` = "attribution-search"
   const val troubleshoot_reloadAuth = "troubleshoot/reloadAuth"
   const val getAllMentionProvidersMetadata = "getAllMentionProvidersMetadata"
-  const val `experimental-unit-test-prompt` = "experimental-unit-test-prompt"
   const val `tree-sitter` = "tree-sitter"
   const val indentation = "indentation"
   const val Automatic = "Automatic"
