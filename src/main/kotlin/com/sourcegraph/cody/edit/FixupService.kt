@@ -65,6 +65,7 @@ class FixupService(val project: Project) : Disposable {
 
   /**
    * Returns true if the given Editor is eligible for inline edit commands.
+   *
    * @param editor the Editor to check
    * @param verbose if true, log the reason and present the user with a notification.
    */
