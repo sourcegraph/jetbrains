@@ -11,6 +11,8 @@ import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.sourcegraph.cody.agent.protocol_generated.Position
+import com.sourcegraph.cody.agent.protocol_generated.Range
 import java.awt.Point
 import java.nio.file.FileSystems
 import java.util.*
@@ -162,12 +164,12 @@ private constructor(
     @RequiresEdt
     fun fromEditor(editor: Editor): ProtocolTextDocument? {
       val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return null
-      return fromVirtualFile(editor, file)
+      return fromVirtualEditorFile(editor, file)
     }
 
     @JvmStatic
     @RequiresEdt
-    fun fromVirtualFile(
+    fun fromVirtualEditorFile(
         editor: Editor,
         file: VirtualFile,
     ): ProtocolTextDocument {
@@ -180,6 +182,14 @@ private constructor(
           selection = selection,
           visibleRange = getVisibleRange(editor),
           testing = getTestingParams(uri = uri, content = content, selection = selection))
+    }
+
+    @JvmStatic
+    fun fromVirtualFile(file: VirtualFile): ProtocolTextDocument {
+      val content = FileDocumentManager.getInstance().getDocument(file)?.text
+      val uri = uriFor(file)
+      return ProtocolTextDocument(
+          uri = uri, content = content, testing = getTestingParams(uri = uri, content = content))
     }
 
     @JvmStatic

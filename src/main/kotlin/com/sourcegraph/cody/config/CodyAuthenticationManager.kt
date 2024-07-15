@@ -197,8 +197,7 @@ class CodyAuthenticationManager(val project: Project) :
     if (oldToken != newToken && newAccount == account) {
       CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
         if (!project.isDisposed) {
-          agent.server.extensionConfiguration_didChange(
-              ConfigUtil.getAgentConfiguration(project))
+          agent.server.extensionConfiguration_didChange(ConfigUtil.getAgentConfiguration(project))
           publisher.afterAction(AccountSettingChangeContext(accessTokenChanged = true))
         }
       }
@@ -221,8 +220,7 @@ class CodyAuthenticationManager(val project: Project) :
 
       CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
         if (!project.isDisposed) {
-          agent.server.extensionConfiguration_didChange(
-              ConfigUtil.getAgentConfiguration(project))
+          agent.server.extensionConfiguration_didChange(ConfigUtil.getAgentConfiguration(project))
           if (serverUrlChanged || tierChanged || accountChanged) {
             publisher.afterAction(
                 AccountSettingChangeContext(

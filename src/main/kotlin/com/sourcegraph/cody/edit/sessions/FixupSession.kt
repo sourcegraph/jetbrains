@@ -22,12 +22,13 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.CodyTaskState
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.GetFoldingRangeParams
-import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
-import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.agent.protocol.WorkspaceEditParams
+import com.sourcegraph.cody.agent.protocol_extensions.*
+import com.sourcegraph.cody.agent.protocol_generated.Position
+import com.sourcegraph.cody.agent.protocol_generated.Range
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.FixupService
@@ -103,7 +104,7 @@ abstract class FixupSession(
   private fun triggerFixupAsync() {
     // Those lookups require us to be on the EDT.
     val file = FileDocumentManager.getInstance().getFile(document)
-    val textFile = file?.let { ProtocolTextDocument.fromVirtualFile(editor, it) } ?: return
+    val textFile = file?.let { ProtocolTextDocument.fromVirtualEditorFile(editor, it) } ?: return
 
     CodyAgentService.withAgent(project) { agent ->
       workAroundUninitializedCodebase()
@@ -205,7 +206,7 @@ abstract class FixupSession(
 
     var range =
         selectionRange?.let {
-          val position = Position(Range.fromRangeMarker(it).start.line, character = 0)
+          val position = Position(RangeFactory.fromRangeMarker(it).start.line, character = 0)
           Range(start = position, end = position)
         }
 
@@ -377,7 +378,7 @@ abstract class FixupSession(
           .firstOrNull { it.document == documentForFile }
           ?.let { newEditor -> editor = newEditor }
 
-      val textFile = ProtocolTextDocument.fromVirtualFile(editor, vf)
+      val textFile = ProtocolTextDocument.fromVirtualEditorFile(editor, vf)
       CodyAgentService.withAgent(project) { agent ->
         ensureSelectionRange(agent, textFile)
         document.addDocumentListener(documentListener, /* parentDisposable= */ this)

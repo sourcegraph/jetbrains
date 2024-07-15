@@ -1,10 +1,10 @@
-package com.sourcegraph.cody.agent.protocol_helpers
+package com.sourcegraph.cody.agent.protocol_extensions
 
 import com.sourcegraph.cody.agent.protocol_generated.ClientCapabilities
 import com.sourcegraph.cody.agent.protocol_generated.ClientInfo
 import com.sourcegraph.cody.agent.protocol_generated.ExtensionConfiguration
 
-object ClientInfoExt {
+object ClientInfoFactory {
   fun build(
       version: String,
       ideVersion: String,

@@ -1,4 +1,4 @@
-package com.sourcegraph.cody.agent.protocol_helpers
+package com.sourcegraph.cody.agent.protocol_extensions
 
 import com.sourcegraph.cody.agent.protocol_generated.ClientCapabilities
 import com.sourcegraph.cody.agent.protocol_generated.ClientCapabilities.ChatEnum
@@ -12,7 +12,7 @@ import com.sourcegraph.cody.agent.protocol_generated.ClientCapabilities.Progress
 import com.sourcegraph.cody.agent.protocol_generated.ClientCapabilities.ShowDocumentEnum
 import com.sourcegraph.cody.agent.protocol_generated.ClientCapabilities.UntitledDocumentsEnum
 
-object ClientCapabilitiesExt {
+object ClientCapabilitiesFactory {
   fun build(
       completions: String? = null,
       chat: String? = null,

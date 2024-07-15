@@ -23,7 +23,8 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.ui.JBColor
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
-import com.sourcegraph.cody.agent.protocol.Range
+import com.sourcegraph.cody.agent.protocol_extensions.*
+import com.sourcegraph.cody.agent.protocol_generated.Range
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import java.awt.Cursor
 import java.awt.Font

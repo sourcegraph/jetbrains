@@ -213,7 +213,8 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
 
   val resourcesDir = project.file("src/integrationTest/resources")
   systemProperties(
-      "cody-agent.trace-path" to "${layout.buildDirectory}/sourcegraph/cody-agent-trace.json",
+      "cody-agent.trace-path" to
+          "${layout.buildDirectory.asFile.get()}/sourcegraph/cody-agent-trace.json",
       "cody-agent.directory" to buildCodyDir.parent,
       "sourcegraph.verbose-logging" to "true",
       "cody.autocomplete.enableFormatting" to
@@ -388,10 +389,14 @@ tasks {
         |
     """
                 .trimMargin() +
-                //TODO: these are several "mods" until we can fix the code generation
-                content.replace(
-                    "com.sourcegraph.cody.protocol_generated",
-                    "com.sourcegraph.cody.agent.protocol_generated").replace("@file:Suppress(\"FunctionName\", \"ClassName\")", "@file:Suppress(\"FunctionName\", \"ClassName\", \"REDUNDANT_NULLABLE\")")
+                // TODO: these are several "mods" until we can fix the code generation
+                content
+                    .replace(
+                        "com.sourcegraph.cody.protocol_generated",
+                        "com.sourcegraph.cody.agent.protocol_generated")
+                    .replace(
+                        "@file:Suppress(\"FunctionName\", \"ClassName\")",
+                        "@file:Suppress(\"FunctionName\", \"ClassName\", \"REDUNDANT_NULLABLE\")")
         file.writeText(newContent)
       }
     }
@@ -402,7 +407,8 @@ tasks {
   // `./gradlew test` or when testing inside IntelliJ
   val agentProperties =
       mapOf<String, Any>(
-          "cody-agent.trace-path" to "${layout.buildDirectory}/sourcegraph/cody-agent-trace.json",
+          "cody-agent.trace-path" to
+              "${layout.buildDirectory.asFile.get()}/sourcegraph/cody-agent-trace.json",
           "cody-agent.directory" to buildCodyDir.parent,
           "sourcegraph.verbose-logging" to "true",
           "cody-agent.panic-when-out-of-sync" to
@@ -509,7 +515,8 @@ tasks {
                   "Could not find IntelliJ install for {version: $platformRuntimeVersion")
       ideDir.set(ideaInstallDir)
     }
-    // TODO: we need to wait to switch to Platform Gradle Plugin 2.0.0 to be able to have separate runtime plugins
+    // TODO: we need to wait to switch to Platform Gradle Plugin 2.0.0 to be able to have separate
+    // runtime plugins
     // https://github.com/JetBrains/intellij-platform-gradle-plugin/issues/1489
     // val platformRuntimePlugins = project.findProperty("platformRuntimePlugins")
   }
@@ -589,14 +596,15 @@ tasks {
 
   named<Copy>("processIntegrationTestResources") {
     from(sourceSets["integrationTest"].resources)
-    into("${layout.buildDirectory}/resources/integrationTest")
+    into("${layout.buildDirectory.asFile.get()}/resources/integrationTest")
     exclude("**/.idea/**")
     exclude("**/*.xml")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
   }
 
   withType<Test> {
-    systemProperty("idea.test.src.dir", "${layout.buildDirectory}/resources/integrationTest")
+    systemProperty(
+        "idea.test.src.dir", "${layout.buildDirectory.asFile.get()}/resources/integrationTest")
   }
 
   named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }

@@ -10,8 +10,8 @@ import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.util.net.HttpConfigurable
 import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
-import com.sourcegraph.cody.agent.protocol_helpers.ClientInfoExt
-import com.sourcegraph.cody.agent.protocol_helpers.ClientCapabilitiesExt
+import com.sourcegraph.cody.agent.protocol_extensions.ClientCapabilitiesFactory
+import com.sourcegraph.cody.agent.protocol_extensions.ClientInfoFactory
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
 import java.io.*
@@ -112,21 +112,20 @@ private constructor(
         try {
           return server
               .initialize(
-                  ClientInfoExt.build(
-                          version = ConfigUtil.getPluginVersion(),
-                          ideVersion = ApplicationInfo.getInstance().build.toString(),
-                          workspaceRootUri =
-                              ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
-                          extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
-                          capabilities =
-                              ClientCapabilitiesExt.build(
-                                  edit = "enabled",
-                                  editWorkspace = "enabled",
-                                  codeLenses = "enabled",
-                                  showDocument = "enabled",
-                                  ignore = "enabled",
-                                  untitledDocuments = "enabled"))
-                      )
+                  ClientInfoFactory.build(
+                      version = ConfigUtil.getPluginVersion(),
+                      ideVersion = ApplicationInfo.getInstance().build.toString(),
+                      workspaceRootUri =
+                          ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
+                      extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
+                      capabilities =
+                          ClientCapabilitiesFactory.build(
+                              edit = "enabled",
+                              editWorkspace = "enabled",
+                              codeLenses = "enabled",
+                              showDocument = "enabled",
+                              ignore = "enabled",
+                              untitledDocuments = "enabled")))
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)
                 server.initialized()

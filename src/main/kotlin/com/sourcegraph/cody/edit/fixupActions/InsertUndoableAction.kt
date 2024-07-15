@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.protocol.TextEdit
+import com.sourcegraph.cody.agent.protocol_extensions.*
 
 class InsertUndoableAction(project: Project, edit: TextEdit, document: Document) :
     FixupUndoableAction(project, edit, document) {

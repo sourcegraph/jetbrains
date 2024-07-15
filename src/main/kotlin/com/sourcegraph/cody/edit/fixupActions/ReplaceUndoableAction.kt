@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.sourcegraph.cody.agent.protocol.TextEdit
+import com.sourcegraph.cody.agent.protocol_extensions.*
 
 // Handles deletion requests as well, which are just replacements with "".
 class ReplaceUndoableAction : FixupUndoableAction {
