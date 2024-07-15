@@ -18,9 +18,15 @@ import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.cody.util.CodyIntegrationTextFixture
 import junit.framework.TestCase
+import org.junit.Ignore
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 
+@RunWith(JUnit4::class)
 class DocumentCodeTest : CodyIntegrationTextFixture() {
 
+  @Test
   fun testGetsFoldingRanges() {
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_FOLDING_RANGES)
 
@@ -39,6 +45,8 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         selection.startOffset == caret && selection.endOffset == caret)
   }
 
+  @Ignore
+  @Test
   fun skip_testGetsWorkingGroupLens() {
     val assertsExecuted = AtomicInteger(0)
     val showWorkingGroupSessionStateListener =
@@ -87,6 +95,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     }
   }
 
+  @Test
   fun testShowsAcceptLens() {
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
     assertInlayIsShown()
@@ -123,6 +132,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     assertTrue(hasJavadocComment(myFixture.editor.document.text))
   }
 
+  @Test
   fun testAccept() {
     assertNoActiveSession()
     assertNoInlayShown()
@@ -139,6 +149,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     assertNoActiveSession()
   }
 
+  @Test
   fun skip_testUndo() {
     val originalDocument = myFixture.editor.document.text
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
