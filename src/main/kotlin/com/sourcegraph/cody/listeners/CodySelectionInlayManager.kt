@@ -11,14 +11,16 @@ import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.edit.FixupService
+import com.sourcegraph.config.ConfigUtil
 import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.Rectangle
 import java.awt.event.KeyEvent
 import java.awt.geom.GeneralPath
-import java.util.*
+import java.util.Locale
 
 class CodySelectionInlayManager(val project: Project) {
 
@@ -28,30 +30,37 @@ class CodySelectionInlayManager(val project: Project) {
 
   fun handleSelectionChanged(editor: Editor, event: SelectionEvent) {
     clearInlay()
-
     val service = FixupService.getInstance(project)
-    if (!service.isEligibleForInlineEdit(editor)) {
+    // Don't spam with notifications as we're selecting code.
+    if (!service.isEligibleForInlineEdit(editor, verbose = false)) {
       return
     }
     // Don't show it if we're in the middle of an edit.
     if (service.getActiveSession() != null) {
       return
     }
+    if (!ConfigUtil.isCodyUIHintsEnabled()) return // User-disabled.
+    if (CodyAuthenticationManager.getInstance(project).hasNoActiveAccount()) return
 
     val startOffset = event.newRange.startOffset
     val endOffset = event.newRange.endOffset
     if (startOffset == endOffset) {
-      // Don't show if there's no selection.
+      return // Don't show if there's no selection.
+    }
+    val document = editor.document
+    val startLine = document.getLineNumber(startOffset)
+    val endLine = document.getLineNumber(endOffset)
+    val selectionEndLine = if (startOffset > endOffset) startLine else endLine
+    // Don't show if selection is only on one line, as it can be distracting.
+    if (startLine == selectionEndLine) {
       return
     }
-    val startLine = editor.document.getLineNumber(startOffset)
-    val endLine = editor.document.getLineNumber(endOffset)
-    val selectionEndLine = if (startOffset > endOffset) startLine else endLine
-
     val editShortcutText = getKeyStrokeText("cody.editCodeAction")
     val inlayContent = "$editShortcutText  to Edit"
 
-    updateInlay(editor, inlayContent, selectionEndLine)
+    val bottomLine = // Try to put it beneath the selection. At the end was unpopular.
+        if (selectionEndLine + 1 < document.lineCount) selectionEndLine + 1 else selectionEndLine
+    updateInlay(editor, inlayContent, bottomLine)
   }
 
   private fun updateInlay(editor: Editor, content: String, line: Int) {
