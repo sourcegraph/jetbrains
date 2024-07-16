@@ -5,6 +5,7 @@ import com.intellij.collaboration.async.CompletableFutureUtil.errorOnEdt
 import com.intellij.collaboration.async.CompletableFutureUtil.submitIOTask
 import com.intellij.collaboration.async.CompletableFutureUtil.successOnEdt
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProcessCanceledException
@@ -12,7 +13,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.ui.setEmptyState
@@ -26,12 +26,16 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.ui.layout.not
 import com.intellij.ui.layout.selected
-import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.util.ui.UIUtil.getInactiveTextColor
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphAuthenticationException
+import com.sourcegraph.cody.auth.SourcegraphAuthService
+import com.sourcegraph.cody.auth.SsoAuthMethod
+import com.sourcegraph.cody.config.DialogValidationUtils.custom
 import com.sourcegraph.cody.config.DialogValidationUtils.notBlank
+import com.sourcegraph.common.AuthorizationUtil
 import java.awt.Component
+import java.awt.event.ActionEvent
 import java.net.UnknownHostException
 import java.util.concurrent.CompletableFuture
 import javax.swing.Action
@@ -46,8 +50,25 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
   private lateinit var customRequestHeadersField: ExtendableTextField
   internal lateinit var codyAuthData: CodyAuthData
 
+  private val advancedAction =
+      object : DialogWrapperAction("Show advanced...") {
+        override fun doAction(e: ActionEvent) {
+          advancedSettings.isSelected = advancedSettings.isSelected.not()
+          if (advancedSettings.isSelected) {
+            setOKButtonText("Add Account")
+            putValue(NAME, "Hide advanced...")
+          } else {
+            setOKButtonText("Authorize in browser")
+            putValue(NAME, "Show advanced...")
+            tokenAcquisitionError = null
+          }
+
+          invokeLater { pack() }
+        }
+      }
+
   private val isAcquiringToken = JCheckBox().also { it.isSelected = false }
-  private lateinit var advancedSettings: ComboBox<String>
+  private val advancedSettings = JCheckBox().also { it.isSelected = false }
 
   init {
     title = "Add Sourcegraph Account"
@@ -68,7 +89,6 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
           textField()
               .applyToComponent {
                 emptyText.text = "https://sourcegraph.yourcompany.com"
-                text = "sourcegraph.com" // todo: remove me
                 instanceUrlField = this
               }
               .horizontalAlign(HorizontalAlign.FILL)
@@ -77,26 +97,19 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
             "Enter the address of your sourcegraph instance. For example https://sourcegraph.example.org",
             maxLineLength = MAX_LINE_LENGTH_NO_WRAP)
         .visibleIf(isAcquiringToken.selected.not())
-    row("Advanced settings:") {
-      comboBox(listOf("Browser", "Token")).applyToComponent {
-        advancedSettings = this
-        advancedSettings.addActionListener {
-          if (advancedSettings.selectedItem == "Token") {
-            setOKButtonText("Add Account")
-          } else {
-            setOKButtonText("Authorize in browser")
-          }
-        }
-      }
-    }
     row("Token:") {
-          textField().applyToComponent { tokenField = this }.horizontalAlign(HorizontalAlign.FILL)
+          textField()
+              .applyToComponent { tokenField = this }
+              .validationOnInput {
+                tokenAcquisitionError = null
+                null
+              }
+              .horizontalAlign(HorizontalAlign.FILL)
         }
-        .enabledIf(advancedSettings.selectedValueMatches("Token"::equals))
-    group("Advanced settings", indent = false) {
+        .visibleIf(advancedSettings.selected)
+    collapsibleGroup("Advanced settings", indent = false) {
           row("Custom request headers: ") {
-            customRequestHeadersField = ExtendableTextField("", 0)
-            cell(customRequestHeadersField)
+            cell(ExtendableTextField(/*columns =*/ 0))
                 .horizontalAlign(HorizontalAlign.FILL)
                 .comment(
                     """Any custom headers to send with every request to Sourcegraph.<br>
@@ -104,18 +117,54 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
                   |Whitespace around commas doesn't matter.
               """
                         .trimMargin(),
-                    MAX_LINE_LENGTH_NO_WRAP)
-                .applyToComponent { setEmptyState("Client-ID, client-one, X-Extra, some metadata") }
+                    maxLineLength = MAX_LINE_LENGTH_NO_WRAP)
+                .applyToComponent {
+                  setEmptyState("Client-ID, client-one, X-Extra, some metadata")
+                  customRequestHeadersField = this
+                }
           }
         }
-        .enabledIf(advancedSettings.selectedValueMatches("Token"::equals))
+        .visibleIf(advancedSettings.selected)
   }
 
-  override fun createActions(): Array<Action> = arrayOf(cancelAction, okAction)
+  override fun createActions(): Array<Action> = arrayOf(cancelAction, advancedAction, okAction)
 
   override fun doOKAction() {
+    if (advancedSettings.isSelected) {
+      authenticateWithToken()
+    } else {
+      authenticateInBrowser()
+    }
+  }
+
+  private fun authenticateWithToken() {
+    okAction.isEnabled = false
+    advancedAction.isEnabled = false
+
+    val emptyProgressIndicator = EmptyProgressIndicator(ModalityState.defaultModalityState())
+    Disposer.register(disposable) { emptyProgressIndicator.cancel() }
+    val server = deriveServerPath()
+
+    acquireDetailsAndToken(emptyProgressIndicator)
+        .successOnEdt(ModalityState.NON_MODAL) { (details, token) ->
+          codyAuthData =
+              CodyAuthData(
+                  CodyAccount(details.username, details.displayName, server, details.id),
+                  details.username,
+                  token)
+          close(OK_EXIT_CODE, true)
+        }
+        .errorOnEdt(ModalityState.NON_MODAL) {
+          okAction.isEnabled = true
+          advancedAction.isEnabled = true
+          if (!CompletableFutureUtil.isCancellation(it)) startTrackingValidation()
+        }
+  }
+
+  private fun authenticateInBrowser() {
     isAcquiringToken.isSelected = true
     okAction.isEnabled = false
+    advancedAction.isEnabled = false
 
     val emptyProgressIndicator = EmptyProgressIndicator(ModalityState.defaultModalityState())
     Disposer.register(disposable) { emptyProgressIndicator.cancel() }
@@ -133,15 +182,26 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
         .errorOnEdt(ModalityState.NON_MODAL) {
           isAcquiringToken.isSelected = false
           okAction.isEnabled = true
+          advancedAction.isEnabled = true
           if (!CompletableFutureUtil.isCancellation(it)) startTrackingValidation()
         }
   }
 
-  override fun doValidateAll(): MutableList<ValidationInfo> =
-      listOfNotNull(
-              notBlank(instanceUrlField, "Instance URL cannot be empty") ?: validateServerPath(),
-              tokenAcquisitionError)
-          .toMutableList()
+  override fun doValidateAll(): MutableList<ValidationInfo> {
+    val tokenFieldErrors =
+        if (advancedSettings.isSelected) {
+          notBlank(tokenField, "Token cannot be empty")
+              ?: custom(tokenField, "Invalid access token") {
+                AuthorizationUtil.isValidAccessToken(tokenField.text)
+              }
+        } else null
+
+    return listOfNotNull(
+            notBlank(instanceUrlField, "Instance URL cannot be empty") ?: validateServerPath(),
+            tokenAcquisitionError,
+            tokenFieldErrors)
+        .toMutableList()
+  }
 
   private fun validateServerPath(): ValidationInfo? =
       if (!isInstanceUrlValid(instanceUrlField)) {
@@ -182,16 +242,13 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
   }
 
   private fun acquireToken(indicator: ProgressIndicator, server: String): String {
-    //    val credentialsFuture = SourcegraphAuthService.instance.authorize(server,
-    // SsoAuthMethod.DEFAULT) // todo: revert me
     val credentialsFuture =
-        CompletableFuture.supplyAsync {
-          for (i in 1..10) {
-            Thread.sleep(1000)
-            println("Logging at second: $i")
-          }
-          "sgp_a0d7ccb4f752ea73_d1600a23f05d74d6338bcbc9cb85fd4d49669d17"
+        if (advancedSettings.isSelected) {
+          CompletableFuture.completedFuture(tokenField.text)
+        } else {
+          SourcegraphAuthService.instance.authorize(server, SsoAuthMethod.DEFAULT)
         }
+
     try {
       return ProgressIndicatorUtils.awaitWithCheckCanceled(credentialsFuture, indicator)
     } catch (pce: ProcessCanceledException) {
@@ -200,7 +257,14 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
     }
   }
 
-  private fun deriveServerPath(): SourcegraphServerPath =
-      SourcegraphServerPath.from(
-          uri = instanceUrlField.text.trim().lowercase(), customRequestHeaders = "")
+  private fun deriveServerPath(): SourcegraphServerPath {
+    val customRequestHeaders =
+        if (advancedSettings.isSelected) {
+          customRequestHeadersField.text.trim()
+        } else {
+          ""
+        }
+    return SourcegraphServerPath.from(
+        uri = instanceUrlField.text.trim().lowercase(), customRequestHeaders)
+  }
 }
