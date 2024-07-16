@@ -47,7 +47,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
 
   @Ignore
   @Test
-  fun skip_testGetsWorkingGroupLens() {
+  fun testGetsWorkingGroupLens() {
     val assertsExecuted = AtomicInteger(0)
     val showWorkingGroupSessionStateListener =
         object : FixupService.ActiveFixupSessionStateListener {
@@ -150,7 +150,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
   }
 
   @Test
-  fun skip_testUndo() {
+  fun testUndo() {
     val originalDocument = myFixture.editor.document.text
     runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
     assertNotSame(
