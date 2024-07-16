@@ -41,8 +41,11 @@ import java.util.concurrent.CompletableFuture
 import javax.swing.Action
 import javax.swing.JCheckBox
 
-class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
-    DialogWrapper(project, parent, false, IdeModalityType.PROJECT) {
+class SourcegraphInstanceLoginDialog(
+    project: Project?,
+    parent: Component?,
+    private val defaultInstanceUrl: String = ""
+) : DialogWrapper(project, parent, false, IdeModalityType.PROJECT) {
 
   private var tokenAcquisitionError: ValidationInfo? = null
   private lateinit var instanceUrlField: JBTextField
@@ -90,6 +93,7 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
               .applyToComponent {
                 emptyText.text = "https://sourcegraph.yourcompany.com"
                 instanceUrlField = this
+                text = defaultInstanceUrl
               }
               .horizontalAlign(HorizontalAlign.FILL)
         }
@@ -130,7 +134,7 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
   override fun createActions(): Array<Action> = arrayOf(cancelAction, advancedAction, okAction)
 
   override fun doOKAction() {
-    if (advancedSettings.isSelected) {
+    if (advancedSettings.isSelected.not()) {
       isAcquiringToken.isSelected = true
     }
     okAction.isEnabled = false
@@ -150,7 +154,7 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
           close(OK_EXIT_CODE, true)
         }
         .errorOnEdt(ModalityState.NON_MODAL) {
-          if (advancedSettings.isSelected) {
+          if (advancedSettings.isSelected.not()) {
             isAcquiringToken.isSelected = false
           }
           okAction.isEnabled = true

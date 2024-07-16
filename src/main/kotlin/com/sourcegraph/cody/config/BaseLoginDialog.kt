@@ -9,11 +9,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.wm.IdeFocusManager
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.auth.SsoAuthMethod
 import java.awt.Component
-import java.awt.event.ActionEvent
 import javax.swing.Action
 import javax.swing.JComponent
 
@@ -26,36 +24,7 @@ abstract class BaseLoginDialog(
 
   protected val loginPanel = CodyLoginPanel(executorFactory)
 
-  private val authenticateAutomatically =
-      object : DialogWrapperAction("Authenticate automatically") {
-
-        override fun doAction(e: ActionEvent?) {
-          val info = loginPanel.getServerPathValidationInfo()
-          if (info != null) {
-            if (info.component != null && info.component!!.isVisible) {
-              IdeFocusManager.getInstance(null).requestFocus(info.component!!, true)
-            }
-
-            updateErrorInfo(listOf(info))
-            this.isEnabled = info.okEnabled
-            startTrackingValidation()
-            if (!info.okEnabled) {
-              return
-            }
-          }
-          authenticate()
-        }
-      }
-
-  override fun createActions(): Array<Action> =
-      arrayOf(cancelAction, authenticateAutomatically, okAction)
-
-  override fun updateErrorInfo(errors: List<ValidationInfo>) {
-    super.updateErrorInfo(errors)
-    if (errors.none { it.component is ServerTextField }) {
-      authenticateAutomatically.isEnabled = true
-    }
-  }
+  override fun createActions(): Array<Action> = arrayOf(cancelAction, okAction)
 
   var id: String = ""
     private set
@@ -119,7 +88,6 @@ abstract class BaseLoginDialog(
     Disposer.register(disposable) { emptyProgressIndicator.cancel() }
 
     loginPanel.setAuthUI()
-    authenticateAutomatically.isEnabled = false
     okAction.isEnabled = false
 
     loginPanel
