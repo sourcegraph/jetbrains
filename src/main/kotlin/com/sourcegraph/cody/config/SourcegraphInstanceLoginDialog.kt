@@ -131,13 +131,8 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
 
   override fun doOKAction() {
     if (advancedSettings.isSelected) {
-      authenticateWithToken()
-    } else {
-      authenticateInBrowser()
+      isAcquiringToken.isSelected = true
     }
-  }
-
-  private fun authenticateWithToken() {
     okAction.isEnabled = false
     advancedAction.isEnabled = false
 
@@ -155,37 +150,16 @@ class SourcegraphInstanceLoginDialog(project: Project?, parent: Component?) :
           close(OK_EXIT_CODE, true)
         }
         .errorOnEdt(ModalityState.NON_MODAL) {
+          if (advancedSettings.isSelected) {
+            isAcquiringToken.isSelected = false
+          }
           okAction.isEnabled = true
           advancedAction.isEnabled = true
           if (!CompletableFutureUtil.isCancellation(it)) startTrackingValidation()
         }
   }
 
-  private fun authenticateInBrowser() {
-    isAcquiringToken.isSelected = true
-    okAction.isEnabled = false
-    advancedAction.isEnabled = false
-
-    val emptyProgressIndicator = EmptyProgressIndicator(ModalityState.defaultModalityState())
-    Disposer.register(disposable) { emptyProgressIndicator.cancel() }
-    val server = deriveServerPath()
-
-    acquireDetailsAndToken(emptyProgressIndicator)
-        .successOnEdt(ModalityState.NON_MODAL) { (details, token) ->
-          codyAuthData =
-              CodyAuthData(
-                  CodyAccount(details.username, details.displayName, server, details.id),
-                  details.username,
-                  token)
-          close(OK_EXIT_CODE, true)
-        }
-        .errorOnEdt(ModalityState.NON_MODAL) {
-          isAcquiringToken.isSelected = false
-          okAction.isEnabled = true
-          advancedAction.isEnabled = true
-          if (!CompletableFutureUtil.isCancellation(it)) startTrackingValidation()
-        }
-  }
+  override fun getPreferredFocusedComponent() = instanceUrlField
 
   override fun doValidateAll(): MutableList<ValidationInfo> {
     val tokenFieldErrors =
