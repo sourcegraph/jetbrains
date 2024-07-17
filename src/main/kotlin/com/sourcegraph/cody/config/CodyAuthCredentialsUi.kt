@@ -11,6 +11,7 @@ import com.intellij.util.ui.UIUtil.getInactiveTextColor
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.auth.SourcegraphAuthService
 import com.sourcegraph.cody.auth.SsoAuthMethod
+import com.sourcegraph.common.CodyBundle
 import javax.swing.JComponent
 
 class CodyAuthCredentialsUi(val factory: SourcegraphApiRequestExecutor.Factory) :
@@ -44,7 +45,7 @@ class CodyAuthCredentialsUi(val factory: SourcegraphApiRequestExecutor.Factory) 
   override fun Panel.centerPanel() {
     row {
       cell(
-          JBLabel("Logging in, check your browser").apply {
+          JBLabel(CodyBundle.getString("login.dialog.check-browser")).apply {
             icon = AnimatedIcon.Default.INSTANCE
             foreground = getInactiveTextColor()
           })

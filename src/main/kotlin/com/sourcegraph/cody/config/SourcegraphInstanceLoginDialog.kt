@@ -34,6 +34,8 @@ import com.sourcegraph.cody.auth.SsoAuthMethod
 import com.sourcegraph.cody.config.DialogValidationUtils.custom
 import com.sourcegraph.cody.config.DialogValidationUtils.notBlank
 import com.sourcegraph.common.AuthorizationUtil
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.CodyBundle.fmt
 import java.awt.Component
 import java.awt.event.ActionEvent
 import java.net.UnknownHostException
@@ -54,15 +56,15 @@ class SourcegraphInstanceLoginDialog(
   internal lateinit var codyAuthData: CodyAuthData
 
   private val advancedAction =
-      object : DialogWrapperAction("Show advanced...") {
+      object : DialogWrapperAction(CodyBundle.getString("login.dialog.show-advanced")) {
         override fun doAction(e: ActionEvent) {
           advancedSettings.isSelected = advancedSettings.isSelected.not()
           if (advancedSettings.isSelected) {
-            setOKButtonText("Add Account")
-            putValue(NAME, "Hide advanced...")
+            setOKButtonText(CodyBundle.getString("login.dialog.add-account"))
+            putValue(NAME, CodyBundle.getString("login.dialog.hide-advanced"))
           } else {
-            setOKButtonText("Authorize in browser")
-            putValue(NAME, "Show advanced...")
+            setOKButtonText(CodyBundle.getString("login.dialog.authorize-in-browser"))
+            putValue(NAME, CodyBundle.getString("login.dialog.show-advanced"))
             tokenAcquisitionError = null
           }
 
@@ -74,34 +76,34 @@ class SourcegraphInstanceLoginDialog(
   private val advancedSettings = JCheckBox().also { it.isSelected = false }
 
   init {
-    title = "Add Sourcegraph Account"
-    setOKButtonText("Authorize in browser")
+    title = CodyBundle.getString("login.dialog.title")
+    setOKButtonText(CodyBundle.getString("login.dialog.authorize-in-browser"))
     init()
   }
 
   override fun createCenterPanel() = panel {
     row {
           cell(
-              JBLabel("Logging in, check your browser").apply {
+              JBLabel(CodyBundle.getString("login.dialog.check-browser")).apply {
                 icon = AnimatedIcon.Default.INSTANCE
                 foreground = getInactiveTextColor()
               })
         }
         .visibleIf(isAcquiringToken.selected)
-    row("Instance URL:") {
+    row(CodyBundle.getString("login.dialog.instance-url.label")) {
           textField()
               .applyToComponent {
-                emptyText.text = "https://sourcegraph.yourcompany.com"
+                emptyText.text = CodyBundle.getString("login.dialog.instance-url.empty")
                 instanceUrlField = this
                 text = defaultInstanceUrl
               }
               .horizontalAlign(HorizontalAlign.FILL)
         }
         .rowComment(
-            "Enter the address of your sourcegraph instance. For example https://sourcegraph.example.org",
+            CodyBundle.getString("login.dialog.instance-url.comment"),
             maxLineLength = MAX_LINE_LENGTH_NO_WRAP)
         .visibleIf(isAcquiringToken.selected.not())
-    row("Token:") {
+    row(CodyBundle.getString("login.dialog.token.label")) {
           textField()
               .applyToComponent { tokenField = this }
               .validationOnInput {
@@ -111,19 +113,15 @@ class SourcegraphInstanceLoginDialog(
               .horizontalAlign(HorizontalAlign.FILL)
         }
         .visibleIf(advancedSettings.selected)
-    group("Optional", indent = false) {
-          row("Custom request headers: ") {
+    group(CodyBundle.getString("login.dialog.optional.group"), indent = false) {
+          row(CodyBundle.getString("login.dialog.custom-headers.label")) {
             cell(ExtendableTextField(/*columns =*/ 0))
                 .horizontalAlign(HorizontalAlign.FILL)
                 .comment(
-                    """Any custom headers to send with every request to Sourcegraph.<br>
-                  |Use any number of pairs: "header1, value1, header2, value2, ...".<br>
-                  |Whitespace around commas doesn't matter.
-              """
-                        .trimMargin(),
+                    CodyBundle.getString("login.dialog.custom-headers.comment"),
                     maxLineLength = MAX_LINE_LENGTH_NO_WRAP)
                 .applyToComponent {
-                  setEmptyState("Client-ID, client-one, X-Extra, some metadata")
+                  setEmptyState(CodyBundle.getString("login.dialog.custom-headers.empty"))
                   customRequestHeadersField = this
                 }
           }
@@ -168,14 +166,17 @@ class SourcegraphInstanceLoginDialog(
   override fun doValidateAll(): MutableList<ValidationInfo> {
     val tokenFieldErrors =
         if (advancedSettings.isSelected) {
-          notBlank(tokenField, "Token cannot be empty")
-              ?: custom(tokenField, "Invalid access token") {
+          notBlank(tokenField, CodyBundle.getString("login.dialog.validation.empty-token"))
+              ?: custom(tokenField, CodyBundle.getString("login.dialog.validation.invalid-token")) {
                 AuthorizationUtil.isValidAccessToken(tokenField.text)
               }
         } else null
 
     return listOfNotNull(
-            notBlank(instanceUrlField, "Instance URL cannot be empty") ?: validateServerPath(),
+            notBlank(
+                instanceUrlField,
+                CodyBundle.getString("login.dialog.validation.empty-instance-url"))
+                ?: validateServerPath(),
             tokenAcquisitionError,
             tokenFieldErrors)
         .toMutableList()
@@ -183,7 +184,8 @@ class SourcegraphInstanceLoginDialog(
 
   private fun validateServerPath(): ValidationInfo? =
       if (!isInstanceUrlValid(instanceUrlField)) {
-        ValidationInfo("Invalid instance URL", instanceUrlField)
+        ValidationInfo(
+            CodyBundle.getString("login.dialog.validation.invalid-instance-url"), instanceUrlField)
       } else {
         null
       }
@@ -206,15 +208,25 @@ class SourcegraphInstanceLoginDialog(
               CodyTokenCredentialsUi.acquireDetails(executor, indicator = it, fixedLogin = null)
           return@submitIOTask details to token
         }
-        .errorOnEdt(progressIndicator.modalityState) {
+        .errorOnEdt(progressIndicator.modalityState) { error ->
           tokenAcquisitionError =
-              when (it) {
+              when (error) {
                 is SourcegraphParseException ->
-                    ValidationInfo(it.message ?: "Invalid instance URL", instanceUrlField)
-                is UnknownHostException -> ValidationInfo("Server is unreachable").withOKEnabled()
+                    ValidationInfo(
+                        error.message
+                            ?: CodyBundle.getString("login.dialog.validation.invalid-instance-url"),
+                        instanceUrlField)
+                is UnknownHostException ->
+                    ValidationInfo(CodyBundle.getString("login.dialog.error.server-unreachable"))
+                        .withOKEnabled()
                 is SourcegraphAuthenticationException ->
-                    ValidationInfo("Incorrect credentials.\n" + it.message.orEmpty())
-                else -> ValidationInfo("Invalid authentication data.\n" + it.message.orEmpty())
+                    ValidationInfo(
+                        CodyBundle.getString("login.dialog.error.incorrect-credentials")
+                            .fmt(error.message.orEmpty()))
+                else ->
+                    ValidationInfo(
+                        CodyBundle.getString("login.dialog.error.invalid-authentication")
+                            .fmt(error.message.orEmpty()))
               }
         }
   }
