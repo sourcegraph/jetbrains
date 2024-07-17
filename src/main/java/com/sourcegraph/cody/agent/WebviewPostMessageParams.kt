@@ -53,6 +53,8 @@ data class ExtensionMessage(
 
 data class WebviewPostMessageParams(val id: String, val message: ExtensionMessage)
 
+data class WebviewRegisterWebviewViewProviderParams(val viewId: String, val retainContextWhenHidden: Boolean)
+data class WebviewResolveWebviewViewParams(val viewId: String, val webviewHandle: String)
 data class WebviewPostMessageStringEncodedParams(val id: String, val stringEncodedMessage: String)
 data class WebviewReceiveMessageStringEncodedParams(val id: String, val messageStringEncoded: String)
 data class WebviewSetIconPathParams(val handle: String, val iconPathUri: String?)

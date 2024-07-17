@@ -19,6 +19,7 @@ import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.cody.ui.WebUIService
+import com.sourcegraph.cody.ui.WebviewViewService
 import com.sourcegraph.utils.CodyEditorUtil
 import java.util.Timer
 import java.util.TimerTask
@@ -72,6 +73,8 @@ class CodyAgentService(private val project: Project) : Disposable {
         }
       }
 */
+      // TODO: Gather these together into one webview delegate.
+
       agent.client.onWebviewCreateWebviewPanel = Consumer { params ->
         WebUIService.getInstance(project).createWebviewPanel(params)
       }
@@ -79,6 +82,13 @@ class CodyAgentService(private val project: Project) : Disposable {
       agent.client.onReceivedWebviewPostMessage = Consumer { params ->
         if (!project.isDisposed) {
           WebUIService.getInstance(project).postMessageHostToWebview(params.id, params.stringEncodedMessage)
+        }
+      }
+
+      // TODO: This is TOO SLOW and misses the webview provider registration.
+      agent.client.onRegisterWebviewViewProvider = Consumer { params ->
+        if (!project.isDisposed) {
+          WebviewViewService.getInstance(project).registerProvider(params.viewId, params.retainContextWhenHidden)
         }
       }
 
