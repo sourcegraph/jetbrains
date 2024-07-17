@@ -128,8 +128,10 @@
                 secondary="false"
                 factoryClass="com.sourcegraph.cody.sidebar.ExperimentalToolWindowFactory"/>
 
+        <!-- Web UI Tool Windows' IDs must match the view IDs in sourcegraph/cody vscode/package.json
+             declarations. These IDs kick off the WebviewView resolution protocol with Agent. -->
         <toolWindow
-                id="Cody (UI Refresh)"
+                id="cody.chat"
                 icon="/icons/codyLogoMonochromatic.svg"
                 anchor="right"
                 secondary="false"

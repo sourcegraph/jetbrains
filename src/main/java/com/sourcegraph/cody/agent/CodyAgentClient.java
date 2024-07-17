@@ -198,6 +198,16 @@ public class CodyAgentClient {
     }
   }
 
+  @Nullable Consumer<WebviewRegisterWebviewViewProviderParams> onRegisterWebviewViewProvider;
+
+  @JsonNotification("webview/registerWebviewViewProvider")
+  public void webviewRegisterWebviewViewProvider(@NotNull WebviewRegisterWebviewViewProviderParams params) {
+    if (onRegisterWebviewViewProvider != null) {
+      ApplicationManager.getApplication()
+              .invokeLater(() -> onRegisterWebviewViewProvider.accept(params));
+    }
+  }
+
   @Nullable Consumer<WebviewSetHtmlParams> onWebviewSetHtml;
 
   @JsonNotification("webview/setHtml")
