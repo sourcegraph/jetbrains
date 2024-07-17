@@ -11,10 +11,7 @@ import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefBrowserBuilder
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.intellij.util.io.isAncestor
-import com.sourcegraph.cody.agent.CodyAgent
-import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.CommandExecuteParams
-import com.sourcegraph.cody.agent.WebviewReceiveMessageStringEncodedParams
+import com.sourcegraph.cody.agent.*
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelOptions
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
@@ -44,6 +41,37 @@ import org.cef.network.CefURLRequest
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import javax.swing.JComponent
+
+/**
+ * The subset of the Agent client interface that relates to webviews.
+ */
+interface NativeWebviewProvider {
+  fun createPanel(params: WebviewCreateWebviewPanelParams)
+  fun receivedPostMessage(params: WebviewPostMessageStringEncodedParams)
+  fun registerViewProvider(params: WebviewRegisterWebviewViewProviderParams)
+  fun setTitle(params: WebviewSetTitleParams)
+  fun setHtml(params: WebviewSetHtmlParams)
+}
+
+/**
+ * A NativeWebviewProvider that thunks to WebUIService.
+ */
+class WebUIServiceWebviewProvider(val project: Project) : NativeWebviewProvider {
+  override fun createPanel(params: WebviewCreateWebviewPanelParams) =
+    WebUIService.getInstance(project).createWebviewPanel(params)
+
+  override fun receivedPostMessage(params: WebviewPostMessageStringEncodedParams) =
+    WebUIService.getInstance(project).postMessageHostToWebview(params.id, params.stringEncodedMessage)
+
+  override fun registerViewProvider(params: WebviewRegisterWebviewViewProviderParams) =
+    WebviewViewService.getInstance(project).registerProvider(params.viewId, params.retainContextWhenHidden)
+
+  override fun setTitle(params: WebviewSetTitleParams) =
+    WebUIService.getInstance(project).setTitle(params.handle, params.title)
+
+  override fun setHtml(params: WebviewSetHtmlParams) =
+    WebUIService.getInstance(project).setHtml(params.handle, params.html)
+}
 
 // Responsibilities:
 // - Creates, tracks all WebUI instances.
@@ -98,13 +126,12 @@ class WebUIService(private val project: Project) {
   }
 }
 
-val COMMAND_PREFIX = "command:"
+const val COMMAND_PREFIX = "command:"
 // We make up a host name and serve the static resources into the webview apparently from this host.
-val PSEUDO_HOST = "file+.sourcegraphstatic.com"
-val PSEUDO_ORIGIN = "https://$PSEUDO_HOST"
-val PSEUDO_HOST_URL_PREFIX = "$PSEUDO_ORIGIN/"
-// TODO, remove this because JB loadHTML uses file URLs.
-val MAIN_RESOURCE_URL =
+const val PSEUDO_HOST = "file+.sourcegraphstatic.com"
+const val PSEUDO_ORIGIN = "https://$PSEUDO_HOST"
+const val PSEUDO_HOST_URL_PREFIX = "$PSEUDO_ORIGIN/"
+const val MAIN_RESOURCE_URL =
     "${PSEUDO_HOST_URL_PREFIX}main-resource-nonce"
 
 // TODO:
