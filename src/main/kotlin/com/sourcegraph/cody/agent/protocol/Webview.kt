@@ -5,7 +5,7 @@ data class WebviewCreateWebviewPanelPortMapping(
   val extensionHostPort: Int
 )
 
-data class WebviewCreateWebviewPanelOptions(
+data class WebviewOptions(
   val enableScripts: Boolean,
   val enableForms: Boolean,
   // boolean | readonly string[]
@@ -28,5 +28,5 @@ data class WebviewCreateWebviewPanelParams(
   val viewType: String,
   val title: String,
   val showOptions: WebviewCreateWebviewPanelShowOptions,
-  val options: WebviewCreateWebviewPanelOptions
+  val options: WebviewOptions
 )
