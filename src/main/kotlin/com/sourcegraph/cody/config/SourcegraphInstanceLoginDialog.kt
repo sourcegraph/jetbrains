@@ -111,7 +111,7 @@ class SourcegraphInstanceLoginDialog(
               .horizontalAlign(HorizontalAlign.FILL)
         }
         .visibleIf(advancedSettings.selected)
-    collapsibleGroup("Advanced settings", indent = false) {
+    group("Optional", indent = false) {
           row("Custom request headers: ") {
             cell(ExtendableTextField(/*columns =*/ 0))
                 .horizontalAlign(HorizontalAlign.FILL)
