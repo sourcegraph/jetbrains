@@ -179,6 +179,10 @@ interface _LegacyAgentServer {
   @JsonRequest("webview/receiveMessageStringEncoded")
   fun webviewReceiveMessageStringEncoded(params: WebviewReceiveMessageStringEncodedParams): CompletableFuture<Void?>
 
+  // TODO: Consider supporting returning a Promise and making the view depend on Promise resolution.
+  @JsonNotification("webview/resolveWebviewView")
+  fun webviewResolveWebviewView(params: WebviewResolveWebviewViewParams)
+
   @JsonRequest("chat/submitMessage")
   fun chatSubmitMessage(params: ChatSubmitMessageParams): CompletableFuture<ExtensionMessage>
 
