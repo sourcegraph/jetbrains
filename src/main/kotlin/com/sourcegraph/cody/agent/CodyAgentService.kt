@@ -56,54 +56,6 @@ class CodyAgentService(private val project: Project) : Disposable {
         0,
         5000) // Check every 5 seconds
     onStartup { agent ->
-      /* TODO delete this
-      agent.client.onNewMessage = Consumer { params ->
-        if (!project.isDisposed) {
-          AgentChatSessionService.getInstance(project)
-              .getSession(params.id)
-              ?.receiveMessage(params.message)
-        }
-      }
-
-      agent.client.onReceivedWebviewMessageTODODeleteThis = Consumer { params ->
-        if (!project.isDisposed) {
-          AgentChatSessionService.getInstance(project)
-              .getSession(params.id)
-              ?.receiveWebviewExtensionMessage(params.message)
-        }
-      }
-*/
-      // TODO: Gather these together into one webview delegate.
-
-      agent.client.onWebviewCreateWebviewPanel = Consumer { params ->
-        WebUIService.getInstance(project).createWebviewPanel(params)
-      }
-
-      agent.client.onReceivedWebviewPostMessage = Consumer { params ->
-        if (!project.isDisposed) {
-          WebUIService.getInstance(project).postMessageHostToWebview(params.id, params.stringEncodedMessage)
-        }
-      }
-
-      // TODO: This is TOO SLOW and misses the webview provider registration.
-      agent.client.onRegisterWebviewViewProvider = Consumer { params ->
-        if (!project.isDisposed) {
-          WebviewViewService.getInstance(project).registerProvider(params.viewId, params.retainContextWhenHidden)
-        }
-      }
-
-      agent.client.onWebviewSetTitle = Consumer { params ->
-        if (!project.isDisposed) {
-          WebUIService.getInstance(project).setTitle(params.handle, params.title)
-        }
-      }
-
-      agent.client.onWebviewSetHtml = Consumer { params ->
-        if (!project.isDisposed) {
-          WebUIService.getInstance(project).setHtml(params.handle, params.html)
-        }
-      }
-
       agent.client.onEditTaskDidUpdate = Consumer { task ->
         FixupService.getInstance(project).getActiveSession()?.update(task)
       }
