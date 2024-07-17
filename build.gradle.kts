@@ -508,7 +508,12 @@ tasks {
     description = "Runs the integration tests."
     sharedIntegrationTestConfig(buildCodyDir, "replay")
     dependsOn("processIntegrationTestResources")
-    project.properties["repeatTests"]?.let { systemProperty("repeatTests", it) }
+    project.properties["repeatTests"]?.let {
+      systemProperty("repeatTests", it)
+      // We expect some of the repetitions to fail,
+      // so we don't treat this situation as a build failure
+      ignoreFailures = true
+    }
   }
 
   register<Test>("passthroughIntegrationTest") {
