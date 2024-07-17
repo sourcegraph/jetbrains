@@ -10,10 +10,8 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.content.ContentFactory
-import com.intellij.ui.content.ContentManagerListener
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.WebviewResolveWebviewViewParams
-import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelOptions
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 
 class WebUIToolWindowFactory : ToolWindowFactory, DumbAware {

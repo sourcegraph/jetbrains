@@ -1,9 +1,6 @@
 package com.sourcegraph.cody.agent
 
-import com.sourcegraph.cody.agent.protocol.ChatError
-import com.sourcegraph.cody.agent.protocol.ChatMessage
-import com.sourcegraph.cody.agent.protocol.ContextItem
-import com.sourcegraph.cody.agent.protocol.Repo
+import com.sourcegraph.cody.agent.protocol.*
 
 /**
  * A message sent from the webview to the extension host. See vscode/src/chat/protocol.ts for the
@@ -57,9 +54,10 @@ data class WebviewRegisterWebviewViewProviderParams(val viewId: String, val reta
 data class WebviewResolveWebviewViewParams(val viewId: String, val webviewHandle: String)
 data class WebviewPostMessageStringEncodedParams(val id: String, val stringEncodedMessage: String)
 data class WebviewReceiveMessageStringEncodedParams(val id: String, val messageStringEncoded: String)
-data class WebviewSetIconPathParams(val handle: String, val iconPathUri: String?)
-data class WebviewSetTitleParams(val handle: String, val title: String)
 data class WebviewSetHtmlParams(val handle: String, val html: String)
+data class WebviewSetIconPathParams(val handle: String, val iconPathUri: String?)
+data class WebviewSetOptionsParams(val handle: String, val options: WebviewOptions)
+data class WebviewSetTitleParams(val handle: String, val title: String)
 data class WebviewRevealParams(val handle: String, val viewColumn: Int, val preserveFocus: Boolean)
 data class WebviewDisposeParams(val handle: String)
 

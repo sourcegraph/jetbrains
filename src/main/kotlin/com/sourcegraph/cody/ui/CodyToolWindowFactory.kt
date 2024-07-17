@@ -3,6 +3,7 @@ package com.sourcegraph.cody.ui
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
@@ -12,7 +13,7 @@ import com.intellij.ui.jcef.JBCefBrowserBuilder
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.intellij.util.io.isAncestor
 import com.sourcegraph.cody.agent.*
-import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelOptions
+import com.sourcegraph.cody.agent.protocol.WebviewOptions
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
 import com.sourcegraph.cody.sidebar.WebTheme
@@ -49,8 +50,9 @@ interface NativeWebviewProvider {
   fun createPanel(params: WebviewCreateWebviewPanelParams)
   fun receivedPostMessage(params: WebviewPostMessageStringEncodedParams)
   fun registerViewProvider(params: WebviewRegisterWebviewViewProviderParams)
-  fun setTitle(params: WebviewSetTitleParams)
   fun setHtml(params: WebviewSetHtmlParams)
+  fun setOptions(params: WebviewSetOptionsParams)
+  fun setTitle(params: WebviewSetTitleParams)
 }
 
 /**
@@ -66,11 +68,14 @@ class WebUIServiceWebviewProvider(val project: Project) : NativeWebviewProvider 
   override fun registerViewProvider(params: WebviewRegisterWebviewViewProviderParams) =
     WebviewViewService.getInstance(project).registerProvider(params.viewId, params.retainContextWhenHidden)
 
-  override fun setTitle(params: WebviewSetTitleParams) =
-    WebUIService.getInstance(project).setTitle(params.handle, params.title)
-
   override fun setHtml(params: WebviewSetHtmlParams) =
     WebUIService.getInstance(project).setHtml(params.handle, params.html)
+
+  override fun setOptions(params: WebviewSetOptionsParams) =
+    WebUIService.getInstance(project).setOptions(params.handle, params.options)
+
+  override fun setTitle(params: WebviewSetTitleParams) =
+    WebUIService.getInstance(project).setTitle(params.handle, params.title)
 }
 
 // Responsibilities:
@@ -100,7 +105,7 @@ class WebUIService(private val project: Project) {
   }
 
   fun createWebviewView(handle: String, createView: (proxy: WebUIProxy) -> WebviewViewDelegate) {
-    val delegate = WebUIHostImpl(project, handle, WebviewCreateWebviewPanelOptions(enableScripts = false, enableForms = false,  enableCommandUris = false, localResourceRoots = emptyList(), portMapping = emptyList(), enableFindWidget = false, retainContextWhenHidden = false))
+    val delegate = WebUIHostImpl(project, handle, WebviewOptions(enableScripts = false, enableForms = false,  enableCommandUris = false, localResourceRoots = emptyList(), portMapping = emptyList(), enableFindWidget = false, retainContextWhenHidden = false))
     val proxy = WebUIProxy.create(delegate)
     proxies[handle] = proxy
     delegate.view = createView(proxy)
@@ -108,21 +113,26 @@ class WebUIService(private val project: Project) {
   }
 
   fun createWebviewPanel(params: WebviewCreateWebviewPanelParams) {
-    val delegate = WebUIHostImpl(project, params.handle, params.options)
-    val proxy = WebUIProxy.create(delegate)
-    proxies[params.handle] = proxy
-    delegate.view = WebviewViewService.getInstance(project).createPanel(proxy, params)
-    proxy.updateTheme(themeController.getTheme())
-  }
-
-  fun setTitle(handle: String, title: String) {
-    val proxy = this.proxies[handle] ?: return
-    proxy.title = title
+    // TODO: Do we need to use a Promise here to slow down the producer?
+    runInEdt {
+      val delegate = WebUIHostImpl(project, params.handle, params.options)
+      val proxy = WebUIProxy.create(delegate)
+      proxies[params.handle] = proxy
+      delegate.view = WebviewViewService.getInstance(project).createPanel(proxy, params)
+      proxy.updateTheme(themeController.getTheme())
+    }
   }
 
   fun setHtml(handle: String, html: String) {
-    val proxy = this.proxies[handle] ?: return
-    proxy.html = html
+    this.proxies[handle]?.html = html
+  }
+
+  fun setOptions(handle: String, options: WebviewOptions) {
+    this.proxies[handle]?.setOptions(options)
+  }
+
+  fun setTitle(handle: String, title: String) {
+    this.proxies[handle]?.title = title
   }
 }
 
@@ -138,13 +148,13 @@ const val MAIN_RESOURCE_URL =
 // - Hook up webview/didDispose, etc.
 
 interface WebUIHost {
+  fun setOptions(options: WebviewOptions)
   fun setTitle(value: String)
-  // TODO: We need a "set options" to update options when they're set for WebviewViews
   fun postMessageWebviewToHost(stringEncodedJsonMessage: String)
   fun onCommand(command: String)
 }
 
-class WebUIHostImpl(val project: Project, val handle: String, var options: WebviewCreateWebviewPanelOptions) : WebUIHost {
+class WebUIHostImpl(val project: Project, val handle: String, private var _options: WebviewOptions) : WebUIHost {
   var view: WebviewViewDelegate? = null
 
   override fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
@@ -157,6 +167,12 @@ class WebUIHostImpl(val project: Project, val handle: String, var options: Webvi
       )
     }
   }
+
+  override fun setOptions(value: WebviewOptions) {
+    // TODO: React to the options change.
+    _options = value
+  }
+
   override fun setTitle(value: String) {
     view?.setTitle(value)
   }
@@ -173,7 +189,7 @@ class WebUIHostImpl(val project: Project, val handle: String, var options: Webvi
         null
       }
     } ?: emptyList()
-    if (options.enableCommandUris == true || (options.enableCommandUris as List<String>).contains(commandName)) {
+    if (_options.enableCommandUris == true || (_options.enableCommandUris as List<String>).contains(commandName)) {
       CodyAgentService.withAgent(project) {
         it.server.commandExecute(CommandExecuteParams(
           commandName,
@@ -309,6 +325,10 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
       _html = value
       browser.loadURL("$MAIN_RESOURCE_URL?${value.hashCode()}")
     }
+
+  fun setOptions(value: WebviewOptions) {
+    host.setOptions(value)
+  }
 
   val component: JComponent? get() = browser.component
 
