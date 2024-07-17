@@ -8,6 +8,8 @@ import com.sourcegraph.cody.agent.protocol_generated.EditTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import com.sourcegraph.cody.ui.NativeWebviewProvider;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.jetbrains.annotations.NotNull;
@@ -19,9 +21,15 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("unused")
 public class CodyAgentClient {
-
   private static final Logger logger = Logger.getInstance(CodyAgentClient.class);
 
+  @NotNull NativeWebviewProvider webview;
+
+  CodyAgentClient(@NotNull NativeWebviewProvider webviewProvider) {
+    this.webview = webviewProvider;
+  }
+
+  // TODO: Remove this once we stop sniffing postMessage.
   // Callback that is invoked when the agent sends a "chat/updateMessageInProgress" notification.
   @Nullable Consumer<WebviewPostMessageParams> onNewMessage;
 
@@ -31,8 +39,6 @@ public class CodyAgentClient {
   // Callback that is invoked on webview messages which aren't handled by onNewMessage or
   // onSetConfigFeatures
   @Nullable Consumer<WebviewPostMessageParams> onReceivedWebviewMessageTODODeleteThis;
-
-  @Nullable Consumer<WebviewPostMessageStringEncodedParams> onReceivedWebviewPostMessage;
 
   // Callback for the "editTask/didUpdate" notification from the agent.
   @Nullable Consumer<EditTask> onEditTaskDidUpdate;
@@ -180,42 +186,24 @@ public class CodyAgentClient {
     }
   }
 
-  @Nullable Consumer<WebviewCreateWebviewPanelParams> onWebviewCreateWebviewPanel;
-
   @JsonNotification("webview/createWebviewPanel")
   public void webviewCreateWebviewPanel(@NotNull WebviewCreateWebviewPanelParams params) {
-    if (onWebviewCreateWebviewPanel != null) {
-      ApplicationManager.getApplication()
-              .invokeLater(() -> onWebviewCreateWebviewPanel.accept(params));
-    }
+    this.webview.createPanel(params);
   }
 
   @JsonNotification("webview/postMessageStringEncoded")
   public void webviewPostMessageStringEncoded(@NotNull WebviewPostMessageStringEncodedParams params) {
-    if (onReceivedWebviewPostMessage != null) {
-      ApplicationManager.getApplication()
-          .invokeLater(() -> onReceivedWebviewPostMessage.accept(params));
-    }
+    this.webview.receivedPostMessage(params);
   }
-
-  @Nullable Consumer<WebviewRegisterWebviewViewProviderParams> onRegisterWebviewViewProvider;
 
   @JsonNotification("webview/registerWebviewViewProvider")
   public void webviewRegisterWebviewViewProvider(@NotNull WebviewRegisterWebviewViewProviderParams params) {
-    if (onRegisterWebviewViewProvider != null) {
-      ApplicationManager.getApplication()
-              .invokeLater(() -> onRegisterWebviewViewProvider.accept(params));
-    }
+    this.webview.registerViewProvider(params);
   }
-
-  @Nullable Consumer<WebviewSetHtmlParams> onWebviewSetHtml;
 
   @JsonNotification("webview/setHtml")
   public void webviewTitle(@NotNull WebviewSetHtmlParams params) {
-    if (onWebviewSetHtml != null) {
-      ApplicationManager.getApplication()
-              .invokeLater(() -> onWebviewSetHtml.accept(params));
-    }
+    this.webview.setHtml(params);
   }
 
   @JsonNotification("webview/setIconPath")
@@ -224,14 +212,9 @@ public class CodyAgentClient {
     System.out.println("TODO, implement webview/setIconPath");
   }
 
-  @Nullable Consumer<WebviewSetTitleParams> onWebviewSetTitle;
-
   @JsonNotification("webview/setTitle")
   public void webviewTitle(@NotNull WebviewSetTitleParams params) {
-    if (onWebviewSetTitle != null) {
-      ApplicationManager.getApplication()
-              .invokeLater(() -> onWebviewSetTitle.accept(params));
-    }
+    this.webview.setTitle(params);
   }
 
   @JsonNotification("webview/reveal")

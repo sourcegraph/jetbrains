@@ -13,6 +13,7 @@ import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol_generated.ClientCapabilities
 import com.sourcegraph.cody.agent.protocol_generated.ClientInfo
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolTypeAdapters
+import com.sourcegraph.cody.ui.WebUIServiceWebviewProvider
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
 import java.io.*
@@ -101,7 +102,7 @@ private constructor(
     fun create(project: Project): CompletableFuture<CodyAgent> {
       try {
         val conn = startAgentProcess()
-        val client = CodyAgentClient()
+        val client = CodyAgentClient(WebUIServiceWebviewProvider(project))
         client.onSetConfigFeatures = project.service<CurrentConfigFeatures>()
         val launcher = startAgentLauncher(conn, client)
         val server = launcher.remoteProxy
