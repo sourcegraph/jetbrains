@@ -43,7 +43,7 @@ class WebviewViewService(val project: Project) {
     var provider = Provider(id, ProviderOptions(retainContextWhenHidden))
     providers[id] = provider
     val toolWindow = views[id] ?: return
-    provideView(toolWindow, provider)
+    runInEdt { provideView(toolWindow, provider) }
   }
 
   // TODO: Implement 'dispose' for registerWebviewViewProvider.
@@ -51,7 +51,7 @@ class WebviewViewService(val project: Project) {
   fun provideToolWindow(toolWindow: ToolWindow) {
     views[toolWindow.id] = toolWindow
     val provider = providers[toolWindow.id] ?: return
-    provideView(toolWindow, provider)
+    runInEdt { provideView(toolWindow, provider) }
   }
 
   private fun provideView(toolWindow: ToolWindow, provider: Provider) {
