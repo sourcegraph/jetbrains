@@ -8,6 +8,6 @@ package com.sourcegraph.cody.agent.protocol_generated;
 
 data class IconsParams(
   val value: String,
-  val position: Int,
+  val position: Long,
 )
 

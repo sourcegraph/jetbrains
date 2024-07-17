@@ -18,7 +18,7 @@ data class AuthStatus(
   val requiresVerifiedEmail: Boolean,
   val siteHasCodyEnabled: Boolean,
   val siteVersion: String,
-  val codyApiVersion: Int,
+  val codyApiVersion: Long,
   val configOverwrites: CodyLLMSiteConfiguration? = null,
   val showNetworkError: Boolean? = null,
   val primaryEmail: String,

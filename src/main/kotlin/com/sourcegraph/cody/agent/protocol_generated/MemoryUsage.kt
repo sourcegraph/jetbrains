@@ -7,10 +7,10 @@
 package com.sourcegraph.cody.agent.protocol_generated;
 
 data class MemoryUsage(
-  val rss: Int,
-  val heapTotal: Int,
-  val heapUsed: Int,
-  val external: Int,
-  val arrayBuffers: Int,
+  val rss: Long,
+  val heapTotal: Long,
+  val heapUsed: Long,
+  val external: Long,
+  val arrayBuffers: Long,
 )
 

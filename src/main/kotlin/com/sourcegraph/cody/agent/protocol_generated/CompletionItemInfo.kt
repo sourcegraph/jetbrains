@@ -9,13 +9,13 @@ package com.sourcegraph.cody.agent.protocol_generated;
 import com.google.gson.annotations.SerializedName;
 
 data class CompletionItemInfo(
-  val parseErrorCount: Int? = null,
-  val lineTruncatedCount: Int? = null,
+  val parseErrorCount: Long? = null,
+  val lineTruncatedCount: Long? = null,
   val truncatedWith: TruncatedWithEnum? = null, // Oneof: tree-sitter, indentation
   val nodeTypes: NodeTypesParams? = null,
   val nodeTypesWithCompletion: NodeTypesWithCompletionParams? = null,
-  val lineCount: Int,
-  val charCount: Int,
+  val lineCount: Long,
+  val charCount: Long,
   val insertText: String? = null,
   val stopReason: String? = null,
 ) {

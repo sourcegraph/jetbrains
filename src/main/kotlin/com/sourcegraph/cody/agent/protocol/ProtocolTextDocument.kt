@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.sourcegraph.cody.agent.protocol_extensions.Position
 import com.sourcegraph.cody.agent.protocol_generated.Position
 import com.sourcegraph.cody.agent.protocol_generated.Range
 import java.awt.Point

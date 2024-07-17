@@ -38,7 +38,7 @@ data class ContextItemFile(
   val title: String? = null,
   val description: String? = null,
   val source: ContextItemSource? = null, // Oneof: embeddings, user, editor, search, initial, unified, selection, terminal, uri, history
-  val size: Int? = null,
+  val size: Long? = null,
   val isIgnored: Boolean? = null,
   val isTooLarge: Boolean? = null,
   val provider: String? = null,
@@ -60,7 +60,7 @@ data class ContextItemRepository(
   val title: String? = null,
   val description: String? = null,
   val source: ContextItemSource? = null, // Oneof: embeddings, user, editor, search, initial, unified, selection, terminal, uri, history
-  val size: Int? = null,
+  val size: Long? = null,
   val isIgnored: Boolean? = null,
   val isTooLarge: Boolean? = null,
   val provider: String? = null,
@@ -83,7 +83,7 @@ data class ContextItemTree(
   val title: String? = null,
   val description: String? = null,
   val source: ContextItemSource? = null, // Oneof: embeddings, user, editor, search, initial, unified, selection, terminal, uri, history
-  val size: Int? = null,
+  val size: Long? = null,
   val isIgnored: Boolean? = null,
   val isTooLarge: Boolean? = null,
   val provider: String? = null,
@@ -107,7 +107,7 @@ data class ContextItemSymbol(
   val title: String? = null,
   val description: String? = null,
   val source: ContextItemSource? = null, // Oneof: embeddings, user, editor, search, initial, unified, selection, terminal, uri, history
-  val size: Int? = null,
+  val size: Long? = null,
   val isIgnored: Boolean? = null,
   val isTooLarge: Boolean? = null,
   val provider: String? = null,
@@ -131,7 +131,7 @@ data class ContextItemOpenCtx(
   val title: String? = null,
   val description: String? = null,
   val source: ContextItemSource? = null, // Oneof: embeddings, user, editor, search, initial, unified, selection, terminal, uri, history
-  val size: Int? = null,
+  val size: Long? = null,
   val isIgnored: Boolean? = null,
   val isTooLarge: Boolean? = null,
   val provider: String? = null,

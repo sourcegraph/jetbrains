@@ -391,9 +391,13 @@ tasks {
                 .trimMargin() +
                 // TODO: these are several "mods" until we can fix the code generation
                 content
+                    // TODO: CODY-2865 replacing ints with longs
+                    .replace(": Int", ": Long")
+                    // replacing classpath
                     .replace(
                         "com.sourcegraph.cody.protocol_generated",
                         "com.sourcegraph.cody.agent.protocol_generated")
+                    // adding some ignores
                     .replace(
                         "@file:Suppress(\"FunctionName\", \"ClassName\")",
                         "@file:Suppress(\"FunctionName\", \"ClassName\", \"REDUNDANT_NULLABLE\")")

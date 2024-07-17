@@ -8,15 +8,15 @@ package com.sourcegraph.cody.agent.protocol_generated;
 
 data class CompletionBookkeepingEvent(
   val id: CompletionLogID,
-  val startedAt: Int,
-  val networkRequestStartedAt: Int? = null,
-  val startLoggedAt: Int? = null,
-  val loadedAt: Int? = null,
-  val suggestedAt: Int? = null,
-  val suggestionLoggedAt: Int? = null,
-  val suggestionAnalyticsLoggedAt: Int? = null,
-  val acceptedAt: Int? = null,
+  val startedAt: Long,
+  val networkRequestStartedAt: Long? = null,
+  val startLoggedAt: Long? = null,
+  val loadedAt: Long? = null,
+  val suggestedAt: Long? = null,
+  val suggestionLoggedAt: Long? = null,
+  val suggestionAnalyticsLoggedAt: Long? = null,
+  val acceptedAt: Long? = null,
   val items: List<CompletionItemInfo>,
-  val loggedPartialAcceptedLength: Int,
+  val loggedPartialAcceptedLength: Long,
 )
 

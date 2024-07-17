@@ -13,7 +13,7 @@ data class ChatError(
   val name: String,
   val message: String,
   val retryAfter: String? = null,
-  val limit: Int? = null,
+  val limit: Long? = null,
   val userMessage: String? = null,
   val retryAfterDate: Date? = null,
   val retryAfterDateString: String? = null,

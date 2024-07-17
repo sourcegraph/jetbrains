@@ -38,6 +38,7 @@ import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument.Companion.uriFor
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
 import com.sourcegraph.cody.agent.protocol.SelectedCompletionInfo
+import com.sourcegraph.cody.agent.protocol_extensions.Position
 import com.sourcegraph.cody.agent.protocol_generated.Position
 import com.sourcegraph.cody.agent.protocol_generated.Range
 import com.sourcegraph.cody.autocomplete.render.AutocompleteRendererType

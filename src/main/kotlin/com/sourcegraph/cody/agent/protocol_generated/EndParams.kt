@@ -7,7 +7,7 @@
 package com.sourcegraph.cody.agent.protocol_generated;
 
 data class EndParams(
-  val line: Int,
-  val character: Int,
+  val line: Long,
+  val character: Long,
 )
 

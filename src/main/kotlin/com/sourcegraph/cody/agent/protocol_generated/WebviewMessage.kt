@@ -223,7 +223,7 @@ data class EditWebviewMessage(
   val addEnhancedContext: Boolean? = null,
   val contextFiles: List<ContextItem>? = null,
   val text: String,
-  val index: Int? = null,
+  val index: Long? = null,
   val editorState: Any? = null,
 ) : WebviewMessage() {
 

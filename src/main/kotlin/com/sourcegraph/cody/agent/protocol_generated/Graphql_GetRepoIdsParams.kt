@@ -8,6 +8,6 @@ package com.sourcegraph.cody.agent.protocol_generated;
 
 data class Graphql_GetRepoIdsParams(
   val names: List<String>,
-  val first: Int,
+  val first: Long,
 )
 

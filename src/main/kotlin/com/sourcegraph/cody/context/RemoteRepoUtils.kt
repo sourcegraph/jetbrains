@@ -23,7 +23,8 @@ object RemoteRepoUtils {
     }
     CodyAgentService.withAgent(project) { agent ->
       try {
-        val param = Graphql_GetRepoIdsParams(codebaseNames.map { it.value }, codebaseNames.size)
+        val param =
+            Graphql_GetRepoIdsParams(codebaseNames.map { it.value }, codebaseNames.size.toLong())
         val repos = agent.server.graphql_getRepoIds(param).get()
         result.complete(
             repos?.repos?.map { reposParams -> Repo(reposParams.id, reposParams.name) }

@@ -433,7 +433,7 @@ abstract class FixupSession(
     val start = if (r.start.line < 0) Position(line = 0, character = r.start.character) else r.start
     val endLine = document.getLineNumber(document.textLength)
     val endLineLength = document.getLineEndOffset(endLine) - document.getLineStartOffset(endLine)
-    val end = if (r.end.line < 0) Position(line = endLine, character = endLineLength) else r.end
+    val end = if (r.end.line < 0) Position(endLine, endLineLength) else r.end
     return Range(start, end).toRangeMarker(document, true)
   }
 
