@@ -12,6 +12,7 @@ import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol_extensions.ClientCapabilitiesFactory
 import com.sourcegraph.cody.agent.protocol_extensions.ClientInfoFactory
+import com.sourcegraph.cody.agent.protocol_generated.ProtocolTypeAdapters
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
 import java.io.*
@@ -271,16 +272,24 @@ private constructor(
     ): Launcher<CodyAgentServer> {
       return Launcher.Builder<CodyAgentServer>()
           .configureGson { gsonBuilder ->
-            gsonBuilder
-                // emit `null` instead of leaving fields undefined because Cody
-                // VSC has many `=== null` checks that return false for undefined fields.
-                .serializeNulls()
-                .registerTypeAdapter(CompletionItemID::class.java, CompletionItemIDSerializer)
-                .registerTypeAdapter(ContextItem::class.java, ContextItem.deserializer)
-                .registerTypeAdapter(Speaker::class.java, speakerDeserializer)
-                .registerTypeAdapter(Speaker::class.java, speakerSerializer)
-                .registerTypeAdapter(URI::class.java, uriDeserializer)
-                .registerTypeAdapter(URI::class.java, uriSerializer)
+            run {
+              gsonBuilder
+                  // emit `null` instead of leaving fields undefined because Cody
+                  // VSC has many `=== null` checks that return false for undefined fields.
+                  .serializeNulls()
+                  .registerTypeAdapter(ContextItem::class.java, ContextItem.deserializer)
+                  .registerTypeAdapter(CompletionItemID::class.java, CompletionItemIDSerializer)
+                  // TODO: Remove legacy enum conversions
+                  .registerTypeAdapter(Speaker::class.java, speakerDeserializer)
+                  .registerTypeAdapter(Speaker::class.java, speakerSerializer)
+                  .registerTypeAdapter(URI::class.java, uriDeserializer)
+                  .registerTypeAdapter(URI::class.java, uriSerializer)
+
+              ProtocolTypeAdapters.register(gsonBuilder)
+              // This ensures that by default all enums are always serialized to their string
+              // equivalents
+              gsonBuilder.registerTypeAdapterFactory(EnumTypeAdapterFactory())
+            }
           }
           .setRemoteInterface(CodyAgentServer::class.java)
           .traceMessages(traceWriter())
