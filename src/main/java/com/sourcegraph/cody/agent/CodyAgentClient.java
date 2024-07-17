@@ -202,6 +202,11 @@ public class CodyAgentClient {
     System.out.println("TODO, implement webview/setIconPath");
   }
 
+  @JsonNotification("webview/setOptions")
+  public void webviewTitle(@NotNull WebviewSetOptionsParams params) {
+    this.webview.setOptions(params);
+  }
+
   @JsonNotification("webview/setTitle")
   public void webviewTitle(@NotNull WebviewSetTitleParams params) {
     this.webview.setTitle(params);
