@@ -7,6 +7,7 @@ import com.intellij.collaboration.async.CompletableFutureUtil.successOnEdt
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
+import com.intellij.openapi.observable.util.whenTextChanged
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
@@ -105,10 +106,9 @@ class SourcegraphInstanceLoginDialog(
         .visibleIf(isAcquiringToken.selected.not())
     row(CodyBundle.getString("login.dialog.token.label")) {
           textField()
-              .applyToComponent { tokenField = this }
-              .validationOnInput {
-                tokenAcquisitionError = null
-                null
+              .applyToComponent {
+                tokenField = this
+                tokenField.document.whenTextChanged { tokenAcquisitionError = null }
               }
               .horizontalAlign(HorizontalAlign.FILL)
         }
