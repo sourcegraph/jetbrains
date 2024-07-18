@@ -28,7 +28,7 @@ class LlmDropdown(
     val parentDialog: EditCommandPrompt?,
     val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?,
 ) : ComboBox<ChatModelsResponse.ChatModelProvider>(MutableCollectionComboBoxModel()) {
-  var hasServerSentModels = false 
+  var hasServerSentModels = false
 
   init {
     renderer = LlmComboBoxRenderer(this)
@@ -50,7 +50,7 @@ class LlmDropdown(
 
   private fun subscribeToFeatureUpdates() {
     val currentConfigFeatures: CurrentConfigFeatures =
-    project.getService(CurrentConfigFeatures::class.java)
+        project.getService(CurrentConfigFeatures::class.java)
     currentConfigFeatures.attach(::handleConfigUpdate)
   }
 
@@ -64,7 +64,7 @@ class LlmDropdown(
 
   @RequiresEdt
   private fun updateModelsInUI(models: List<ChatModelsResponse.ChatModelProvider>) {
-    if (project.isDisposed) return 
+    if (project.isDisposed) return
     this.removeAllItems()
 
     val availableModels = models.filterNot { it.isDeprecated() }

@@ -17,7 +17,7 @@ class CurrentConfigFeaturesTest {
   fun `observer is notified`() {
     val current = CurrentConfigFeatures()
     val observer = FakeObserver()
-    val expected = ConfigFeatures(attribution = true, serverSentModels =true)
+    val expected = ConfigFeatures(attribution = true, serverSentModels = true)
     current.attach(observer)
     current.update(expected)
     assertThat(observer.features, hasItems(expected))
