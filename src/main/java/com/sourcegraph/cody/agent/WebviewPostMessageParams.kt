@@ -2,6 +2,7 @@ package com.sourcegraph.cody.agent
 
 import com.sourcegraph.cody.agent.protocol.ChatError
 import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ContextItem
 import com.sourcegraph.cody.agent.protocol.Repo
 
@@ -55,6 +56,7 @@ data class WebviewPostMessageParams(val id: String, val message: ExtensionMessag
 
 data class ConfigFeatures(
     val attribution: Boolean,
+    val serverSentModels: Boolean
 )
 
 data class EnhancedContextContextT(val groups: List<ContextGroup>)
