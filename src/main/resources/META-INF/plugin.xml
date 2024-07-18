@@ -285,6 +285,13 @@
                     <override-text place="GoToAction" text="Cody: Dismiss"/>
                 </action>
 
+                <action id="cody.inlineEditEditCode"
+                        text="Edit Code"
+                        class="com.sourcegraph.cody.edit.InlineEditPromptEditCodeAction" >
+                    <keyboard-shortcut first-keystroke="ctrl ENTER" keymap="$default"/>
+<!--                    replace-all="true"-->
+                </action>
+
                 <!-- also now dismisses error lens, if showing -->
                 <action id="cody.editCancelOrUndoAction"
                         class="com.sourcegraph.cody.edit.actions.EditCancelOrUndoAction"
