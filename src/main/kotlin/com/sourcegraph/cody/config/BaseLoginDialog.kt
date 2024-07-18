@@ -16,8 +16,8 @@ import javax.swing.Action
 import javax.swing.JComponent
 
 abstract class BaseLoginDialog(
-    val project: Project?,
-    val parent: Component?,
+    protected val project: Project?,
+    protected val parent: Component?,
     executorFactory: SourcegraphApiRequestExecutor.Factory,
     private val authMethod: SsoAuthMethod
 ) : DialogWrapper(project, parent, false, IdeModalityType.PROJECT) {
