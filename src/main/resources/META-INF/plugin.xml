@@ -288,8 +288,7 @@
                 <action id="cody.inlineEditEditCode"
                         text="Edit Code"
                         class="com.sourcegraph.cody.edit.InlineEditPromptEditCodeAction" >
-                    <keyboard-shortcut first-keystroke="ctrl ENTER" keymap="$default"/>
-<!--                    replace-all="true"-->
+                    <keyboard-shortcut replace-all="true" first-keystroke="ctrl ENTER" keymap="$default"/>
                 </action>
 
                 <!-- also now dismisses error lens, if showing -->
