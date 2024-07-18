@@ -4,6 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -35,6 +36,10 @@ class IgnoreOracle(private val project: Project) {
   @Volatile private var willFocusUri: String? = null
   private val fileListeners: MutableList<FocusedFileIgnorePolicyListener> = mutableListOf()
   private val policyAwaitTimeoutMs = System.getProperty("cody.ignore.policy.timeout", "16").toLong()
+  private val logger = Logger.getInstance(IgnoreOracle::class.java)
+  private val maxRetries = 3
+  private val initialRetryDelayMs = 100L
+  private val maxRetryDelayMs = 3000L // Optional: Set a maximum delay
 
   init {
     // Synthesize a focus event for the current editor, if any,
@@ -115,11 +120,11 @@ class IgnoreOracle(private val project: Project) {
   fun policyForUri(uri: String, agent: CodyAgent): CompletableFuture<IgnorePolicy> {
     return agent.server.ignoreTest(IgnoreTestParams(uri)).thenApply {
       val newPolicy =
-          when (it.policy) {
-            "ignore" -> IgnorePolicy.IGNORE
-            "use" -> IgnorePolicy.USE
-            else -> throw IllegalStateException("invalid ignore policy value")
-          }
+        when (it.policy) {
+          "ignore" -> IgnorePolicy.IGNORE
+          "use" -> IgnorePolicy.USE
+          else -> throw IllegalStateException("invalid ignore policy value")
+        }
       synchronized(cache) { cache.put(uri, newPolicy) }
       newPolicy
     }
@@ -128,12 +133,35 @@ class IgnoreOracle(private val project: Project) {
   /** Like `policyForUri(String)` but fetches the uri from the passed Editor's Document. */
   fun policyForEditor(editor: Editor): IgnorePolicy? {
     val url = FileDocumentManager.getInstance().getFile(editor.document)?.url ?: return null
-    val completable = policyForUri(url)
-    return try {
-      completable.get(policyAwaitTimeoutMs, TimeUnit.MILLISECONDS)
-    } catch (timedOut: TimeoutException) {
-      null
+    return retryWithExponentialBackoff(maxRetries, initialRetryDelayMs, maxRetryDelayMs) {
+      val completable = policyForUri(url)
+      try {
+        completable.get(policyAwaitTimeoutMs, TimeUnit.MILLISECONDS)
+      } catch (timedOut: TimeoutException) {
+        logger.warn("policyForEditor timed out")
+        throw timedOut
+      }
     }
+  }
+
+  private fun <T> retryWithExponentialBackoff(maxRetries: Int, initialDelayMs: Long, maxDelayMs: Long, block: () -> T?): T? {
+    var attempt = 0
+    var delayMs = initialDelayMs
+    while (attempt < maxRetries) {
+      try {
+        return block()
+      } catch (e: TimeoutException) {
+        attempt++
+        if (attempt >= maxRetries) {
+          logger.warn("Failed after $attempt attempts", e)
+          return null
+        }
+        logger.warn("Attempt $attempt failed, retrying in $delayMs ms", e)
+        TimeUnit.MILLISECONDS.sleep(delayMs)
+        delayMs = (delayMs * 2).coerceAtMost(maxDelayMs) // Exponential backoff with max delay
+      }
+    }
+    return null
   }
 
   /**
