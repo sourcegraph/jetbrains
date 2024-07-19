@@ -122,11 +122,7 @@ class IgnoreOracle(private val project: Project) {
             else -> throw IllegalStateException("invalid ignore policy value")
           }
       synchronized(cache) {
-        if (it.transient) {
-          cache.remove(uri)
-        } else {
-          cache.put(uri, CacheEntry(policy = newPolicy, timestampMsec = System.currentTimeMillis()))
-        }
+        cache.put(uri, CacheEntry(policy = newPolicy, timestampMsec = System.currentTimeMillis()))
       }
       newPolicy
     }
