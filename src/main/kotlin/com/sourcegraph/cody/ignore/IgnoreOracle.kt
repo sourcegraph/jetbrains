@@ -30,6 +30,7 @@ enum class IgnorePolicy(val value: String) {
 @Service(Service.Level.PROJECT)
 class IgnoreOracle(private val project: Project) {
   data class CacheEntry(val policy: IgnorePolicy, val timestampMsec: Long)
+
   private val cache = SLRUMap<String, CacheEntry>(100, 100)
   @Volatile private var focusedPolicy: IgnorePolicy? = null
   @Volatile private var willFocusUri: String? = null
