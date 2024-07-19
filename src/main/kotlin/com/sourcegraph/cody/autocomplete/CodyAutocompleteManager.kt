@@ -430,7 +430,10 @@ class CodyAutocompleteManager {
     if (lines.size > 1) {
       val text =
           (if (startsInline) lines.drop(1) else lines).dropWhile { it.isBlank() }.joinToString("\n")
-      if (text.isBlank()) return
+      if (text.isBlank()) {
+          logger.warn("autocomplete returned blank suggestions")
+          return
+      }
       val renderer = CodyAutocompleteBlockElementRenderer(text, items, editor)
       val inlay2 =
           inlayModel.addBlockElement(
