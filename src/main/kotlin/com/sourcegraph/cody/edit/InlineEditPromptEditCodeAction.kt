@@ -9,7 +9,7 @@ internal class InlineEditPromptEditCodeAction : DumbAwareAction() {
   private fun getInlineEditPrompt(event: AnActionEvent) = EDIT_COMMAND_PROMPT_KEY.get(event.project)
 
   override fun update(event: AnActionEvent) {
-    event.presentation.isEnabledAndVisible = getInlineEditPrompt(event) != null
+    event.presentation.isEnabledAndVisible = getInlineEditPrompt(event)?.isOkActionEnabled() == true
   }
 
   override fun actionPerformed(e: AnActionEvent) {

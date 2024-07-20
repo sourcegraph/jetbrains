@@ -285,6 +285,8 @@ class EditCommandPrompt(
     controller.project.putUserData(EDIT_COMMAND_PROMPT_KEY, this)
   }
 
+  fun isOkActionEnabled() = okButtonGroup.isEnabled
+
   private fun updateDialogPosition() {
     // Convert caret position to screen coordinates.
     val pointInEditor = editor.visualPositionToXY(editor.caretModel.visualPosition)
