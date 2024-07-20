@@ -52,6 +52,9 @@
 
         <applicationService
                 serviceImplementation="com.sourcegraph.cody.config.CodyPersistentAccounts"/>
+
+        <actionPromoter implementation="com.sourcegraph.cody.edit.CodyActionPromoter"/>
+
         <notificationGroup id="cody.auth" displayType="BALLOON"/>
         <notificationGroup id="Sourcegraph errors" displayType="BALLOON"/>
         <notificationGroup id="Sourcegraph: URL sharing" displayType="BALLOON"/>
