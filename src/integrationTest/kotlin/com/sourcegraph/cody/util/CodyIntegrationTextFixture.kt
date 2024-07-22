@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import junit.framework.TestCase
 
-open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
+abstract class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   private val logger = Logger.getInstance(CodyIntegrationTextFixture::class.java)
   private val lensSubscribers =
       mutableListOf<
@@ -95,7 +95,7 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   // Methods there are mostly idempotent though, so calling again for every test case should not
   // change anything.
   private fun initCredentialsAndAgent() {
-    val credentials = TestingCredentials.dotcom
+    val credentials = myCredentials()
     CodyPersistentAccountsHost(project)
         .addAccount(
             SourcegraphServerPath.from(credentials.serverEndpoint, ""),
@@ -111,6 +111,8 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
             .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .get())
   }
+
+  abstract fun myCredentials(): TestingCredentials
 
   private fun checkInitialConditions() {
     // If you don't specify this system property with this setting when running the tests,
