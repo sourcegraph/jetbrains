@@ -9,7 +9,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.util.net.HttpConfigurable
-import com.sourcegraph.cody.chat.AgentChatSessionService
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.context.RemoteRepoSearcher
 import com.sourcegraph.cody.edit.FixupService
@@ -139,7 +138,6 @@ class CodyAgentService(private val project: Project) : Disposable {
       }
 
       if (!project.isDisposed) {
-        AgentChatSessionService.getInstance(project).restoreAllSessions(agent)
         CodyFileEditorListener.registerAllOpenedFiles(project, agent)
       }
     }

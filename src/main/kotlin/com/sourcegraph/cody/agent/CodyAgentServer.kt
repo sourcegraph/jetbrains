@@ -110,9 +110,6 @@ interface CodyAgentServer {
 
   @JsonRequest("chat/export") fun chatExport(): CompletableFuture<List<ChatHistoryResponse>>
 
-  @JsonRequest("chat/restore")
-  fun chatRestore(params: ChatRestoreParams): CompletableFuture<ConnectionId>
-
   @JsonRequest("attribution/search")
   fun attributionSearch(
       params: AttributionSearchParams
