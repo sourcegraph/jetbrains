@@ -15,13 +15,14 @@ class WebPanelEditor(private val file: VirtualFile) : FileEditor {
     val WEBVIEW_COMPONENT_KEY = Key.create<JComponent>("WebViewComponent")
   }
 
+  private val userData: MutableMap<Any, Any?> = mutableMapOf()
+
   override fun <T : Any?> getUserData(key: Key<T>): T? {
-    // TODO: Implement this
-    return null
+    return userData[key] as T?
   }
 
   override fun <T : Any?> putUserData(key: Key<T>, value: T?) {
-    // TODO: Implement this
+    userData[key] = value
   }
 
   override fun dispose() {
