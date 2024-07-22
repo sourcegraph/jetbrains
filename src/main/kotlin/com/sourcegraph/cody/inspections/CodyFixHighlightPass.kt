@@ -96,7 +96,12 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
 
       val range = document.codyRange(highlight.startOffset, highlight.endOffset)
       for (action in myRangeActions[range].orEmpty()) {
-        highlight.registerFix(CodeActionQuickFix(action), null, null, null, null)
+        highlight.registerFix(
+            CodeActionQuickFix(action),
+            /* options = */ null,
+            /* displayName = */ null,
+            /* fixRange = */ null,
+            /* key = */ null)
       }
     }
   }
@@ -113,6 +118,10 @@ class CodyFixHighlightPassFactory : TextEditorHighlightingPassFactoryRegistrar {
       project: Project
   ) {
     registrar.registerTextEditorHighlightingPass(
-        factory, TextEditorHighlightingPassRegistrar.Anchor.LAST, Pass.UPDATE_ALL, false, false)
+        factory,
+        TextEditorHighlightingPassRegistrar.Anchor.LAST,
+        Pass.UPDATE_ALL,
+        /* needAdditionalIntentionsPass = */ false,
+        /* inPostHighlightingPass = */ false)
   }
 }
