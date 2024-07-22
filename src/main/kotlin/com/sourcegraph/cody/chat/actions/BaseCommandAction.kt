@@ -8,8 +8,8 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.AppExecutorUtil
-import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.CommandExecuteParams
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.commands.CommandId
 import com.sourcegraph.cody.ignore.ActionInIgnoredFileNotification
@@ -39,12 +39,14 @@ abstract class BaseCommandAction : DumbAwareEDTAction() {
           .finishOnUiThread(ModalityState.NON_MODAL) {
             when (it) {
               IgnorePolicy.USE -> {
-                CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
-                  // Race: The selected text editor could change before IgnoreOracle completes, and
-                  // the command runs on the wrong document. Ignore rules will still be enforced by
-                  // prompt construction so this is a correctness issue but not a safety issue.
-                  // TODO: Fix this race by giving commands an explicit document to act on.
-                  TODO("NYI, run TypeScript commands instead.")
+                CodyAgentService.withAgent(project) { agent ->
+                  agent.server.commandExecute(CommandExecuteParams(
+                    command=when (myCommandId) {
+                      CommandId.Explain -> "cody.command.explain-code"
+                      CommandId.Smell -> "cody.command.smell-code"
+                    },
+                    arguments=emptyList(),
+                  ))
                 }
               }
               else -> {
