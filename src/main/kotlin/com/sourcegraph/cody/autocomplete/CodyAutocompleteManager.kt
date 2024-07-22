@@ -270,9 +270,6 @@ class CodyAutocompleteManager {
                 } else if (result != null && result.items.isNotEmpty()) {
                   UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = false
                   UpgradeToCodyProNotification.autocompleteRateLimitError.set(null)
-                  CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
-                    refreshMyAccountTab()
-                  }
                   processAutocompleteResult(editor, offset, triggerKind, result, cancellationToken)
                 }
                 null
@@ -303,7 +300,6 @@ class CodyAutocompleteManager {
         UpgradeToCodyProNotification.isFirstRLEOnAutomaticAutocompletionsShown = true
         ApplicationManager.getApplication().executeOnPooledThread {
           UpgradeToCodyProNotification.notify(error.toRateLimitError(), project)
-          CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) { refreshMyAccountTab() }
         }
       }
     }

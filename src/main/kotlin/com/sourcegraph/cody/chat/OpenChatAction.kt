@@ -13,6 +13,6 @@ class OpenChatAction : DumbAwareEDTAction() {
     ToolWindowManager.getInstance(project)
         .getToolWindow(CodyToolWindowFactory.TOOL_WINDOW_ID)
         ?.show()
-    CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) { focusOnChat() }
+    TODO("NYI, focus the chat thru TypeScript")
   }
 }

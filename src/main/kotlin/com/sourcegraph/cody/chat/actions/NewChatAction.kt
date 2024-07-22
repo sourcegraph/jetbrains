@@ -1,18 +1,25 @@
 package com.sourcegraph.cody.chat.actions
 
-import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.CodyToolWindowContent
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.chat.AgentChatSession
+import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.common.CodyBundle
+import com.sourcegraph.common.ui.DumbAwareEDTAction
 
-class NewChatAction : BaseChatAction() {
-  override fun doAction(project: Project) {
-    CodyAgentService.withAgent(project) { agent ->
+class NewChatAction : DumbAwareEDTAction() {
+  override fun actionPerformed(event: AnActionEvent) {
+    CodyAgentService.withAgent(event.project ?: return) { agent ->
       agent.server.chatNew().thenAccept {}
     }
   }
 
-  override fun showToolbar(project: Project) {
-    // no-op, new chats are in panels right now.
+  override fun update(event: AnActionEvent) {
+    val project = event.project ?: return
+    val hasActiveAccount = CodyAuthenticationManager.getInstance(project).hasActiveAccount()
+    event.presentation.isEnabled = hasActiveAccount
+    if (!event.presentation.isEnabled) {
+      event.presentation.description =
+          CodyBundle.getString("action.sourcegraph.disabled.description")
+    }
   }
 }
