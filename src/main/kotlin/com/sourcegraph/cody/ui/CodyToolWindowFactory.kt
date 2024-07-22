@@ -145,9 +145,18 @@ const val MAIN_RESOURCE_URL =
     "${PSEUDO_HOST_URL_PREFIX}main-resource-nonce"
 
 // TODO:
+// - Use UiNotifyConnector to hook up visibility and push changes to WebviewPanel.visible/WebviewView.visible and fire onDidChangeViewState (panels) or onDidChangeVisibility (views)
+// - Use ??? to hook up focus and push changes to WebviewPanel.active and fire onDidChangeViewState
 // - Hook up webview/didDispose, etc.
+// - Implement registerWebviewPanelSerializer and wire it to JetBrains panel saving to restore chats when JetBrains is reopened.
+
+// TODO:
+// - When TypeScript uses retainContextWhenHidden: false, implement discard Webviews when panels/views are hidden.
 
 interface WebUIHost {
+  // Provides, sinks Webview state from VSCode webview setState, getState API.
+  abstract var stateAsJSONString: String
+
   fun setOptions(options: WebviewOptions)
   fun setTitle(value: String)
   fun postMessageWebviewToHost(stringEncodedJsonMessage: String)
@@ -156,6 +165,8 @@ interface WebUIHost {
 
 class WebUIHostImpl(val project: Project, val handle: String, private var _options: WebviewOptions) : WebUIHost {
   var view: WebviewViewDelegate? = null
+
+  override var stateAsJSONString = "null"
 
   override fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
     CodyAgentService.withAgent(project) {
@@ -216,30 +227,15 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
       val viewToHost =
         JBCefJSQuery.create(browser as JBCefBrowserBase).apply {
           addHandler { query: String ->
-            println("webview -> host: $query")
-            // TODO: Agent protocol needs a way to inject onDidReceiveMessage events.
-            // Thru to AgentWebViewPanel.receiveMessage
-
-            // TODO: Move this query handling to the proxy.
-            if (query == "{\"what\":\"DOMContentLoaded\"}") {
-              proxy.onDOMContentLoaded()
-            }
-
-            val postMessagePrefix = "{\"what\":\"postMessage\",\"value\":"
-            if (query.startsWith(postMessagePrefix)) {
-              val message = query.substring(postMessagePrefix.length, query.length - "}".length)
-              println("host <- webview: $message")
-              proxy.postMessageWebviewToHost(message)
-            }
+            proxy.handleCefQuery(query)
             JBCefJSQuery.Response(null)
           }
         }
-      // TODO: We could add a second script tag and run when the body element is created.
       val apiScript =
         """
       globalThis.acquireVsCodeApi = (function() {
           let acquired = false;
-          let state = undefined;
+          let state = ${host.stateAsJSONString};
 
           return () => {
               if (acquired && !false) {
@@ -252,14 +248,12 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
                     ${viewToHost.inject("JSON.stringify({what: 'postMessage', value: message})")}
                   },
                   setState: function(newState) {
-                      state = newState;
-                      // TODO: Route this to wherever VSCode sinks do-update-state.
-                      // doPostMessage('do-update-state', JSON.stringify(newState));
-                      console.log(`do-update-state: ${'$'}{JSON.stringify(newState)}`);
-                      return newState;
+                    ${viewToHost.inject("JSON.stringify({what: 'setState', value: newState})")}
+                    state = newState;
+                    return newState;
                   },
                   getState: function() {
-                      return state;
+                    return state;
                   }
               });
           };
@@ -306,6 +300,25 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
     }
   }
 
+  private fun handleCefQuery(query: String) {
+    val postMessagePrefix = "{\"what\":\"postMessage\",\"value\":"
+    val setStatePrefix = "{\"what\":\"setState\",\"value\":"
+    when {
+      query.startsWith(postMessagePrefix) -> {
+        val stringEncodedJsonMessage = query.substring(postMessagePrefix.length, query.length - "}".length)
+        host.postMessageWebviewToHost(stringEncodedJsonMessage)
+      }
+      query.startsWith(setStatePrefix) -> {
+        val state = query.substring(setStatePrefix.length, query.length - "}".length)
+        host.stateAsJSONString = state
+      }
+      query == "{\"what\":\"DOMContentLoaded\"}" -> onDOMContentLoaded()
+      else -> {
+        logger.warn("unhandled query from Webview to host: $query")
+      }
+    }
+  }
+
   private var isDOMContentLoaded = false
   private val logger = Logger.getInstance(WebUIProxy::class.java)
   private var theme: WebTheme? = null
@@ -336,10 +349,6 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
     host.onCommand(command)
   }
 
-  fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
-    host.postMessageWebviewToHost(stringEncodedJsonMessage)
-  }
-
   fun postMessageHostToWebview(stringEncodedJsonMessage: String) {
     val code =
       """
@@ -351,11 +360,10 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
       """
         .trimIndent()
 
-    // TODO: Consider a better origin that this random made-up origin.
     browser.cefBrowser.mainFrame?.executeJavaScript(code, "cody://postMessage", 0)
   }
 
-  fun onDOMContentLoaded() {
+  private fun onDOMContentLoaded() {
     isDOMContentLoaded = true
     theme?.let { updateTheme(it) }
   }
