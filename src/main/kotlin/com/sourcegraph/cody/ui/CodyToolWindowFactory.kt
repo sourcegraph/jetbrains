@@ -149,9 +149,7 @@ const val MAIN_RESOURCE_URL =
 // - Use ??? to hook up focus and push changes to WebviewPanel.active and fire onDidChangeViewState
 // - Hook up webview/didDispose, etc.
 // - Implement registerWebviewPanelSerializer and wire it to JetBrains panel saving to restore chats when JetBrains is reopened.
-
-// TODO:
-// - When TypeScript uses retainContextWhenHidden: false, implement discard Webviews when panels/views are hidden.
+// - Implement enableFindDialog/ctrl-f find in page.
 
 interface WebUIHost {
   // Provides, sinks Webview state from VSCode webview setState, getState API.
@@ -180,7 +178,12 @@ class WebUIHostImpl(val project: Project, val handle: String, private var _optio
   }
 
   override fun setOptions(value: WebviewOptions) {
-    // TODO: React to the options change.
+    // TODO:
+    // When TypeScript uses these WebView options, implement them:
+    // - retainContextWhenHidden: false and dispose the browser when hidden.
+    // - localResourceRoots beyond just the extension distribution path.
+    // - Non-empty portMapping.
+    // - enableScripts: false, enableForms: false
     _options = value
   }
 
