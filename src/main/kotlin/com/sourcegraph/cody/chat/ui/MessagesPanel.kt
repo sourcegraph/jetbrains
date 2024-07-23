@@ -45,7 +45,7 @@ class MessagesPanel(private val project: Project, private val chatSession: ChatS
     }
 
     if (message.speaker == Speaker.ASSISTANT && message.actualMessage().isBlank()) {
-      add(BlinkingCursorComponent.instance)
+      add(BlinkingCursorComponent())
     }
 
     revalidate()
@@ -54,7 +54,12 @@ class MessagesPanel(private val project: Project, private val chatSession: ChatS
 
   @RequiresEdt
   fun removeBlinkingCursor() {
-    components.find { it is BlinkingCursorComponent }?.let { remove(it) }
+    components
+        .find { it is BlinkingCursorComponent }
+        ?.let {
+          (it as BlinkingCursorComponent).dispose()
+          remove(it)
+        }
   }
 
   fun registerCancellationToken(cancellationToken: CancellationToken) {
