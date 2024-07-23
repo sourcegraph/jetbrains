@@ -119,21 +119,14 @@
              (or a subtype.) For now, VSCode view "when" conditions need to be manually ported to
              ToolWindow.isAvailable updates.
          -->
-        <toolWindow
-                id="Cody Web Content Experiments"
-                icon="/icons/experiment-icon.svg"
-                anchor="right"
-                secondary="false"
-                factoryClass="com.sourcegraph.cody.sidebar.ExperimentalToolWindowFactory"/>
-
-        <!-- Web UI Tool Windows' IDs must match the view IDs in sourcegraph/cody vscode/package.json
-             declarations. These IDs kick off the WebviewView resolution protocol with Agent. -->
+        <!-- TODO: Uncomment this when login and onboarding are ported from CodyToolWindowContent to Web UI.
         <toolWindow
                 id="cody.chat"
                 icon="/icons/codyLogoMonochromatic.svg"
                 anchor="right"
                 secondary="false"
                 factoryClass="com.sourcegraph.cody.ui.WebUIToolWindowFactory" />
+        -->
     </extensions>
 
     <applicationListeners>
