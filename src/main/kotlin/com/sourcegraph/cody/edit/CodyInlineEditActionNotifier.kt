@@ -2,18 +2,12 @@ package com.sourcegraph.cody.edit
 
 import com.intellij.util.messages.Topic
 
-/** Pubsub interface shared by all inline edit notifications that accept a FixupSession. */
+/** Pubsub interface shared by all inline edit notifications */
 interface CodyInlineEditActionNotifier {
 
   fun afterAction()
 
   companion object {
-    @JvmStatic
-    @Topic.ProjectLevel
-    val TOPIC_FOLDING_RANGES =
-        Topic.create(
-            "Sourcegraph Cody: Received folding ranges", CodyInlineEditActionNotifier::class.java)
-
     /** Sent when the "Cody is working..." lens is displayed during an inline edit. */
     @JvmStatic
     @Topic.ProjectLevel

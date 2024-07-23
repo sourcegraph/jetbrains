@@ -36,6 +36,9 @@ public class CodyAgentClient {
   // Callback for the "editTask/didDelete" notification from the agent.
   @Nullable Consumer<EditTask> onEditTaskDidDelete;
 
+  // Callback for the "editTask/codeLensesDisplay" notification from the agent.
+  @Nullable Consumer<DisplayCodeLensParams> onCodeLensesDisplay;
+
   // Callback for the "textDocument/edit" request from the agent.
   @Nullable Function<TextDocumentEditParams, Boolean> onTextDocumentEdit;
 
@@ -58,6 +61,11 @@ public class CodyAgentClient {
   @JsonNotification("editTask/didDelete")
   public CompletableFuture<Void> editTaskDidDelete(EditTask params) {
     return acceptOnEventThread("editTask/didDelete", onEditTaskDidDelete, params);
+  }
+
+  @JsonNotification("codeLenses/display")
+  public void codeLensesDisplay(DisplayCodeLensParams params) {
+    acceptOnEventThread("codeLenses/display", onCodeLensesDisplay, params);
   }
 
   @Nullable Consumer<Void> onRemoteRepoDidChange;

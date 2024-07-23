@@ -9,7 +9,9 @@ import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.edit.EditUtil
-import com.sourcegraph.cody.edit.sessions.FixupSession
+import com.sourcegraph.cody.edit.actions.lenses.EditAcceptAction
+import com.sourcegraph.cody.edit.actions.lenses.EditUndoAction
+import com.sourcegraph.cody.edit.actions.lenses.LensEditAction.Companion.TASK_ID_KEY
 import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics2D
@@ -21,14 +23,15 @@ import org.jetbrains.annotations.VisibleForTesting
 class LensAction(
     val group: LensWidgetGroup,
     private val text: String,
-    @VisibleForTesting val actionId: String
+    @VisibleForTesting val actionId: String,
+    private val taskId: String?
 ) : LensWidget(group) {
 
   private val highlight =
       LabelHighlight(
           when (actionId) {
-            FixupSession.ACTION_ACCEPT -> acceptColor
-            FixupSession.ACTION_UNDO -> undoColor
+            EditAcceptAction.ID -> acceptColor
+            EditUndoAction.ID -> undoColor
             else -> actionColor
           })
 
@@ -69,15 +72,15 @@ class LensAction(
   }
 
   override fun onClick(e: EditorMouseEvent): Boolean {
-    triggerAction(actionId, e.editor, e.mouseEvent)
+    triggerAction(e.editor, e.mouseEvent)
     return true
   }
 
-  private fun triggerAction(actionId: String, editor: Editor, mouseEvent: MouseEvent) {
+  private fun triggerAction(editor: Editor, mouseEvent: MouseEvent) {
     lastLensActionPerformed.set(actionId)
     val action = ActionManager.getInstance().getAction(actionId)
     if (action != null) {
-      val dataContext = createDataContext(editor, mouseEvent)
+      val dataContext = createDataContext(editor, mouseEvent, taskId)
       val actionEvent =
           AnActionEvent(
               null,
@@ -90,12 +93,17 @@ class LensAction(
     }
   }
 
-  private fun createDataContext(editor: Editor, mouseEvent: MouseEvent): DataContext {
+  private fun createDataContext(
+      editor: Editor,
+      mouseEvent: MouseEvent,
+      taskId: String?
+  ): DataContext {
     return DataContext { dataId ->
       when (dataId) {
         PlatformDataKeys.CONTEXT_COMPONENT.name -> mouseEvent.component
         PlatformDataKeys.EDITOR.name -> editor
         PlatformDataKeys.PROJECT.name -> editor.project
+        TASK_ID_KEY.name -> taskId
         else -> null
       }
     }
@@ -113,9 +121,5 @@ class LensAction(
     private val undoColor = JBColor(0xCC3645, 0x7B282C)
 
     private val lastLensActionPerformed: AtomicReference<String?> = AtomicReference(null)
-
-    fun wasLastLensActionAnAccept(): Boolean {
-      return lastLensActionPerformed.get() == FixupSession.ACTION_ACCEPT
-    }
   }
 }

@@ -24,7 +24,6 @@ import com.intellij.ui.JBColor
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.Range
-import com.sourcegraph.cody.edit.sessions.FixupSession
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
@@ -46,8 +45,7 @@ operator fun Point.component2() = this.y
  * Manages a single code lens group. It should only be displayed once, and disposed after displaying
  * it, before displaying another.
  */
-class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
-    EditorCustomElementRenderer, Disposable {
+class LensWidgetGroup(parentComponent: Editor) : EditorCustomElementRenderer, Disposable {
   private val logger = Logger.getInstance(LensWidgetGroup::class.java)
   val editor = parentComponent as EditorImpl
 
@@ -89,12 +87,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var lastComputedIndent = RECOMPUTE
 
-  var isInWorkingGroup = false
-  var isAcceptGroup = false
-  var isErrorGroup = false
-
   init {
-    Disposer.register(session, this)
     editor.addEditorMouseListener(mouseClickListener)
     editor.addEditorMouseMotionListener(mouseMotionListener)
     addedListeners.set(true)
@@ -117,16 +110,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     widgetFontMetrics = null // force recalculation
   }
 
-  fun withListenersMuted(block: () -> Unit) {
-    try {
-      listenersMuted = true
-      block()
-    } finally {
-      listenersMuted = false
-    }
-  }
-
-  fun show(range: Range): CompletableFuture<Boolean> {
+  fun show(range: Range, shouldScrollToLens: Boolean): CompletableFuture<Boolean> {
     val offset = range.start.toOffset(editor.document)
     return onEventThread {
       if (isDisposed.get()) {
@@ -134,9 +118,12 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       }
       inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
       Disposer.register(this, inlay!!)
-      // Make sure the lens is visible.
-      val logicalPosition = range.start.toLogicalPosition(editor.document)
-      editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+
+      if (shouldScrollToLens) {
+        val logicalPosition = range.start.toLogicalPosition(editor.document)
+        editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
+      }
+
       true
     }
   }
@@ -256,6 +243,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     if (lastComputedIndent != RECOMPUTE) {
       return lastComputedIndent
     }
+
     try {
       val document = editor.document
       val inlayOffset = inlay?.offset

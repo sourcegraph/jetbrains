@@ -21,8 +21,6 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.config.CodyPersistentAccountsHost
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier
-import com.sourcegraph.cody.edit.FixupService
-import com.sourcegraph.cody.edit.sessions.FixupSession
 import com.sourcegraph.config.ConfigUtil
 import java.io.File
 import java.nio.file.Paths
@@ -40,15 +38,9 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
     myProject = project
   }
 
+
   override fun tearDown() {
     try {
-      FixupService.getInstance(myFixture.project).getActiveSession()?.apply {
-        try {
-          dispose()
-        } catch (x: Exception) {
-          logger.warn("Error shutting down session", x)
-        }
-      }
       CodyAgentService.getInstance(myFixture.project).apply {
         try {
           stopAgent(project)
@@ -192,11 +184,6 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
     }
   }
 
-  protected fun activeSession(): FixupSession {
-    assertActiveSession()
-    return FixupService.getInstance(project).getActiveSession()!!
-  }
-
   protected fun assertNoInlayShown() {
     runInEdtAndWait {
       PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
@@ -212,16 +199,6 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
       assertTrue(
           "Lens group inlay should be displayed", myFixture.editor.inlayModel.hasBlockElements())
     }
-  }
-
-  protected fun assertNoActiveSession() {
-    assertNull(
-        "NO active session was expected", FixupService.getInstance(project).getActiveSession())
-  }
-
-  protected fun assertActiveSession() {
-    assertNotNull(
-        "Active session was expected", FixupService.getInstance(project).getActiveSession())
   }
 
   protected fun runAndWaitForNotifications(
