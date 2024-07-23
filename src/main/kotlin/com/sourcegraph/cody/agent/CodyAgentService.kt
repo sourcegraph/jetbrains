@@ -19,6 +19,7 @@ import com.sourcegraph.cody.error.CodyConsole
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
+import com.sourcegraph.common.BrowserOpener
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.utils.CodyEditorUtil
 import java.util.Timer
@@ -56,6 +57,11 @@ class CodyAgentService(private val project: Project) : Disposable {
         0,
         5000) // Check every 5 seconds
     onStartup { agent ->
+      agent.client.onOpenExternal = Function { params ->
+        BrowserOpener.openInBrowser(project, params.uri)
+        true
+      }
+
       agent.client.onWorkspaceEdit = Function { params ->
         try {
           EditService.getInstance(project).performWorkspaceEdit(params)
