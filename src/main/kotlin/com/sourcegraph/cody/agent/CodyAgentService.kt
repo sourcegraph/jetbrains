@@ -19,6 +19,7 @@ import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.cody.ui.WebUIService
 import com.sourcegraph.cody.ui.WebviewViewService
+import com.sourcegraph.common.BrowserOpener
 import com.sourcegraph.utils.CodyEditorUtil
 import java.util.Timer
 import java.util.TimerTask
@@ -55,6 +56,11 @@ class CodyAgentService(private val project: Project) : Disposable {
         0,
         5000) // Check every 5 seconds
     onStartup { agent ->
+      agent.client.onOpenExternal = Function { params ->
+        BrowserOpener.openInBrowser(project, params.uri)
+        true
+      }
+
       agent.client.onEditTaskDidUpdate = Consumer { task ->
         FixupService.getInstance(project).getActiveSession()?.update(task)
       }
