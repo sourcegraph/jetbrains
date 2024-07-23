@@ -68,6 +68,13 @@ public class CodyAgentClient {
     return acceptOnEventThread("editTask/didDelete", onEditTaskDidDelete, params);
   }
 
+  @Nullable Function<OpenExternalParams, Boolean> onOpenExternal;
+
+  @JsonRequest("env/openExternal")
+  public CompletableFuture<Boolean> ignoreTest(@NotNull OpenExternalParams params) {
+    return acceptOnEventThread("env/openExternal", onOpenExternal, params);
+  }
+
   @Nullable Consumer<Void> onRemoteRepoDidChange;
 
   @JsonNotification("remoteRepo/didChange")
@@ -175,6 +182,10 @@ public class CodyAgentClient {
       onDebugMessage.accept(msg);
     }
   }
+
+  // ================================================
+  // Webviews, forwarded to the NativeWebviewProvider
+  // ================================================
 
   @JsonNotification("webview/createWebviewPanel")
   public void webviewCreateWebviewPanel(@NotNull WebviewCreateWebviewPanelParams params) {
