@@ -20,6 +20,10 @@ class WebUIToolWindowFactory : ToolWindowFactory, DumbAware {
   }
 }
 
+// vscode's package.json can give views a "name"; plugin.xml can't do that, so we
+// consult this mapping of tool window IDs to default titles.
+val defaultToolWindowTitles = mapOf("cody.chat" to "Cody")
+
 // Responsibilities:
 // - Rendezvous between ToolWindows implementing "Views" (Tool Windows in JetBrains), and WebviewViews.
 @Service(Service.Level.PROJECT)
@@ -47,6 +51,7 @@ class WebviewViewService(val project: Project) {
   // TODO: Implement 'dispose' for registerWebviewViewProvider.
 
   fun provideToolWindow(toolWindow: ToolWindow) {
+    toolWindow.stripeTitle = defaultToolWindowTitles[toolWindow.id] ?: toolWindow.id
     views[toolWindow.id] = toolWindow
     val provider = providers[toolWindow.id] ?: return
     runInEdt { provideView(toolWindow, provider) }
@@ -64,7 +69,7 @@ class WebviewViewService(val project: Project) {
       return@createWebviewView object : WebviewViewDelegate {
         override fun setTitle(newTitle: String) {
           runInEdt {
-            content.displayName = newTitle
+            toolWindow.stripeTitle = newTitle
           }
         }
         // TODO: Add icon support.
