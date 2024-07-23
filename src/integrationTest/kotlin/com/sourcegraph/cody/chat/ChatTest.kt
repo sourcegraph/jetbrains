@@ -48,10 +48,12 @@ class ChatTest : CodyIntegrationTextFixture() {
 
     runInEdtAndWait { session.sendMessage("How do we use JSON RPC in Cody?", emptyList()) }
 
-    await.atMost(5, TimeUnit.SECONDS) until
+    await.atMost(15, TimeUnit.SECONDS) until
         {
           val messages = session.messages
-          messages.size == 2 && !messages[0].contextFiles.isNullOrEmpty()
+          messages.size == 2 &&
+              !messages[0].contextFiles.isNullOrEmpty() &&
+              !messages[1].text.isNullOrBlank()
         }
 
     val linkPanels =
