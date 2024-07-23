@@ -123,11 +123,11 @@ class IgnoreOracle(private val project: Project) {
     //logger.info("agent.server.ignoreTest(IgnoreTestParams(uri)): ${agent.server.ignoreTest(IgnoreTestParams(uri))}")
     return agent.server.ignoreTest(IgnoreTestParams(uri)).thenApply {
       val newPolicy =
-          when (it.policy) {
-            "ignore" -> IgnorePolicy.IGNORE
-            "use" -> IgnorePolicy.USE
-            else -> throw IllegalStateException("invalid ignore policy value")
-          }
+        when (it.policy) {
+          "ignore" -> IgnorePolicy.IGNORE
+          "use" -> IgnorePolicy.USE
+          else -> throw IllegalStateException("invalid ignore policy value")
+        }
       synchronized(cache) { cache.put(uri, newPolicy) }
       newPolicy
     }
@@ -136,7 +136,6 @@ class IgnoreOracle(private val project: Project) {
   /** Like `policyForUri(String)` but fetches the uri from the passed Editor's Document. */
   fun policyForEditor(editor: Editor): IgnorePolicy? {
     val url = FileDocumentManager.getInstance().getFile(editor.document)?.url ?: return null
-    logger.warn("in policyForEditor. url: $url")
     return retryWithExponentialBackoff(maxRetries, initialRetryDelayMs, maxRetryDelayMs) {
       val completable = policyForUri(url)
       try {
