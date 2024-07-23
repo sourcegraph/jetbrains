@@ -1,17 +1,17 @@
 package com.sourcegraph.cody.chat
 
 import com.intellij.testFramework.runInEdtAndGet
-import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.WebviewMessage
-import com.sourcegraph.cody.agent.protocol.GetRepoIdsParam
-import com.sourcegraph.cody.agent.protocol.Repo
+import com.intellij.testFramework.runInEdtAndWait
 import com.sourcegraph.cody.chat.ui.ContextFileActionLink
+import com.sourcegraph.cody.context.ui.EnterpriseEnhancedContextPanel
+import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.history.state.EnhancedContextState
+import com.sourcegraph.cody.history.state.RemoteRepositoryState
 import com.sourcegraph.cody.util.CodyIntegrationTextFixture
 import com.sourcegraph.cody.util.CustomJunitClassRunner
 import com.sourcegraph.cody.util.TestingCredentials
 import java.awt.Component
 import java.awt.Container
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import junit.framework.TestCase
 import org.awaitility.kotlin.await
@@ -25,33 +25,30 @@ class ChatTest : CodyIntegrationTextFixture() {
 
   @Test
   fun testRemoteContextFileItems() {
+    val enhancedContextState =
+        EnhancedContextState().apply {
+          remoteRepositories.add(
+              RemoteRepositoryState().apply {
+                isEnabled = true
+                remoteUrl = "github.com/sourcegraph/cody"
+                codebaseName = "github.com/sourcegraph/cody"
+              })
+        }
+    HistoryService.getInstance(project).updateDefaultContextState(enhancedContextState)
 
-    val result = CompletableFuture<List<Repo>>()
-    CodyAgentService.withAgent(project) { agent ->
-      try {
-        val codebaseNames = listOf("github.com/sourcegraph/cody")
-        val param = GetRepoIdsParam(codebaseNames, codebaseNames.size)
-        val repos = agent.server.getRepoIds(param).get()
-        result.complete(repos?.repos ?: emptyList())
-      } catch (e: Exception) {
-        result.complete(emptyList())
-      }
-    }
+    val session = runInEdtAndGet { AgentChatSession.createNew(project) }
 
-    await.atMost(5, TimeUnit.SECONDS) until { result.isDone }
+    await.atMost(5, TimeUnit.SECONDS) until
+        {
+          (session.getPanel().contextView as EnterpriseEnhancedContextPanel)
+              .controller
+              .getConfiguredState()
+              .find { it.name == "github.com/sourcegraph/cody" } != null
+        }
 
-    val repos = result.get()
-    TestCase.assertEquals(1, repos.size)
+    runInEdtAndWait { session.sendMessage("How do we use JSON RPC in Cody?", emptyList()) }
 
-    val session = runInEdtAndGet {
-      val mySession = AgentChatSession.createNew(project)
-      mySession.sendWebviewMessage(
-          WebviewMessage(command = "context/choose-remote-search-repo", explicitRepos = repos))
-      mySession.sendMessage("what is json rpc", emptyList())
-      mySession
-    }
-
-    await.atMost(10, TimeUnit.SECONDS) until
+    await.atMost(5, TimeUnit.SECONDS) until
         {
           val messages = session.messages
           messages.size == 2 && !messages[0].contextFiles.isNullOrEmpty()

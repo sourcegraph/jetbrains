@@ -55,9 +55,9 @@ class MessagesPanel(private val project: Project, private val chatSession: ChatS
   @RequiresEdt
   fun removeBlinkingCursor() {
     components
-        .find { it is BlinkingCursorComponent }
+        .firstNotNullOfOrNull { it as? BlinkingCursorComponent }
         ?.let {
-          (it as BlinkingCursorComponent).dispose()
+          it.dispose()
           remove(it)
         }
   }
