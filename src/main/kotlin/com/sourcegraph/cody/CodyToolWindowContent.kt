@@ -10,6 +10,8 @@ import com.sourcegraph.cody.chat.ui.CodyOnboardingGuidancePanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.ui.WebUIService
+import com.sourcegraph.cody.ui.WebviewViewService
 import java.awt.CardLayout
 import javax.swing.JPanel
 
@@ -26,11 +28,17 @@ class CodyToolWindowContent(private val project: Project) {
       refreshPanelsVisibility()
     }
     allContentPanel.add(codyOnboardingGuidancePanel, ONBOARDING_PANEL, ONBOARDING_PANEL_INDEX)
+
+    WebviewViewService.getInstance(project).provideCodyToolWindowContent(this)
+
     allContentLayout.show(allContentPanel, MAIN_PANEL)
 
-    // TODO: Rendezvous the sidebar webview here.
-
     refreshPanelsVisibility()
+  }
+
+  // TODO: When login and onboarding switch to using WebUI, remove CodyToolWindowContent.
+  fun publishWebUI() {
+
   }
 
   @RequiresEdt
@@ -60,6 +68,7 @@ class CodyToolWindowContent(private val project: Project) {
 
     const val SIGN_IN_PANEL_INDEX = 0
     const val ONBOARDING_PANEL_INDEX = 1
+    const val MAIN_PANEL_INDEX = 2
 
     var logger = Logger.getInstance(CodyToolWindowContent::class.java)
 

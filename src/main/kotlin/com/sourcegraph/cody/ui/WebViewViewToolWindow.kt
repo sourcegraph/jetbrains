@@ -10,9 +10,12 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.content.ContentFactory
+import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.WebviewResolveWebviewViewParams
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
+import javax.swing.JComponent
+import javax.swing.JPanel
 
 class WebUIToolWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
@@ -24,12 +27,58 @@ class WebUIToolWindowFactory : ToolWindowFactory, DumbAware {
 // consult this mapping of tool window IDs to default titles.
 val defaultToolWindowTitles = mapOf("cody.chat" to "Cody")
 
+interface WebviewViewDelegate {
+  fun setTitle(newTitle: String)
+}
+
+interface WebviewHost {
+  val id: String
+  val viewDelegate: WebviewViewDelegate
+  fun adopt(proxy: WebUIProxy)
+}
+
+class ToolWindowWebviewHost(private val toolWindow: ToolWindow): WebviewHost {
+  override val id: String = toolWindow.id
+
+  override val viewDelegate = object : WebviewViewDelegate {
+    override fun setTitle(newTitle: String) {
+      runInEdt {
+        toolWindow.stripeTitle = newTitle
+      }
+    }
+    // TODO: Add icon support.
+  }
+
+  override fun adopt(proxy: WebUIProxy) {
+    toolWindow.isAvailable = true
+    val lockable = true
+    val content = ContentFactory.SERVICE.getInstance()
+      .createContent(proxy.component, proxy.title, lockable)
+    toolWindow.contentManager.addContent(content)
+  }
+}
+
+class CodyToolWindowContentWebviewHost(private val owner: CodyToolWindowContent, val placeholder: JComponent): WebviewHost {
+  override val id = "cody.chat"
+
+  override val viewDelegate = object : WebviewViewDelegate {
+    override fun setTitle(newTitle: String) {
+      // No-op.
+    }
+  }
+
+  override fun adopt(proxy: WebUIProxy) {
+    owner.allContentPanel.remove(placeholder)
+    owner.allContentPanel.add(proxy.component, CodyToolWindowContent.MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
+  }
+}
+
 // Responsibilities:
 // - Rendezvous between ToolWindows implementing "Views" (Tool Windows in JetBrains), and WebviewViews.
 @Service(Service.Level.PROJECT)
 class WebviewViewService(val project: Project) {
-  // Map of "view ID" to hosting ToolWindow.
-  private val views: MutableMap<String, ToolWindow> = mutableMapOf()
+  // Map of "view ID" to a host.
+  private val views: MutableMap<String, WebviewHost> = mutableMapOf()
   private val providers: MutableMap<String, Provider> = mutableMapOf()
 
   data class Provider(
@@ -44,36 +93,35 @@ class WebviewViewService(val project: Project) {
   fun registerProvider(id: String, retainContextWhenHidden: Boolean) {
     var provider = Provider(id, ProviderOptions(retainContextWhenHidden))
     providers[id] = provider
-    val toolWindow = views[id] ?: return
-    runInEdt { provideView(toolWindow, provider) }
+    val viewHost = views[id] ?: return
+    runInEdt { provideView(viewHost, provider) }
   }
 
   // TODO: Implement 'dispose' for registerWebviewViewProvider.
 
-  fun provideToolWindow(toolWindow: ToolWindow) {
-    toolWindow.stripeTitle = defaultToolWindowTitles[toolWindow.id] ?: toolWindow.id
-    views[toolWindow.id] = toolWindow
-    val provider = providers[toolWindow.id] ?: return
-    runInEdt { provideView(toolWindow, provider) }
+  private fun provideHost(viewHost: WebviewHost) {
+    views[viewHost.id] = viewHost
+    val provider = providers[viewHost.id] ?: return
+    runInEdt { provideView(viewHost, provider) }
   }
 
-  private fun provideView(toolWindow: ToolWindow, provider: Provider) {
-    toolWindow.isAvailable = true
+  fun provideToolWindow(toolWindow: ToolWindow) {
+    toolWindow.stripeTitle = defaultToolWindowTitles[toolWindow.id] ?: toolWindow.id
+    provideHost(ToolWindowWebviewHost(toolWindow))
+  }
 
-    val handle = "native-webview-view-${toolWindow.id}"
+  fun provideCodyToolWindowContent(codyContent: CodyToolWindowContent) {
+    // Because the webview may be created lazily, populate a placeholder control.
+    val placeholder = JPanel()
+    codyContent.allContentPanel.add(JPanel(), CodyToolWindowContent.MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
+    provideHost(CodyToolWindowContentWebviewHost(codyContent, placeholder))
+  }
+
+  private fun provideView(viewHost: WebviewHost, provider: Provider) {
+    val handle = "native-webview-view-${viewHost.id}"
     WebUIService.getInstance(project).createWebviewView(handle) { proxy ->
-      val lockable = true
-      val content = ContentFactory.SERVICE.getInstance()
-        .createContent(proxy.component, proxy.title, lockable)
-      toolWindow.contentManager.addContent(content)
-      return@createWebviewView object : WebviewViewDelegate {
-        override fun setTitle(newTitle: String) {
-          runInEdt {
-            toolWindow.stripeTitle = newTitle
-          }
-        }
-        // TODO: Add icon support.
-      }
+      viewHost.adopt(proxy)
+      return@createWebviewView viewHost.viewDelegate
     }
 
     CodyAgentService.withAgent(project) {
@@ -107,8 +155,4 @@ class WebviewViewService(val project: Project) {
       return project.service()
     }
   }
-}
-
-interface WebviewViewDelegate {
-  fun setTitle(newTitle: String)
 }
