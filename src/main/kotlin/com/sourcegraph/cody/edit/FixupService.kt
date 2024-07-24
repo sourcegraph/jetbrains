@@ -6,6 +6,9 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileEditor
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.annotations.RequiresEdt
@@ -35,6 +38,14 @@ class FixupService(val project: Project) : Disposable {
   // We only have one editing session at a time in JetBrains, for now.
   // This reference ensures we only have one inline-edit dialog active at a time.
   val currentEditPrompt: AtomicReference<EditCommandPrompt?> = AtomicReference(null)
+
+  // For
+  fun getEditorForChatInitiatedEdits(): Editor? {
+    for (fileEditor in FileEditorManager.getInstance(project).selectedEditors) {
+      return (fileEditor as? TextEditor)?.editor ?: continue
+    }
+    return null
+  }
 
   /** Entry point for the inline edit command, called by the action handler. */
   fun startCodeEdit(editor: Editor) {
