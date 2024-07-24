@@ -178,30 +178,38 @@ class WebUIHostImpl(val project: Project, val handle: String, private var _optio
     // Some commands can be handled by the client and do not need to round-trip client -> Agent -> client.
     when (stringEncodedJsonMessage) {
       "{\"command\":\"command\",\"id\":\"cody.command.edit-code\"}" -> {
-        FixupService.getInstance(project).apply {
-          val editor = this.getEditorForChatInitiatedEdits()
-          if (editor != null) {
-            this.startCodeEdit(editor)
+        runInEdt {
+          FixupService.getInstance(project).apply {
+            val editor = this.getEditorForChatInitiatedEdits()
+            if (editor != null) {
+              this.startCodeEdit(editor)
+            }
           }
         }
       }
       "{\"command\":\"command\",\"id\":\"cody.command.document-code\"}" -> {
-        FixupService.getInstance(project).apply {
-          val editor = this.getEditorForChatInitiatedEdits()
-          if (editor != null) {
-            this.startDocumentCode(editor)
+        runInEdt {
+          FixupService.getInstance(project).apply {
+            val editor = this.getEditorForChatInitiatedEdits()
+            if (editor != null) {
+              this.startDocumentCode(editor)
+            }
           }
         }
       }
       "{\"command\":\"command\",\"id\":\"cody.command.unit-tests\"}" -> {
-        FixupService.getInstance(project).apply {
-          val editor = this.getEditorForChatInitiatedEdits()
-          if (editor != null) {
-            this.startTestCode(editor)
+        runInEdt {
+          FixupService.getInstance(project).apply {
+            val editor = this.getEditorForChatInitiatedEdits()
+            if (editor != null) {
+              this.startTestCode(editor)
+            }
           }
         }
       }
-      "{\"command\":\"command\",\"id\":\"cody.auth.signin\"}" -> {
+      // TODO: Remove this redirection when sign in moves to Web UI.
+      "{\"command\":\"command\",\"id\":\"cody.auth.signin\"}",
+      "{\"command\":\"command\",\"id\":\"cody.auth.signout\"}" -> {
         runInEdt {
           ShowSettingsUtil.getInstance().showSettingsDialog(project, AccountConfigurable::class.java)
         }
