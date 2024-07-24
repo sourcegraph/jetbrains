@@ -2,31 +2,29 @@ package com.sourcegraph.cody.ui
 
 import com.google.gson.Gson
 import com.google.gson.JsonArray
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefBrowserBuilder
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.intellij.util.io.isAncestor
 import com.sourcegraph.cody.agent.*
-import com.sourcegraph.cody.agent.protocol.WebviewOptions
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
+import com.sourcegraph.cody.agent.protocol.WebviewOptions
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
+import com.sourcegraph.cody.config.ui.AccountConfigurable
+import com.sourcegraph.cody.edit.FixupService
+import com.sourcegraph.cody.edit.actions.EditCodeAction
 import com.sourcegraph.cody.sidebar.WebTheme
 import com.sourcegraph.cody.sidebar.WebThemeController
 import com.sourcegraph.common.BrowserOpener
-import java.io.IOException
-import java.net.URI
-import java.nio.ByteBuffer
-import java.nio.channels.AsynchronousFileChannel
-import java.nio.channels.CompletionHandler
-import java.nio.file.StandardOpenOption
-import kotlin.io.path.Path
-import kotlin.math.min
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.callback.CefAuthCallback
@@ -39,9 +37,19 @@ import org.cef.network.CefCookie
 import org.cef.network.CefRequest
 import org.cef.network.CefResponse
 import org.cef.network.CefURLRequest
+import java.awt.event.InputEvent
+import java.awt.event.KeyEvent
+import java.io.IOException
+import java.net.URI
 import java.net.URLDecoder
+import java.nio.ByteBuffer
+import java.nio.channels.AsynchronousFileChannel
+import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
+import java.nio.file.StandardOpenOption
 import javax.swing.JComponent
+import kotlin.io.path.Path
+import kotlin.math.min
 
 /**
  * The subset of the Agent client interface that relates to webviews.
@@ -167,13 +175,47 @@ class WebUIHostImpl(val project: Project, val handle: String, private var _optio
   override var stateAsJSONString = "null"
 
   override fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
-    CodyAgentService.withAgent(project) {
-      it.server.webviewReceiveMessageStringEncoded(
-        WebviewReceiveMessageStringEncodedParams(
-          handle,
-          stringEncodedJsonMessage
-        )
-      )
+    // Some commands can be handled by the client and do not need to round-trip client -> Agent -> client.
+    when (stringEncodedJsonMessage) {
+      "{\"command\":\"command\",\"id\":\"cody.command.edit-code\"}" -> {
+        FixupService.getInstance(project).apply {
+          val editor = this.getEditorForChatInitiatedEdits()
+          if (editor != null) {
+            this.startCodeEdit(editor)
+          }
+        }
+      }
+      "{\"command\":\"command\",\"id\":\"cody.command.document-code\"}" -> {
+        FixupService.getInstance(project).apply {
+          val editor = this.getEditorForChatInitiatedEdits()
+          if (editor != null) {
+            this.startDocumentCode(editor)
+          }
+        }
+      }
+      "{\"command\":\"command\",\"id\":\"cody.command.unit-tests\"}" -> {
+        FixupService.getInstance(project).apply {
+          val editor = this.getEditorForChatInitiatedEdits()
+          if (editor != null) {
+            this.startTestCode(editor)
+          }
+        }
+      }
+      "{\"command\":\"command\",\"id\":\"cody.auth.signin\"}" -> {
+        runInEdt {
+          ShowSettingsUtil.getInstance().showSettingsDialog(project, AccountConfigurable::class.java)
+        }
+      }
+      else -> {
+        CodyAgentService.withAgent(project) {
+          it.server.webviewReceiveMessageStringEncoded(
+            WebviewReceiveMessageStringEncodedParams(
+              handle,
+              stringEncodedJsonMessage
+            )
+          )
+        }
+      }
     }
   }
 
