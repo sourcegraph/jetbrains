@@ -40,9 +40,8 @@ import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
 import com.sourcegraph.cody.agent.protocol.SelectedCompletionInfo
 import com.sourcegraph.cody.autocomplete.render.AutocompleteRendererType
-import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteBlockElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
-import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteSingleLineRenderer
+import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteRenderer
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil.getAllInlaysForEditor
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.ignore.ActionInIgnoredFileNotification
@@ -418,32 +417,22 @@ class CodyAutocompleteManager {
             .removeSuffix(originalTextAfterCursor)
     if (completionText.trim().isBlank()) return
 
+    // Determine if startInline or not
     val lineBreaks = listOf("\r\n", "\n", "\r")
     val startsInline = lineBreaks.none { separator -> completionText.startsWith(separator) }
 
-    var inlay: Inlay<*>? = null
-    if (startsInline) {
-      val renderer =
-          CodyAutocompleteSingleLineRenderer(
-              completionText.lines().first(), items, editor, AutocompleteRendererType.INLINE)
-      inlay =
-          inlayModel.addInlineElement(cursorOffset, /* relatesToPrecedingText = */ true, renderer)
-    }
-    val lines = completionText.lines()
-    if (lines.size > 1) {
-      val text =
-          (if (startsInline) lines.drop(1) else lines).dropWhile { it.isBlank() }.joinToString("\n")
-      val renderer = CodyAutocompleteBlockElementRenderer(text, items, editor)
-      val inlay2 =
-          inlayModel.addBlockElement(
-              /* offset = */ cursorOffset,
-              /* relatesToPrecedingText = */ true,
-              /* showAbove = */ false,
-              /* priority = */ Int.MAX_VALUE,
-              /* renderer = */ renderer)
-      if (inlay == null) {
-        inlay = inlay2
-      }
+    val rendererType = if (startsInline) AutocompleteRendererType.INLINE else AutocompleteRendererType.BLOCK
+    val renderer = CodyAutocompleteRenderer(completionText, items, editor, rendererType)
+
+    val inlay = if (startsInline) {
+        inlayModel.addInlineElement(cursorOffset, /* relatesToPrecedingText = */ true, renderer)
+    } else {
+        inlayModel.addBlockElement(
+          /* offset = */ cursorOffset,
+          /* relatesToPrecedingText = */ true,
+          /* showAbove = */ false,
+          /* priority = */ Int.MAX_VALUE,
+          /* renderer = */ renderer)
     }
 
     if (inlay?.bounds?.location != null) {
