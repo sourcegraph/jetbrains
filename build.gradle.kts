@@ -475,7 +475,10 @@ tasks {
   buildPlugin {
     dependsOn(project.tasks.getByPath("buildCody"))
     from(
-        fileTree(buildCodyDir) { include("*") },
+        fileTree(buildCodyDir) {
+          include("*")
+          include("webviews/**")
+        },
     ) {
       into("agent/")
     }
