@@ -340,6 +340,9 @@ tasks {
     exec {
       workingDir(agentDir)
       commandLine(pnpmPath, "run", "build:agent")
+    }
+    exec {
+      workingDir(agentDir)
       commandLine(pnpmPath, "run", "build:webviews")
     }
     copy {
