@@ -36,11 +36,6 @@ class CodyToolWindowContent(private val project: Project) {
     refreshPanelsVisibility()
   }
 
-  // TODO: When login and onboarding switch to using WebUI, remove CodyToolWindowContent.
-  fun publishWebUI() {
-
-  }
-
   @RequiresEdt
   fun refreshPanelsVisibility() {
     val codyAuthenticationManager = CodyAuthenticationManager.getInstance(project)
