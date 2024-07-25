@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.sidebar
 
+import com.intellij.openapi.application.invokeLater
 import com.sourcegraph.config.ThemeUtil
 import java.awt.Color
 import javax.swing.UIManager
@@ -10,7 +11,9 @@ class WebThemeController {
   init {
     UIManager.addPropertyChangeListener { event ->
       if (event.propertyName == "lookAndFeel") {
-        themeChangeListener?.invoke(getTheme())
+        invokeLater {
+          themeChangeListener?.invoke(getTheme())
+        }
       }
     }
   }
