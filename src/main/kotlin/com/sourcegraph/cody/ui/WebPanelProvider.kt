@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.ui
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.*
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.DumbAware
@@ -13,7 +14,7 @@ import javax.swing.JLabel
 
 class WebPanelEditor(private val file: VirtualFile) : FileEditor {
   companion object {
-    val WEBVIEW_COMPONENT_KEY = Key.create<JComponent>("WebViewComponent")
+    val WEB_UI_PROXY_KEY = Key.create<WebUIProxy>("WebUIProxy")
   }
 
   private val userData: MutableMap<Any, Any?> = mutableMapOf()
@@ -30,7 +31,7 @@ class WebPanelEditor(private val file: VirtualFile) : FileEditor {
     // TODO: Implement this
   }
 
-  override fun getComponent(): JComponent = file.getUserData(WEBVIEW_COMPONENT_KEY) ?: JLabel("No WebView created.")
+  override fun getComponent(): JComponent = file.getUserData(WEB_UI_PROXY_KEY)?.component ?: JLabel("No WebView created.")
 
   override fun getPreferredFocusedComponent(): JComponent? = getComponent()
 
@@ -58,20 +59,35 @@ class WebPanelEditor(private val file: VirtualFile) : FileEditor {
 }
 
 class WebPanelProvider : FileEditorProvider, DumbAware {
+  private var creatingEditor = 0
   override fun accept(project: Project, file: VirtualFile): Boolean = file.fileType == WebPanelFileType.INSTANCE
 
   override fun createEditor(project: Project, file: VirtualFile): FileEditor {
-    // If this file is already open elsewhere, close it.
-    (FileEditorManager.getInstance(project) as? FileEditorManagerEx)?.closeFile(file)
-    return WebPanelEditor(file)
+    ApplicationManager.getApplication().assertIsDispatchThread()
+    try {
+      this.creatingEditor++
+      // If this file is already open elsewhere, close it.
+      (FileEditorManager.getInstance(project) as? FileEditorManagerEx)?.closeFile(file)
+      return WebPanelEditor(file)
+    } finally {
+      this.creatingEditor--
+    }
   }
 
-  // TODO: Implement dispose, readState, writeState if we need this to manage, restore.
-  /*
-    override fun disposeEditor(editor: FileEditor) {
-      super<FileEditorProvider>.disposeEditor(editor)
+  override fun disposeEditor(editor: FileEditor) {
+    ApplicationManager.getApplication().assertIsDispatchThread()
+    if (this.creatingEditor > 0) {
+      // We are synchronously creating an editor, which means we do not want to dispose the webview: It will be
+      // adopted by the new editor.
+      return
     }
+    editor.file.getUserData(WebPanelEditor.WEB_UI_PROXY_KEY)?.let {
+      it.dispose()
+    }
+  }
 
+  // TODO: Implement readState, writeState if we need this to manage, restore.
+  /*
     override fun readState(sourceElement: Element, project: Project, file: VirtualFile): FileEditorState {
       return super<FileEditorProvider>.readState(sourceElement, project, file)
     }

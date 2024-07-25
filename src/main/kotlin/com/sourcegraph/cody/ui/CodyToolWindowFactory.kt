@@ -2,8 +2,6 @@ package com.sourcegraph.cody.ui
 
 import com.google.gson.Gson
 import com.google.gson.JsonArray
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.Service
@@ -22,7 +20,6 @@ import com.sourcegraph.cody.agent.protocol.WebviewOptions
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
 import com.sourcegraph.cody.config.ui.AccountConfigurable
 import com.sourcegraph.cody.edit.FixupService
-import com.sourcegraph.cody.edit.actions.EditCodeAction
 import com.sourcegraph.cody.sidebar.WebTheme
 import com.sourcegraph.cody.sidebar.WebThemeController
 import com.sourcegraph.common.BrowserOpener
@@ -38,8 +35,6 @@ import org.cef.network.CefCookie
 import org.cef.network.CefRequest
 import org.cef.network.CefResponse
 import org.cef.network.CefURLRequest
-import java.awt.event.InputEvent
-import java.awt.event.KeyEvent
 import java.io.IOException
 import java.net.URI
 import java.net.URLDecoder
@@ -213,6 +208,7 @@ interface WebUIHost {
   fun setTitle(value: String)
   fun postMessageWebviewToHost(stringEncodedJsonMessage: String)
   fun onCommand(command: String)
+  fun dispose()
 }
 
 class WebUIHostImpl(val project: Project, val handle: String, private var _options: WebviewOptions) : WebUIHost {
@@ -308,6 +304,13 @@ class WebUIHostImpl(val project: Project, val handle: String, private var _optio
       }
     }
   }
+
+  override fun dispose() {
+    // TODO: Consider cleaning up the view.
+    CodyAgentService.withAgent(project) {
+      it.server.webviewDidDisposeNative(WebviewDidDisposeParams(handle))
+    }
+  }
 }
 
 class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserBase) {
@@ -388,11 +391,10 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
         }
 
         override fun doClose(browser: CefBrowser?): Boolean {
-          TODO("Not yet implemented")
+          return true
         }
 
         override fun onBeforeClose(browser: CefBrowser?) {
-          TODO("Not yet implemented")
         }
       }, browser.cefBrowser)
       return proxy
@@ -490,6 +492,11 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
 
     browser.cefBrowser.mainFrame?.executeJavaScript(code, "cody://updateTheme", 0)
   }
+
+  fun dispose() {
+    browser.dispose()
+    host.dispose()
+  }
 }
 
 class ExtensionRequestHandler(private val proxy: WebUIProxy, private val apiScript: String) : CefRequestHandler {
@@ -504,7 +511,11 @@ class ExtensionRequestHandler(private val proxy: WebUIProxy, private val apiScri
       proxy.onCommand(request.url)
       return true
     }
-    return false
+    if (request.url.startsWith(MAIN_RESOURCE_URL)) {
+      return false
+    }
+    BrowserOpener.openInBrowser(null, request.url)
+    return true
   }
 
   override fun onOpenURLFromTab(
