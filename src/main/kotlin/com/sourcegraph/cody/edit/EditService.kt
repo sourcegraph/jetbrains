@@ -36,7 +36,7 @@ class EditService(val project: Project) {
             }
 
     return WriteCommandAction.runWriteCommandAction<Boolean>(project) {
-      edits.all { edit ->
+      edits.reversed().all { edit ->
         when (edit.type) {
           "replace",
           "delete" -> {

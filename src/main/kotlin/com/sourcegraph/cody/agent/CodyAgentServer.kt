@@ -17,8 +17,6 @@ import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.Event
 import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
-import com.sourcegraph.cody.agent.protocol.GetFoldingRangeParams
-import com.sourcegraph.cody.agent.protocol.GetFoldingRangeResult
 import com.sourcegraph.cody.agent.protocol.GetRepoIdsParam
 import com.sourcegraph.cody.agent.protocol.GetRepoIdsResponse
 import com.sourcegraph.cody.agent.protocol.IgnorePolicySpec
@@ -31,6 +29,7 @@ import com.sourcegraph.cody.agent.protocol.RemoteRepoHasParams
 import com.sourcegraph.cody.agent.protocol.RemoteRepoHasResponse
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListResponse
+import com.sourcegraph.cody.agent.protocol.RetryEditParams
 import com.sourcegraph.cody.agent.protocol.ServerInfo
 import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
@@ -125,8 +124,8 @@ interface _LegacyAgentServer {
 
   @JsonRequest("editTask/cancel") fun cancelEditTask(params: TaskIdParam): CompletableFuture<Void?>
 
-  @JsonRequest("editTask/getFoldingRanges")
-  fun getFoldingRanges(params: GetFoldingRangeParams): CompletableFuture<GetFoldingRangeResult>
+  @JsonRequest("editTask/retry")
+  fun retryEditTask(params: RetryEditParams): CompletableFuture<EditTask>
 
   @JsonRequest("command/execute")
   fun commandExecute(params: CommandExecuteParams): CompletableFuture<Any?>

@@ -6,15 +6,14 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.agent.CodyAgent
-import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.CodyBundle
 
-abstract class LensEditAction(val editAction: (CodyAgent, TaskIdParam) -> Unit) :
+abstract class LensEditAction(val editAction: (Project, Editor, TaskIdParam) -> Unit) :
     AnAction(), DumbAware {
   private val logger = Logger.getInstance(LensEditAction::class.java)
 
@@ -43,13 +42,19 @@ abstract class LensEditAction(val editAction: (CodyAgent, TaskIdParam) -> Unit) 
         return
       }
 
+      val editor = e.dataContext.getData(PlatformDataKeys.EDITOR)
+      if (editor == null || editor.isDisposed) {
+        logger.warn("Received code lens action for null or disposed editor: $e")
+        return
+      }
+
       val taskId = e.dataContext.getData(TASK_ID_KEY)
       if (taskId == null) {
         logger.warn("No taskId found in data context for action ${this.javaClass.name}: $e")
         return
       }
 
-      CodyAgentService.withAgent(project) { editAction(it, TaskIdParam(taskId)) }
+      editAction(project, editor, TaskIdParam(taskId))
     } catch (ex: Exception) {
       // Don't show error lens here; it's sort of pointless.
       logger.warn("Error accepting edit accept task: $ex")

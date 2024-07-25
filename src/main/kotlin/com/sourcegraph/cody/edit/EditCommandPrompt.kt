@@ -29,8 +29,10 @@ import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
+import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.InlineEditParams
 import com.sourcegraph.cody.agent.protocol.ModelUsage
+import com.sourcegraph.cody.agent.protocol.RetryEditParams
 import com.sourcegraph.cody.chat.PromptHistory
 import com.sourcegraph.cody.chat.ui.LlmDropdown
 import com.sourcegraph.cody.edit.EditUtil.namedButton
@@ -76,7 +78,7 @@ class EditCommandPrompt(
     val project: Project,
     val editor: Editor,
     dialogTitle: String,
-    instruction: String? = null
+    val previousEdit: EditTask? = null
 ) : JFrame(), Disposable, DataProvider {
 
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
@@ -85,9 +87,9 @@ class EditCommandPrompt(
 
   private var connection: MessageBusConnection? = null
 
-  private val isDisposed: AtomicBoolean = AtomicBoolean(false)
+  private var model: String? = previousEdit?.model
 
-  @Volatile private var model: String? = null
+  private val isDisposed: AtomicBoolean = AtomicBoolean(false)
 
   private val okButton =
       namedButton("ok-button").apply {
@@ -137,7 +139,7 @@ class EditCommandPrompt(
       }
 
   private val instructionsField =
-      InstructionsInputTextArea(this).apply { text = instruction ?: lastPrompt }
+      InstructionsInputTextArea(this).apply { text = previousEdit?.instruction ?: lastPrompt }
 
   private val historyManager = TextAreaHistoryManager(instructionsField, promptHistory)
 
@@ -147,7 +149,8 @@ class EditCommandPrompt(
               project = project,
               onSetSelectedItem = { model = it.model },
               this,
-              chatModelProviderFromState = null)
+              chatModelProviderFromState = null,
+              model = model)
           .apply {
             foreground = boldLabelColor()
             background = textFieldBackground()
@@ -503,8 +506,18 @@ class EditCommandPrompt(
         return
       }
 
-      val params = InlineEditParams(text, currentModel, "edit")
-      CodyAgentService.withAgent(project) { agent -> agent.server.commandsEdit(params) }
+      CodyAgentService.withAgent(project) { agent ->
+        val result =
+            if (previousEdit != null) {
+              val params =
+                  RetryEditParams(
+                      previousEdit.id, text, currentModel, "edit", previousEdit.selectionRange)
+              agent.server.retryEditTask(params).get()
+            } else {
+              agent.server.commandsEdit(InlineEditParams(text, currentModel, "edit")).get()
+            }
+        FixupService.getInstance(project).completedFixups[result.id] = result
+      }
     } finally {
       performCancelAction()
     }

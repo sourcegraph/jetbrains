@@ -12,7 +12,7 @@ import com.sourcegraph.cody.chat.AgentChatSessionService
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.context.RemoteRepoSearcher
 import com.sourcegraph.cody.edit.EditService
-import com.sourcegraph.cody.edit.widget.LensService
+import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.error.CodyConsole
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
@@ -83,7 +83,7 @@ class CodyAgentService(private val project: Project) : Disposable {
       }
 
       agent.client.onCodeLensesDisplay = Consumer { params ->
-        LensService.getInstance(project).updateLenses(params.uri, params.codeLenses)
+        FixupService.getInstance(project).updateLenses(params.uri, params.codeLenses)
       }
 
       agent.client.onTextDocumentEdit = Function { params ->

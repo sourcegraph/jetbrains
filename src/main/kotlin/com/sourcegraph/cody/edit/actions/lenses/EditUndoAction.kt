@@ -1,6 +1,11 @@
 package com.sourcegraph.cody.edit.actions.lenses
 
-class EditUndoAction : LensEditAction({ agent, taskId -> agent.server.undoEditTask(taskId) }) {
+import com.sourcegraph.cody.agent.CodyAgentService
+
+class EditUndoAction :
+    LensEditAction({ project, _, taskId ->
+      CodyAgentService.withAgent(project) { it.server.undoEditTask(taskId) }
+    }) {
   companion object {
     const val ID = "cody.fixup.codelens.undo"
   }

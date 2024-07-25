@@ -13,7 +13,6 @@ import com.sourcegraph.cody.edit.widget.LensAction
 import com.sourcegraph.cody.edit.widget.LensHotkey
 import com.sourcegraph.cody.edit.widget.LensIcon
 import com.sourcegraph.cody.edit.widget.LensLabel
-import com.sourcegraph.cody.edit.widget.LensService
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import com.sourcegraph.cody.util.CodyIntegrationTextFixture
@@ -50,7 +49,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         (theWidgets[4] as LensLabel).text == "Generating Code Edits")
     assertTrue(
         "Fifth lens group is separator label",
-        (theWidgets[5] as LensLabel).text == LensService.SEPARATOR)
+        (theWidgets[5] as LensLabel).text == FixupService.SEPARATOR)
     assertTrue("Sixth lens group should be an action", theWidgets[6] is LensAction)
     assertTrue("Seventh lens group should be a label with a hotkey", theWidgets[7] is LensHotkey)
   }

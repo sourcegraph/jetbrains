@@ -1,14 +1,18 @@
 package com.sourcegraph.cody.edit.actions.lenses
 
 import com.intellij.openapi.application.runInEdt
+import com.sourcegraph.cody.edit.EditCommandPrompt
+import com.sourcegraph.cody.edit.FixupService
 
 class EditRetryAction :
-    LensEditAction({ agent, taskId ->
+    LensEditAction({ project, editor, taskId ->
       runInEdt {
-        //    // Close loophole where you can keep retrying after the ignore policy changes.
-        //    if (controller.isEligibleForInlineEdit(editor)) {
-        //      EditCommandPrompt(controller, editor, "Edit instructions and Retry", instruction)
-        //    }
+        val completedFixup = FixupService.getInstance(project).completedFixups[taskId.id]
+        if (completedFixup != null) {
+          runInEdt {
+            EditCommandPrompt(project, editor, "Edit instructions and Retry", completedFixup)
+          }
+        }
       }
     }) {
   companion object {

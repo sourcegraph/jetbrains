@@ -1,6 +1,11 @@
 package com.sourcegraph.cody.edit.actions.lenses
 
-class EditAcceptAction : LensEditAction({ agent, taskId -> agent.server.acceptEditTask(taskId) }) {
+import com.sourcegraph.cody.agent.CodyAgentService
+
+class EditAcceptAction :
+    LensEditAction({ project, _, taskId ->
+      CodyAgentService.withAgent(project) { it.server.acceptEditTask(taskId) }
+    }) {
   companion object {
     const val ID = "cody.fixup.codelens.accept"
   }
