@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.ui
 
 import com.intellij.openapi.fileEditor.*
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
@@ -60,6 +61,8 @@ class WebPanelProvider : FileEditorProvider, DumbAware {
   override fun accept(project: Project, file: VirtualFile): Boolean = file.fileType == WebPanelFileType.INSTANCE
 
   override fun createEditor(project: Project, file: VirtualFile): FileEditor {
+    // If this file is already open elsewhere, close it.
+    (FileEditorManager.getInstance(project) as? FileEditorManagerEx)?.closeFile(file)
     return WebPanelEditor(file)
   }
 
