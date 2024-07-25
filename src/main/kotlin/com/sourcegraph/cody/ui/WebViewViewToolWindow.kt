@@ -5,11 +5,8 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.fileEditor.FileEditorManagerListener
-import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.testFramework.LightVirtualFile
@@ -140,7 +137,7 @@ class WebviewViewService(val project: Project) {
     val file = LightVirtualFile("Cody")
     file.fileType = WebPanelFileType.INSTANCE
     file.putUserData(WebPanelTabTitleProvider.WEB_PANEL_TITLE_KEY, params.title)
-    file.putUserData(WebPanelEditor.WEBVIEW_COMPONENT_KEY, proxy.component)
+    file.putUserData(WebPanelEditor.WEB_UI_PROXY_KEY, proxy)
     // TODO: Hang onto this editor to dispose of it, etc.
     FileEditorManager.getInstance(project).openFile(file, !params.showOptions.preserveFocus)
     return object : WebviewViewDelegate {
