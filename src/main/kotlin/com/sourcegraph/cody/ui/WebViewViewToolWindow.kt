@@ -1,11 +1,15 @@
 package com.sourcegraph.cody.ui
 
 import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.testFramework.LightVirtualFile
@@ -133,7 +137,7 @@ class WebviewViewService(val project: Project) {
   // TODO: Consider moving this to a separate class.
   fun createPanel(proxy: WebUIProxy, params: WebviewCreateWebviewPanelParams): WebviewViewDelegate? {
     // TODO: Give these files unique names.
-    val file = LightVirtualFile("WebPanel")
+    val file = LightVirtualFile("Cody")
     file.fileType = WebPanelFileType.INSTANCE
     file.putUserData(WebPanelTabTitleProvider.WEB_PANEL_TITLE_KEY, params.title)
     file.putUserData(WebPanelEditor.WEBVIEW_COMPONENT_KEY, proxy.component)
@@ -142,6 +146,11 @@ class WebviewViewService(val project: Project) {
     return object : WebviewViewDelegate {
       override fun setTitle(newTitle: String) {
         runInEdt {
+          runWriteAction {
+            file.rename(this, newTitle)
+            // TODO: Need to ping... something... to update the NavBarPanel.
+            // SYNC_RESET should do it but that his a heavy-handed approach.
+          }
           file.putUserData(WebPanelTabTitleProvider.WEB_PANEL_TITLE_KEY, newTitle)
           FileEditorManager.getInstance(project).updateFilePresentation(file)
         }
