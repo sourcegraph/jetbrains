@@ -7,6 +7,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.ui.validation.DialogValidation
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.bindSelected
@@ -48,14 +49,17 @@ class IgnoreOverrideDialog(val project: Project) : DialogWrapper(project) {
             .columns(40)
             .rows(15)
             .bindText(IgnoreOverrideModel::policy)
-            .validation { textArea ->
-              try {
-                Gson().fromJson(textArea.text, IgnorePolicySpec::class.java)
-                null
-              } catch (e: JsonSyntaxException) {
-                ValidationInfo("JSON error: ${e.message}", textArea)
-              }
-            }
+            .validation(
+                DialogValidation.WithParameter { textArea ->
+                  DialogValidation {
+                    try {
+                      Gson().fromJson(textArea.text, IgnorePolicySpec::class.java)
+                      null
+                    } catch (e: JsonSyntaxException) {
+                      ValidationInfo("JSON error: ${e.message}", textArea)
+                    }
+                  }
+                })
             .enabledIf(overrideCheckbox.selected)
       }
     }

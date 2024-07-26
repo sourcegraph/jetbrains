@@ -21,14 +21,14 @@ abstract class DumbAwareEDTAction : DumbAwareAction {
       icon: Icon?
   ) : super(text, description, icon)
 
-  fun getActionUpdateThread(): ActionUpdateThread {
+  override fun getActionUpdateThread(): ActionUpdateThread {
     return ActionUpdateThread.EDT
   }
 }
 
 class SimpleDumbAwareEDTAction(
     text: @NlsActions.ActionText String? = null,
-    private val action: (@NotNull AnActionEvent) -> Unit
+    private val action: (AnActionEvent) -> Unit
 ) : DumbAwareEDTAction(text) {
   override fun actionPerformed(@NotNull e: AnActionEvent) {
     action(e)
