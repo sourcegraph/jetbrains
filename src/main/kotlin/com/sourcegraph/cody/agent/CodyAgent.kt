@@ -93,8 +93,7 @@ private constructor(
 
     @JvmField val executorService: ExecutorService = Executors.newCachedThreadPool()
 
-    private fun shouldSpawnDebuggableAgent() =
-        true // System.getenv("CODY_AGENT_DEBUG_INSPECT") == "true"
+    private fun shouldSpawnDebuggableAgent() = System.getenv("CODY_AGENT_DEBUG_INSPECT") == "true"
 
     fun create(project: Project): CompletableFuture<CodyAgent> {
       try {

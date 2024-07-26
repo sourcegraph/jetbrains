@@ -45,9 +45,6 @@ public class CodyAgentClient {
   // Callback for the "textDocument/show" request from the agent.
   @Nullable Function<TextDocumentShowParams, Boolean> onTextDocumentShow;
 
-  // Callback for the "textDocument/showDiff" request from the agent.
-  @Nullable Function<TextDocumentShowDiffParams, Boolean> onTextDocumentShowDiff;
-
   // Callback for the "textDocument/openUntitledDocument" request from the agent.
   @Nullable Function<UntitledTextDocument, Boolean> onOpenUntitledDocument;
 
@@ -106,11 +103,6 @@ public class CodyAgentClient {
   @JsonRequest("textDocument/show")
   public CompletableFuture<Boolean> textDocumentShow(TextDocumentShowParams params) {
     return acceptOnEventThread("textDocument/show", onTextDocumentShow, params);
-  }
-
-  @JsonRequest("textDocument/showDiff")
-  public CompletableFuture<Boolean> textDocumentShowDiff(TextDocumentShowDiffParams params) {
-    return acceptOnEventThread("textDocument/showDiff", onTextDocumentShowDiff, params);
   }
 
   @JsonRequest("textDocument/openUntitledDocument")

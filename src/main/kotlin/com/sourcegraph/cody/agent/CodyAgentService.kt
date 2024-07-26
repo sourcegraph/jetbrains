@@ -69,10 +69,6 @@ class CodyAgentService(private val project: Project) : Disposable {
         }
       }
 
-      //      agent.client.onEditTaskDidUpdate = Consumer { task ->
-      //        FixupService.getInstance(project).getActiveSession()?.update(task)
-      //      }
-
       agent.client.onWorkspaceEdit = Function { params ->
         try {
           EditService.getInstance(project).performWorkspaceEdit(params)
@@ -102,8 +98,6 @@ class CodyAgentService(private val project: Project) : Disposable {
         CodyEditorUtil.showDocument(project, vf, selection, preserveFocus)
         true
       }
-
-      agent.client.onTextDocumentShowDiff = Function { params -> true }
 
       agent.client.onOpenUntitledDocument = Function { params ->
         val result = CompletableFuture<Boolean>()
