@@ -14,7 +14,6 @@ import com.sourcegraph.cody.agent.protocol.ChatSubmitMessageParams
 import com.sourcegraph.cody.agent.protocol.ClientInfo
 import com.sourcegraph.cody.agent.protocol.CompletionItemParams
 import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
-import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.Event
 import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.agent.protocol.GetRepoIdsParam
@@ -29,10 +28,11 @@ import com.sourcegraph.cody.agent.protocol.RemoteRepoHasParams
 import com.sourcegraph.cody.agent.protocol.RemoteRepoHasResponse
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListResponse
-import com.sourcegraph.cody.agent.protocol.RetryEditParams
 import com.sourcegraph.cody.agent.protocol.ServerInfo
 import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
+import com.sourcegraph.cody.agent.protocol_generated.EditTask
+import com.sourcegraph.cody.agent.protocol_generated.EditTask_RetryParams
 import com.sourcegraph.cody.chat.ConnectionId
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -125,7 +125,7 @@ interface _LegacyAgentServer {
   @JsonRequest("editTask/cancel") fun cancelEditTask(params: TaskIdParam): CompletableFuture<Void?>
 
   @JsonRequest("editTask/retry")
-  fun retryEditTask(params: RetryEditParams): CompletableFuture<EditTask>
+  fun retryEditTask(params: EditTask_RetryParams): CompletableFuture<EditTask>
 
   @JsonRequest("editTask/getTaskDetails")
   fun getEditTaskDetails(params: TaskIdParam): CompletableFuture<EditTask>

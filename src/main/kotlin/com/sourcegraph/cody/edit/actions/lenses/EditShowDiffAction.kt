@@ -3,6 +3,7 @@ package com.sourcegraph.cody.edit.actions.lenses
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.EditorFactory
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.protocol_extensions.toOffset
 import com.sourcegraph.common.ShowDocumentDiffAction
 
 class EditShowDiffAction :

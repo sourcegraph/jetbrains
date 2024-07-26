@@ -8,8 +8,8 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.Icons
-import com.sourcegraph.cody.agent.protocol.ProtocolCodeLens
-import com.sourcegraph.cody.agent.protocol.Range
+import com.sourcegraph.cody.agent.protocol_generated.ProtocolCodeLens
+import com.sourcegraph.cody.agent.protocol_generated.Range
 import com.sourcegraph.cody.edit.widget.LensAction
 import com.sourcegraph.cody.edit.widget.LensHotkey
 import com.sourcegraph.cody.edit.widget.LensIcon

@@ -38,7 +38,6 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase() {
     myProject = project
   }
 
-
   override fun tearDown() {
     try {
       CodyAgentService.getInstance(myFixture.project).apply {

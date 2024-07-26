@@ -1,7 +1,7 @@
 package com.sourcegraph.cody.edit.actions
 
 import com.intellij.openapi.diagnostic.Logger
-import com.sourcegraph.cody.agent.protocol.EditTask
+import com.sourcegraph.cody.agent.protocol_generated.EditTask
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import java.util.concurrent.ConcurrentHashMap
 

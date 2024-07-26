@@ -3,6 +3,8 @@ package com.sourcegraph.cody.agent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.sourcegraph.cody.agent.protocol.*;
+import com.sourcegraph.cody.agent.protocol_generated.DisplayCodeLensParams;
+import com.sourcegraph.cody.agent.protocol_generated.EditTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;

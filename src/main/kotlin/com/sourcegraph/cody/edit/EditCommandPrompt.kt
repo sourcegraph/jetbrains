@@ -29,10 +29,10 @@ import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.JBUI
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
-import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.InlineEditParams
 import com.sourcegraph.cody.agent.protocol.ModelUsage
-import com.sourcegraph.cody.agent.protocol.RetryEditParams
+import com.sourcegraph.cody.agent.protocol_generated.EditTask
+import com.sourcegraph.cody.agent.protocol_generated.EditTask_RetryParams
 import com.sourcegraph.cody.chat.PromptHistory
 import com.sourcegraph.cody.chat.ui.LlmDropdown
 import com.sourcegraph.cody.edit.EditUtil.namedButton
@@ -511,8 +511,12 @@ class EditCommandPrompt(
         val result =
             if (previousEdit != null) {
               val params =
-                  RetryEditParams(
-                      previousEdit.id, text, currentModel, "edit", previousEdit.selectionRange)
+                  EditTask_RetryParams(
+                      previousEdit.id,
+                      text,
+                      currentModel,
+                      EditTask_RetryParams.ModeEnum.Edit,
+                      previousEdit.selectionRange)
               agent.server.retryEditTask(params).get()
             } else {
               agent.server.commandsEdit(InlineEditParams(text, currentModel, "edit")).get()

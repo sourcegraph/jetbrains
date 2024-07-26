@@ -23,7 +23,9 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.ui.JBColor
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
-import com.sourcegraph.cody.agent.protocol.Range
+import com.sourcegraph.cody.agent.protocol_extensions.toLogicalPosition
+import com.sourcegraph.cody.agent.protocol_extensions.toOffset
+import com.sourcegraph.cody.agent.protocol_generated.Range
 import java.awt.Cursor
 import java.awt.Font
 import java.awt.FontMetrics
