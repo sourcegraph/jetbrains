@@ -8,7 +8,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.Icons
-import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.ProtocolCodeLens
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.widget.LensAction
@@ -18,14 +17,11 @@ import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import com.sourcegraph.utils.CodyEditorUtil
-import java.util.concurrent.ConcurrentHashMap
 import javax.swing.Icon
 
 @Service(Service.Level.PROJECT)
-class FixupService(val project: Project) {
+class LensesService(val project: Project) {
   private var lensGroups = mapOf<String, Pair<Range, LensWidgetGroup>>()
-
-  val completedFixups = ConcurrentHashMap<String, EditTask>()
 
   fun updateLenses(uri: String, codeLens: List<ProtocolCodeLens>) {
     runInEdt {
@@ -131,8 +127,8 @@ class FixupService(val project: Project) {
     const val SEPARATOR = " ∣ "
     const val FOCUS_COMMAND = "cody.chat.focus"
 
-    fun getInstance(project: Project): FixupService {
-      return project.service<FixupService>()
+    fun getInstance(project: Project): LensesService {
+      return project.service<LensesService>()
     }
   }
 }

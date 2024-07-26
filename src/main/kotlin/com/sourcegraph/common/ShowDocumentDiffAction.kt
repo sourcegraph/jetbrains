@@ -1,4 +1,4 @@
-package com.sourcegraph.cody.edit.actions
+package com.sourcegraph.common
 
 import com.intellij.diff.DiffContentFactory
 import com.intellij.diff.DiffRequestFactory
@@ -41,7 +41,7 @@ class ShowDocumentDiffAction(
           editorFile == null -> "Cody Diff"
           else -> "Cody Diff: $editorContentTitle"
         }
-    chain.title1 = "Before Cody Inline Edit"
+    chain.title1 = "Before"
     chain.title2 = editorContentTitle
 
     return chain

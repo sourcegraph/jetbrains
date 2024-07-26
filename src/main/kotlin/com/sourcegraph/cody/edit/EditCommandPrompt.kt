@@ -38,6 +38,7 @@ import com.sourcegraph.cody.chat.ui.LlmDropdown
 import com.sourcegraph.cody.edit.EditUtil.namedButton
 import com.sourcegraph.cody.edit.EditUtil.namedLabel
 import com.sourcegraph.cody.edit.EditUtil.namedPanel
+import com.sourcegraph.cody.edit.actions.EditCodeAction
 import com.sourcegraph.cody.ui.FrameMover
 import com.sourcegraph.cody.ui.TextAreaHistoryManager
 import java.awt.BorderLayout
@@ -516,7 +517,7 @@ class EditCommandPrompt(
             } else {
               agent.server.commandsEdit(InlineEditParams(text, currentModel, "edit")).get()
             }
-        FixupService.getInstance(project).completedFixups[result.id] = result
+        EditCodeAction.completedEditTasks[result.id] = result
       }
     } finally {
       performCancelAction()

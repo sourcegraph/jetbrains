@@ -1,7 +1,9 @@
 package com.sourcegraph.cody.edit.actions
 
 import com.intellij.openapi.diagnostic.Logger
+import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.edit.EditCommandPrompt
+import java.util.concurrent.ConcurrentHashMap
 
 class EditCodeAction :
     BaseEditCodeAction({ editor ->
@@ -13,6 +15,8 @@ class EditCodeAction :
     }) {
   companion object {
     val logger = Logger.getInstance(EditCodeAction::class.java)
+    val completedEditTasks = ConcurrentHashMap<String, EditTask>()
+
     const val ID: String = "cody.editCodeAction"
   }
 }

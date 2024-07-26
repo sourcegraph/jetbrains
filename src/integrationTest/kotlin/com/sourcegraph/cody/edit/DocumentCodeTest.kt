@@ -49,7 +49,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         (theWidgets[4] as LensLabel).text == "Generating Code Edits")
     assertTrue(
         "Fifth lens group is separator label",
-        (theWidgets[5] as LensLabel).text == FixupService.SEPARATOR)
+        (theWidgets[5] as LensLabel).text == LensesService.SEPARATOR)
     assertTrue("Sixth lens group should be an action", theWidgets[6] is LensAction)
     assertTrue("Seventh lens group should be a label with a hotkey", theWidgets[7] is LensHotkey)
   }
