@@ -127,6 +127,9 @@ interface _LegacyAgentServer {
   @JsonRequest("editTask/retry")
   fun retryEditTask(params: RetryEditParams): CompletableFuture<EditTask>
 
+  @JsonRequest("editTask/getTaskDetails")
+  fun getEditTaskDetails(params: TaskIdParam): CompletableFuture<EditTask>
+
   @JsonRequest("command/execute")
   fun commandExecute(params: CommandExecuteParams): CompletableFuture<Any?>
 

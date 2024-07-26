@@ -3,7 +3,7 @@ package com.sourcegraph.cody.edit.actions.lenses
 import com.sourcegraph.cody.agent.CodyAgentService
 
 class EditUndoAction :
-    LensEditAction({ project, _, taskId ->
+    LensEditAction({ project, _, _, taskId ->
       CodyAgentService.withAgent(project) { it.server.undoEditTask(taskId) }
     }) {
   companion object {

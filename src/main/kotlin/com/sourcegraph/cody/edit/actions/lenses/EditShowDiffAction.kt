@@ -1,45 +1,28 @@
 package com.sourcegraph.cody.edit.actions.lenses
 
-// class EditShowDiffAction : CompareFileWithEditorAction() {
-//  override fun isAvailable(e: AnActionEvent): Boolean {
-//    e.dataContext.getData(EDITOR_DATA_KEY) ?: return false
-//    return true
-//  }
-//
-//  override fun getDiffRequestChain(e: AnActionEvent): DiffRequestChain {
-//    val project = e.project ?: throw IllegalStateException("Project cannot be null")
-//
-//    val activeSession = FixupService.getInstance(project).getActiveSession()
-//    val documentAfter =
-//        activeSession?.editor?.document ?: throw IllegalStateException("Editor cannot be null")
-//    val diffSessionDocument = activeSession.createDiffDocument()
-//
-//    val rhsContent = DiffContentFactory.getInstance().create(project, documentAfter)
-//    val fileType = (rhsContent as? FileContent)?.file?.fileType
-//    val lhsContent = DiffContentFactory.getInstance().create(project, diffSessionDocument,
-// fileType)
-//    lhsContent.putUserData(DiffUserDataKeys.FORCE_READ_ONLY, true)
-//
-//    val editorFile = FileDocumentManager.getInstance().getFile(documentAfter)
-//    val editorContentTitle =
-//        when {
-//          editorFile == null -> "Editor"
-//          else -> DiffRequestFactory.getInstance().getContentTitle(editorFile)
-//        }
-//
-//    val chain = createBlankDiffRequestChain(lhsContent, rhsContent, baseContent = null)
-//    chain.windowTitle =
-//        when {
-//          editorFile == null -> "Cody Diff"
-//          else -> "Cody Diff: $editorContentTitle"
-//        }
-//    chain.title1 = "Before Cody Inline Edit"
-//    chain.title2 = editorContentTitle
-//
-//    return chain
-//  }
-//
-//  companion object {
-//    val EDITOR_DATA_KEY = DataKey.create<Editor>("editor")
-//  }
-// }
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.EditorFactory
+import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.edit.actions.ShowDocumentDiffAction
+
+class EditShowDiffAction :
+    LensEditAction({ project, event, editor, taskId ->
+      CodyAgentService.withAgent(project) { agent ->
+        WriteCommandAction.runWriteCommandAction<Unit>(project) {
+          val editTask = agent.server.getEditTaskDetails(taskId).get()
+          if (editTask != null) {
+            val documentAfter = editor.document
+            val documentBefore = EditorFactory.getInstance().createDocument(documentAfter.text)
+            documentBefore.replaceString(
+                editTask.selectionRange.start.toOffset(documentBefore),
+                editTask.selectionRange.end.toOffset(documentBefore),
+                editTask.originalText ?: "")
+            ShowDocumentDiffAction(documentBefore, documentAfter).actionPerformed(event)
+          }
+        }
+      }
+    }) {
+  companion object {
+    const val ID = "cody.fixup.codelens.diff"
+  }
+}

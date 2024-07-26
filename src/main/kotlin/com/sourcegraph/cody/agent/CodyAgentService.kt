@@ -103,6 +103,8 @@ class CodyAgentService(private val project: Project) : Disposable {
         true
       }
 
+      agent.client.onTextDocumentShowDiff = Function { params -> true }
+
       agent.client.onOpenUntitledDocument = Function { params ->
         val result = CompletableFuture<Boolean>()
         ApplicationManager.getApplication().invokeAndWait {

@@ -277,14 +277,14 @@
                                        keymap="Mac OS X 10.5+"/>
                 </action>
 
-                <!--                <action id="cody.editShowDiffAction"-->
-                <!--                        class="com.sourcegraph.cody.edit.EditShowDiffAction"-->
-                <!--                        text="Show Diff"-->
-                <!--                        description="Show a diff view of the fixup">-->
-                <!--                    <keyboard-shortcut replace-all="true" first-keystroke="ctrl alt D" keymap="$default"/>-->
-                <!--                    <keyboard-shortcut replace-all="true" first-keystroke="ctrl alt K" keymap="Mac OS X 10.5+"/>-->
-                <!--                    <override-text place="GoToAction" text="Cody: Show Diff"/>-->
-                <!--                </action>-->
+                <action id="cody.fixup.codelens.diff"
+                        class="com.sourcegraph.cody.edit.actions.lenses.EditShowDiffAction"
+                        text="Show Diff"
+                        description="Show a diff view of the fixup">
+                    <keyboard-shortcut replace-all="true" first-keystroke="ctrl alt D" keymap="$default"/>
+                    <keyboard-shortcut replace-all="true" first-keystroke="ctrl alt K" keymap="Mac OS X 10.5+"/>
+                    <override-text place="GoToAction" text="Cody: Show Diff"/>
+                </action>
 
                 <action id="cody.inlineEditEditCode"
                         text="Edit Code"

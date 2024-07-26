@@ -5,7 +5,7 @@ import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.FixupService
 
 class EditRetryAction :
-    LensEditAction({ project, editor, taskId ->
+    LensEditAction({ project, _, editor, taskId ->
       runInEdt {
         val completedFixup = FixupService.getInstance(project).completedFixups[taskId.id]
         if (completedFixup != null) {
