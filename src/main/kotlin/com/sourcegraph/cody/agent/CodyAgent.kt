@@ -10,8 +10,8 @@ import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.util.net.HttpConfigurable
 import com.intellij.util.system.CpuArch
 import com.sourcegraph.cody.agent.protocol.*
-import com.sourcegraph.cody.agent.protocol_extensions.ClientCapabilitiesFactory
-import com.sourcegraph.cody.agent.protocol_extensions.ClientInfoFactory
+import com.sourcegraph.cody.agent.protocol_generated.ClientCapabilities
+import com.sourcegraph.cody.agent.protocol_generated.ClientInfo
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolTypeAdapters
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
@@ -109,20 +109,23 @@ private constructor(
         try {
           return server
               .initialize(
-                  ClientInfoFactory.build(
+                  ClientInfo(
+                      name = "JetBrains",
                       version = ConfigUtil.getPluginVersion(),
                       ideVersion = ApplicationInfo.getInstance().build.toString(),
                       workspaceRootUri =
                           ConfigUtil.getWorkspaceRootPath(project).toUri().toString(),
                       extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
                       capabilities =
-                          ClientCapabilitiesFactory.build(
-                              edit = "enabled",
-                              editWorkspace = "enabled",
-                              codeLenses = "enabled",
-                              showDocument = "enabled",
-                              ignore = "enabled",
-                              untitledDocuments = "enabled")))
+                          ClientCapabilities(
+                              edit = ClientCapabilities.EditEnum.Enabled,
+                              editWorkspace = ClientCapabilities.EditWorkspaceEnum.Enabled,
+                              codeLenses = ClientCapabilities.CodeLensesEnum.Enabled,
+                              showDocument = ClientCapabilities.ShowDocumentEnum.Enabled,
+                              ignore = ClientCapabilities.IgnoreEnum.Enabled,
+                              untitledDocuments = ClientCapabilities.UntitledDocumentsEnum.Enabled,
+                              codeActions = ClientCapabilities.CodeActionsEnum.Enabled),
+                  ))
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)
                 server.initialized()
