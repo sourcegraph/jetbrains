@@ -1,12 +1,8 @@
 package com.sourcegraph.cody.edit
 
-import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_DISPLAY_ACCEPT_GROUP
-import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_DISPLAY_WORKING_GROUP
-import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_ACCEPT
-import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_UNDO
-import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_TASK_FINISHED
 import com.sourcegraph.cody.edit.actions.DocumentCodeAction
 import com.sourcegraph.cody.edit.actions.lenses.EditAcceptAction
+import com.sourcegraph.cody.edit.actions.lenses.EditCancelAction
 import com.sourcegraph.cody.edit.actions.lenses.EditRetryAction
 import com.sourcegraph.cody.edit.actions.lenses.EditUndoAction
 import com.sourcegraph.cody.edit.widget.LensAction
@@ -17,16 +13,16 @@ import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import com.sourcegraph.cody.util.CodyIntegrationTextFixture
 import com.sourcegraph.cody.util.CustomJunitClassRunner
-import org.junit.Ignore
+import org.hamcrest.Matchers.startsWith
+import org.junit.Assert.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(CustomJunitClassRunner::class)
 class DocumentCodeTest : CodyIntegrationTextFixture() {
-  @Ignore
   @Test
   fun testGetsWorkingGroupLens() {
-    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_WORKING_GROUP)
+    val codeLensGroup = runAndWaitForLenses(DocumentCodeAction.ID, EditCancelAction.ID)
 
     val inlayModel = myFixture.editor.inlayModel
     val blockElements = inlayModel.getBlockElementsInRange(0, myFixture.editor.document.textLength)
@@ -34,10 +30,11 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
 
     assertEquals("There should be exactly one lenses group", 1, lensesGroups.size)
 
+    assertTrue("codeLensGroup cannot be null", codeLensGroup != null)
     // Lens group should match the expected structure.
-    val theWidgets = lensesGroups.first().widgets
+    val theWidgets = codeLensGroup!!.widgets
 
-    assertEquals("Lens group should have 8 widgets", 8, theWidgets.size)
+    assertEquals("Lens group should have 9 widgets", 9, theWidgets.size)
     assertTrue("Zeroth lens group should be an icon", theWidgets[0] is LensIcon)
     assertTrue(
         "First lens group is space separator label", (theWidgets[1] as LensLabel).text == " ")
@@ -46,7 +43,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         "Third lens group is space separator label", (theWidgets[3] as LensLabel).text == " ")
     assertTrue(
         "Fourth lens group is a description label",
-        (theWidgets[4] as LensLabel).text == "Generating Code Edits")
+        (theWidgets[4] as LensAction).text == " Cody is working...")
     assertTrue(
         "Fifth lens group is separator label",
         (theWidgets[5] as LensLabel).text == LensesService.SEPARATOR)
@@ -56,7 +53,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
 
   @Test
   fun testShowsAcceptLens() {
-    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
+    runAndWaitForLenses(DocumentCodeAction.ID, EditAcceptAction.ID)
     assertInlayIsShown()
 
     // Lens group should match the expected structure.
@@ -74,11 +71,6 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         "Lens group should contain Accept action",
         widgets.find { widget -> widget is LensAction && widget.actionId == EditAcceptAction.ID })
     assertNotNull(
-        "Lens group should contain Show Diff action",
-        widgets.find { widget ->
-          widget is LensAction && widget.actionId == "cody.fixup.codelens.diff"
-        })
-    assertNotNull(
         "Lens group should contain Show Undo action",
         widgets.find { widget -> widget is LensAction && widget.actionId == EditUndoAction.ID })
     assertNotNull(
@@ -92,21 +84,31 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
   @Test
   fun testAccept() {
     assertNoInlayShown()
-    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
+    val acceptLens = runAndWaitForLenses(DocumentCodeAction.ID, EditAcceptAction.ID)
+    assertTrue("Accept lens should be displayed", acceptLens != null)
     assertInlayIsShown()
-    runAndWaitForNotifications(EditAcceptAction.ID, TOPIC_PERFORM_ACCEPT, TOPIC_TASK_FINISHED)
+
+    runLensAction(acceptLens!!, EditAcceptAction.ID)
     assertNoInlayShown()
+    assertThat(
+        myFixture.editor.document.text,
+        startsWith(
+            """/**
+               | * Imports the necessary Java standard library classes for the Foo class, including the ArrayList class.
+               | */"""
+                .trimMargin()))
   }
 
   @Test
   fun testUndo() {
     val originalDocument = myFixture.editor.document.text
-    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
+    val undoLens = runAndWaitForLenses(DocumentCodeAction.ID, EditUndoAction.ID)
+    assertTrue("Undo lens should be displayed", undoLens != null)
     assertNotSame(
         "Expected document to be changed", originalDocument, myFixture.editor.document.text)
     assertInlayIsShown()
 
-    runAndWaitForNotifications(EditUndoAction.ID, TOPIC_PERFORM_UNDO, TOPIC_TASK_FINISHED)
+    runLensAction(undoLens!!, EditUndoAction.ID)
     assertEquals(
         "Expected document changes to be reverted",
         originalDocument,

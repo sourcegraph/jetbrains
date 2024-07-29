@@ -19,9 +19,28 @@ import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import com.sourcegraph.utils.CodyEditorUtil
 import javax.swing.Icon
 
+interface LensListener {
+  fun onLensesUpdate(
+      uri: String,
+      taskId: String?,
+      lensWidgetGroup: LensWidgetGroup?,
+      codeLenses: List<ProtocolCodeLens>
+  )
+}
+
 @Service(Service.Level.PROJECT)
 class LensesService(val project: Project) {
-  private var lensGroups = mapOf<String, Pair<Range, LensWidgetGroup>>()
+  private var lensGroups = mutableMapOf<String, Map<String, Pair<Range, LensWidgetGroup>>>()
+
+  private val listeners = mutableListOf<LensListener>()
+
+  fun addListener(listener: LensListener) {
+    listeners.add(listener)
+  }
+
+  fun removeListener(listener: LensListener) {
+    listeners.remove(listener)
+  }
 
   fun updateLenses(uri: String, codeLens: List<ProtocolCodeLens>) {
     runInEdt {
@@ -39,13 +58,22 @@ class LensesService(val project: Project) {
               }
               .toMap()
 
-      lensGroups.values.forEach { it.second.dispose() }
+      lensGroups[uri]?.values?.forEach { it.second.dispose() }
       newLensGroups.forEach { (taskId, rangeAndLensGroup) ->
         val (range, lensGroup) = rangeAndLensGroup
         val isNewTask = !lensGroups.containsKey(taskId)
         lensGroup.show(range, shouldScrollToLens = isNewTask)
       }
-      lensGroups = newLensGroups
+
+      newLensGroups.forEach { (taskId, rangeAndLensGroup) ->
+        val lenses = codeLens.filter { getTaskId(it) == taskId }
+        listeners.forEach { it.onLensesUpdate(uri, taskId, rangeAndLensGroup.second, lenses) }
+      }
+      if (newLensGroups.isEmpty()) {
+        listeners.forEach { it.onLensesUpdate(uri, null, null, emptyList()) }
+      }
+
+      lensGroups[uri] = newLensGroups
     }
   }
 

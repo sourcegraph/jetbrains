@@ -15,14 +15,13 @@ import com.sourcegraph.cody.edit.actions.lenses.LensEditAction.Companion.TASK_ID
 import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics2D
-import java.awt.event.MouseEvent
 import java.awt.geom.Rectangle2D
 import java.util.concurrent.atomic.AtomicReference
 import org.jetbrains.annotations.VisibleForTesting
 
 class LensAction(
     val group: LensWidgetGroup,
-    private val text: String,
+    val text: String,
     @VisibleForTesting val actionId: String,
     private val taskId: String?
 ) : LensWidget(group) {
@@ -72,15 +71,15 @@ class LensAction(
   }
 
   override fun onClick(e: EditorMouseEvent): Boolean {
-    triggerAction(e.editor, e.mouseEvent)
+    triggerAction(e.editor)
     return true
   }
 
-  private fun triggerAction(editor: Editor, mouseEvent: MouseEvent) {
+  fun triggerAction(editor: Editor) {
     lastLensActionPerformed.set(actionId)
     val action = ActionManager.getInstance().getAction(actionId)
     if (action != null) {
-      val dataContext = createDataContext(editor, mouseEvent, taskId)
+      val dataContext = createDataContext(editor, taskId)
       val actionEvent =
           AnActionEvent(
               null,
@@ -93,14 +92,10 @@ class LensAction(
     }
   }
 
-  private fun createDataContext(
-      editor: Editor,
-      mouseEvent: MouseEvent,
-      taskId: String?
-  ): DataContext {
+  private fun createDataContext(editor: Editor, taskId: String?): DataContext {
     return DataContext { dataId ->
       when (dataId) {
-        PlatformDataKeys.CONTEXT_COMPONENT.name -> mouseEvent.component
+        PlatformDataKeys.CONTEXT_COMPONENT.name -> this
         PlatformDataKeys.EDITOR.name -> editor
         PlatformDataKeys.PROJECT.name -> editor.project
         TASK_ID_KEY.name -> taskId
