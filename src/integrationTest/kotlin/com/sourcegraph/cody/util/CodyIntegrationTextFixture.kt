@@ -241,24 +241,28 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
     }
   }
 
-  fun runLensAction(lensWidgetGroup: LensWidgetGroup, actionId: String): LensWidgetGroup? {
+  fun runLensAction(lensWidgetGroup: LensWidgetGroup, actionLensId: String): LensWidgetGroup? {
     val future = CompletableFuture<LensWidgetGroup?>()
     val check = { codeLens: List<ProtocolCodeLens> -> codeLens.isEmpty() }
     lensSubscribers.add(check to future)
 
     runInEdtAndWait {
       val action: LensAction? =
-          lensWidgetGroup.widgets.filterIsInstance<LensAction>().find { it.actionId == actionId }
+          lensWidgetGroup.widgets.filterIsInstance<LensAction>().find {
+            it.actionId == actionLensId
+          }
       PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
-      assertTrue("Lens action $actionId should be available", action != null)
+      assertTrue("Lens action $actionLensId should be available", action != null)
       action?.triggerAction(myFixture.editor)
     }
 
     try {
       return future.get(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     } catch (e: Exception) {
+      val stackTrace = e.stackTrace.map { it.toString() }.joinToString("\n")
       assertTrue(
-          "Error while awaiting condition after for action $actionId: ${e.localizedMessage}", false)
+          "Error while awaiting condition after for lens action $actionLensId: ${e.localizedMessage}\n$stackTrace",
+          false)
       throw e
     }
   }
