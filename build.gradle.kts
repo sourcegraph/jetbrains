@@ -507,7 +507,7 @@ tasks {
               platformRuntimeVersion.or(project.property("platformVersion")).toString(),
               platformRuntimeType.or(project.property("platformType")).toString())
               ?: throw GradleException(
-                  "Could not find IntelliJ install for {version: $platformRuntimeVersion")
+                  "Could not find IntelliJ install for version: $platformRuntimeVersion")
       ideDir.set(ideaInstallDir)
     }
     // TODO: we need to wait to switch to Platform Gradle Plugin 2.0.0 to be able to have separate

@@ -26,17 +26,7 @@ import com.sourcegraph.cody.agent.protocol.RemoteRepoHasResponse
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListResponse
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
-import com.sourcegraph.cody.agent.protocol_generated.EditTask
-import com.sourcegraph.cody.agent.protocol_generated.EditTask_AcceptParams
-import com.sourcegraph.cody.agent.protocol_generated.EditTask_CancelParams
-import com.sourcegraph.cody.agent.protocol_generated.EditTask_GetTaskDetailsParams
-import com.sourcegraph.cody.agent.protocol_generated.EditTask_RetryParams
-import com.sourcegraph.cody.agent.protocol_generated.EditTask_UndoParams
-import com.sourcegraph.cody.agent.protocol_generated.ClientInfo
-import com.sourcegraph.cody.agent.protocol_generated.ExtensionConfiguration
-import com.sourcegraph.cody.agent.protocol_generated.Graphql_GetRepoIdsParams
-import com.sourcegraph.cody.agent.protocol_generated.Graphql_GetRepoIdsResult
-import com.sourcegraph.cody.agent.protocol_generated.ServerInfo
+import com.sourcegraph.cody.agent.protocol_generated.*
 import com.sourcegraph.cody.chat.ConnectionId
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -58,6 +48,15 @@ interface _SubsetGeneratedCodyAgentServer {
 
   @JsonRequest("editTask/getTaskDetails")
   fun editTask_getTaskDetails(params: EditTask_GetTaskDetailsParams): CompletableFuture<EditTask>
+
+  @JsonRequest("diagnostics/publish")
+  fun diagnostics_publish(params: Diagnostics_PublishParams): CompletableFuture<Null?>
+
+  @JsonRequest("codeActions/provide")
+  fun codeActions_provide(params: CodeActions_ProvideParams): CompletableFuture<CodeActions_ProvideResult>
+
+  @JsonRequest("codeActions/trigger")
+  fun codeActions_trigger(params: CodeActions_TriggerParams): CompletableFuture<EditTask>
 
   @JsonRequest("graphql/getRepoIds")
   fun graphql_getRepoIds(

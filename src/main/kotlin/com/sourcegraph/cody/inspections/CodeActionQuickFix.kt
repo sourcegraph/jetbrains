@@ -11,7 +11,6 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_ProvideParams
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_TriggerParams
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolLocation
-import com.sourcegraph.cody.edit.sessions.FixupSessionV2
 
 data class CodeActionQuickFixParams(
     val title: String,
@@ -101,10 +100,7 @@ class CodeActionQuickFix(private val params: CodeActionQuickFixParams) :
         throw Exception("Could not find action")
       }
       // TODO: Surely not all triggers will return an edit? For instance explain can't.
-      val editTask = agent.server.codeActions_trigger(CodeActions_TriggerParams(id = action.id))
-      runInEdt {
-        FixupSessionV2(editTask, params.location, project, editor, allowRetry = isFixAction())
-      }
+      agent.server.codeActions_trigger(CodeActions_TriggerParams(id = action.id))
     }
   }
 }
