@@ -235,8 +235,10 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
     try {
       return future.get(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     } catch (e: Exception) {
+      val stackTrace = e.stackTrace.joinToString("\n") { it.toString() }
       assertTrue(
-          "Error while awaiting condition after for action $actionId: ${e.localizedMessage}", false)
+          "Error while awaiting condition after action $actionId: ${e.localizedMessage}\n$stackTrace",
+          false)
       throw e
     }
   }
@@ -259,9 +261,9 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
     try {
       return future.get(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     } catch (e: Exception) {
-      val stackTrace = e.stackTrace.map { it.toString() }.joinToString("\n")
+      val stackTrace = e.stackTrace.joinToString("\n") { it.toString() }
       assertTrue(
-          "Error while awaiting condition after for lens action $actionLensId: ${e.localizedMessage}\n$stackTrace",
+          "Error while awaiting condition after lens action $actionLensId: ${e.localizedMessage}\n$stackTrace",
           false)
       throw e
     }
@@ -274,7 +276,7 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   }
 
   companion object {
-    const val ASYNC_WAIT_TIMEOUT_SECONDS = 15L
+    const val ASYNC_WAIT_TIMEOUT_SECONDS = 10L
     var myProject: Project? = null
   }
 }

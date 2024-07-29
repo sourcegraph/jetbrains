@@ -112,21 +112,18 @@ class LensWidgetGroup(parentComponent: Editor) : EditorCustomElementRenderer, Di
     widgetFontMetrics = null // force recalculation
   }
 
-  fun show(range: Range, shouldScrollToLens: Boolean): CompletableFuture<Boolean> {
+  @RequiresEdt
+  fun show(range: Range, shouldScrollToLens: Boolean) {
     val offset = range.start.toOffset(editor.document)
-    return onEventThread {
-      if (isDisposed.get()) {
-        throw IllegalStateException("Request to show disposed inlay: $this")
-      }
-      inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
-      Disposer.register(this, inlay!!)
+    if (isDisposed.get()) {
+      throw IllegalStateException("Request to show disposed inlay: $this")
+    }
+    inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
+    Disposer.register(this, inlay!!)
 
-      if (shouldScrollToLens) {
-        val logicalPosition = range.start.toLogicalPosition(editor.document)
-        editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
-      }
-
-      true
+    if (shouldScrollToLens) {
+      val logicalPosition = range.start.toLogicalPosition(editor.document)
+      editor.scrollingModel.scrollTo(logicalPosition, ScrollType.CENTER)
     }
   }
 
