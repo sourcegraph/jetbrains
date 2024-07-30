@@ -15,8 +15,11 @@ import javax.swing.JLabel
 class WebPanelEditor(private val file: VirtualFile) : FileEditor {
   companion object {
     val WEB_UI_PROXY_KEY = Key.create<WebUIProxy>("WebUIProxy")
+
+    var epoch = 0
   }
 
+  val age = epoch++
   private val userData: MutableMap<Any, Any?> = mutableMapOf()
 
   override fun <T : Any?> getUserData(key: Key<T>): T? {
