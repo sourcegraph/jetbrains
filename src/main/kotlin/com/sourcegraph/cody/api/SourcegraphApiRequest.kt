@@ -32,11 +32,6 @@ sealed class SourcegraphApiRequest<out T>(val url: String) {
           return SourcegraphApiContentHelper.toJson(request, true)
         }
 
-      private fun throwException(errors: List<GraphQLErrorDTO>): Nothing {
-        if (errors.size == 1) throw SourcegraphConfusingException(errors.single().toString())
-        throw SourcegraphConfusingException(errors.toString())
-      }
-
       override fun extractResult(response: SourcegraphApiResponse): T {
         val result: GraphQLResponseDTO<out T, GraphQLErrorDTO> =
             response.readBody {
@@ -52,8 +47,13 @@ sealed class SourcegraphApiRequest<out T>(val url: String) {
         if (data != null) return data
 
         val errors = result.errors
-        if (errors == null) error("Undefined request state - both result and errors are null")
-        else throwException(errors)
+        when {
+          errors == null ->
+              throw SourcegraphConfusingException(
+                  "Undefined request state - both result and errors are null")
+          errors.size == 1 -> throw SourcegraphConfusingException(errors.single().toString())
+          else -> throw SourcegraphConfusingException(errors.toString())
+        }
       }
     }
   }
