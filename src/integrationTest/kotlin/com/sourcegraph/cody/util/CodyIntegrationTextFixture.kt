@@ -209,8 +209,6 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   }
 
   override fun onLensesUpdate(
-      uri: String,
-      taskId: String?,
       lensWidgetGroup: LensWidgetGroup?,
       codeLenses: List<ProtocolCodeLens>
   ) {

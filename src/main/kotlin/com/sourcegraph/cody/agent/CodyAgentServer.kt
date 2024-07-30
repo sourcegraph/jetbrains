@@ -29,10 +29,13 @@ import com.sourcegraph.cody.agent.protocol.RemoteRepoHasResponse
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListParams
 import com.sourcegraph.cody.agent.protocol.RemoteRepoListResponse
 import com.sourcegraph.cody.agent.protocol.ServerInfo
-import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
 import com.sourcegraph.cody.agent.protocol_generated.EditTask
+import com.sourcegraph.cody.agent.protocol_generated.EditTask_AcceptParams
+import com.sourcegraph.cody.agent.protocol_generated.EditTask_CancelParams
+import com.sourcegraph.cody.agent.protocol_generated.EditTask_GetTaskDetailsParams
 import com.sourcegraph.cody.agent.protocol_generated.EditTask_RetryParams
+import com.sourcegraph.cody.agent.protocol_generated.EditTask_UndoParams
 import com.sourcegraph.cody.chat.ConnectionId
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -47,6 +50,11 @@ interface _SubsetGeneratedCodyAgentServer {
   // ========
   // Requests
   // ========
+  @JsonRequest("editTask/retry")
+  fun retryEditTask(params: EditTask_RetryParams): CompletableFuture<EditTask>
+
+  @JsonRequest("editTask/getTaskDetails")
+  fun getEditTaskDetails(params: EditTask_GetTaskDetailsParams): CompletableFuture<EditTask>
 
   // =============
   // Notifications
@@ -118,17 +126,14 @@ interface _LegacyAgentServer {
   @JsonRequest("webview/receiveMessage")
   fun webviewReceiveMessage(params: WebviewReceiveMessageParams): CompletableFuture<Any?>
 
-  @JsonRequest("editTask/accept") fun acceptEditTask(params: TaskIdParam): CompletableFuture<Void?>
+  @JsonRequest("editTask/accept")
+  fun acceptEditTask(params: EditTask_AcceptParams): CompletableFuture<Void?>
 
-  @JsonRequest("editTask/undo") fun undoEditTask(params: TaskIdParam): CompletableFuture<Void?>
+  @JsonRequest("editTask/undo")
+  fun undoEditTask(params: EditTask_UndoParams): CompletableFuture<Void?>
 
-  @JsonRequest("editTask/cancel") fun cancelEditTask(params: TaskIdParam): CompletableFuture<Void?>
-
-  @JsonRequest("editTask/retry")
-  fun retryEditTask(params: EditTask_RetryParams): CompletableFuture<EditTask>
-
-  @JsonRequest("editTask/getTaskDetails")
-  fun getEditTaskDetails(params: TaskIdParam): CompletableFuture<EditTask>
+  @JsonRequest("editTask/cancel")
+  fun cancelEditTask(params: EditTask_CancelParams): CompletableFuture<Void?>
 
   @JsonRequest("command/execute")
   fun commandExecute(params: CommandExecuteParams): CompletableFuture<Any?>

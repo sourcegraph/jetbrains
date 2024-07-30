@@ -20,12 +20,7 @@ import com.sourcegraph.utils.CodyEditorUtil
 import javax.swing.Icon
 
 interface LensListener {
-  fun onLensesUpdate(
-      uri: String,
-      taskId: String?,
-      lensWidgetGroup: LensWidgetGroup?,
-      codeLenses: List<ProtocolCodeLens>
-  )
+  fun onLensesUpdate(lensWidgetGroup: LensWidgetGroup?, codeLenses: List<ProtocolCodeLens>)
 }
 
 @Service(Service.Level.PROJECT)
@@ -67,10 +62,10 @@ class LensesService(val project: Project) {
 
       newLensGroups.forEach { (taskId, rangeAndLensGroup) ->
         val lenses = codeLens.filter { getTaskId(it) == taskId }
-        listeners.forEach { it.onLensesUpdate(uri, taskId, rangeAndLensGroup.second, lenses) }
+        listeners.forEach { it.onLensesUpdate(rangeAndLensGroup.second, lenses) }
       }
       if (newLensGroups.isEmpty()) {
-        listeners.forEach { it.onLensesUpdate(uri, null, null, emptyList()) }
+        listeners.forEach { it.onLensesUpdate(null, emptyList()) }
       }
 
       lensGroups[uri] = newLensGroups

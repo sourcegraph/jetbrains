@@ -26,10 +26,10 @@ class LlmDropdown(
     private val project: Project,
     private val onSetSelectedItem: (ChatModelsResponse.ChatModelProvider) -> Unit,
     val parentDialog: EditCommandPrompt?,
-    val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?,
-    val model: String? = null
+    private val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?,
+    private val model: String? = null
 ) : ComboBox<ChatModelsResponse.ChatModelProvider>(MutableCollectionComboBoxModel()) {
-  var hasServerSentModels = false
+  private var hasServerSentModels = false
 
   init {
     renderer = LlmComboBoxRenderer(this)

@@ -9,13 +9,11 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.agent.protocol.TaskIdParam
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.common.CodyBundle
 
-abstract class LensEditAction(
-    val editAction: (Project, AnActionEvent, Editor, TaskIdParam) -> Unit
-) : AnAction(), DumbAware {
+abstract class LensEditAction(val editAction: (Project, AnActionEvent, Editor, String) -> Unit) :
+    AnAction(), DumbAware {
   private val logger = Logger.getInstance(LensEditAction::class.java)
 
   fun getActionUpdateThread(): ActionUpdateThread {
@@ -55,7 +53,7 @@ abstract class LensEditAction(
         return
       }
 
-      editAction(project, e, editor, TaskIdParam(taskId))
+      editAction(project, e, editor, taskId)
     } catch (ex: Exception) {
       // Don't show error lens here; it's sort of pointless.
       logger.warn("Error accepting edit accept task: $ex")
