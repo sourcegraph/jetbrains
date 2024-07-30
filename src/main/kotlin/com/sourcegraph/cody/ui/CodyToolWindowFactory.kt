@@ -324,6 +324,19 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
             setEnableOpenDevToolsMenuItem(true)
           }
           .build()
+
+      browser.jbCefClient.addFocusHandler(object : CefFocusHandlerAdapter() {
+        override fun onGotFocus(browser: CefBrowser) {
+          println("onGotFocus $browser")
+        }
+
+        override fun onSetFocus(browser: CefBrowser, source: CefFocusHandler.FocusSource): Boolean {
+          val x = super.onSetFocus(browser, source)
+          println("onSetFocus $browser $x")
+          return x
+        }
+      }, browser.cefBrowser)
+
       val proxy = WebUIProxy(host, browser)
 
       val viewToHost =
