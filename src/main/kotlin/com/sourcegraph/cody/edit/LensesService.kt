@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolCodeLens
 import com.sourcegraph.cody.agent.protocol_generated.Range
@@ -53,7 +54,7 @@ class LensesService(val project: Project) {
               }
               .toMap()
 
-      lensGroups[uri]?.values?.forEach { it.second.dispose() }
+      lensGroups[uri]?.values?.forEach { Disposer.dispose(it.second) }
       newLensGroups.forEach { (taskId, rangeAndLensGroup) ->
         val (range, lensGroup) = rangeAndLensGroup
         val isNewTask = !lensGroups.containsKey(taskId)

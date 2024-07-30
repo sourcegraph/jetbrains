@@ -28,7 +28,7 @@ class KeyboardShortcutTest : BasePlatformTestCase() {
             "cody.editCodeAction" to arrayOf("ctrl alt COMMA", "ctrl alt ENTER"),
             "cody.documentCodeAction" to arrayOf("ctrl alt H", "ctrl alt H"),
             "cody.testCodeAction" to arrayOf("ctrl alt G", "ctrl alt G"),
-            "cody.editShowDiffAction" to arrayOf("ctrl alt D", "ctrl alt K"),
+            "cody.fixup.codelens.diff" to arrayOf("ctrl alt D", "ctrl alt K"),
             "cody.fixup.codelens.accept" to arrayOf("ctrl shift EQUALS", "ctrl shift EQUALS"),
             "cody.newChat" to arrayOf("ctrl alt 0", "ctrl alt 0"),
             "cody.openChat" to arrayOf("ctrl alt 9", "ctrl alt 9"),
