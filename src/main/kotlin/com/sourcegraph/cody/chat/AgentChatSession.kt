@@ -228,7 +228,7 @@ private constructor(
         }
       }
       else -> {
-        logger.debug(String.format("unknown message type: %s", message.type))
+        logger.debug("unknown message type: ${message.type}")
       }
     }
   }

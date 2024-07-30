@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.initialization
 
+import java.lang.String.format
 import java.time.Duration
 import java.time.Instant
 
@@ -28,10 +29,10 @@ class PrettyTimer {
     val millis = duration.toMillis() % 1000
 
     return when {
-      hours > 0 -> String.format("%dhr%02dmin%02ds", hours, minutes, seconds)
-      minutes > 0 -> String.format("%dmin%02ds", minutes, seconds)
-      seconds > 0 -> String.format("%ds%03dms", seconds, millis)
-      else -> String.format("%dms", millis)
+      hours > 0 -> format("%dhr%02dmin%02ds", hours, minutes, seconds)
+      minutes > 0 -> format("%dmin%02ds", minutes, seconds)
+      seconds > 0 -> format("%ds%03dms", seconds, millis)
+      else -> format("%dms", millis)
     }
   }
 }

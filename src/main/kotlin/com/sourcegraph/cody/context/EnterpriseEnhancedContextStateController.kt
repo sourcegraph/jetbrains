@@ -96,8 +96,8 @@ class EnterpriseEnhancedContextStateController(
     get(): String = model_.rawSpec
 
   private fun <T> withModel(f: (EnterpriseEnhancedContextModel) -> T): T {
-    assert(!ApplicationManager.getApplication().isDispatchThread) {
-      "Must not use model from EDT, it may block"
+    if (!ApplicationManager.getApplication().isDispatchThread) {
+      throw IllegalStateException("Must not use model from EDT, it may block")
     }
     synchronized(model_) {
       return f(model_)
@@ -156,11 +156,11 @@ class EnterpriseEnhancedContextStateController(
 
   // Builds the initial list of repositories and kicks off the process of resolving them.
   private fun updateSpeculativeRepos(repos: List<String>) {
-    assert(!ApplicationManager.getApplication().isDispatchThread) {
-      "updateSpeculativeRepos should not be used on EDT, it may block"
+    if (!ApplicationManager.getApplication().isDispatchThread) {
+      throw IllegalStateException("updateSpeculativeRepos should not be used on EDT, it may block")
     }
 
-    var thisEpoch =
+    val thisEpoch =
         synchronized(this) {
           withModel { model -> model.specified = repos.toSet() }
           ++epoch
