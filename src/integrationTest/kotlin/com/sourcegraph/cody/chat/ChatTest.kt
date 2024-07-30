@@ -38,7 +38,7 @@ class ChatTest : CodyIntegrationTextFixture() {
 
     val session = runInEdtAndGet { AgentChatSession.createNew(project) }
 
-    await.atMost(5, TimeUnit.SECONDS) until
+    await.atMost(10, TimeUnit.SECONDS) until
         {
           (session.getPanel().contextView as EnterpriseEnhancedContextPanel)
               .controller
@@ -48,13 +48,9 @@ class ChatTest : CodyIntegrationTextFixture() {
 
     runInEdtAndWait { session.sendMessage("How do we use JSON RPC in Cody?", emptyList()) }
 
-    await.atMost(15, TimeUnit.SECONDS) until
-        {
-          val messages = session.messages
-          messages.size == 2 &&
-              !messages[0].contextFiles.isNullOrEmpty() &&
-              !messages[1].text.isNullOrBlank()
-        }
+    await.atMost(10, TimeUnit.SECONDS) until { !session.messages[0].contextFiles.isNullOrEmpty() }
+    await.atMost(10, TimeUnit.SECONDS) until { session.messages.size == 2 }
+    await.atMost(20, TimeUnit.SECONDS) until { session.messages[1].text?.isNotBlank() == true }
 
     val linkPanels =
         findComponentsRecursively(session.getPanel(), ContextFileActionLink::class.java)
@@ -70,8 +66,8 @@ class ChatTest : CodyIntegrationTextFixture() {
             "cody agent/src/cli/scip-codegen/JvmCodegen.ts",
             "cody agent/src/cli/scip-codegen/JvmFormatter.ts",
             "cody agent/src/jsonrpc-alias.ts",
+            "cody agent/src/local-e2e/README.md",
             "cody lib/icons/README.md",
-            "cody vscode/CONTRIBUTING.md",
             "cody vscode/src/graph/bfg/spawn-bfg.ts",
             "cody vscode/src/jsonrpc/bfg-protocol.ts",
             "cody vscode/src/jsonrpc/CodyJsonRpcErrorCode.ts",

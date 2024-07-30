@@ -4,6 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.VerticalFlowLayout
+import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.protocol.ChatMessage
 import com.sourcegraph.cody.agent.protocol.Speaker
@@ -57,7 +58,7 @@ class MessagesPanel(private val project: Project, private val chatSession: ChatS
     components
         .firstNotNullOfOrNull { it as? BlinkingCursorComponent }
         ?.let {
-          it.dispose()
+          Disposer.dispose(it)
           remove(it)
         }
   }
