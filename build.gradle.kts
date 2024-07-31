@@ -12,7 +12,8 @@ import java.util.EnumSet
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.intellij.tasks.RunPluginVerifierTask.FailureLevel
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.incremental.deleteDirectoryContents
 
@@ -32,7 +33,7 @@ val isForceCodeSearchBuild = isForceBuild || properties("forceCodeSearchBuild") 
 // Update gradle.properties pluginSinceBuild, pluginUntilBuild to match the min, max versions in
 // this list.
 val versionsOfInterest =
-    listOf("2022.1", "2022.2", "2022.3", "2023.1", "2023.2", "2023.3", "2024.1").sorted()
+    listOf("2022.3", "2023.1", "2023.2", "2023.3", "2024.1", "242.15523.18").sorted()
 val versionsToValidate =
     when (project.properties["validation"]?.toString()) {
       "lite" -> listOf(versionsOfInterest.first(), versionsOfInterest.last())
@@ -54,7 +55,8 @@ plugins {
   id("java")
   id("jvm-test-suite")
   id("org.jetbrains.kotlin.jvm") version "1.9.25"
-  id("org.jetbrains.intellij") version "1.17.3"
+  id("org.jetbrains.intellij.platform") version "2.0.0"
+  id("org.jetbrains.intellij.platform.migration") version "2.0.0"
   id("org.jetbrains.changelog") version "2.2.0"
   id("com.diffplug.spotless") version "6.25.0"
 }
@@ -69,23 +71,53 @@ version = properties("pluginVersion")
 repositories {
   maven { url = uri("https://www.jetbrains.com/intellij-repository/releases") }
   mavenCentral()
+  intellijPlatform { defaultRepositories() }
 }
 
-intellij {
-  pluginName.set(properties("pluginName"))
-  version.set(platformVersion)
-  type.set(properties("platformType"))
+intellijPlatform {
+  pluginConfiguration {
+    name = properties("pluginName")
+    version = properties("pluginVersion")
+    ideaVersion {
+      sinceBuild = properties("pluginSinceBuild")
+      untilBuild = properties("pluginUntilBuild")
+    }
+    // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's
+    // manifest
+    description =
+        projectDir
+            .resolve("README.md")
+            .readText()
+            .lines()
+            .run {
+              val start = "<!-- Plugin description -->"
+              val end = "<!-- Plugin description end -->"
 
-  // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
-  plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+              if (!containsAll(listOf(start, end))) {
+                throw GradleException(
+                    "Plugin description section not found in README.md:\n$start ... $end")
+              }
+              subList(indexOf(start) + 1, indexOf(end))
+            }
+            .joinToString("\n")
+            .run { markdownToHTML(this) }
+  }
 
-  updateSinceUntilBuild.set(false)
+  pluginVerification {
+    ides { ides(versionsToValidate) }
+    failureLevel = EnumSet.complementOf(skippedFailureLevels)
+  }
 }
 
 dependencies {
-  // ActionUpdateThread.jar contains copy of the
-  // com.intellij.openapi.actionSystem.ActionUpdateThread class
-  compileOnly(files("libs/ActionUpdateThread.jar"))
+  intellijPlatform {
+    create(properties("platformType"), platformVersion)
+    bundledPlugins(
+        properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+    instrumentationTools()
+    pluginVerifier(version = "1.371")
+    testFramework(TestFrameworkType.Bundled)
+  }
   implementation("org.commonmark:commonmark:0.22.0")
   implementation("org.commonmark:commonmark-ext-gfm-tables:0.22.0")
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.23.1")
@@ -125,8 +157,6 @@ java {
     languageVersion.set(JavaLanguageVersion.of(properties("javaVersion").toInt()))
   }
 }
-
-tasks.named("classpathIndexCleanup") { dependsOn("compileIntegrationTestKotlin") }
 
 fun download(url: String, output: File) {
   if (output.exists()) {
@@ -211,6 +241,7 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
   include("**/AllSuites.class")
 
   val resourcesDir = project.file("src/integrationTest/resources")
+
   systemProperties(
       "cody-agent.trace-path" to "$buildDir/sourcegraph/cody-agent-trace.json",
       "cody-agent.directory" to buildCodyDir.parent,
@@ -432,31 +463,6 @@ tasks {
     withType<KotlinCompile> { kotlinOptions.jvmTarget = it }
   }
 
-  patchPluginXml {
-    version.set(properties("pluginVersion"))
-
-    // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's
-    // manifest
-    pluginDescription.set(
-        projectDir
-            .resolve("README.md")
-            .readText()
-            .lines()
-            .run {
-              val start = "<!-- Plugin description -->"
-              val end = "<!-- Plugin description end -->"
-
-              if (!containsAll(listOf(start, end))) {
-                throw GradleException(
-                    "Plugin description section not found in README.md:\n$start ... $end")
-              }
-              subList(indexOf(start) + 1, indexOf(end))
-            }
-            .joinToString("\n")
-            .run { markdownToHTML(this) },
-    )
-  }
-
   buildPlugin {
     dependsOn(project.tasks.getByPath("buildCody"))
     from(
@@ -484,36 +490,18 @@ tasks {
     }
   }
 
-  patchPluginXml {
-    sinceBuild = properties("pluginSinceBuild")
-    untilBuild = properties("pluginUntilBuild")
-  }
-
   runIde {
     dependsOn(project.tasks.getByPath("buildCody"))
-    jvmArgs("-Djdk.module.illegalAccess.silent=true")
-
     agentProperties.forEach { (key, value) -> systemProperty(key, value) }
-
     val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
     if (platformRuntimeVersion != null) {
-      val ideaInstallDir =
-          getIdeaInstallDir(platformRuntimeVersion.toString())
-              ?: throw GradleException(
-                  "Could not find IntelliJ install for $platformRuntimeVersion")
-      ideDir.set(ideaInstallDir)
+      version = platformRuntimeVersion.toString()
     }
-  }
-
-  runPluginVerifier {
-    ideVersions.set(versionsToValidate)
-    failureLevel.set(EnumSet.complementOf(skippedFailureLevels))
-    verifierVersion.set("1.371")
   }
 
   // Configure UI tests plugin
   // Read more: https://github.com/JetBrains/intellij-ui-test-robot
-  runIdeForUiTests {
+  testIdeUi {
     systemProperty("robot-server.port", "8082")
     systemProperty("ide.mac.message.dialogs.as.sheets", "false")
     systemProperty("jb.privacy.policy.text", "<!--999.999-->")
@@ -556,28 +544,40 @@ tasks {
     create("integrationTest") {
       kotlin.srcDir("src/integrationTest/kotlin")
       compileClasspath += main.get().output
+      compileClasspath += test.get().compileClasspath
       runtimeClasspath += main.get().output
+      runtimeClasspath += test.get().compileClasspath
+      runtimeClasspath += test.get().runtimeClasspath
     }
   }
 
-  register<Test>("integrationTest") {
-    description = "Runs the integration tests."
-    sharedIntegrationTestConfig(buildCodyDir, "replay")
-    dependsOn("processIntegrationTestResources")
-    project.properties["repeatTests"]?.let { systemProperty("repeatTests", it) }
-  }
+  val integrationTest by
+      intellijPlatformTesting.testIde.registering {
+        task {
+          description = "Runs the integration tests."
+          sharedIntegrationTestConfig(buildCodyDir, "replay")
+          dependsOn("processIntegrationTestResources")
+          project.properties["repeatTests"]?.let { systemProperty("repeatTests", it) }
+        }
+      }
 
-  register<Test>("passthroughIntegrationTest") {
-    description = "Runs the integration tests, passing everything through to the LLM."
-    sharedIntegrationTestConfig(buildCodyDir, "passthrough")
-    dependsOn("processIntegrationTestResources")
-  }
+  val passthroughIntegrationTest by
+      intellijPlatformTesting.testIde.registering {
+        task {
+          description = "Runs the integration tests, passing everything through to the LLM."
+          sharedIntegrationTestConfig(buildCodyDir, "passthrough")
+          dependsOn("processIntegrationTestResources")
+        }
+      }
 
-  register<Test>("recordingIntegrationTest") {
-    description = "Runs the integration tests and records the responses."
-    sharedIntegrationTestConfig(buildCodyDir, "record")
-    dependsOn("processIntegrationTestResources")
-  }
+  val recordingIntegrationTest by
+      intellijPlatformTesting.testIde.registering {
+        task {
+          description = "Runs the integration tests and records the responses."
+          sharedIntegrationTestConfig(buildCodyDir, "record")
+          dependsOn("processIntegrationTestResources")
+        }
+      }
 
   named<Copy>("processIntegrationTestResources") {
     from(sourceSets["integrationTest"].resources)
@@ -588,8 +588,6 @@ tasks {
   }
 
   withType<Test> { systemProperty("idea.test.src.dir", "$buildDir/resources/integrationTest") }
-
-  named("classpathIndexCleanup") { dependsOn("processIntegrationTestResources") }
 
   named("check") { dependsOn("integrationTest") }
 

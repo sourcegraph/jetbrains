@@ -120,7 +120,7 @@ class RemoteRepoFileType : LanguageFileType(RemoteRepoLanguage) {
   }
 }
 
-class RemoteRepoTokenType(debugName: @NonNls String) : IElementType(debugName, RemoteRepoLanguage) {
+class RemoteRepoTokenType(@NonNls debugName: String) : IElementType(debugName, RemoteRepoLanguage) {
   override fun toString(): String {
     return "RemoteRepoTokenType." + super.toString()
   }
