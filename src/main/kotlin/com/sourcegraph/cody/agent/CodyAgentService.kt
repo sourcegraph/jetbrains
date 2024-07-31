@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.agent
 
+import com.intellij.notification.NotificationsManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -166,7 +167,7 @@ class CodyAgentService(private val project: Project) : Disposable {
               throw (CodyAgentException(msg))
             }
 
-        val agent = future.get(secondsTimeout, TimeUnit.SECONDS)
+        val agent = future.get(1, TimeUnit.SECONDS)
         if (!agent.isConnected()) {
           val msg = "Failed to connect to agent Cody agent"
           logger.error(msg)
@@ -178,7 +179,16 @@ class CodyAgentService(private val project: Project) : Disposable {
         }
       } catch (e: TimeoutException) {
         val msg = "Failed to start Cody agent in timely manner, please run any Cody action to retry"
-        runInEdt { CodyConnectionTimeoutExceptionNotification().notify(project) }
+        runInEdt {
+          val isNoBalloonDisplayed =
+              NotificationsManager.getNotificationsManager()
+                  .getNotificationsOfType(
+                      CodyConnectionTimeoutExceptionNotification::class.java, project)
+                  .all { it.balloon == null }
+          if (isNoBalloonDisplayed) {
+            CodyConnectionTimeoutExceptionNotification().notify(project)
+          }
+        }
         setAgentError(project, msg)
         codyAgent.completeExceptionally(CodyAgentException(msg, e))
       } catch (e: Exception) {
