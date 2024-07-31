@@ -4,6 +4,7 @@ import com.intellij.ide.actions.AboutAction
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.sourcegraph.cody.agent.action.CodyAgentRestartAction
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.CodyBundle.fmt
 import com.sourcegraph.common.UpgradeToCodyProNotification
@@ -20,14 +21,15 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
     e.presentation.isVisible = ConfigUtil.isCodyEnabled()
 
     removeAll()
-    if (e.project?.let { CodyStatusService.getCurrentStatus(it) } ==
-        CodyStatus.CodyAgentNotRunning) {
+    val status = e.project?.let { CodyStatusService.getCurrentStatus(it) }
+    if (status == CodyStatus.CodyAgentNotRunning || status == CodyStatus.AgentError) {
       addAll(
+          CodyAgentRestartAction(),
           OpenLogAction(),
           AboutAction().apply { templatePresentation.text = "Open About To Troubleshoot Issue" },
           ReportCodyBugAction())
     } else {
-      addAll(listOfNotNull(deriveWarningAction()))
+      addAll(listOfNotNull(deriveRateLimitErrorAction()))
       addSeparator()
       addAll(
           CodyManageAccountsAction(),
@@ -43,7 +45,7 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
     }
   }
 
-  private fun deriveWarningAction(): RateLimitErrorWarningAction? {
+  private fun deriveRateLimitErrorAction(): RateLimitErrorWarningAction? {
     val autocompleteRLE = UpgradeToCodyProNotification.autocompleteRateLimitError.get()
     val chatRLE = UpgradeToCodyProNotification.chatRateLimitError.get()
 
