@@ -51,10 +51,10 @@ interface _SubsetGeneratedCodyAgentServer {
   // Requests
   // ========
   @JsonRequest("editTask/retry")
-  fun retryEditTask(params: EditTask_RetryParams): CompletableFuture<EditTask>
+  fun editTask_retry(params: EditTask_RetryParams): CompletableFuture<EditTask>
 
   @JsonRequest("editTask/getTaskDetails")
-  fun getEditTaskDetails(params: EditTask_GetTaskDetailsParams): CompletableFuture<EditTask>
+  fun editTask_getTaskDetails(params: EditTask_GetTaskDetailsParams): CompletableFuture<EditTask>
 
   // =============
   // Notifications

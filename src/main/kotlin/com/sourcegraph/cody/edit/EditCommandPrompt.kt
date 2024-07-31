@@ -517,7 +517,7 @@ class EditCommandPrompt(
                       currentModel,
                       EditTask_RetryParams.ModeEnum.Edit,
                       previousEdit.selectionRange)
-              agent.server.retryEditTask(params).get()
+              agent.server.editTask_retry(params).get()
             } else {
               agent.server.commandsEdit(InlineEditParams(text, currentModel, "edit")).get()
             }

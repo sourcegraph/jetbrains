@@ -12,7 +12,7 @@ class EditShowDiffAction :
       CodyAgentService.withAgent(project) { agent ->
         WriteCommandAction.runWriteCommandAction<Unit>(project) {
           val editTask =
-              agent.server.getEditTaskDetails(EditTask_GetTaskDetailsParams(taskId)).get()
+              agent.server.editTask_getTaskDetails(EditTask_GetTaskDetailsParams(taskId)).get()
           if (editTask != null) {
             val documentAfter = editor.document
             val documentBefore = EditorFactory.getInstance().createDocument(documentAfter.text)
