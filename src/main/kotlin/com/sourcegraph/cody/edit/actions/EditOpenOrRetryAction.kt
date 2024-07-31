@@ -10,7 +10,7 @@ import com.sourcegraph.cody.edit.FixupService
  */
 class EditOpenOrRetryAction : InlineEditAction() {
   override fun performAction(e: AnActionEvent, project: Project) {
-    if (FixupService.getInstance(project).getActiveSession()?.isShowingAcceptLens() == true) {
+    if (FixupService.getInstance(project).getActiveSession()?.isShowingDiffLens() == true) {
       EditRetryAction().actionPerformed(e)
     } else {
       EditCodeAction().actionPerformed(e)

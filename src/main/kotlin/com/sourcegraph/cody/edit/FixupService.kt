@@ -114,8 +114,8 @@ class FixupService(val project: Project) : Disposable {
       // TODO: This should be done on the agent side, but we would need to add new client capability
       // (parallel edits, disabled in JetBrains).
       // We want to enable parallel edits in JetBrains soon, so this would be a wasted effort.
-      if (currentSession.isShowingAcceptLens()) {
-        currentSession.accept()
+      if (currentSession.isShowingDiffLens()) {
+        currentSession.acceptAll()
         currentSession.dispose()
       } else throw IllegalStateException("Cannot start new session when one is already active")
     }

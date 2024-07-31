@@ -240,16 +240,29 @@
                 </action>
 
                 <!-- Lens widget actions -->
-                <action id="cody.inlineEditAcceptAction"
-                        class="com.sourcegraph.cody.edit.actions.EditAcceptAction"
-                        text="Accept Edit"
+                <action id="cody.inlineEditAcceptAllAction"
+                        class="com.sourcegraph.cody.edit.actions.EditAcceptAllAction"
+                        text="Accept All Edits"
                         description="Accept the fixup">
                     <!-- Intended as ctrl shift PLUS but that is not recognized by IntelliJ. -->
                     <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift EQUALS" keymap="$default"/>
                     <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift EQUALS" keymap="Mac OS X 10.5+"/>
+                    <override-text place="GoToAction" text="Cody: Accept All Edits"/>
+                </action>
+                <action id="cody.inlineEditAcceptAction"
+                        class="com.sourcegraph.cody.edit.actions.EditAcceptAction"
+                        text="Accept Edit"
+                        description="Accept the fixup">
+                    <!-- ToDo: JM. Shortcut here if wanted-->
                     <override-text place="GoToAction" text="Cody: Accept Edit"/>
                 </action>
-
+                <action id="cody.inlineEditRejectAction"
+                        class="com.sourcegraph.cody.edit.actions.EditRejectAction"
+                        text="Reject Edit"
+                        description="Reject the fixup">
+                    <!--ToDo: JM. Shortcut here if wanted-->
+                    <override-text place="GoToAction" text="Cody: Reject Edit"/>
+                </action>
                 <action id="cody.inlineEditCancelAction"
                         class="com.sourcegraph.cody.edit.actions.EditCancelAction"
                         text="Cancel Edit"

@@ -32,7 +32,7 @@ class KeyboardShortcutTest : BasePlatformTestCase() {
             // Handles cody.inlineEditUndoAction, inlineEditCancelAction, & inlineEditDismissAction:
             "cody.editCancelOrUndoAction" to arrayOf("ctrl alt BACK_SPACE", "ctrl alt BACK_SPACE"),
             "cody.editShowDiffAction" to arrayOf("ctrl alt D", "ctrl alt K"),
-            "cody.inlineEditAcceptAction" to arrayOf("ctrl shift EQUALS", "ctrl shift EQUALS"),
+            "cody.inlineEditAcceptAllAction" to arrayOf("ctrl shift EQUALS", "ctrl shift EQUALS"),
             "cody.newChat" to arrayOf("ctrl alt 0", "ctrl alt 0"),
             "cody.openChat" to arrayOf("ctrl alt 9", "ctrl alt 9"),
             "cody.triggerAutocomplete" to arrayOf("control alt P", "control alt P"),

@@ -8,7 +8,9 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.UIUtil
+import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.EditUtil
+import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import java.awt.Font
 import java.awt.FontMetrics
@@ -21,13 +23,16 @@ import org.jetbrains.annotations.VisibleForTesting
 class LensAction(
     val group: LensWidgetGroup,
     private val text: String,
-    @VisibleForTesting val actionId: String
+    @VisibleForTesting val actionId: String,
+    private val range: Range? = null // Add range parameter
 ) : LensWidget(group) {
 
   private val highlight =
       LabelHighlight(
           when (actionId) {
             FixupSession.ACTION_ACCEPT -> acceptColor
+            FixupSession.ACTION_ACCEPT_ALL -> acceptColor
+            FixupSession.ACTION_REJECT -> undoColor
             FixupSession.ACTION_UNDO -> undoColor
             else -> actionColor
           })
@@ -69,11 +74,11 @@ class LensAction(
   }
 
   override fun onClick(e: EditorMouseEvent): Boolean {
-    triggerAction(actionId, e.editor, e.mouseEvent)
+    triggerAction(actionId, e.editor, e.mouseEvent, range)
     return true
   }
 
-  private fun triggerAction(actionId: String, editor: Editor, mouseEvent: MouseEvent) {
+  private fun triggerAction(actionId: String, editor: Editor, mouseEvent: MouseEvent, range: Range?) {
     lastLensActionPerformed.set(actionId)
     val action = ActionManager.getInstance().getAction(actionId)
     if (action != null) {
@@ -86,7 +91,13 @@ class LensAction(
               action.templatePresentation.clone(),
               ActionManager.getInstance(),
               0)
-      action.actionPerformed(actionEvent)
+      if (actionId == FixupSession.ACTION_ACCEPT && range != null) {
+          FixupService.getInstance(editor.project!!).getActiveSession()?.accept(range)
+      } else if (actionId == FixupSession.ACTION_REJECT && range != null) {
+        FixupService.getInstance(editor.project!!).getActiveSession()?.reject(range)
+      } else {
+        action.actionPerformed(actionEvent)
+      }
     }
   }
 

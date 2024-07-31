@@ -4,5 +4,6 @@ data class EditTask(
     val id: String,
     val state: CodyTaskState,
     val selectionRange: Range,
-    val instruction: String? = null
+    val instruction: String? = null,
+    val edits: List<TextEdit>
 )

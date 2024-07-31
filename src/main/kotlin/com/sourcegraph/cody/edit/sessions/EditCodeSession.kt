@@ -25,6 +25,7 @@ class EditCodeSession(
   override fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask> {
     return try {
       val params = InlineEditParams(instructions, chatModelProvider.model, mode)
+      logger.warn("JM: Sending editing request: $params")
       agent.server.commandsEdit(params)
     } catch (x: Exception) {
       logger.warn("Failed to execute editCommands/document request", x)

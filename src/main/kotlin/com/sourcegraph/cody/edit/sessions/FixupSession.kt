@@ -63,8 +63,11 @@ abstract class FixupSession(
   private val document
     get() = editor.document
 
-  // This is passed back by the Agent when we initiate the editing task.
+  // taskId is passed back by the Agent when we initiate the editing task.
   @Volatile var taskId: String? = null
+
+  // Add a public edits property
+  var edits: List<TextEdit> = emptyList()//  @Volatile var range: Range? = null
 
   // The current lens group. Changes as the state machine proceeds.
   @VisibleForTesting var lensGroup: LensWidgetGroup? = null
@@ -119,7 +122,10 @@ abstract class FixupSession(
               if (error != null || result == null) {
                 showErrorGroup("Error while generating doc string: $error")
               } else {
+                // Handle multiple edits
                 selectionRange = adjustToDocumentRange(result.selectionRange)
+                edits = result.edits
+                showBlockGroups()
               }
               null
             }
@@ -183,7 +189,10 @@ abstract class FixupSession(
         taskId = task.id
       }
       // Tasks remain in this state until explicit accept/undo/cancel.
-      CodyTaskState.Applied -> showAcceptGroup()
+      CodyTaskState.Applied -> {
+        showDiffGroup()
+        showBlockGroups() // Call the method to show block groups
+      }
       // Then they transition to finished.
       CodyTaskState.Finished -> dispose()
       CodyTaskState.Error -> dispose()
@@ -202,21 +211,9 @@ abstract class FixupSession(
       logger.warn("Error disposing previous lens group", x)
     }
     lensGroup = group
-
-    var range =
-        selectionRange?.let {
-          val position = Position(Range.fromRangeMarker(it).start.line, character = 0)
-          Range(start = position, end = position)
-        }
-
-    if (range == null) {
-      // Be defensive, as the protocol has been fragile with respect to selection ranges.
-      logger.warn("No selection range for session: $this")
-      // Last-ditch effort to show it somewhere other than top of file.
-      val position = Position(editor.caretModel.currentCaret.logicalPosition.line, 0)
-      range = Range(start = position, end = position)
-    }
+    val range = group.range
     val future = group.show(range)
+
     // Make sure the lens is visible.
     ApplicationManager.getApplication().invokeLater {
       if (!editor.isDisposed) {
@@ -236,31 +233,60 @@ abstract class FixupSession(
     lensGroup?.reset()
   }
 
+  //Todo: JM. I believe this will need some reworking
   private fun showWorkingGroup() = runInEdt {
-    showLensGroup(LensGroupFactory(this).createTaskWorkingGroup())
-    documentListener.setAcceptLensGroupShown(false)
+    val startOffset = 0
+    val endOffset = document.textLength
+    val startPosition = Position.fromOffset(document, startOffset)
+    val endPosition = Position.fromOffset(document, endOffset)
+    val range = Range(startPosition, endPosition)
+    showLensGroup(LensGroupFactory(this).createTaskWorkingGroup(range))
+    documentListener.setDiffLensGroupShown(false)
     publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
   }
 
   // Create an abstract val for command name
   abstract val commandName: String
 
-  private fun showAcceptGroup() = runInEdt {
+  private fun showDiffGroup() = runInEdt {
     val isUnitTestCommand = commandName == "Test"
-    showLensGroup(LensGroupFactory(this).createAcceptGroup(isUnitTestCommand))
+
+    val range = getDiffGroupRange()
+
+    showLensGroup(LensGroupFactory(this).createDiffGroup(isUnitTestCommand, range))
     postAcceptActions()
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACCEPT_GROUP)
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_DIFF_GROUP)
+  }
+
+  fun showBlockGroups() = runInEdt {
+    // Iterate over the edits and create block groups
+    edits.forEach { edit ->
+      val range = edit.range
+      if (range != null) {
+        val group = LensGroupFactory(this).createBlockGroup(range)
+        showLensGroup(group)
+      }
+    }
+  }
+
+  private fun getDiffGroupRange() : Range {
+    val startOffset = 0
+    val endOffset = document.textLength
+    val startPosition = Position.fromOffset(document, startOffset)
+    val endPosition = Position.fromOffset(document, endOffset)
+    return Range(startPosition, endPosition)
   }
 
   fun showErrorGroup(hoverText: String) = runInEdt {
-    showLensGroup(LensGroupFactory(this).createErrorGroup(hoverText))
+    val range = getDiffGroupRange()
+    showLensGroup(LensGroupFactory(this).createErrorGroup(hoverText, range))
     publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ERROR_GROUP)
   }
 
   /** Subclass sends a fixup command to the agent, and returns the initial task. */
   abstract fun makeEditingRequest(agent: CodyAgent): CompletableFuture<EditTask>
 
-  fun accept() {
+  fun acceptAll() {
     try {
       // Avoid race conditions by ensuring that we flag Accept as underway early on,
       // and no matter which code path gets us here. This call should be idempotent.
@@ -268,12 +294,42 @@ abstract class FixupSession(
       postAcceptActions()
 
       CodyAgentService.withAgent(project) { agent ->
-        agent.server.acceptEditTask(TaskIdParam(taskId!!))
+        agent.server.acceptAllEditTask(TaskIdParam(taskId!!))
+        publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT_ALL)
+      }
+    } catch (x: Exception) {
+      // Don't show error lens here; it's sort of pointless.
+      logger.warn("Error sending editTask/acceptAll for taskId", x)
+      dispose()
+    }
+  }
+
+  fun accept(range: Range) {
+    try{
+      postAcceptActions() //Todo: Jm. maybe need a postAcceptActions?
+
+      CodyAgentService.withAgent(project) { agent ->
+        agent.server.acceptEditTask(TaskIdParam(taskId!!), range)
         publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
       }
     } catch (x: Exception) {
       // Don't show error lens here; it's sort of pointless.
-      logger.warn("Error sending editTask/accept for taskId", x)
+      logger.warn("Error sending editTask/acceptAll for taskId", x)
+      dispose()
+    }
+  }
+
+  fun reject(range: Range) {
+    try{
+      postAcceptActions() //Todo: Jm. maybe need a postRejectactions?
+
+      CodyAgentService.withAgent(project) { agent ->
+        agent.server.rejectEditTask(TaskIdParam(taskId!!), range)
+        publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_REJECT)
+      }
+    } catch (x: Exception) {
+      // Don't show error lens here; it's sort of pointless.
+      logger.warn("Error sending editTask/acceptAll for taskId", x)
       dispose()
     }
   }
@@ -285,7 +341,7 @@ abstract class FixupSession(
     // It's important to get the timing right here, and do it before any async
     // edits (from workspace/edit requests) or user edits arrive, or we will
     // accidentally auto-accept the suggested edit.
-    documentListener.setAcceptLensGroupShown(true)
+    documentListener.setDiffLensGroupShown(true)
 
     EditCommandPrompt.clearLastPrompt()
   }
@@ -458,16 +514,20 @@ abstract class FixupSession(
   }
 
   /** Returns true if the Accept lens group is currently active. */
-  fun isShowingAcceptLens(): Boolean {
-    return lensGroup?.isAcceptGroup == true
+  fun isShowingDiffLens(): Boolean {
+    return lensGroup?.isDiffGroup == true
+  }
+
+  fun isShowingBlockLens(): Boolean {
+    return lensGroup?.isBlockGroup == true
   }
 
   fun isShowingErrorLens(): Boolean {
     return lensGroup?.isErrorGroup == true
   }
 
-  fun hasAcceptLensBeenShown(): Boolean {
-    return documentListener.isAcceptLensGroupShown.get()
+  fun hasDiffLensBeenShown(): Boolean {
+    return documentListener.isDiffLensGroupShown.get()
   }
 
   private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
@@ -483,7 +543,9 @@ abstract class FixupSession(
 
   companion object {
     // JetBrains Actions that we fire when the lenses are clicked.
+    const val ACTION_ACCEPT_ALL = "cody.inlineEditAcceptAllAction"
     const val ACTION_ACCEPT = "cody.inlineEditAcceptAction"
+    const val ACTION_REJECT = "cody.inlineEditRejectAction"
     const val ACTION_CANCEL = "cody.inlineEditCancelAction"
     const val ACTION_RETRY = "cody.inlineEditRetryAction"
     const val ACTION_DIFF = "cody.editShowDiffAction"

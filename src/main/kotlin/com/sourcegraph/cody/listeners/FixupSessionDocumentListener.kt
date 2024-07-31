@@ -10,18 +10,25 @@ import java.util.concurrent.atomic.AtomicBoolean
 class FixupSessionDocumentListener(private val session: FixupSession) : BulkAwareDocumentListener {
   private val logger = Logger.getInstance(FixupSessionDocumentListener::class.java)
 
-  val isAcceptLensGroupShown = AtomicBoolean(false)
+  val isDiffLensGroupShown = AtomicBoolean(false)
+  val isBlockLensGroupShown = AtomicBoolean(false)
 
   override fun documentChangedNonBulk(event: DocumentEvent) {
-    if (isAcceptLensGroupShown.get()) {
+    if (isBlockLensGroupShown.get()) {
       logger.info("Auto-accepting current Fixup session: ${session.taskId}")
-      session.accept()
+      session.acceptAll()
     } else {
       session.resetLensGroup()
     }
   }
 
-  fun setAcceptLensGroupShown(shown: Boolean) {
-    isAcceptLensGroupShown.set(shown)
+  //ToDO: JM. Do I need accept and reject lenses handled here as well? Likely, yes
+
+  fun setDiffLensGroupShown(shown: Boolean) {
+    isDiffLensGroupShown.set(shown)
+  }
+
+  fun setBlockLensGroupShown(shown: Boolean) {
+    isBlockLensGroupShown.set(shown)
   }
 }

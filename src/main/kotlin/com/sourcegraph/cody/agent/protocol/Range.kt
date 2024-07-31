@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.agent.protocol
 
+import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.RangeMarker
@@ -29,6 +30,7 @@ data class Range(@JvmField val start: Position, @JvmField val end: Position) {
   fun length() = end.line - start.line + 1
 
   companion object {
+    val DATA_KEY: DataKey<Range> = DataKey.create("com.sourcegraph.cody.agent.protocol.Range")
 
     fun fromRangeMarker(rm: RangeMarker): Range =
         ReadAction.compute<Range, RuntimeException> {

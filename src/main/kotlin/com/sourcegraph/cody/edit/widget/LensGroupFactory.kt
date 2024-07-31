@@ -1,6 +1,8 @@
 package com.sourcegraph.cody.edit.widget
 
 import com.sourcegraph.cody.Icons
+import com.sourcegraph.cody.agent.protocol.EditTask
+import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import javax.swing.Icon
@@ -8,8 +10,8 @@ import javax.swing.Icon
 /** Handles assembling standard groups of lenses. */
 class LensGroupFactory(val session: FixupSession) {
 
-  fun createTaskWorkingGroup(): LensWidgetGroup {
-    return LensWidgetGroup(session, session.editor).apply {
+  fun createTaskWorkingGroup(range: Range): LensWidgetGroup {
+    return LensWidgetGroup(session, session.editor, range).apply {
       addLogo(this)
       addSpinner(this)
       addLabel(this, "Generating Code Edits")
@@ -20,10 +22,10 @@ class LensGroupFactory(val session: FixupSession) {
     }
   }
 
-  fun createAcceptGroup(isUnitTestCommand: Boolean = false): LensWidgetGroup {
-    return LensWidgetGroup(session, session.editor).apply {
+  fun createDiffGroup(isUnitTestCommand: Boolean = false, range: Range): LensWidgetGroup {
+    return LensWidgetGroup(session, session.editor, range).apply {
       addLogo(this)
-      addAction(this, "Accept", FixupSession.ACTION_ACCEPT)
+      addAction(this, "Accept All", FixupSession.ACTION_ACCEPT_ALL)
       addSeparator(this)
       addAction(this, "Undo", FixupSession.ACTION_UNDO)
       addSeparator(this)
@@ -33,13 +35,33 @@ class LensGroupFactory(val session: FixupSession) {
         addSeparator(this)
       }
       addAction(this, "Show Diff", FixupSession.ACTION_DIFF)
+      addSeparator(this)
+
+      //Todo: JM. these may need to be removed
+      addAction(this, "Accept", FixupSession.ACTION_ACCEPT)
+      addSeparator(this)
+      addAction(this, "Reject", FixupSession.ACTION_REJECT)
+      addSeparator(this)
       registerWidgets()
-      isAcceptGroup = true
+      isDiffGroup = true
     }
   }
 
-  fun createErrorGroup(tooltip: String, isDocumentCode: Boolean = false): LensWidgetGroup {
-    return LensWidgetGroup(session, session.editor).apply {
+  fun createBlockGroup(range: Range): LensWidgetGroup {
+    return LensWidgetGroup(session, session.editor, range).apply {
+      addLogo(this)
+      addLabel(this, "Block Change")
+      addSeparator(this)
+      addAction(this, "Accept Block", FixupSession.ACTION_ACCEPT)
+      addSeparator(this)
+      addAction(this, "Reject Block", FixupSession.ACTION_REJECT)
+      registerWidgets()
+      isBlockGroup = true
+    }
+  }
+
+  fun createErrorGroup(tooltip: String, range: Range, isDocumentCode: Boolean = false): LensWidgetGroup {
+    return LensWidgetGroup(session, session.editor, range).apply {
       addLogo(this)
       addErrorIcon(this)
       val verb = if (isDocumentCode) "document" else "edit"

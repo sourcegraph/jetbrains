@@ -120,9 +120,6 @@ class IgnoreOracle(private val project: Project) {
 
   /** Like `policyForUri(String)` but reuses the current thread and supplied Agent handle. */
   fun policyForUri(uri: String, agent: CodyAgent): CompletableFuture<IgnorePolicy> {
-    logger.info("policyForUri() uri: $uri")
-    logger.info("agent: $agent")
-    //logger.info("agent.server.ignoreTest(IgnoreTestParams(uri)): ${agent.server.ignoreTest(IgnoreTestParams(uri))}")
     return agent.server.ignoreTest(IgnoreTestParams(uri)).thenApply {
       val newPolicy =
           when (it.policy) {

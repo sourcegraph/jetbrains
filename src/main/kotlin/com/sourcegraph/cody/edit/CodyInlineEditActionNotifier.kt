@@ -23,9 +23,15 @@ interface CodyInlineEditActionNotifier {
 
     @JvmStatic
     @Topic.ProjectLevel
-    val TOPIC_DISPLAY_ACCEPT_GROUP =
+    val TOPIC_DISPLAY_DIFF_GROUP =
         Topic.create(
             "Sourcegraph Cody: Accept lens shown", CodyInlineEditActionNotifier::class.java)
+
+    @JvmStatic
+    @Topic.ProjectLevel
+    val TOPIC_DISPLAY_BLOCK_GROUP =
+      Topic.create(
+        "Sourcegraph Cody: Accept lens shown", CodyInlineEditActionNotifier::class.java)
 
     @JvmStatic
     @Topic.ProjectLevel
@@ -39,9 +45,18 @@ interface CodyInlineEditActionNotifier {
 
     @JvmStatic
     @Topic.ProjectLevel
+    val TOPIC_PERFORM_ACCEPT_ALL =
+        Topic.create("Sourcegraph Cody: Accept All Inline Edits", CodyInlineEditActionNotifier::class.java)
+
+    @JvmStatic
+    @Topic.ProjectLevel
     val TOPIC_PERFORM_ACCEPT =
-        Topic.create(
-            "Sourcegraph Cody: Accept Inline Edit", CodyInlineEditActionNotifier::class.java)
+        Topic.create("Sourcegraph Cody: Accept Inline Edit", CodyInlineEditActionNotifier::class.java)
+
+    @JvmStatic
+    @Topic.ProjectLevel
+    val TOPIC_PERFORM_REJECT =
+        Topic.create("Sourcegraph Cody: Reject Inline Edit", CodyInlineEditActionNotifier::class.java)
 
     @JvmStatic
     @Topic.ProjectLevel

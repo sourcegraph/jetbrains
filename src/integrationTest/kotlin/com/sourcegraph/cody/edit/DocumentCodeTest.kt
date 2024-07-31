@@ -2,10 +2,12 @@ package com.sourcegraph.cody.edit
 
 import com.intellij.testFramework.runInEdtAndGet
 import com.jetbrains.rd.util.AtomicInteger
-import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_DISPLAY_ACCEPT_GROUP
+import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_DISPLAY_DIFF_GROUP
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_DISPLAY_WORKING_GROUP
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_FOLDING_RANGES
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_ACCEPT
+import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_ACCEPT_ALL
+import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_REJECT
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_UNDO
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_TASK_FINISHED
 import com.sourcegraph.cody.edit.actions.DocumentCodeAction
@@ -97,7 +99,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
 
   @Test
   fun testShowsAcceptLens() {
-    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
+    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_DIFF_GROUP)
     assertInlayIsShown()
 
     // Lens group should match the expected structure.
@@ -108,9 +110,9 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     // There are 13 widgets as of the time of writing, but the UX could change, so check robustly.
     assertTrue("Lens group should have at least 4 widgets", widgets.size >= 4)
     assertNotNull(
-        "Lens group should contain Accept action",
+        "Lens group should contain Accept all action",
         widgets.find { widget ->
-          widget is LensAction && widget.actionId == FixupSession.ACTION_ACCEPT
+          widget is LensAction && widget.actionId == FixupSession.ACTION_ACCEPT_ALL
         })
     assertNotNull(
         "Lens group should contain Show Diff action",
@@ -127,9 +129,36 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         widgets.find { widget ->
           widget is LensAction && widget.actionId == FixupSession.ACTION_RETRY
         })
+    assertNotNull(
+      "Lens group should contain accept action",
+      widgets.find { widget ->
+        widget is LensAction && widget.actionId == FixupSession.ACTION_ACCEPT
+      })
+    assertNotNull(
+      "Lens group should contain reject action",
+      widgets.find { widget ->
+        widget is LensAction && widget.actionId == FixupSession.ACTION_REJECT
+      })
 
     // Make sure a doc comment was inserted.
     assertTrue(hasJavadocComment(myFixture.editor.document.text))
+  }
+
+  @Test
+  fun testAcceptAll() {
+    assertNoActiveSession()
+    assertNoInlayShown()
+
+    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_DIFF_GROUP)
+
+    assertInlayIsShown()
+    assertActiveSession()
+
+    runAndWaitForNotifications(
+        FixupSession.ACTION_ACCEPT, TOPIC_PERFORM_ACCEPT_ALL, TOPIC_TASK_FINISHED)
+
+    assertNoInlayShown()
+    assertNoActiveSession()
   }
 
   @Test
@@ -137,22 +166,39 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     assertNoActiveSession()
     assertNoInlayShown()
 
-    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
+    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_DIFF_GROUP)
 
     assertInlayIsShown()
     assertActiveSession()
 
     runAndWaitForNotifications(
-        FixupSession.ACTION_ACCEPT, TOPIC_PERFORM_ACCEPT, TOPIC_TASK_FINISHED)
+      FixupSession.ACTION_ACCEPT, TOPIC_PERFORM_ACCEPT, TOPIC_TASK_FINISHED)
 
     assertNoInlayShown()
     assertNoActiveSession()
   }
 
   @Test
+  fun testReject() {
+    val originalDocument = myFixture.editor.document.text
+    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_DIFF_GROUP)
+    assertNotSame(
+      "Expected document to be changed", originalDocument, myFixture.editor.document.text)
+    assertInlayIsShown()
+
+    //TODO: JM, not sure if this is ACTION_UNDO OR ACTION_ACCEPT
+    runAndWaitForNotifications(FixupSession.ACTION_ACCEPT, TOPIC_PERFORM_REJECT, TOPIC_TASK_FINISHED)
+    assertEquals(
+      "Expected document changes to be reverted",
+      originalDocument,
+      myFixture.editor.document.text)
+    assertNoInlayShown()
+  }
+
+  @Test
   fun testUndo() {
     val originalDocument = myFixture.editor.document.text
-    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACCEPT_GROUP)
+    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_DIFF_GROUP)
     assertNotSame(
         "Expected document to be changed", originalDocument, myFixture.editor.document.text)
     assertInlayIsShown()
