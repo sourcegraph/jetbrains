@@ -156,7 +156,7 @@ class CodyAgentService(private val project: Project) : Disposable {
     synchronized(startupActions) { startupActions.add(action) }
   }
 
-  fun startAgent(project: Project): CompletableFuture<CodyAgent> {
+  fun startAgent(project: Project, secondsTimeout: Long = 45): CompletableFuture<CodyAgent> {
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
         val future =
@@ -166,7 +166,7 @@ class CodyAgentService(private val project: Project) : Disposable {
               throw (CodyAgentException(msg))
             }
 
-        val agent = future.get(45, TimeUnit.SECONDS)
+        val agent = future.get(secondsTimeout, TimeUnit.SECONDS)
         if (!agent.isConnected()) {
           val msg = "Failed to connect to agent Cody agent"
           logger.error(msg)
@@ -203,10 +203,10 @@ class CodyAgentService(private val project: Project) : Disposable {
     }
   }
 
-  fun restartAgent(project: Project): CompletableFuture<CodyAgent> {
+  fun restartAgent(project: Project, secondsTimeout: Long = 90): CompletableFuture<CodyAgent> {
     synchronized(this) {
       stopAgent(project)
-      return startAgent(project)
+      return startAgent(project, secondsTimeout)
     }
   }
 
