@@ -10,7 +10,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolCodeLens
-import com.sourcegraph.cody.agent.protocol_generated.Range
 import com.sourcegraph.cody.edit.widget.LensAction
 import com.sourcegraph.cody.edit.widget.LensHotkey
 import com.sourcegraph.cody.edit.widget.LensIcon
@@ -18,7 +17,12 @@ import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
 import com.sourcegraph.utils.CodyEditorUtil
+import java.awt.Point
 import javax.swing.Icon
+
+typealias Uri = String
+
+typealias TaskId = String
 
 interface LensListener {
   fun onLensesUpdate(lensWidgetGroup: LensWidgetGroup?, codeLenses: List<ProtocolCodeLens>)
@@ -26,7 +30,7 @@ interface LensListener {
 
 @Service(Service.Level.PROJECT)
 class LensesService(val project: Project) {
-  private var lensGroups = mutableMapOf<String, Map<String, Pair<Range, LensWidgetGroup>>>()
+  private var lensGroups = mutableMapOf<Uri, Map<TaskId, LensWidgetGroup>>()
 
   private val listeners = mutableListOf<LensListener>()
 
@@ -38,12 +42,33 @@ class LensesService(val project: Project) {
     listeners.remove(listener)
   }
 
+  fun getTaskIdsOfFirstVisibleLens(editor: Editor): TaskId? {
+    val visibleArea = editor.scrollingModel.visibleArea
+    val visibleInlays =
+        editor.inlayModel.getBlockElementsInRange(
+            editor.visualPositionToOffset(editor.xyToVisualPosition(visibleArea.location)),
+            editor.visualPositionToOffset(
+                editor.xyToVisualPosition(
+                    Point(visibleArea.x + visibleArea.width, visibleArea.y + visibleArea.height))))
+
+    return lensGroups.values
+        .flatMap { param -> param.toList() }
+        .find { (_, lensGroup) -> visibleInlays.any { it == lensGroup.inlay } }
+        ?.first
+  }
+
   fun updateLenses(uri: String, codeLens: List<ProtocolCodeLens>) {
     runInEdt {
       val vf = CodyEditorUtil.findFileOrScratch(project, uri) ?: return@runInEdt
       val fileDesc = OpenFileDescriptor(project, vf)
       val editor =
           FileEditorManager.getInstance(project).openTextEditor(fileDesc, true) ?: return@runInEdt
+
+      val ranges = codeLens.groupBy { it.range }.keys.sortedBy { it.start.line }
+      ranges.zipWithNext { r1, r2 ->
+        if (r1.end.line > r2.start.line)
+            throw Exception("Lens ranges $r1 and $r2 for file $uri cannot overlap")
+      }
 
       val newLensGroups =
           codeLens
@@ -54,7 +79,7 @@ class LensesService(val project: Project) {
               }
               .toMap()
 
-      lensGroups[uri]?.values?.forEach { Disposer.dispose(it.second) }
+      lensGroups[uri]?.values?.forEach { Disposer.dispose(it) }
       newLensGroups.forEach { (taskId, rangeAndLensGroup) ->
         val (range, lensGroup) = rangeAndLensGroup
         val isNewTask = !lensGroups.containsKey(taskId)
@@ -69,7 +94,7 @@ class LensesService(val project: Project) {
         listeners.forEach { it.onLensesUpdate(null, emptyList()) }
       }
 
-      lensGroups[uri] = newLensGroups
+      lensGroups[uri] = newLensGroups.mapValues { it.value.second }
     }
   }
 

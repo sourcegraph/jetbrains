@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.edit.LensesService
 import com.sourcegraph.common.CodyBundle
 
 abstract class LensEditAction(val editAction: (Project, AnActionEvent, Editor, String) -> Unit) :
@@ -47,11 +48,13 @@ abstract class LensEditAction(val editAction: (Project, AnActionEvent, Editor, S
         return
       }
 
-      val taskId = e.dataContext.getData(TASK_ID_KEY)
-      if (taskId == null) {
-        logger.warn("No taskId found in data context for action ${this.javaClass.name}: $e")
-        return
-      }
+      val taskId =
+          e.dataContext.getData(TASK_ID_KEY)
+              ?: LensesService.getInstance(project).getTaskIdsOfFirstVisibleLens(editor)
+              ?: run {
+                logger.warn("No taskId found in data context for action ${this.javaClass.name}: $e")
+                return
+              }
 
       editAction(project, e, editor, taskId)
     } catch (ex: Exception) {
