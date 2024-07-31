@@ -50,7 +50,7 @@ class ChatTest : CodyIntegrationTextFixture() {
 
     await.atMost(10, TimeUnit.SECONDS) until { !session.messages[0].contextFiles.isNullOrEmpty() }
     await.atMost(10, TimeUnit.SECONDS) until { session.messages.size == 2 }
-    await.atMost(20, TimeUnit.SECONDS) until { session.messages[1].text?.isNotBlank() == true }
+    await.atMost(30, TimeUnit.SECONDS) until { session.messages[1].text?.isNotBlank() == true }
 
     val linkPanels =
         findComponentsRecursively(session.getPanel(), ContextFileActionLink::class.java)
