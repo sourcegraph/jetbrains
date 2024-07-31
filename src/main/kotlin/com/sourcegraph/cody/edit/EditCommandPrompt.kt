@@ -79,7 +79,7 @@ class EditCommandPrompt(
     val project: Project,
     val editor: Editor,
     dialogTitle: String,
-    val previousEdit: EditTask? = null
+    private val previousEdit: EditTask? = null
 ) : JFrame(), Disposable, DataProvider {
 
   private val logger = Logger.getInstance(EditCommandPrompt::class.java)
