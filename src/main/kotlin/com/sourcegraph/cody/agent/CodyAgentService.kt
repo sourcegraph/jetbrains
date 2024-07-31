@@ -176,14 +176,12 @@ class CodyAgentService(private val project: Project) : Disposable {
           codyAgent.complete(agent)
           CodyStatusService.resetApplication(project)
         }
-
       } catch (e: TimeoutException) {
         val msg = "Failed to start Cody agent in timely manner, please run any Cody action to retry"
         runInEdt { CodyConnectionTimeoutExceptionNotification().notify(project) }
         setAgentError(project, msg)
         codyAgent.completeExceptionally(CodyAgentException(msg, e))
-      }
-      catch (e: Exception) {
+      } catch (e: Exception) {
         val msg = "Failed to start Cody agent"
         setAgentError(project, msg)
         logger.error(msg, e)
