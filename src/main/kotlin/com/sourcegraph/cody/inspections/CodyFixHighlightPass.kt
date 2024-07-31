@@ -38,6 +38,8 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
 
     val protocolDiagnostics =
         myHighlights
+            // TODO: We need to check how Enum comparison works to check if we can do things like >=
+            // HighlightSeverity.INFO
             .filter { it.severity == HighlightSeverity.ERROR }
             .map {
               ProtocolDiagnostic(
@@ -61,10 +63,7 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
             break
           }
           val range = document.codyRange(highlight.startOffset, highlight.endOffset)
-          // TODO: We could technically expect different actions for different issues even though
-          // they have the same range. To support that we could skill skip it here and instead add
-          // some metadata on the 'publish' diagnostics so that we can identify the inspection
-          // when we receive the code actions later.
+
           if (myRangeActions.containsKey(range)) {
             continue
           }

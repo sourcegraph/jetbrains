@@ -64,7 +64,6 @@ class CodeActionQuickFix(private val params: CodeActionQuickFixParams) :
     }
 
     if (!(isFixAction() || isExplainAction())) {
-      // TODO: Explain actions are temporarily disabled pending Protocol Support
       // TODO: We temporarily disable unknown actions until we've verified they work.
       return false
     }
@@ -73,7 +72,7 @@ class CodeActionQuickFix(private val params: CodeActionQuickFixParams) :
   }
 
   override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-    // TODO: We could be more clever here and track if any inspections have actually changed etc.
+    // TODO: We could be more clever with when we update CODY-3124
     if (editor == null || file == null) {
       return
     }
@@ -93,7 +92,7 @@ class CodeActionQuickFix(private val params: CodeActionQuickFixParams) :
         // TODO: handle this with a user notification
         throw Exception("Could not find action")
       }
-      // TODO: Surely not all triggers will return an edit? For instance explain can't.
+      // TODO: Need to refactor agent to not return edit session for every action CODY-3125
       agent.server.codeActions_trigger(CodeActions_TriggerParams(id = action.id))
     }
   }
