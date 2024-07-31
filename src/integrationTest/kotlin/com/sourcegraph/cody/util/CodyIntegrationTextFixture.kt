@@ -39,9 +39,9 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
 
   override fun setUp() {
     super.setUp()
+    myProject = project
     configureFixture()
     checkInitialConditions()
-    myProject = project
     LensesService.getInstance(project).addListener(this)
   }
 

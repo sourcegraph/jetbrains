@@ -279,6 +279,8 @@ class EditCommandPrompt(
     shape = makeCornerShape(width, height)
     updateDialogPosition()
     isVisible = true
+
+    project.putUserData(EDIT_COMMAND_PROMPT_KEY, this)
   }
 
   fun isOkActionEnabled() = okButtonGroup.isEnabled && model != null
