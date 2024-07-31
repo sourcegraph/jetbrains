@@ -53,7 +53,9 @@ interface _SubsetGeneratedCodyAgentServer {
   fun diagnostics_publish(params: Diagnostics_PublishParams): CompletableFuture<Null?>
 
   @JsonRequest("codeActions/provide")
-  fun codeActions_provide(params: CodeActions_ProvideParams): CompletableFuture<CodeActions_ProvideResult>
+  fun codeActions_provide(
+      params: CodeActions_ProvideParams
+  ): CompletableFuture<CodeActions_ProvideResult>
 
   @JsonRequest("codeActions/trigger")
   fun codeActions_trigger(params: CodeActions_TriggerParams): CompletableFuture<EditTask>
