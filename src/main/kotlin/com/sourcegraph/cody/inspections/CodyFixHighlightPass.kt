@@ -38,7 +38,7 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
 
     val protocolDiagnostics =
         myHighlights
-            .filter { it.severity >= HighlightSeverity.ERROR }
+            .filter { it.severity == HighlightSeverity.ERROR }
             .map {
               ProtocolDiagnostic(
                   message = it.description,
