@@ -64,14 +64,9 @@ class CodeActionQuickFix(private val params: CodeActionQuickFixParams) :
       return false
     }
 
-    if (isExplainAction()) {
-      // TODO: Explain actions are temporarily disabled pending Protocol Support
-      return false
-    }
-
     if (!(isFixAction() || isExplainAction())) {
+      // TODO: Explain actions are temporarily disabled pending Protocol Support
       // TODO: We temporarily disable unknown actions until we've verified they work.
-      // Yes, I know it looks redundant.
       return false
     }
 
