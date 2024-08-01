@@ -198,29 +198,32 @@ private constructor(
       return normalizeUriOrPath(uriString)
     }
 
-    // Fix up Windows paths.
+    @JvmStatic
     fun normalizeUriOrPath(uriString: String): String {
       val hasScheme = uriString.startsWith("file://")
       val path =
           (if (hasScheme) uriString.removePrefix("file://") else uriString).replace("\\", "/")
 
-      // Normalize WSL paths.
+      // Normalize WSL paths
       val wslPrefix = "//wsl$"
       if (path.startsWith(wslPrefix)) {
         val newPath = "//wsl.localhost${path.removePrefix(wslPrefix)}"
         return if (hasScheme) "file://$newPath" else newPath
       }
 
-      // Normalize drive letters for Windows.
+      // Normalize drive letters for Windows
       val driveLetterPattern = """^(\w):/""".toRegex()
       val normalizedPath =
           driveLetterPattern.replace(path) { matchResult ->
             val driveLetter = matchResult.groupValues[1].lowercase(Locale.getDefault())
-            // Ensure the drive letter path is formatted correctly
-            if (hasScheme) "file:///${driveLetter}:/" else "${driveLetter}:/"
+            "${driveLetter}:/"
           }
 
-      return if (hasScheme) "file:///$normalizedPath" else normalizedPath
+      if (!hasScheme) return normalizedPath
+      if (path.startsWith("/") && path.length > 1 && path[1] != '/') {
+        return "file://$normalizedPath"
+      }
+      return "file:///$normalizedPath"
     }
   }
 }
