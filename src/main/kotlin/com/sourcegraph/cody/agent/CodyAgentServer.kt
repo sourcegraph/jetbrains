@@ -56,8 +56,7 @@ interface _SubsetGeneratedCodyAgentServer {
   // ========
   // Requests
   // ========
-  @JsonRequest("initialize")
-  fun initialize(params: ClientInfo): CompletableFuture<ServerInfo>
+  @JsonRequest("initialize") fun initialize(params: ClientInfo): CompletableFuture<ServerInfo>
 
   @JsonRequest("editTask/retry")
   fun editTask_retry(params: EditTask_RetryParams): CompletableFuture<EditTask>
@@ -101,8 +100,7 @@ interface _SubsetGeneratedCodyAgentServer {
  * works similar to JavaScript Proxy.
  */
 interface _LegacyAgentServer {
-  @JsonRequest("shutdown")
-  fun shutdown(): CompletableFuture<Void?>
+  @JsonRequest("shutdown") fun shutdown(): CompletableFuture<Void?>
 
   @JsonRequest("autocomplete/execute")
   fun autocompleteExecute(params: AutocompleteParams?): CompletableFuture<AutocompleteResult>
@@ -110,11 +108,9 @@ interface _LegacyAgentServer {
   @JsonRequest("telemetry/recordEvent")
   fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
 
-  @JsonRequest("graphql/logEvent")
-  fun logEvent(event: Event): CompletableFuture<Void?>
+  @JsonRequest("graphql/logEvent") fun logEvent(event: Event): CompletableFuture<Void?>
 
-  @JsonRequest("graphql/currentUserId")
-  fun currentUserId(): CompletableFuture<String>
+  @JsonRequest("graphql/currentUserId") fun currentUserId(): CompletableFuture<String>
 
   // TODO(CODY-2826): Would be nice if we can generate some set of "known" feature flags from the
   // protocol
@@ -126,17 +122,14 @@ interface _LegacyAgentServer {
   @JsonRequest("graphql/getCurrentUserCodySubscription")
   fun getCurrentUserCodySubscription(): CompletableFuture<CurrentUserCodySubscription?>
 
-  @JsonNotification("initialized")
-  fun initialized()
+  @JsonNotification("initialized") fun initialized()
 
-  @JsonNotification("exit")
-  fun exit()
+  @JsonNotification("exit") fun exit()
 
   @JsonNotification("textDocument/didFocus")
   fun textDocumentDidFocus(document: ProtocolTextDocument)
 
-  @JsonNotification("textDocument/didOpen")
-  fun textDocumentDidOpen(document: ProtocolTextDocument)
+  @JsonNotification("textDocument/didOpen") fun textDocumentDidOpen(document: ProtocolTextDocument)
 
   @JsonNotification("textDocument/didChange")
   fun textDocumentDidChange(document: ProtocolTextDocument)
@@ -144,11 +137,9 @@ interface _LegacyAgentServer {
   @JsonNotification("textDocument/didClose")
   fun textDocumentDidClose(document: ProtocolTextDocument)
 
-  @JsonNotification("textDocument/didSave")
-  fun textDocumentDidSave(document: ProtocolTextDocument)
+  @JsonNotification("textDocument/didSave") fun textDocumentDidSave(document: ProtocolTextDocument)
 
-  @JsonNotification("autocomplete/clearLastCandidate")
-  fun autocompleteClearLastCandidate()
+  @JsonNotification("autocomplete/clearLastCandidate") fun autocompleteClearLastCandidate()
 
   @JsonNotification("autocomplete/completionSuggested")
   fun completionSuggested(logID: CompletionItemParams)
@@ -171,23 +162,18 @@ interface _LegacyAgentServer {
   @JsonRequest("command/execute")
   fun commandExecute(params: CommandExecuteParams): CompletableFuture<Any?>
 
-  @JsonRequest("commands/explain")
-  fun legacyCommandsExplain(): CompletableFuture<ConnectionId>
+  @JsonRequest("commands/explain") fun legacyCommandsExplain(): CompletableFuture<ConnectionId>
 
-  @JsonRequest("commands/smell")
-  fun legacyCommandsSmell(): CompletableFuture<ConnectionId>
+  @JsonRequest("commands/smell") fun legacyCommandsSmell(): CompletableFuture<ConnectionId>
 
-  @JsonRequest("editCommands/document")
-  fun commandsDocument(): CompletableFuture<EditTask>
+  @JsonRequest("editCommands/document") fun commandsDocument(): CompletableFuture<EditTask>
 
   @JsonRequest("editCommands/code")
   fun commandsEdit(params: InlineEditParams): CompletableFuture<EditTask>
 
-  @JsonRequest("editCommands/test")
-  fun commandsTest(): CompletableFuture<EditTask>
+  @JsonRequest("editCommands/test") fun commandsTest(): CompletableFuture<EditTask>
 
-  @JsonRequest("chat/new")
-  fun chatNew(): CompletableFuture<String>
+  @JsonRequest("chat/new") fun chatNew(): CompletableFuture<String>
 
   @JsonRequest("chat/submitMessage")
   fun chatSubmitMessage(params: ChatSubmitMessageParams): CompletableFuture<ExtensionMessage>
@@ -195,8 +181,7 @@ interface _LegacyAgentServer {
   @JsonRequest("chat/models")
   fun chatModels(params: ChatModelsParams): CompletableFuture<ChatModelsResponse>
 
-  @JsonRequest("chat/export")
-  fun chatExport(): CompletableFuture<List<ChatHistoryResponse>>
+  @JsonRequest("chat/export") fun chatExport(): CompletableFuture<List<ChatHistoryResponse>>
 
   @JsonRequest("chat/restore")
   fun chatRestore(params: ChatRestoreParams): CompletableFuture<ConnectionId>

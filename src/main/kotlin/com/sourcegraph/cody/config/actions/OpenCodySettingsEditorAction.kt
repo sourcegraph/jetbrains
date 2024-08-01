@@ -15,7 +15,7 @@ import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.utils.CodyEditorUtil
 import kotlin.io.path.name
 
-class EditCodySettingsAction : DumbAwareEDTAction("Open Cody Settings Editor") {
+class OpenCodySettingsEditorAction : DumbAwareEDTAction("Open Cody Settings Editor") {
   override fun actionPerformed(e: AnActionEvent) {
     val project =
         e.project
@@ -67,6 +67,6 @@ class EditCodySettingsAction : DumbAwareEDTAction("Open Cody Settings Editor") {
   }
 
   companion object {
-    private val logger = Logger.getInstance(EditCodySettingsAction::class.java)
+    private val logger = Logger.getInstance(OpenCodySettingsEditorAction::class.java)
   }
 }
