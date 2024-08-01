@@ -220,7 +220,7 @@ private constructor(
           }
 
       if (!hasScheme) return normalizedPath
-      if (path.startsWith("/") && path.length > 1 && path[1] != '/') {
+      if (path.matches(Regex("^/[^/].*"))) {
         return "file://$normalizedPath"
       }
       return "file:///$normalizedPath"
