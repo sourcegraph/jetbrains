@@ -13,6 +13,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.EditorTestUtil
+import com.intellij.testFramework.HeavyPlatformTestCase
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
@@ -30,6 +31,7 @@ import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import kotlin.io.path.pathString
 
 open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   private val logger = Logger.getInstance(CodyIntegrationTextFixture::class.java)
@@ -48,26 +50,40 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   override fun tearDown() {
     try {
       LensesService.getInstance(project).removeListener(this)
-      CodyAgentService.getInstance(myFixture.project).apply {
-        try {
-          stopAgent(project)
-        } catch (x: Exception) {
-          logger.warn("Error shutting down agent", x)
+
+      val recordingsFuture = CompletableFuture<Void>()
+      CodyAgentService.withAgent(project) { agent ->
+        val errors = agent.server.testingRequestErrors().get()
+        // We extract polly.js errors to notify users about the missing recordings, if any
+        val missingRecordings = errors.filter { it.error?.contains("`recordIfMissing` is") == true }
+        missingRecordings.forEach { missing ->
+          logger.error(
+              """Recording is missing: ${missing.error}
+                |
+                |${missing.body}
+                |
+                |------------------------------------------------------------------------------------------
+                |To fix this problem please run `./gradlew :recordingIntegrationTest`.
+                |You need to export access tokens first, using script from the `sourcegraph/cody` repository:
+                |`agent/scripts/export-cody-http-recording-tokens.sh`
+                |------------------------------------------------------------------------------------------
+              """
+                  .trimMargin())
         }
+        recordingsFuture.complete(null)
       }
+      recordingsFuture.get(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+      CodyAgentService.getInstance(project)
+          .stopAgent(project)
+          ?.get(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     } finally {
+      val testDataPath = Paths.get(myFixture.testDataPath)
       super.tearDown()
+      testDataPath.toFile().deleteRecursively()
     }
   }
 
   private fun configureFixture() {
-    // If you don't specify this system property with this setting when running the tests,
-    // the tests will fail, because IntelliJ will run them from the EDT, which can't block.
-    // Setting this property invokes the tests from an executor pool thread, which lets us
-    // block/wait on potentially long-running operations during the integration test.
-    val policy = System.getProperty("idea.test.execution.policy")
-    assertTrue(policy == "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
-
     // This is wherever src/integrationTest/resources is on the box running the tests.
     val testResourcesDir = File(System.getProperty("test.resources.dir"))
     assertTrue(testResourcesDir.exists())
@@ -77,16 +93,17 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
     val workspaceRootUri = ConfigUtil.getWorkspaceRootPath(project)
 
     // We copy the test resources there manually, bypassing Gradle, which is picky.
-    val testDataPath = Paths.get(workspaceRootUri.toString(), "src/").toFile()
-    testResourcesDir.copyRecursively(testDataPath, overwrite = true)
+    // We also ensure that all files are properly refreshed to the VFS.
+    val testDataPath = workspaceRootUri.resolve(name)
+    testResourcesDir.copyRecursively(testDataPath.toFile(), overwrite = true)
+    HeavyPlatformTestCase.synchronizeTempDirVfs(testDataPath)
 
     // This useful setting lets us tell the fixture to look where we copied them.
-    myFixture.testDataPath = testDataPath.path
+    myFixture.testDataPath = testDataPath.pathString
 
     // The file we pass to configureByFile must be relative to testDataPath.
     val projectFile = "testProjects/documentCode/src/main/java/Foo.java"
-    val sourcePath = Paths.get(testDataPath.path, projectFile).toString()
-    assertTrue(File(sourcePath).exists())
+    assertTrue(testDataPath.resolve(projectFile).toFile().exists())
     myFixture.configureByFile(projectFile)
 
     initCredentialsAndAgent()
@@ -116,6 +133,13 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   }
 
   private fun checkInitialConditions() {
+    // If you don't specify this system property with this setting when running the tests,
+    // the tests will fail, because IntelliJ will run them from the EDT, which can't block.
+    // Setting this property invokes the tests from an executor pool thread, which lets us
+    // block/wait on potentially long-running operations during the integration test.
+    val policy = System.getProperty("idea.test.execution.policy")
+    assertTrue(policy == "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy")
+
     val project = myFixture.project
 
     // Check if the project is in dumb mode
