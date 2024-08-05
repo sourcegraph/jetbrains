@@ -40,9 +40,9 @@ private constructor(
   fun shutdown(): CompletableFuture<Unit> {
     return server.shutdown().completeOnTimeout(null, 15, TimeUnit.SECONDS).handle { _, throwable ->
       if (throwable != null) logger.warn("Graceful shutdown of Cody agent server failed", throwable)
+      server.exit()
       listeningToJsonRpc.cancel(true)
       connection.close()
-      server.exit()
       logger.info("Cody Agent shut down gracefully")
     }
   }

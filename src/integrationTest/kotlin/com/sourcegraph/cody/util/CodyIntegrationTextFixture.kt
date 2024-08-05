@@ -5,6 +5,8 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
@@ -13,7 +15,6 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.EditorTestUtil
-import com.intellij.testFramework.HeavyPlatformTestCase
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
@@ -25,13 +26,10 @@ import com.sourcegraph.cody.edit.LensListener
 import com.sourcegraph.cody.edit.LensesService
 import com.sourcegraph.cody.edit.widget.LensAction
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
-import com.sourcegraph.config.ConfigUtil
-import java.io.File
-import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import kotlin.io.path.pathString
+import junit.framework.TestCase
 
 open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   private val logger = Logger.getInstance(CodyIntegrationTextFixture::class.java)
@@ -41,8 +39,16 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
 
   override fun setUp() {
     super.setUp()
+
     myProject = project
-    configureFixture()
+    myFixture.testDataPath = System.getProperty("test.resources.dir")
+    // The file we pass to configureByFile must be relative to testDataPath.
+    myFixture.configureByFile("testProjects/documentCode/src/main/java/Foo.java")
+    TestCase.assertTrue(myFixture.file.virtualFile.exists())
+
+    initCredentialsAndAgent()
+    initCaretPosition()
+
     checkInitialConditions()
     LensesService.getInstance(project).addListener(this)
   }
@@ -50,6 +56,8 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   override fun tearDown() {
     try {
       LensesService.getInstance(project).removeListener(this)
+
+      runInEdt { WriteAction.run<RuntimeException> { myFixture.file.virtualFile.delete(this) } }
 
       val recordingsFuture = CompletableFuture<Void>()
       CodyAgentService.withAgent(project) { agent ->
@@ -77,37 +85,8 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
           .stopAgent(project)
           ?.get(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     } finally {
-      val testDataPath = Paths.get(myFixture.testDataPath)
       super.tearDown()
-      testDataPath.toFile().deleteRecursively()
     }
-  }
-
-  private fun configureFixture() {
-    // This is wherever src/integrationTest/resources is on the box running the tests.
-    val testResourcesDir = File(System.getProperty("test.resources.dir"))
-    assertTrue(testResourcesDir.exists())
-
-    // During test runs this is set by IntelliJ to a private temp folder.
-    // We pass it to the Agent during initialization.
-    val workspaceRootUri = ConfigUtil.getWorkspaceRootPath(project)
-
-    // We copy the test resources there manually, bypassing Gradle, which is picky.
-    // We also ensure that all files are properly refreshed to the VFS.
-    val testDataPath = workspaceRootUri.resolve(name)
-    testResourcesDir.copyRecursively(testDataPath.toFile(), overwrite = true)
-    HeavyPlatformTestCase.synchronizeTempDirVfs(testDataPath)
-
-    // This useful setting lets us tell the fixture to look where we copied them.
-    myFixture.testDataPath = testDataPath.pathString
-
-    // The file we pass to configureByFile must be relative to testDataPath.
-    val projectFile = "testProjects/documentCode/src/main/java/Foo.java"
-    assertTrue(testDataPath.resolve(projectFile).toFile().exists())
-    myFixture.configureByFile(projectFile)
-
-    initCredentialsAndAgent()
-    initCaretPosition()
   }
 
   // Ideally we should call this method only once per recording session, but since we need a
