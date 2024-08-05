@@ -17,12 +17,7 @@ import kotlin.io.path.name
 
 class OpenCodySettingsEditorAction : DumbAwareEDTAction("Open Cody Settings Editor") {
   override fun actionPerformed(e: AnActionEvent) {
-    val project =
-        e.project
-            ?: run {
-              logger.warn("Project cannot be null")
-              return
-            }
+    val project = e.project ?: return
 
     val settingsVf =
         CodyEditorUtil.createFileOrScratchFromUntitled(
@@ -51,10 +46,12 @@ class OpenCodySettingsEditorAction : DumbAwareEDTAction("Open Cody Settings Edit
               configName,
               JsonSchemaVersion.SCHEMA_7,
               schemaFile.toString(),
-              false,
+              /* applicationDefined = */ false,
               listOf(
                   UserDefinedJsonSchemaConfiguration.Item(
-                      "*/${ConfigUtil.getSettingsFile(project).name}", true, false)))
+                      "*/${ConfigUtil.getSettingsFile(project).name}",
+                      /* isPattern = */ true,
+                      /* isDirectory = */ false)))
 
       val schemaMapping = JsonSchemaMappingsProjectConfiguration.getInstance(project)
 
