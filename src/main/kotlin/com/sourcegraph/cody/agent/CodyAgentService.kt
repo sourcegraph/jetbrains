@@ -19,6 +19,7 @@ import com.sourcegraph.cody.error.CodyConsole
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
+import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.utils.CodyEditorUtil
 import java.util.Timer
 import java.util.TimerTask
@@ -167,7 +168,7 @@ class CodyAgentService(private val project: Project) : Disposable {
               throw (CodyAgentException(msg))
             }
 
-        val agent = future.get(1, TimeUnit.SECONDS)
+        val agent = future.get(45, TimeUnit.SECONDS)
         if (!agent.isConnected()) {
           val msg = "Failed to connect to agent Cody agent"
           logger.error(msg)
@@ -178,7 +179,7 @@ class CodyAgentService(private val project: Project) : Disposable {
           CodyStatusService.resetApplication(project)
         }
       } catch (e: TimeoutException) {
-        val msg = "Failed to start Cody agent in timely manner, please run any Cody action to retry"
+        val msg = CodyBundle.getString("error.cody-connection-timeout.message")
         runInEdt {
           val isNoBalloonDisplayed =
               NotificationsManager.getNotificationsManager()
@@ -192,7 +193,7 @@ class CodyAgentService(private val project: Project) : Disposable {
         setAgentError(project, msg)
         codyAgent.completeExceptionally(CodyAgentException(msg, e))
       } catch (e: Exception) {
-        val msg = "Failed to start Cody agent"
+        val msg = CodyBundle.getString("error.cody-starting.message")
         setAgentError(project, msg)
         logger.error(msg, e)
         codyAgent.completeExceptionally(CodyAgentException(msg, e))

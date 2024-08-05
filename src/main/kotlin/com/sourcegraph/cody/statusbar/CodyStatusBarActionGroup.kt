@@ -1,6 +1,5 @@
 package com.sourcegraph.cody.statusbar
 
-import com.intellij.ide.actions.AboutAction
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
@@ -23,11 +22,7 @@ class CodyStatusBarActionGroup : DefaultActionGroup() {
     removeAll()
     val status = e.project?.let { CodyStatusService.getCurrentStatus(it) }
     if (status == CodyStatus.CodyAgentNotRunning || status == CodyStatus.AgentError) {
-      addAll(
-          CodyAgentRestartAction(),
-          OpenLogAction(),
-          AboutAction().apply { templatePresentation.text = "Open About To Troubleshoot Issue" },
-          ReportCodyBugAction())
+      addAll(CodyAgentRestartAction(), OpenLogAction(), ReportCodyBugAction())
     } else {
       addAll(listOfNotNull(deriveRateLimitErrorAction()))
       addSeparator()
