@@ -519,7 +519,6 @@ tasks {
   runPluginVerifier {
     ideVersions.set(versionsToValidate)
     failureLevel.set(EnumSet.complementOf(skippedFailureLevels))
-    verifierVersion.set("1.371")
   }
 
   // Configure UI tests plugin
