@@ -13,7 +13,8 @@ class CodyAgentClientTest : BasePlatformTestCase() {
     const val WEBVIEW_ID: String = "unused-webview-id"
   }
 
-  @Volatile var lastMessage: ConfigFeatures? = null
+  @Volatile
+  var lastMessage: ConfigFeatures? = null
 
   // Use lock/condition to synchronize between observer being invoked
   // and the test being able to assert.
@@ -42,11 +43,11 @@ class CodyAgentClientTest : BasePlatformTestCase() {
             WebviewPostMessageParams(
                 id = WEBVIEW_ID,
                 message =
-                    ExtensionMessage(
-                        type = ExtensionMessage.Type.SET_CONFIG_FEATURES,
-                        errors = null,
-                        configFeatures = expected,
-                    )))
+                ExtensionMessage(
+                    type = ExtensionMessage.Type.SET_CONFIG_FEATURES,
+                    errors = null,
+                    configFeatures = expected,
+                )))
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
     lock.lock()
     try {
