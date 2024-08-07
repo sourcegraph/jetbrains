@@ -30,6 +30,13 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicReference
 
+/** A list of paths that the highlight pass should ignore */
+val IGNORED_PATHS =
+    listOf(
+        "/RepositoryList" // this is a fake path that is in the "AddRepo Context" Enterprise view.
+        // This fake file holds all available repositories.
+        )
+
 class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
     TextEditorHighlightingPass(file.project, editor.document, false) {
 
@@ -37,10 +44,20 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
   private var myHighlights = emptyList<HighlightInfo>()
   private val myRangeActions = mutableMapOf<Range, List<CodeActionQuickFixParams>>()
 
+  private val shouldIgnoreFile: Boolean
+    get() {
+      val virtualFile = file.virtualFile ?: return true
+      val path = virtualFile.path
+      return IGNORED_PATHS.any { ignoredPath -> path.startsWith(ignoredPath, ignoreCase = true) }
+    }
+
   // We are invoked by the superclass on a daemon/worker thread, but we need the EDT
   // for this and perhaps other things (e.g. Document.codyRange). So we set things up
   // to block the caller and fetch what we need on the EDT.
-  private val protocolTextDocumentFuture: CompletableFuture<ProtocolTextDocument> =
+  private val protocolTextDocumentFuture: CompletableFuture<ProtocolTextDocument> by lazy {
+    if (shouldIgnoreFile) {
+      CompletableFuture.failedFuture(Exception("File should be ignored"))
+    } else {
       CompletableFuture.supplyAsync(
           {
             val result = AtomicReference<ProtocolTextDocument>()
@@ -50,8 +67,13 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
             result.get()
           },
           AppExecutorUtil.getAppExecutorService())
+    }
+  }
 
   override fun doCollectInformation(progress: ProgressIndicator) {
+    if (shouldIgnoreFile) {
+      return
+    }
     // Fetch the protocol text document on the EDT.
     val protocolTextDocument =
         try {
@@ -134,6 +156,9 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
   }
 
   override fun doApplyInformationToEditor() {
+    if (shouldIgnoreFile) {
+      return
+    }
     for (highlight in myHighlights) {
       highlight.unregisterQuickFix { it.familyName == CodeActionQuickFix.FAMILY_NAME }
 
