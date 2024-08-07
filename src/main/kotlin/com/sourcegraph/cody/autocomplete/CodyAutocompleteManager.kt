@@ -434,6 +434,7 @@ class CodyAutocompleteManager {
     if (lines.size > 1) {
       val text =
           (if (startsInline) lines.drop(1) else lines).dropWhile { it.isBlank() }.joinToString("\n")
+      if (text.isEmpty()) return
       val renderer = CodyAutocompleteBlockElementRenderer(text, items, editor)
       val inlay2 =
           inlayModel.addBlockElement(
