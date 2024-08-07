@@ -67,7 +67,7 @@ class CodeActionQuickFix(private val params: CodeActionQuickFixParams) :
       return false
     }
 
-    if(isExplainAction()){
+    if (isExplainAction()) {
       // TODO: Temporarily disable explain action since it's not implemented
       return false
     }
