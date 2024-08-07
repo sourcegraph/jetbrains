@@ -1,16 +1,11 @@
 package com.sourcegraph.cody.util
 
 import com.intellij.ide.lightEdit.LightEdit
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -95,6 +90,13 @@ abstract class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener
   // Methods there are mostly idempotent though, so calling again for every test case should not
   // change anything.
   private fun initCredentialsAndAgent() {
+    assertNotNull(
+        "Unable to start agent in a timely fashion!",
+        CodyAgentService.getInstance(project)
+            .startAgent(project)
+            .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .get())
+
     val credentials = myCredentials()
     CodyPersistentAccountsHost(project)
         .addAccount(
@@ -103,13 +105,6 @@ abstract class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener
             displayName = "Test User",
             token = credentials.token ?: credentials.redactedToken,
             id = "random-unique-testing-id-1337")
-
-    assertNotNull(
-        "Unable to start agent in a timely fashion!",
-        CodyAgentService.getInstance(project)
-            .startAgent(project)
-            .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .get())
   }
 
   abstract fun myCredentials(): TestingCredentials
@@ -132,19 +127,10 @@ abstract class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener
     val isLightEditMode = LightEdit.owns(project)
     assertFalse("Project should not be in LightEdit mode", isLightEditMode)
 
-    // Check the initial state of the action's presentation
-    val action = ActionManager.getInstance().getAction("cody.documentCodeAction")
-    val event =
-        AnActionEvent.createFromAnAction(action, null, "", createEditorContext(myFixture.editor))
-    action.update(event)
-    val presentation = event.presentation
-    assertTrue("Action should be enabled", presentation.isEnabled)
-    assertTrue("Action should be visible", presentation.isVisible)
+    checkSuiteSpecificInitialConditions()
   }
 
-  private fun createEditorContext(editor: Editor): DataContext {
-    return (editor as? EditorEx)?.dataContext ?: DataContext.EMPTY_CONTEXT
-  }
+  abstract fun checkSuiteSpecificInitialConditions()
 
   // This provides a crude mechanism for specifying the caret position in the test file.
   private fun initCaretPosition() {

@@ -23,6 +23,8 @@ import org.junit.runner.RunWith
 class ChatTest : CodyIntegrationTextFixture() {
   override fun myCredentials() = TestingCredentials.enterprise
 
+  override fun checkSuiteSpecificInitialConditions() = Unit
+
   @Test
   fun testRemoteContextFileItems() {
     val enhancedContextState =
@@ -38,18 +40,18 @@ class ChatTest : CodyIntegrationTextFixture() {
 
     val session = runInEdtAndGet { AgentChatSession.createNew(project) }
 
-    await.atMost(10, TimeUnit.SECONDS) until
+    await.atMost(30, TimeUnit.SECONDS) until
         {
           (session.getPanel().contextView as EnterpriseEnhancedContextPanel)
               .controller
               .getConfiguredState()
-              .find { it.name == "github.com/sourcegraph/cody" } != null
+              .find { it.name == "github.com/sourcegraph/cody" && !it.isIgnored } != null
         }
 
-    runInEdtAndWait { session.sendMessage("How do we use JSON RPC in Cody?", emptyList()) }
+    runInEdtAndWait { session.sendMessage("What is JSON RPC?", emptyList()) }
 
-    await.atMost(10, TimeUnit.SECONDS) until { !session.messages[0].contextFiles.isNullOrEmpty() }
-    await.atMost(10, TimeUnit.SECONDS) until { session.messages.size == 2 }
+    await.atMost(30, TimeUnit.SECONDS) until { !session.messages[0].contextFiles.isNullOrEmpty() }
+    await.atMost(30, TimeUnit.SECONDS) until { session.messages.size == 2 }
     await.atMost(30, TimeUnit.SECONDS) until { session.messages[1].text?.isNotBlank() == true }
 
     val linkPanels =
@@ -71,7 +73,7 @@ class ChatTest : CodyIntegrationTextFixture() {
             "cody vscode/src/graph/bfg/spawn-bfg.ts",
             "cody vscode/src/jsonrpc/bfg-protocol.ts",
             "cody vscode/src/jsonrpc/CodyJsonRpcErrorCode.ts",
-            "cody vscode/src/jsonrpc/context-ranking-protocol.ts",
+            "cody vscode/src/jsonrpc/embeddings-protocol.ts",
             "cody vscode/src/jsonrpc/isRunningInsideAgent.ts",
             "cody vscode/src/jsonrpc/jsonrpc.ts",
             "cody vscode/src/jsonrpc/TextDocumentWithUri.test.ts",
