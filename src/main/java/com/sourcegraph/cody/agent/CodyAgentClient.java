@@ -2,12 +2,23 @@ package com.sourcegraph.cody.agent;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.fileChooser.FileChooserFactory;
+import com.intellij.openapi.fileChooser.FileSaverDescriptor;
+import com.intellij.openapi.fileChooser.FileSaverDialog;
+import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.sourcegraph.cody.agent.protocol.*;
 import com.sourcegraph.cody.agent.protocol_generated.DisplayCodeLensParams;
 import com.sourcegraph.cody.agent.protocol_generated.EditTask;
+import com.sourcegraph.cody.agent.protocol_generated.SaveDialogOptionsParams;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.jetbrains.annotations.NotNull;
@@ -201,5 +212,23 @@ public class CodyAgentClient {
     }
 
     logger.debug(String.format("webview/postMessage %s: %s", params.getId(), params.getMessage()));
+  }
+
+  @JsonRequest("window/showSaveDialog")
+  public CompletableFuture<String> window_showSaveDialog(SaveDialogOptionsParams params) {
+    Path defaultPath = Paths.get(Objects.requireNonNull(params.getDefaultUri()));
+    Map<String, List<String>> filters = params.getFilters();
+    List<String> allValues =
+        Objects.requireNonNull(filters).values().stream()
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
+
+    FileSaverDescriptor descriptor =
+        new FileSaverDescriptor("Save", "Save file", allValues.toArray(new String[0]));
+    FileSaverDialog saveFileDialog =
+        FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project);
+    VirtualFileWrapper savedFile =
+        saveFileDialog.save(defaultPath, defaultPath.getFileName().toString());
+    return CompletableFuture.completedFuture(savedFile.getFile().toString());
   }
 }
