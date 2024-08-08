@@ -1,8 +1,3 @@
-/*
- * Generated file - DO NOT EDIT MANUALLY
- * They are copied from the cody agent project using the copyProtocol gradle task.
- * This is only a temporary solution before we fully migrate to generated protocol messages.
- */
 @file:Suppress("unused", "ConstPropertyName")
 package com.sourcegraph.cody.agent.protocol_generated;
 
@@ -174,4 +169,6 @@ object Constants {
   const val request = "request"
   const val `object-encoded` = "object-encoded"
   const val `string-encoded` = "string-encoded"
+  const val agentic = "agentic"
+  const val native = "native"
 }

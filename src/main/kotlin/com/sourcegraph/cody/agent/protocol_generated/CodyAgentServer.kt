@@ -1,8 +1,3 @@
-/*
- * Generated file - DO NOT EDIT MANUALLY
- * They are copied from the cody agent project using the copyProtocol gradle task.
- * This is only a temporary solution before we fully migrate to generated protocol messages.
- */
 @file:Suppress("FunctionName", "ClassName", "RedundantNullable")
 package com.sourcegraph.cody.agent.protocol_generated;
 
@@ -95,6 +90,8 @@ interface CodyAgentServer {
   fun git_codebaseName(params: Git_CodebaseNameParams): CompletableFuture<String?>
   @JsonRequest("webview/didDispose")
   fun webview_didDispose(params: Webview_DidDisposeParams): CompletableFuture<Null?>
+  @JsonRequest("webview/resolveWebviewView")
+  fun webview_resolveWebviewView(params: Webview_ResolveWebviewViewParams): CompletableFuture<Null?>
   @JsonRequest("webview/receiveMessage")
   fun webview_receiveMessage(params: Webview_ReceiveMessageParams): CompletableFuture<Null?>
   @JsonRequest("webview/receiveMessageStringEncoded")
@@ -177,4 +174,6 @@ interface CodyAgentServer {
   fun autocomplete_completionAccepted(params: CompletionItemParams)
   @JsonNotification("progress/cancel")
   fun progress_cancel(params: Progress_CancelParams)
+  @JsonNotification("webview/didDisposeNative")
+  fun webview_didDisposeNative(params: Webview_DidDisposeNativeParams)
 }

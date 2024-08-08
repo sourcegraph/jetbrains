@@ -13,6 +13,7 @@ import com.sourcegraph.cody.agent.protocol.*
 import com.sourcegraph.cody.agent.protocol_generated.ClientCapabilities
 import com.sourcegraph.cody.agent.protocol_generated.ClientInfo
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolTypeAdapters
+import com.sourcegraph.cody.agent.protocol_generated.WebviewNativeConfigParams
 import com.sourcegraph.cody.ui.WebUIServiceWebviewProvider
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.config.ConfigUtil
@@ -127,7 +128,11 @@ private constructor(
                               ignore = ClientCapabilities.IgnoreEnum.Enabled,
                               untitledDocuments = ClientCapabilities.UntitledDocumentsEnum.Enabled,
                               codeActions = ClientCapabilities.CodeActionsEnum.Enabled,
-//                            webview = WebviewCapabilities("native", "'self' https://*.sourcegraphstatic.com", "https://file+.sourcegraphstatic.com"),
+                              webview = ClientCapabilities.WebviewEnum.Native,
+                              webviewNativeConfig = WebviewNativeConfigParams(
+                                cspSource="'self' https://*.sourcegraphstatic.com",
+                                webviewBundleServingPrefix="https://file+.sourcegraphstatic.com",
+                              ),
                               webviewMessages = ClientCapabilities.WebviewMessagesEnum.`String-encoded`)))
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)
