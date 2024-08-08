@@ -19,7 +19,6 @@ import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.agent.protocol.WebviewOptions
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
 import com.sourcegraph.cody.config.ui.AccountConfigurable
-import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.sidebar.WebTheme
 import com.sourcegraph.cody.sidebar.WebThemeController
 import com.sourcegraph.common.BrowserOpener
@@ -219,36 +218,6 @@ class WebUIHostImpl(val project: Project, val handle: String, private var _optio
   override fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
     // Some commands can be handled by the client and do not need to round-trip client -> Agent -> client.
     when (stringEncodedJsonMessage) {
-      "{\"command\":\"command\",\"id\":\"cody.command.edit-code\"}" -> {
-        runInEdt {
-          FixupService.getInstance(project).apply {
-            val editor = this.getEditorForChatInitiatedEdits()
-            if (editor != null) {
-              this.startCodeEdit(editor)
-            }
-          }
-        }
-      }
-      "{\"command\":\"command\",\"id\":\"cody.command.document-code\"}" -> {
-        runInEdt {
-          FixupService.getInstance(project).apply {
-            val editor = this.getEditorForChatInitiatedEdits()
-            if (editor != null) {
-              this.startDocumentCode(editor)
-            }
-          }
-        }
-      }
-      "{\"command\":\"command\",\"id\":\"cody.command.unit-tests\"}" -> {
-        runInEdt {
-          FixupService.getInstance(project).apply {
-            val editor = this.getEditorForChatInitiatedEdits()
-            if (editor != null) {
-              this.startTestCode(editor)
-            }
-          }
-        }
-      }
       // TODO: Remove this redirection when sign in moves to Web UI.
       "{\"command\":\"command\",\"id\":\"cody.auth.signin\"}",
       "{\"command\":\"command\",\"id\":\"cody.auth.signout\"}" -> {
