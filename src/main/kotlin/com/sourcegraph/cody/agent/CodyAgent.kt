@@ -201,6 +201,8 @@ private constructor(
         } else {
           processBuilder.environment()["HTTP_PROXY"] = "http://$proxyUrl"
           processBuilder.environment()["HTTPS_PROXY"] = "http://$proxyUrl"
+          processBuilder.environment()["GLOBAL_AGENT_HTTP_PROXY"] = "http://$proxyUrl"
+          processBuilder.environment()["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
         }
       }
 
