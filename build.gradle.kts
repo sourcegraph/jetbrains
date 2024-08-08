@@ -339,11 +339,7 @@ tasks {
     val agentDir = codyDir.resolve("agent")
     exec {
       workingDir(agentDir)
-      commandLine(pnpmPath, "run", "build:agent")
-    }
-    exec {
-      workingDir(agentDir)
-      commandLine(pnpmPath, "run", "build:webviews")
+      commandLine(pnpmPath, "run", "build")
     }
     copy {
       from(agentDir.resolve("dist"))
