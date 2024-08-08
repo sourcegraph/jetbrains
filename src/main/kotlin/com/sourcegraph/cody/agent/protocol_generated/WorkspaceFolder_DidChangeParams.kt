@@ -1,7 +1,7 @@
 @file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName", "UnusedImport")
 package com.sourcegraph.cody.agent.protocol_generated;
 
-data class UserLocalHistory(
-  val chat: ChatHistory,
+data class WorkspaceFolder_DidChangeParams(
+  val uri: String,
 )
 
