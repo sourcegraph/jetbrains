@@ -56,23 +56,7 @@ abstract class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener
 
       val recordingsFuture = CompletableFuture<Void>()
       CodyAgentService.withAgent(project) { agent ->
-        val errors = agent.server.testingRequestErrors().get()
-        // We extract polly.js errors to notify users about the missing recordings, if any
-        val missingRecordings = errors.filter { it.error?.contains("`recordIfMissing` is") == true }
-        missingRecordings.forEach { missing ->
-          logger.error(
-              """Recording is missing: ${missing.error}
-                |
-                |${missing.body}
-                |
-                |------------------------------------------------------------------------------------------
-                |To fix this problem please run `./gradlew :recordingIntegrationTest`.
-                |You need to export access tokens first, using script from the `sourcegraph/cody` repository:
-                |`agent/scripts/export-cody-http-recording-tokens.sh`
-                |------------------------------------------------------------------------------------------
-              """
-                  .trimMargin())
-        }
+        agent.server.testing_requestErrors(params = null).get()
         recordingsFuture.complete(null)
       }
       recordingsFuture.get(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
