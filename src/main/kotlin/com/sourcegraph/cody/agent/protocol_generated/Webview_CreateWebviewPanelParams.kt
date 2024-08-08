@@ -6,6 +6,6 @@ data class Webview_CreateWebviewPanelParams(
   val viewType: String,
   val title: String,
   val showOptions: ShowOptionsParams,
-  val options: OptionsParams,
+  val options: WebviewCreateWebviewPanelOptions,
 )
 
