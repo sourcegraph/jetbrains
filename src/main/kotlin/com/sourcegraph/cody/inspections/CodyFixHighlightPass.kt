@@ -88,7 +88,7 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
                     location =
                         // TODO: Rik Nauta -- Got incorrect range; see QA report Aug 6 2024.
                         ProtocolLocation(
-                            uri = protocolTextDocument.uri,
+                            uri = ProtocolTextDocument.normalizeUriOrPath(protocolTextDocument.uri),
                             range = document.codyRange(it.startOffset, it.endOffset)),
                     code = it.problemGroup?.problemName)
               } catch (x: Exception) {
@@ -113,7 +113,7 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
           }
           val location =
               ProtocolLocation(
-                  uri = protocolTextDocument.uri,
+                  uri = ProtocolTextDocument.normalizeUriOrPath(protocolTextDocument.uri),
                   range = document.codyRange(highlight.startOffset, highlight.endOffset))
           val provideResponse =
               agent.server

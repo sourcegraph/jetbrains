@@ -198,6 +198,9 @@ private constructor(
       return normalizeUriOrPath(uriString)
     }
 
+    // TODO: CODY-3223 - This should be moved to the protocol extension layer so that ALL uri's &
+    // paths are properly converted. Probably also means we want to alter the generated bindings to
+    // provide a hook or automatically generate the serializer.
     @JvmStatic
     fun normalizeUriOrPath(uriString: String): String {
       val hasScheme = uriString.startsWith("file://")
