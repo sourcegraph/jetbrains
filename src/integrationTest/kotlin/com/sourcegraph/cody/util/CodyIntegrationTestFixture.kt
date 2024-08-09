@@ -26,8 +26,8 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import junit.framework.TestCase
 
-abstract class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
-  private val logger = Logger.getInstance(CodyIntegrationTextFixture::class.java)
+abstract class CodyIntegrationTestFixture : BasePlatformTestCase(), LensListener {
+  private val logger = Logger.getInstance(CodyIntegrationTestFixture::class.java)
   private val lensSubscribers =
       mutableListOf<
           Pair<(List<ProtocolCodeLens>) -> Boolean, CompletableFuture<LensWidgetGroup?>>>()
@@ -77,11 +77,11 @@ abstract class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener
     assertNotNull(
         "Unable to start agent in a timely fashion!",
         CodyAgentService.getInstance(project)
-            .startAgent(project)
+            .startAgent(project, additionalEnvs = mapOf("CODY_RECORDING_NAME" to recordingName()))
             .completeOnTimeout(null, ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .get())
 
-    val credentials = myCredentials()
+    val credentials = credentials()
     CodyPersistentAccountsHost(project)
         .addAccount(
             SourcegraphServerPath.from(credentials.serverEndpoint, ""),
@@ -91,7 +91,9 @@ abstract class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener
             id = "random-unique-testing-id-1337")
   }
 
-  abstract fun myCredentials(): TestingCredentials
+  abstract fun recordingName(): String
+
+  abstract fun credentials(): TestingCredentials
 
   private fun checkInitialConditions() {
     // If you don't specify this system property with this setting when running the tests,

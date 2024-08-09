@@ -7,7 +7,7 @@ import com.sourcegraph.cody.context.ui.EnterpriseEnhancedContextPanel
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.RemoteRepositoryState
-import com.sourcegraph.cody.util.CodyIntegrationTextFixture
+import com.sourcegraph.cody.util.CodyIntegrationTestFixture
 import com.sourcegraph.cody.util.CustomJunitClassRunner
 import com.sourcegraph.cody.util.TestingCredentials
 import java.awt.Component
@@ -20,8 +20,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(CustomJunitClassRunner::class)
-class ChatTest : CodyIntegrationTextFixture() {
-  override fun myCredentials() = TestingCredentials.enterprise
+class ChatTest : CodyIntegrationTestFixture() {
+  override fun recordingName() = "chat"
+
+  override fun credentials() = TestingCredentials.enterprise
 
   override fun checkSuiteSpecificInitialConditions() = Unit
 

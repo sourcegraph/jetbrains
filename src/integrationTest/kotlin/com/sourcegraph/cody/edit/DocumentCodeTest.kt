@@ -15,7 +15,7 @@ import com.sourcegraph.cody.edit.widget.LensIcon
 import com.sourcegraph.cody.edit.widget.LensLabel
 import com.sourcegraph.cody.edit.widget.LensSpinner
 import com.sourcegraph.cody.edit.widget.LensWidgetGroup
-import com.sourcegraph.cody.util.CodyIntegrationTextFixture
+import com.sourcegraph.cody.util.CodyIntegrationTestFixture
 import com.sourcegraph.cody.util.CustomJunitClassRunner
 import com.sourcegraph.cody.util.TestingCredentials
 import org.hamcrest.Matchers.startsWith
@@ -24,8 +24,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(CustomJunitClassRunner::class)
-class DocumentCodeTest : CodyIntegrationTextFixture() {
-  override fun myCredentials() = TestingCredentials.dotcom
+class DocumentCodeTest : CodyIntegrationTestFixture() {
+  override fun recordingName() = "documentCode"
+
+  override fun credentials() = TestingCredentials.dotcom
 
   override fun checkSuiteSpecificInitialConditions() {
     // Check the initial state of the action's presentation
