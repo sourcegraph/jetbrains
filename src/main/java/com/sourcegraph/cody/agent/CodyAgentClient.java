@@ -5,11 +5,10 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.sourcegraph.cody.agent.protocol.*;
 import com.sourcegraph.cody.agent.protocol_generated.DisplayCodeLensParams;
 import com.sourcegraph.cody.agent.protocol_generated.EditTask;
+import com.sourcegraph.cody.ui.NativeWebviewProvider;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
-import com.sourcegraph.cody.ui.NativeWebviewProvider;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.jetbrains.annotations.NotNull;
@@ -203,12 +202,14 @@ public class CodyAgentClient {
   }
 
   @JsonNotification("webview/postMessageStringEncoded")
-  public void webviewPostMessageStringEncoded(@NotNull WebviewPostMessageStringEncodedParams params) {
+  public void webviewPostMessageStringEncoded(
+      @NotNull WebviewPostMessageStringEncodedParams params) {
     this.webview.receivedPostMessage(params);
   }
 
   @JsonNotification("webview/registerWebviewViewProvider")
-  public void webviewRegisterWebviewViewProvider(@NotNull WebviewRegisterWebviewViewProviderParams params) {
+  public void webviewRegisterWebviewViewProvider(
+      @NotNull WebviewRegisterWebviewViewProviderParams params) {
     this.webview.registerViewProvider(params);
   }
 

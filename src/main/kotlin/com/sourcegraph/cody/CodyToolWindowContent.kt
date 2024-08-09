@@ -10,7 +10,6 @@ import com.sourcegraph.cody.chat.ui.CodyOnboardingGuidancePanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.ui.WebUIService
 import com.sourcegraph.cody.ui.WebviewViewService
 import java.awt.CardLayout
 import javax.swing.JPanel

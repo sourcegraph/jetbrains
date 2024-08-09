@@ -129,11 +129,14 @@ private constructor(
                               untitledDocuments = ClientCapabilities.UntitledDocumentsEnum.Enabled,
                               codeActions = ClientCapabilities.CodeActionsEnum.Enabled,
                               webview = ClientCapabilities.WebviewEnum.Native,
-                              webviewNativeConfig = WebviewNativeConfigParams(
-                                cspSource="'self' https://*.sourcegraphstatic.com",
-                                webviewBundleServingPrefix="https://file+.sourcegraphstatic.com",
-                              ),
-                              webviewMessages = ClientCapabilities.WebviewMessagesEnum.`String-encoded`)))
+                              webviewNativeConfig =
+                                  WebviewNativeConfigParams(
+                                      cspSource = "'self' https://*.sourcegraphstatic.com",
+                                      webviewBundleServingPrefix =
+                                          "https://file+.sourcegraphstatic.com",
+                                  ),
+                              webviewMessages =
+                                  ClientCapabilities.WebviewMessagesEnum.`String-encoded`)))
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)
                 server.initialized()

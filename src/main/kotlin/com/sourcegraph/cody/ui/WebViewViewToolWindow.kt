@@ -35,47 +35,53 @@ interface WebviewViewDelegate {
 interface WebviewHost {
   val id: String
   val viewDelegate: WebviewViewDelegate
+
   fun adopt(proxy: WebUIProxy)
 }
 
-class ToolWindowWebviewHost(private val toolWindow: ToolWindow): WebviewHost {
+class ToolWindowWebviewHost(private val toolWindow: ToolWindow) : WebviewHost {
   override val id: String = toolWindow.id
 
-  override val viewDelegate = object : WebviewViewDelegate {
-    override fun setTitle(newTitle: String) {
-      runInEdt {
-        toolWindow.stripeTitle = newTitle
+  override val viewDelegate =
+      object : WebviewViewDelegate {
+        override fun setTitle(newTitle: String) {
+          runInEdt { toolWindow.stripeTitle = newTitle }
+        }
+        // TODO: Add icon support.
       }
-    }
-    // TODO: Add icon support.
-  }
 
   override fun adopt(proxy: WebUIProxy) {
     toolWindow.isAvailable = true
     val lockable = true
-    val content = ContentFactory.SERVICE.getInstance()
-      .createContent(proxy.component, proxy.title, lockable)
+    val content =
+        ContentFactory.SERVICE.getInstance().createContent(proxy.component, proxy.title, lockable)
     toolWindow.contentManager.addContent(content)
   }
 }
 
-class CodyToolWindowContentWebviewHost(private val owner: CodyToolWindowContent, val placeholder: JComponent): WebviewHost {
+class CodyToolWindowContentWebviewHost(
+    private val owner: CodyToolWindowContent,
+    val placeholder: JComponent
+) : WebviewHost {
   override val id = "cody.chat"
 
-  override val viewDelegate = object : WebviewViewDelegate {
-    override fun setTitle(newTitle: String) {
-      // No-op.
-    }
-  }
+  override val viewDelegate =
+      object : WebviewViewDelegate {
+        override fun setTitle(newTitle: String) {
+          // No-op.
+        }
+      }
 
   override fun adopt(proxy: WebUIProxy) {
     owner.allContentPanel.remove(placeholder)
-    owner.allContentPanel.add(proxy.component, CodyToolWindowContent.MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
+    owner.allContentPanel.add(
+        proxy.component, CodyToolWindowContent.MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
   }
 }
 
 // Responsibilities:
-// - Rendezvous between ToolWindows implementing "Views" (Tool Windows in JetBrains), and WebviewViews.
+// - Rendezvous between ToolWindows implementing "Views" (Tool Windows in JetBrains), and
+// WebviewViews.
 @Service(Service.Level.PROJECT)
 class WebviewViewService(val project: Project) {
   // Map of "view ID" to a host.
@@ -83,12 +89,12 @@ class WebviewViewService(val project: Project) {
   private val providers: MutableMap<String, Provider> = mutableMapOf()
 
   data class Provider(
-    val id: String,
-    val options: ProviderOptions,
+      val id: String,
+      val options: ProviderOptions,
   )
 
   data class ProviderOptions(
-    val retainContextWhenHidden: Boolean,
+      val retainContextWhenHidden: Boolean,
   )
 
   fun registerProvider(id: String, retainContextWhenHidden: Boolean) {
@@ -114,7 +120,8 @@ class WebviewViewService(val project: Project) {
   fun provideCodyToolWindowContent(codyContent: CodyToolWindowContent) {
     // Because the webview may be created lazily, populate a placeholder control.
     val placeholder = JPanel()
-    codyContent.allContentPanel.add(JPanel(), CodyToolWindowContent.MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
+    codyContent.allContentPanel.add(
+        JPanel(), CodyToolWindowContent.MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
     provideHost(CodyToolWindowContentWebviewHost(codyContent, placeholder))
   }
 
@@ -127,12 +134,16 @@ class WebviewViewService(val project: Project) {
 
     CodyAgentService.withAgent(project) {
       // TODO: https://code.visualstudio.com/api/references/vscode-api#WebviewViewProvider
-      it.server.webviewResolveWebviewView(WebviewResolveWebviewViewParams(viewId = provider.id, webviewHandle = handle))
+      it.server.webviewResolveWebviewView(
+          WebviewResolveWebviewViewParams(viewId = provider.id, webviewHandle = handle))
     }
   }
 
   // TODO: Consider moving this to a separate class.
-  fun createPanel(proxy: WebUIProxy, params: WebviewCreateWebviewPanelParams): WebviewViewDelegate? {
+  fun createPanel(
+      proxy: WebUIProxy,
+      params: WebviewCreateWebviewPanelParams
+  ): WebviewViewDelegate? {
     // TODO: Give these files unique names.
     val file = LightVirtualFile("Cody")
     file.fileType = WebPanelFileType.INSTANCE

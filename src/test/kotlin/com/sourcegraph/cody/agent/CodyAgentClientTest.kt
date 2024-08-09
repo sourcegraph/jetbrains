@@ -2,9 +2,6 @@ package com.sourcegraph.cody.agent
 
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
-import com.sourcegraph.cody.ui.NativeWebviewProvider
-import com.sourcegraph.cody.ui.WebUIServiceWebviewProvider
 import java.util.concurrent.locks.ReentrantLock
 import org.junit.Test
 import org.junit.runner.RunWith

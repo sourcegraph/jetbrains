@@ -22,18 +22,6 @@ import com.sourcegraph.cody.config.ui.AccountConfigurable
 import com.sourcegraph.cody.sidebar.WebTheme
 import com.sourcegraph.cody.sidebar.WebThemeController
 import com.sourcegraph.common.BrowserOpener
-import org.cef.browser.CefBrowser
-import org.cef.browser.CefFrame
-import org.cef.callback.CefAuthCallback
-import org.cef.callback.CefCallback
-import org.cef.handler.*
-import org.cef.misc.BoolRef
-import org.cef.misc.IntRef
-import org.cef.misc.StringRef
-import org.cef.network.CefCookie
-import org.cef.network.CefRequest
-import org.cef.network.CefResponse
-import org.cef.network.CefURLRequest
 import java.io.IOException
 import java.net.URI
 import java.net.URLDecoder
@@ -48,43 +36,62 @@ import javax.swing.JComponent
 import kotlin.concurrent.withLock
 import kotlin.io.path.Path
 import kotlin.math.min
+import org.cef.browser.CefBrowser
+import org.cef.browser.CefFrame
+import org.cef.callback.CefAuthCallback
+import org.cef.callback.CefCallback
+import org.cef.handler.*
+import org.cef.misc.BoolRef
+import org.cef.misc.IntRef
+import org.cef.misc.StringRef
+import org.cef.network.CefCookie
+import org.cef.network.CefRequest
+import org.cef.network.CefResponse
+import org.cef.network.CefURLRequest
 
-/**
- * The subset of the Agent client interface that relates to webviews.
- */
+/** The subset of the Agent client interface that relates to webviews. */
 interface NativeWebviewProvider {
   fun createPanel(params: WebviewCreateWebviewPanelParams)
+
   fun receivedPostMessage(params: WebviewPostMessageStringEncodedParams)
+
   fun registerViewProvider(params: WebviewRegisterWebviewViewProviderParams)
+
   fun setHtml(params: WebviewSetHtmlParams)
+
   fun setOptions(params: WebviewSetOptionsParams)
+
   fun setTitle(params: WebviewSetTitleParams)
 }
 
-/**
- * A NativeWebviewProvider that thunks to WebUIService.
- */
+/** A NativeWebviewProvider that thunks to WebUIService. */
 class WebUIServiceWebviewProvider(val project: Project) : NativeWebviewProvider {
   override fun createPanel(params: WebviewCreateWebviewPanelParams) =
-    WebUIService.getInstance(project).createWebviewPanel(params)
+      WebUIService.getInstance(project).createWebviewPanel(params)
 
   override fun receivedPostMessage(params: WebviewPostMessageStringEncodedParams) =
-    WebUIService.getInstance(project).postMessageHostToWebview(params.id, params.stringEncodedMessage)
+      WebUIService.getInstance(project)
+          .postMessageHostToWebview(params.id, params.stringEncodedMessage)
 
   override fun registerViewProvider(params: WebviewRegisterWebviewViewProviderParams) =
-    WebviewViewService.getInstance(project).registerProvider(params.viewId, params.retainContextWhenHidden)
+      WebviewViewService.getInstance(project)
+          .registerProvider(params.viewId, params.retainContextWhenHidden)
 
   override fun setHtml(params: WebviewSetHtmlParams) =
-    WebUIService.getInstance(project).setHtml(params.handle, params.html)
+      WebUIService.getInstance(project).setHtml(params.handle, params.html)
 
   override fun setOptions(params: WebviewSetOptionsParams) =
-    WebUIService.getInstance(project).setOptions(params.handle, params.options)
+      WebUIService.getInstance(project).setOptions(params.handle, params.options)
 
   override fun setTitle(params: WebviewSetTitleParams) =
-    WebUIService.getInstance(project).setTitle(params.handle, params.title)
+      WebUIService.getInstance(project).setTitle(params.handle, params.title)
 }
 
-data class WebUIProxyCreationGate(val lock: ReentrantLock, val createdCondition: Condition, var proxy: WebUIProxy?)
+data class WebUIProxyCreationGate(
+    val lock: ReentrantLock,
+    val createdCondition: Condition,
+    var proxy: WebUIProxy?
+)
 
 // Responsibilities:
 // - Creates, tracks all WebUI instances.
@@ -94,44 +101,47 @@ data class WebUIProxyCreationGate(val lock: ReentrantLock, val createdCondition:
 class WebUIService(private val project: Project) {
   companion object {
     // TODO: If not disposed, etc.
-    @JvmStatic
-    fun getInstance(project: Project): WebUIService = project.service<WebUIService>()
+    @JvmStatic fun getInstance(project: Project): WebUIService = project.service<WebUIService>()
   }
 
   private val logger = Logger.getInstance(WebUIService::class.java)
   private val proxies: ConcurrentHashMap<String, WebUIProxyCreationGate> = ConcurrentHashMap()
 
   private fun <T> withCreationGate(name: String, action: (gate: WebUIProxyCreationGate) -> T): T {
-    val gate = proxies.computeIfAbsent(name) {
-      val lock = ReentrantLock()
-      WebUIProxyCreationGate(lock, lock.newCondition(), null)
-    }
+    val gate =
+        proxies.computeIfAbsent(name) {
+          val lock = ReentrantLock()
+          WebUIProxyCreationGate(lock, lock.newCondition(), null)
+        }
     return gate.lock.withLock {
       return@withLock action(gate)
     }
   }
 
-  private fun <T> withProxy(name: String, action: (proxy: WebUIProxy) -> T): T = withCreationGate(name) { gate ->
-    gate.lock.withLock {
-      var proxy = gate.proxy
-      if (proxy == null) {
-        logger.info("parking thread ${Thread.currentThread().name} waiting for Webview proxy $name to be created")
-        do {
-          gate.createdCondition.await()
-          proxy = gate.proxy
-        } while (proxy == null)
-        logger.info("unparked thread ${Thread.currentThread().name}, Webview proxy $name has been created")
+  private fun <T> withProxy(name: String, action: (proxy: WebUIProxy) -> T): T =
+      withCreationGate(name) { gate ->
+        gate.lock.withLock {
+          var proxy = gate.proxy
+          if (proxy == null) {
+            logger.info(
+                "parking thread ${Thread.currentThread().name} waiting for Webview proxy $name to be created")
+            do {
+              gate.createdCondition.await()
+              proxy = gate.proxy
+            } while (proxy == null)
+            logger.info(
+                "unparked thread ${Thread.currentThread().name}, Webview proxy $name has been created")
+          }
+          return@withLock action(proxy)
+        }
       }
-      return@withLock action(proxy)
-    }
-  }
 
   private var themeController =
-    WebThemeController().apply { setThemeChangeListener { updateTheme(it) } }
+      WebThemeController().apply { setThemeChangeListener { updateTheme(it) } }
 
   private fun updateTheme(theme: WebTheme) {
-    synchronized (proxies) {
-      proxies.values.forEach { it.lock.withLock { it.proxy?.updateTheme(theme) }}
+    synchronized(proxies) {
+      proxies.values.forEach { it.lock.withLock { it.proxy?.updateTheme(theme) } }
     }
   }
 
@@ -140,7 +150,18 @@ class WebUIService(private val project: Project) {
   }
 
   fun createWebviewView(handle: String, createView: (proxy: WebUIProxy) -> WebviewViewDelegate) {
-    val delegate = WebUIHostImpl(project, handle, WebviewOptions(enableScripts = false, enableForms = false,  enableCommandUris = false, localResourceRoots = emptyList(), portMapping = emptyList(), enableFindWidget = false, retainContextWhenHidden = false))
+    val delegate =
+        WebUIHostImpl(
+            project,
+            handle,
+            WebviewOptions(
+                enableScripts = false,
+                enableForms = false,
+                enableCommandUris = false,
+                localResourceRoots = emptyList(),
+                portMapping = emptyList(),
+                enableFindWidget = false,
+                retainContextWhenHidden = false))
     val proxy = WebUIProxy.create(delegate)
     delegate.view = createView(proxy)
     proxy.updateTheme(themeController.getTheme())
@@ -158,7 +179,9 @@ class WebUIService(private val project: Project) {
       delegate.view = WebviewViewService.getInstance(project).createPanel(proxy, params)
       proxy.updateTheme(themeController.getTheme())
       withCreationGate(params.handle) {
-        assert(it.proxy == null) { "Webview Panels should have unique names, have already created ${params.handle}" }
+        assert(it.proxy == null) {
+          "Webview Panels should have unique names, have already created ${params.handle}"
+        }
         it.proxy = proxy
         it.createdCondition.signalAll()
       }
@@ -166,21 +189,15 @@ class WebUIService(private val project: Project) {
   }
 
   fun setHtml(handle: String, html: String) {
-    withProxy(handle) {
-      it.html = html
-    }
+    withProxy(handle) { it.html = html }
   }
 
   fun setOptions(handle: String, options: WebviewOptions) {
-    withProxy(handle) {
-      it.setOptions(options)
-    }
+    withProxy(handle) { it.setOptions(options) }
   }
 
   fun setTitle(handle: String, title: String) {
-    withProxy(handle) {
-      it.title = title
-    }
+    withProxy(handle) { it.title = title }
   }
 }
 
@@ -189,14 +206,16 @@ const val COMMAND_PREFIX = "command:"
 const val PSEUDO_HOST = "file+.sourcegraphstatic.com"
 const val PSEUDO_ORIGIN = "https://$PSEUDO_HOST"
 const val PSEUDO_HOST_URL_PREFIX = "$PSEUDO_ORIGIN/"
-const val MAIN_RESOURCE_URL =
-    "${PSEUDO_HOST_URL_PREFIX}main-resource-nonce"
+const val MAIN_RESOURCE_URL = "${PSEUDO_HOST_URL_PREFIX}main-resource-nonce"
 
 // TODO:
-// - Use UiNotifyConnector to hook up visibility and push changes to WebviewPanel.visible/WebviewView.visible and fire onDidChangeViewState (panels) or onDidChangeVisibility (views)
+// - Use UiNotifyConnector to hook up visibility and push changes to
+// WebviewPanel.visible/WebviewView.visible and fire onDidChangeViewState (panels) or
+// onDidChangeVisibility (views)
 // - Use ??? to hook up focus and push changes to WebviewPanel.active and fire onDidChangeViewState
 // - Hook up webview/didDispose, etc.
-// - Implement registerWebviewPanelSerializer and wire it to JetBrains panel saving to restore chats when JetBrains is reopened.
+// - Implement registerWebviewPanelSerializer and wire it to JetBrains panel saving to restore chats
+// when JetBrains is reopened.
 // - Implement enableFindDialog/ctrl-f find in page.
 
 interface WebUIHost {
@@ -204,35 +223,41 @@ interface WebUIHost {
   abstract var stateAsJSONString: String
 
   fun setOptions(options: WebviewOptions)
+
   fun setTitle(value: String)
+
   fun postMessageWebviewToHost(stringEncodedJsonMessage: String)
+
   fun onCommand(command: String)
+
   fun dispose()
 }
 
-class WebUIHostImpl(val project: Project, val handle: String, private var _options: WebviewOptions) : WebUIHost {
+class WebUIHostImpl(
+    val project: Project,
+    val handle: String,
+    private var _options: WebviewOptions
+) : WebUIHost {
   var view: WebviewViewDelegate? = null
 
   override var stateAsJSONString = "null"
 
   override fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
-    // Some commands can be handled by the client and do not need to round-trip client -> Agent -> client.
+    // Some commands can be handled by the client and do not need to round-trip client -> Agent ->
+    // client.
     when (stringEncodedJsonMessage) {
       // TODO: Remove this redirection when sign in moves to Web UI.
       "{\"command\":\"command\",\"id\":\"cody.auth.signin\"}",
       "{\"command\":\"command\",\"id\":\"cody.auth.signout\"}" -> {
         runInEdt {
-          ShowSettingsUtil.getInstance().showSettingsDialog(project, AccountConfigurable::class.java)
+          ShowSettingsUtil.getInstance()
+              .showSettingsDialog(project, AccountConfigurable::class.java)
         }
       }
       else -> {
         CodyAgentService.withAgent(project) {
           it.server.webviewReceiveMessageStringEncoded(
-            WebviewReceiveMessageStringEncodedParams(
-              handle,
-              stringEncodedJsonMessage
-            )
-          )
+              WebviewReceiveMessageStringEncodedParams(handle, stringEncodedJsonMessage))
         }
       }
     }
@@ -256,20 +281,21 @@ class WebUIHostImpl(val project: Project, val handle: String, private var _optio
     val regex = """^command:([^?]+)(?:\?(.+))?$""".toRegex()
     val matchResult = regex.find(command) ?: return
     val (commandName, encodedArguments) = matchResult.destructured
-    val arguments = encodedArguments.takeIf { it.isNotEmpty() }?.let { encoded ->
-      val decoded = URLDecoder.decode(encoded, "UTF-8")
-      try {
-        Gson().fromJson(decoded, JsonArray::class.java).toList()
-      } catch (e: Exception) {
-        null
-      }
-    } ?: emptyList()
-    if (_options.enableCommandUris == true || (_options.enableCommandUris as List<String>).contains(commandName)) {
+    val arguments =
+        encodedArguments
+            .takeIf { it.isNotEmpty() }
+            ?.let { encoded ->
+              val decoded = URLDecoder.decode(encoded, "UTF-8")
+              try {
+                Gson().fromJson(decoded, JsonArray::class.java).toList()
+              } catch (e: Exception) {
+                null
+              }
+            } ?: emptyList()
+    if (_options.enableCommandUris == true ||
+        (_options.enableCommandUris as List<String>).contains(commandName)) {
       CodyAgentService.withAgent(project) {
-        it.server.commandExecute(CommandExecuteParams(
-          commandName,
-          arguments
-        ))
+        it.server.commandExecute(CommandExecuteParams(commandName, arguments))
       }
     }
   }
@@ -286,37 +312,42 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
   companion object {
     fun create(host: WebUIHost): WebUIProxy {
       val browser =
-        JBCefBrowserBuilder()
-          .apply {
-            setOffScreenRendering(false)
-            // TODO: Make this conditional on running in a debug configuration.
-            setEnableOpenDevToolsMenuItem(true)
-          }
-          .build()
+          JBCefBrowserBuilder()
+              .apply {
+                setOffScreenRendering(false)
+                // TODO: Make this conditional on running in a debug configuration.
+                setEnableOpenDevToolsMenuItem(true)
+              }
+              .build()
 
-      browser.jbCefClient.addFocusHandler(object : CefFocusHandlerAdapter() {
-        override fun onGotFocus(browser: CefBrowser) {
-          println("onGotFocus $browser")
-        }
+      browser.jbCefClient.addFocusHandler(
+          object : CefFocusHandlerAdapter() {
+            override fun onGotFocus(browser: CefBrowser) {
+              println("onGotFocus $browser")
+            }
 
-        override fun onSetFocus(browser: CefBrowser, source: CefFocusHandler.FocusSource): Boolean {
-          val x = super.onSetFocus(browser, source)
-          println("onSetFocus $browser $x")
-          return x
-        }
-      }, browser.cefBrowser)
+            override fun onSetFocus(
+                browser: CefBrowser,
+                source: CefFocusHandler.FocusSource
+            ): Boolean {
+              val x = super.onSetFocus(browser, source)
+              println("onSetFocus $browser $x")
+              return x
+            }
+          },
+          browser.cefBrowser)
 
       val proxy = WebUIProxy(host, browser)
 
       val viewToHost =
-        JBCefJSQuery.create(browser as JBCefBrowserBase).apply {
-          addHandler { query: String ->
-            proxy.handleCefQuery(query)
-            JBCefJSQuery.Response(null)
+          JBCefJSQuery.create(browser as JBCefBrowserBase).apply {
+            addHandler { query: String ->
+              proxy.handleCefQuery(query)
+              JBCefJSQuery.Response(null)
+            }
           }
-        }
       val apiScript =
-        """
+          """
       globalThis.acquireVsCodeApi = (function() {
           let acquired = false;
           let state = ${host.stateAsJSONString};
@@ -350,35 +381,35 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
         ${viewToHost.inject("JSON.stringify({what:'DOMContentLoaded'})")}
       });
     """
-          .trimIndent()
-      browser.jbCefClient.addRequestHandler(ExtensionRequestHandler(proxy, apiScript), browser.cefBrowser)
-      browser.jbCefClient.addLifeSpanHandler(object : CefLifeSpanHandler {
-        override fun onBeforePopup(
-          browser: CefBrowser,
-          frame: CefFrame?,
-          targetUrl: String,
-          targetFrameName: String?
-        ): Boolean {
-          if (browser.mainFrame !== frame) {
-            BrowserOpener.openInBrowser(null, targetUrl)
-            return true
-          }
-          return false
-        }
+              .trimIndent()
+      browser.jbCefClient.addRequestHandler(
+          ExtensionRequestHandler(proxy, apiScript), browser.cefBrowser)
+      browser.jbCefClient.addLifeSpanHandler(
+          object : CefLifeSpanHandler {
+            override fun onBeforePopup(
+                browser: CefBrowser,
+                frame: CefFrame?,
+                targetUrl: String,
+                targetFrameName: String?
+            ): Boolean {
+              if (browser.mainFrame !== frame) {
+                BrowserOpener.openInBrowser(null, targetUrl)
+                return true
+              }
+              return false
+            }
 
-        override fun onAfterCreated(browser: CefBrowser?) {
-        }
+            override fun onAfterCreated(browser: CefBrowser?) {}
 
-        override fun onAfterParentChanged(browser: CefBrowser?) {
-        }
+            override fun onAfterParentChanged(browser: CefBrowser?) {}
 
-        override fun doClose(browser: CefBrowser?): Boolean {
-          return true
-        }
+            override fun doClose(browser: CefBrowser?): Boolean {
+              return true
+            }
 
-        override fun onBeforeClose(browser: CefBrowser?) {
-        }
-      }, browser.cefBrowser)
+            override fun onBeforeClose(browser: CefBrowser?) {}
+          },
+          browser.cefBrowser)
       return proxy
     }
   }
@@ -388,7 +419,8 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
     val setStatePrefix = "{\"what\":\"setState\",\"value\":"
     when {
       query.startsWith(postMessagePrefix) -> {
-        val stringEncodedJsonMessage = query.substring(postMessagePrefix.length, query.length - "}".length)
+        val stringEncodedJsonMessage =
+            query.substring(postMessagePrefix.length, query.length - "}".length)
         host.postMessageWebviewToHost(stringEncodedJsonMessage)
       }
       query.startsWith(setStatePrefix) -> {
@@ -426,7 +458,8 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
     host.setOptions(value)
   }
 
-  val component: JComponent? get() = browser.component
+  val component: JComponent?
+    get() = browser.component
 
   fun onCommand(command: String) {
     host.onCommand(command)
@@ -434,14 +467,14 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
 
   fun postMessageHostToWebview(stringEncodedJsonMessage: String) {
     val code =
-      """
+        """
       (() => {
         let e = new CustomEvent('message');
         e.data = ${stringEncodedJsonMessage};
         window.dispatchEvent(e);
       })()
       """
-        .trimIndent()
+            .trimIndent()
 
     browser.cefBrowser.mainFrame?.executeJavaScript(code, "cody://postMessage", 0)
   }
@@ -481,7 +514,8 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
   }
 }
 
-class ExtensionRequestHandler(private val proxy: WebUIProxy, private val apiScript: String) : CefRequestHandler {
+class ExtensionRequestHandler(private val proxy: WebUIProxy, private val apiScript: String) :
+    CefRequestHandler {
   override fun onBeforeBrowse(
       browser: CefBrowser?,
       frame: CefFrame?,
@@ -579,7 +613,10 @@ class ExtensionRequestHandler(private val proxy: WebUIProxy, private val apiScri
   }
 }
 
-class ExtensionResourceRequestHandler(private val proxy: WebUIProxy, private val apiScript: String) : CefResourceRequestHandler {
+class ExtensionResourceRequestHandler(
+    private val proxy: WebUIProxy,
+    private val apiScript: String
+) : CefResourceRequestHandler {
   override fun getCookieAccessFilter(
       browser: CefBrowser?,
       frame: CefFrame?,
@@ -624,8 +661,8 @@ class ExtensionResourceRequestHandler(private val proxy: WebUIProxy, private val
       request: CefRequest
   ): CefResourceHandler {
     return when {
-      request.url.startsWith(MAIN_RESOURCE_URL) -> MainResourceHandler(proxy.html.replace(
-        "<head>", "<head><script>$apiScript</script>"))
+      request.url.startsWith(MAIN_RESOURCE_URL) ->
+          MainResourceHandler(proxy.html.replace("<head>", "<head><script>$apiScript</script>"))
       else -> ExtensionResourceHandler()
     }
   }
@@ -676,9 +713,7 @@ class ExtensionResourceHandler() : CefResourceHandler {
   var status = 0
   var bytesReadFromResource = 0L
   private var bytesSent = 0L
-  private var bytesWaitingSend =
-      ByteBuffer.allocate(512 * 1024)
-          .flip()
+  private var bytesWaitingSend = ByteBuffer.allocate(512 * 1024).flip()
   // correctly
   private var contentLength = 0L
   var contentType = "text/plain"
@@ -753,7 +788,8 @@ class ExtensionResourceHandler() : CefResourceHandler {
   ) {
     response?.status = status
     response?.mimeType = contentType
-    // TODO: Security, if we host malicious third-party content would this let them retrieve resources they should not?
+    // TODO: Security, if we host malicious third-party content would this let them retrieve
+    // resources they should not?
     response?.setHeaderByName("access-control-allow-origin", "*", false)
     // TODO: Do we need to set content-encoding here?
     responseLength?.set(contentLength.toInt())
@@ -834,21 +870,26 @@ class MainResourceHandler(content: String) : CefResourceHandler {
   private val buffer = StandardCharsets.UTF_8.encode(content)
 
   override fun processRequest(request: CefRequest?, callback: CefCallback?): Boolean {
-      callback?.Continue()
-      return true
+    callback?.Continue()
+    return true
   }
 
   override fun getResponseHeaders(
-    response: CefResponse,
-    responseLength: IntRef,
-    redirectUrl: StringRef
+      response: CefResponse,
+      responseLength: IntRef,
+      redirectUrl: StringRef
   ) {
     response.status = 200
     response.mimeType = "text/html"
     responseLength.set(buffer.remaining())
   }
 
-  override fun readResponse(dataOut: ByteArray, bytesToRead: Int, bytesRead: IntRef?, callback: CefCallback?): Boolean {
+  override fun readResponse(
+      dataOut: ByteArray,
+      bytesToRead: Int,
+      bytesRead: IntRef?,
+      callback: CefCallback?
+  ): Boolean {
     if (!buffer.hasRemaining()) {
       return false
     }
@@ -859,6 +900,5 @@ class MainResourceHandler(content: String) : CefResourceHandler {
     return true
   }
 
-  override fun cancel() {
-  }
+  override fun cancel() {}
 }
