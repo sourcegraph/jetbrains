@@ -7,10 +7,10 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
-import org.jetbrains.annotations.NonNls
 import java.beans.PropertyChangeListener
 import javax.swing.JComponent
 import javax.swing.JLabel
+import org.jetbrains.annotations.NonNls
 
 class WebPanelEditor(private val file: VirtualFile) : FileEditor {
   companion object {
@@ -34,7 +34,8 @@ class WebPanelEditor(private val file: VirtualFile) : FileEditor {
     // TODO: Implement this
   }
 
-  override fun getComponent(): JComponent = file.getUserData(WEB_UI_PROXY_KEY)?.component ?: JLabel("No WebView created.")
+  override fun getComponent(): JComponent =
+      file.getUserData(WEB_UI_PROXY_KEY)?.component ?: JLabel("No WebView created.")
 
   override fun getPreferredFocusedComponent(): JComponent? = getComponent()
 
@@ -63,7 +64,9 @@ class WebPanelEditor(private val file: VirtualFile) : FileEditor {
 
 class WebPanelProvider : FileEditorProvider, DumbAware {
   private var creatingEditor = 0
-  override fun accept(project: Project, file: VirtualFile): Boolean = file.fileType == WebPanelFileType.INSTANCE
+
+  override fun accept(project: Project, file: VirtualFile): Boolean =
+      file.fileType == WebPanelFileType.INSTANCE
 
   override fun createEditor(project: Project, file: VirtualFile): FileEditor {
     ApplicationManager.getApplication().assertIsDispatchThread()
@@ -80,13 +83,12 @@ class WebPanelProvider : FileEditorProvider, DumbAware {
   override fun disposeEditor(editor: FileEditor) {
     ApplicationManager.getApplication().assertIsDispatchThread()
     if (this.creatingEditor > 0) {
-      // We are synchronously creating an editor, which means we do not want to dispose the webview: It will be
+      // We are synchronously creating an editor, which means we do not want to dispose the webview:
+      // It will be
       // adopted by the new editor.
       return
     }
-    editor.file.getUserData(WebPanelEditor.WEB_UI_PROXY_KEY)?.let {
-      it.dispose()
-    }
+    editor.file.getUserData(WebPanelEditor.WEB_UI_PROXY_KEY)?.let { it.dispose() }
   }
 
   // TODO: Implement readState, writeState if we need this to manage, restore.

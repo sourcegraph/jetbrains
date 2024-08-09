@@ -40,13 +40,15 @@ abstract class BaseCommandAction : DumbAwareEDTAction() {
             when (it) {
               IgnorePolicy.USE -> {
                 CodyAgentService.withAgent(project) { agent ->
-                  agent.server.commandExecute(CommandExecuteParams(
-                    command=when (myCommandId) {
-                      CommandId.Explain -> "cody.command.explain-code"
-                      CommandId.Smell -> "cody.command.smell-code"
-                    },
-                    arguments=emptyList(),
-                  ))
+                  agent.server.commandExecute(
+                      CommandExecuteParams(
+                          command =
+                              when (myCommandId) {
+                                CommandId.Explain -> "cody.command.explain-code"
+                                CommandId.Smell -> "cody.command.smell-code"
+                              },
+                          arguments = emptyList(),
+                      ))
                 }
               }
               else -> {

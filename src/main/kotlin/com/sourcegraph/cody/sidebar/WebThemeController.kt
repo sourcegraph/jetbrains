@@ -11,9 +11,7 @@ class WebThemeController {
   init {
     UIManager.addPropertyChangeListener { event ->
       if (event.propertyName == "lookAndFeel") {
-        invokeLater {
-          themeChangeListener?.invoke(getTheme())
-        }
+        invokeLater { themeChangeListener?.invoke(getTheme()) }
       }
     }
   }

@@ -3,9 +3,8 @@ package com.sourcegraph.cody.ui
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.NlsSafe
-import com.sourcegraph.cody.context.RemoteRepoFileType
-import org.jetbrains.annotations.NonNls
 import javax.swing.Icon
+import org.jetbrains.annotations.NonNls
 
 class WebPanelFileType : FileType {
   companion object {

@@ -53,8 +53,10 @@ class ExportChatsBackgroundable(
           }
 
       dummyInternalId = UUID.randomUUID().toString()
-      // TODO: There was a call to "restore session" here. What we need, instead, is to push chat state from JetBrains
-      // into the same storage mechanism as VSCode and just use the TypeScript extension's export mechanism (CODY-2273)
+      // TODO: There was a call to "restore session" here. What we need, instead, is to push chat
+      // state from JetBrains
+      // into the same storage mechanism as VSCode and just use the TypeScript extension's export
+      // mechanism (CODY-2273)
       TODO("NYI")
       indicator.fraction = ((index + 1.0) / (chats.size + 1.0))
 

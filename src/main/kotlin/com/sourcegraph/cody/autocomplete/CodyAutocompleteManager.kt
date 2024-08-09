@@ -24,7 +24,6 @@ import com.intellij.openapi.wm.ToolWindowId
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.GotItTooltip
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.AutocompleteItem
