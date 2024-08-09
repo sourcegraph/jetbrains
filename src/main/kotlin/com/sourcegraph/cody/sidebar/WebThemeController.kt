@@ -21,14 +21,11 @@ class WebThemeController {
   }
 
   fun getTheme(): WebTheme {
-    val themeVariables = mutableMapOf<String, String>()
-    val defaults = UIManager.getDefaults()
-    for (entry in defaults) {
-      val value = entry.value
-      if (value is Color) {
-        themeVariables[toCSSVariableName("${entry.key}")] = toCSSColor(value)
-      }
-    }
+    val themeVariables =
+        UIManager.getDefaults()
+            .filterValues { it is Color }
+            .mapKeys { toCSSVariableName(it.key.toString()) }
+            .mapValues { toCSSColor(it.value as Color) }
     return WebTheme(ThemeUtil.isDarkTheme(), themeVariables)
   }
 
