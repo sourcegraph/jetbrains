@@ -107,7 +107,6 @@ class CodyAgentService(private val project: Project) : Disposable {
           activeSession?.updateEditorIfNeeded(params.uri)
           activeSession?.performInlineEdits(params.edits)
           activeSession?.edits = params.edits
-          activeSession?.showBlockGroups()
           true
         } catch (e: CodyEditingNotAvailableException) {
           runInEdt { EditingNotAvailableNotification().notify(project) }

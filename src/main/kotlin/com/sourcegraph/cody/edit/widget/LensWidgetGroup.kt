@@ -46,7 +46,7 @@ operator fun Point.component2() = this.y
  * Manages a single code lens group. It should only be displayed once, and disposed after displaying
  * it, before displaying another.
  */
-class LensWidgetGroup(val session: FixupSession, parentComponent: Editor, range: Range) :
+class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
     EditorCustomElementRenderer, Disposable {
   private val logger = Logger.getInstance(LensWidgetGroup::class.java)
   val editor = parentComponent as EditorImpl
@@ -56,7 +56,6 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor, range:
   private val removedListeners = AtomicBoolean(false)
 
   val widgets = mutableListOf<LensWidget>()
-  val range = range
 
   private val mouseClickListener =
       object : EditorMouseListener {

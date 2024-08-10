@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.edit.widget
 
+import com.sourcegraph.cody.CodyToolWindowContent.Companion.logger
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.Range
@@ -10,8 +11,8 @@ import javax.swing.Icon
 /** Handles assembling standard groups of lenses. */
 class LensGroupFactory(val session: FixupSession) {
 
-  fun createTaskWorkingGroup(range: Range): LensWidgetGroup {
-    return LensWidgetGroup(session, session.editor, range).apply {
+  fun createTaskWorkingGroup(): LensWidgetGroup {
+    return LensWidgetGroup(session, session.editor).apply {
       addLogo(this)
       addSpinner(this)
       addLabel(this, "Generating Code Edits")
@@ -22,8 +23,8 @@ class LensGroupFactory(val session: FixupSession) {
     }
   }
 
-  fun createDiffGroup(isUnitTestCommand: Boolean = false, range: Range): LensWidgetGroup {
-    return LensWidgetGroup(session, session.editor, range).apply {
+  fun createDiffGroup(isUnitTestCommand: Boolean = false): LensWidgetGroup {
+    return LensWidgetGroup(session, session.editor).apply {
       addLogo(this)
       addAction(this, "Accept All", FixupSession.ACTION_ACCEPT_ALL)
       addSeparator(this)
@@ -38,30 +39,29 @@ class LensGroupFactory(val session: FixupSession) {
       addSeparator(this)
 
       //Todo: JM. these may need to be removed
-      addAction(this, "Accept", FixupSession.ACTION_ACCEPT)
-      addSeparator(this)
-      addAction(this, "Reject", FixupSession.ACTION_REJECT)
-      addSeparator(this)
+//      addAction(this, "Accept", FixupSession.ACTION_ACCEPT)
+//      addSeparator(this)
+//      addAction(this, "Reject", FixupSession.ACTION_REJECT)
+//      addSeparator(this)
+
       registerWidgets()
       isDiffGroup = true
     }
   }
 
-  fun createBlockGroup(range: Range): LensWidgetGroup {
-    return LensWidgetGroup(session, session.editor, range).apply {
-      addLogo(this)
-      addLabel(this, "Block Change")
+  fun createBlockGroup(editId: String?): LensWidgetGroup {
+    logger.warn("JM: createBlockGroup called with range: $editId")
+    return LensWidgetGroup(session, session.editor).apply {
+      addAction(this, "Accept", FixupSession.ACTION_ACCEPT, editId)
       addSeparator(this)
-      addAction(this, "Accept Block", FixupSession.ACTION_ACCEPT)
-      addSeparator(this)
-      addAction(this, "Reject Block", FixupSession.ACTION_REJECT)
+      addAction(this, "Reject", FixupSession.ACTION_REJECT, editId)
       registerWidgets()
       isBlockGroup = true
     }
   }
 
-  fun createErrorGroup(tooltip: String, range: Range, isDocumentCode: Boolean = false): LensWidgetGroup {
-    return LensWidgetGroup(session, session.editor, range).apply {
+  fun createErrorGroup(tooltip: String, isDocumentCode: Boolean = false): LensWidgetGroup {
+    return LensWidgetGroup(session, session.editor).apply {
       addLogo(this)
       addErrorIcon(this)
       val verb = if (isDocumentCode) "document" else "edit"
@@ -99,8 +99,8 @@ class LensGroupFactory(val session: FixupSession) {
     addLabel(group, ICON_SPACER)
   }
 
-  private fun addAction(group: LensWidgetGroup, label: String, actionId: String) {
-    group.addWidget(LensAction(group, label, actionId))
+  private fun addAction(group: LensWidgetGroup, label: String, actionId: String, editId: String? = null) { // range: Range? = null
+    group.addWidget(LensAction(group, label, actionId, editId))
 
     val hotkey = EditCommandPrompt.getShortcutDisplayString(actionId)
     if (!hotkey.isNullOrEmpty()) {

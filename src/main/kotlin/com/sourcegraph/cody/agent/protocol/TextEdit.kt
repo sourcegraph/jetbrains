@@ -1,5 +1,7 @@
 package com.sourcegraph.cody.agent.protocol
 
+import java.util.*
+
 data class TextEdit(
     // This tag will be 'replace', 'insert', or 'delete'.
     val type: String,
@@ -8,8 +10,11 @@ data class TextEdit(
     val range: Range? = null,
 
     // Valid for insert.
-    val position: Position? = null,
+    var position: Position? = null,
 
     // Valid for replace & insert.
-    val value: String? = null
+    val value: String? = null,
+
+    // Unique identified
+    var id: String? = UUID.randomUUID().toString(),
 )

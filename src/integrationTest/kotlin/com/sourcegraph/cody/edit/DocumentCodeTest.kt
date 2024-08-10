@@ -53,14 +53,14 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     val assertsExecuted = AtomicInteger(0)
     val showWorkingGroupSessionStateListener =
         object : FixupService.ActiveFixupSessionStateListener {
-          // The listener is notified by ::showLensGroup and the param is true only when we are
+          // The listener is notified by ::showDiffLensGroup and the param is true only when we are
           // showing the working group. This is the best place to catch and verify the working lens
           // group as it can change to the accept lens group outside of this listener.
           override fun fixupSessionStateChanged(isInProgress: Boolean) {
             assertInlayIsShown()
 
             if (isInProgress) {
-              val lenses = activeSession().lensGroup
+              val lenses = activeSession().diffLensGroup
               // Lens group should match the expected structure.
               assertNotNull("Lens group should be displayed", lenses)
               val theWidgets = lenses!!.widgets
@@ -103,7 +103,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     assertInlayIsShown()
 
     // Lens group should match the expected structure.
-    val lenses = activeSession().lensGroup
+    val lenses = activeSession().diffLensGroup
     assertNotNull("Lens group should be displayed", lenses)
 
     val widgets = lenses!!.widgets

@@ -3,6 +3,7 @@ package com.sourcegraph.cody.edit.widget
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorMouseEvent
@@ -10,7 +11,6 @@ import com.intellij.ui.JBColor
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.EditUtil
-import com.sourcegraph.cody.edit.FixupService
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import java.awt.Font
 import java.awt.FontMetrics
@@ -24,9 +24,14 @@ class LensAction(
     val group: LensWidgetGroup,
     private val text: String,
     @VisibleForTesting val actionId: String,
-    private val range: Range? = null // Add range parameter
+    private val editId: String? = null
+    //private val range: Range? = null
 ) : LensWidget(group) {
 
+  object DataKeys {
+    val EDIT_ID_DATA_KEY: DataKey<String> = DataKey.create("com.sourcegraph.cody.edit.actions.EditId")
+    //val RANGE_DATA_KEY: DataKey<Range> = DataKey.create("com.sourcegraph.cody.edit.actions.Range")
+  }
   private val highlight =
       LabelHighlight(
           when (actionId) {
@@ -74,11 +79,11 @@ class LensAction(
   }
 
   override fun onClick(e: EditorMouseEvent): Boolean {
-    triggerAction(actionId, e.editor, e.mouseEvent, range)
+    triggerAction(actionId, e.editor, e.mouseEvent)
     return true
   }
 
-  private fun triggerAction(actionId: String, editor: Editor, mouseEvent: MouseEvent, range: Range?) {
+  private fun triggerAction(actionId: String, editor: Editor, mouseEvent: MouseEvent) {
     lastLensActionPerformed.set(actionId)
     val action = ActionManager.getInstance().getAction(actionId)
     if (action != null) {
@@ -91,13 +96,7 @@ class LensAction(
               action.templatePresentation.clone(),
               ActionManager.getInstance(),
               0)
-      if (actionId == FixupSession.ACTION_ACCEPT && range != null) {
-          FixupService.getInstance(editor.project!!).getActiveSession()?.accept(range)
-      } else if (actionId == FixupSession.ACTION_REJECT && range != null) {
-        FixupService.getInstance(editor.project!!).getActiveSession()?.reject(range)
-      } else {
-        action.actionPerformed(actionEvent)
-      }
+      action.actionPerformed(actionEvent)
     }
   }
 
@@ -107,6 +106,8 @@ class LensAction(
         PlatformDataKeys.CONTEXT_COMPONENT.name -> mouseEvent.component
         PlatformDataKeys.EDITOR.name -> editor
         PlatformDataKeys.PROJECT.name -> editor.project
+        DataKeys.EDIT_ID_DATA_KEY.name -> editId
+        //DataKeys.RANGE_DATA_KEY.name -> range
         else -> null
       }
     }

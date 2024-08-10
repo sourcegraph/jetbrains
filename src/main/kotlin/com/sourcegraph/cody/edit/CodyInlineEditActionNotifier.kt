@@ -25,13 +25,13 @@ interface CodyInlineEditActionNotifier {
     @Topic.ProjectLevel
     val TOPIC_DISPLAY_DIFF_GROUP =
         Topic.create(
-            "Sourcegraph Cody: Accept lens shown", CodyInlineEditActionNotifier::class.java)
+            "Sourcegraph Cody: Diff lens shown", CodyInlineEditActionNotifier::class.java)
 
     @JvmStatic
     @Topic.ProjectLevel
     val TOPIC_DISPLAY_BLOCK_GROUP =
       Topic.create(
-        "Sourcegraph Cody: Accept lens shown", CodyInlineEditActionNotifier::class.java)
+        "Sourcegraph Cody: Block lens shown", CodyInlineEditActionNotifier::class.java)
 
     @JvmStatic
     @Topic.ProjectLevel

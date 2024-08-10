@@ -67,10 +67,11 @@ abstract class FixupSession(
   @Volatile var taskId: String? = null
 
   // Add a public edits property
-  var edits: List<TextEdit> = emptyList()//  @Volatile var range: Range? = null
+  var edits: List<TextEdit> = emptyList()
 
   // The current lens group. Changes as the state machine proceeds.
-  @VisibleForTesting var lensGroup: LensWidgetGroup? = null
+  @VisibleForTesting var diffLensGroup: LensWidgetGroup? = null
+  private val lensGroups = mutableListOf<LensWidgetGroup>()
 
   @VisibleForTesting var selectionRange: RangeMarker? = null
 
@@ -125,7 +126,6 @@ abstract class FixupSession(
                 // Handle multiple edits
                 selectionRange = adjustToDocumentRange(result.selectionRange)
                 edits = result.edits
-                showBlockGroups()
               }
               null
             }
@@ -142,6 +142,17 @@ abstract class FixupSession(
         cancel()
       }
     }
+  }
+
+  private fun adjustPositionForCodeLenses(position: Position?): Position {
+    if (position == null) {
+      throw IllegalArgumentException("Position cannot be null")
+    }
+    // Count the number of code lenses (edits) above the position
+    val lensesAbove = edits.count { it.position?.line ?: 0 < position.line }
+
+    // Adjust the position
+    return Position(position.line + lensesAbove, position.character)
   }
 
   // We're consistently triggering the 'retrieved codebase context before initialization' error
@@ -190,8 +201,8 @@ abstract class FixupSession(
       }
       // Tasks remain in this state until explicit accept/undo/cancel.
       CodyTaskState.Applied -> {
+        showBlockGroups()
         showDiffGroup()
-        showBlockGroups() // Call the method to show block groups
       }
       // Then they transition to finished.
       CodyTaskState.Finished -> dispose()
@@ -204,14 +215,29 @@ abstract class FixupSession(
   // which may require switching to the EDT. This is primarily to help smooth
   // integration testing, but also because there's no real harm blocking pool threads.
   @RequiresEdt
-  private fun showLensGroup(group: LensWidgetGroup) {
+  private fun showDiffLensGroup(group: LensWidgetGroup) {
     try {
-      lensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
+      diffLensGroup?.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
     } catch (x: Exception) {
       logger.warn("Error disposing previous lens group", x)
     }
-    lensGroup = group
-    val range = group.range
+
+    // Get the range for the lens based on total selection range
+    diffLensGroup = group
+    var range =
+      selectionRange?.let {
+        val position = Position(Range.fromRangeMarker(it).start.line, character = 0)
+        Range(start = position, end = position)
+      }
+
+    if (range == null) {
+      // Be defensive, as the protocol has been fragile with respect to selection ranges.
+      logger.warn("No selection range for session: $this")
+      // Last-ditch effort to show it somewhere other than top of file.
+      val position = Position(editor.caretModel.currentCaret.logicalPosition.line, 0)
+      range = Range(start = position, end = position)
+    }
+
     val future = group.show(range)
 
     // Make sure the lens is visible.
@@ -228,19 +254,34 @@ abstract class FixupSession(
     controller.notifySessionStateChanged()
   }
 
+  @RequiresEdt
+  private fun showBlockLensGroup(group: LensWidgetGroup, position: Position?) {
+    if (position == null) {
+      throw IllegalArgumentException("Position cannot be null")
+    }
+
+    logger.warn("JM: showing block lens at position: $position")
+
+    // Add the new lens group to the list
+    lensGroups.add(group)
+
+    val future = group.show(Range(start = position, end = position))
+
+    if (!ApplicationManager.getApplication().isDispatchThread) { // integration test
+      future.get()
+    }
+
+    controller.notifySessionStateChanged()
+  }
+
   // An optimization to avoid recomputing widget indentation in a tight loop.
   fun resetLensGroup() {
-    lensGroup?.reset()
+    diffLensGroup?.reset()
   }
 
   //Todo: JM. I believe this will need some reworking
   private fun showWorkingGroup() = runInEdt {
-    val startOffset = 0
-    val endOffset = document.textLength
-    val startPosition = Position.fromOffset(document, startOffset)
-    val endPosition = Position.fromOffset(document, endOffset)
-    val range = Range(startPosition, endPosition)
-    showLensGroup(LensGroupFactory(this).createTaskWorkingGroup(range))
+    showDiffLensGroup(LensGroupFactory(this).createTaskWorkingGroup())
     documentListener.setDiffLensGroupShown(false)
     publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
   }
@@ -251,35 +292,39 @@ abstract class FixupSession(
   private fun showDiffGroup() = runInEdt {
     val isUnitTestCommand = commandName == "Test"
 
-    val range = getDiffGroupRange()
-
-    showLensGroup(LensGroupFactory(this).createDiffGroup(isUnitTestCommand, range))
+    showDiffLensGroup(LensGroupFactory(this).createDiffGroup(isUnitTestCommand))
     postAcceptActions()
     publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_DIFF_GROUP)
   }
 
   fun showBlockGroups() = runInEdt {
+    logger.warn("JM: showBlockGroups() called")
+
     // Iterate over the edits and create block groups
     edits.forEach { edit ->
-      val range = edit.range
-      if (range != null) {
-        val group = LensGroupFactory(this).createBlockGroup(range)
-        showLensGroup(group)
-      }
+      logger.warn("JM: showBlockGroups() position: ${edit.position}")
+
+      edit.position = adjustPositionForCodeLenses(edit.position)
+      // Translate the edit's position for each to consider the space taken by previous code lenses
+//      edits = edits.map { e ->
+//        if (e.position == null){
+//          logger.warn("JM: showBlockGroups() e.position is null")
+//          //continue
+//          return@map e
+//        }
+//        val adjustedPosition = adjustPositionForCodeLenses(e.position, edits)
+//        logger.warn("Position modified from ${e.position} to $adjustedPosition")
+//        e.copy(position = adjustedPosition)
+//      }
+
+      showBlockLensGroup(LensGroupFactory(this).createBlockGroup(edit.id), edit.position)
+      publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_BLOCK_GROUP)
     }
   }
 
-  private fun getDiffGroupRange() : Range {
-    val startOffset = 0
-    val endOffset = document.textLength
-    val startPosition = Position.fromOffset(document, startOffset)
-    val endPosition = Position.fromOffset(document, endOffset)
-    return Range(startPosition, endPosition)
-  }
 
   fun showErrorGroup(hoverText: String) = runInEdt {
-    val range = getDiffGroupRange()
-    showLensGroup(LensGroupFactory(this).createErrorGroup(hoverText, range))
+    showDiffLensGroup(LensGroupFactory(this).createErrorGroup(hoverText))
     publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ERROR_GROUP)
   }
 
@@ -304,32 +349,52 @@ abstract class FixupSession(
     }
   }
 
-  fun accept(range: Range) {
+  fun accept(editId: String) {
     try{
       postAcceptActions() //Todo: Jm. maybe need a postAcceptActions?
 
       CodyAgentService.withAgent(project) { agent ->
-        agent.server.acceptEditTask(TaskIdParam(taskId!!), range)
+        //logger.warn("JM: sending accept() range: $range and taskId: $taskId")
+        //agent.server.acceptEditTask(TaskIdParam(taskId!!, range!!)) Todo: Jm. will likely need to reinstate this
+
+        // Remove the corresponding edit from the list
+        removeEditFromList(editId)
+
+        // If the code lens still renders, I need to remove it here
+
         publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
       }
     } catch (x: Exception) {
       // Don't show error lens here; it's sort of pointless.
-      logger.warn("Error sending editTask/acceptAll for taskId", x)
+      logger.warn("Error sending editTask/accept for taskId", x)
       dispose()
     }
   }
 
-  fun reject(range: Range) {
+  fun removeEditFromList(editId: String) {
+    // Create a new list excluding the edit with the specified position
+    val beforeLength = edits.size
+    edits = edits.filterNot { edit ->
+      edit.id == editId
+    }
+    logger.warn("JM: edits length before: $beforeLength, after: ${edits.size}")
+  }
+
+  fun reject(editId: String) {
     try{
       postAcceptActions() //Todo: Jm. maybe need a postRejectactions?
 
       CodyAgentService.withAgent(project) { agent ->
-        agent.server.rejectEditTask(TaskIdParam(taskId!!), range)
+        //agent.server.rejectEditTask(TaskIdParam(taskId!!, range!!)) //Todo: Jm. will likely need to reinstate this
+
+        // Remove the corresponding edit from the list
+        removeEditFromList(editId)
+
         publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_REJECT)
       }
     } catch (x: Exception) {
       // Don't show error lens here; it's sort of pointless.
-      logger.warn("Error sending editTask/acceptAll for taskId", x)
+      logger.warn("Error sending editTask/reject for taskId", x)
       dispose()
     }
   }
@@ -342,7 +407,7 @@ abstract class FixupSession(
     // edits (from workspace/edit requests) or user edits arrive, or we will
     // accidentally auto-accept the suggested edit.
     documentListener.setDiffLensGroupShown(true)
-
+    documentListener.setBlockLensGroupShown(true)
     EditCommandPrompt.clearLastPrompt()
   }
 
@@ -444,7 +509,7 @@ abstract class FixupSession(
 
   fun performInlineEdits(edits: List<TextEdit>) {
     try {
-      lensGroup?.withListenersMuted {
+      diffLensGroup?.withListenersMuted {
         if (!controller.isEligibleForInlineEdit(editor)) {
           return@withListenersMuted logger.warn("Inline edit not eligible")
         }
@@ -504,26 +569,34 @@ abstract class FixupSession(
   override fun dispose() {
     if (project.isDisposed) return
     performedActions.forEach { it.dispose() }
-    lensGroup?.dispose()
+    diffLensGroup?.dispose()
+    lensGroups.forEach { group ->
+      try {
+        if (!group.isDisposed.get()) Disposer.dispose(group)
+      } catch (x: Exception) {
+        logger.warn("Error disposing lens group", x)
+      }
+    }
+    lensGroups.clear()
     cancellationToken.dispose()
     publishProgress(CodyInlineEditActionNotifier.TOPIC_TASK_FINISHED)
   }
 
   fun isShowingWorkingLens(): Boolean {
-    return lensGroup?.isInWorkingGroup == true
+    return diffLensGroup?.isInWorkingGroup == true
   }
 
   /** Returns true if the Accept lens group is currently active. */
   fun isShowingDiffLens(): Boolean {
-    return lensGroup?.isDiffGroup == true
+    return diffLensGroup?.isDiffGroup == true
   }
 
   fun isShowingBlockLens(): Boolean {
-    return lensGroup?.isBlockGroup == true
+    return diffLensGroup?.isBlockGroup == true //TOdo: JM - needs to use correct lens group
   }
 
   fun isShowingErrorLens(): Boolean {
-    return lensGroup?.isErrorGroup == true
+    return diffLensGroup?.isErrorGroup == true
   }
 
   fun hasDiffLensBeenShown(): Boolean {

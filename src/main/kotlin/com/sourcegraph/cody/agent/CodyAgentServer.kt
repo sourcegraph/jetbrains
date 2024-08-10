@@ -71,9 +71,9 @@ interface CodyAgentServer {
 
   @JsonRequest("editTask/acceptAll") fun acceptAllEditTask(params: TaskIdParam): CompletableFuture<Void?>
 
-  @JsonRequest("editTask/accept") fun acceptEditTask(params: TaskIdParam, range: Range): CompletableFuture<Void?>
+  @JsonRequest("editTask/accept") fun acceptEditTask(params: TaskIdParam): CompletableFuture<Void?>
 
-  @JsonRequest("editTask/reject") fun rejectEditTask(params: TaskIdParam, range: Range): CompletableFuture<Void?>
+  @JsonRequest("editTask/reject") fun rejectEditTask(params: TaskIdParam): CompletableFuture<Void?>
 
   @JsonRequest("editTask/undo") fun undoEditTask(params: TaskIdParam): CompletableFuture<Void?>
 

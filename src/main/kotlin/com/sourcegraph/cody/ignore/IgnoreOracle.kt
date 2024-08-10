@@ -143,7 +143,7 @@ class IgnoreOracle(private val project: Project) {
         completable.get(policyAwaitTimeoutMs, TimeUnit.MILLISECONDS)
       } catch (timedOut: TimeoutException) {
         logger.warn("policyForEditor timed out")
-        throw timedOut
+        null
       }
     }
   }
