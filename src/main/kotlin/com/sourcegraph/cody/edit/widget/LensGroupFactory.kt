@@ -23,7 +23,7 @@ class LensGroupFactory(val session: FixupSession) {
     }
   }
 
-  fun createDiffGroup(isUnitTestCommand: Boolean = false): LensWidgetGroup {
+  fun createHeaderGroup(isUnitTestCommand: Boolean = false): LensWidgetGroup {
     return LensWidgetGroup(session, session.editor).apply {
       addLogo(this)
       addAction(this, "Accept All", FixupSession.ACTION_ACCEPT_ALL)
@@ -39,10 +39,10 @@ class LensGroupFactory(val session: FixupSession) {
       addSeparator(this)
 
       //Todo: JM. these may need to be removed
-//      addAction(this, "Accept", FixupSession.ACTION_ACCEPT)
-//      addSeparator(this)
-//      addAction(this, "Reject", FixupSession.ACTION_REJECT)
-//      addSeparator(this)
+      addAction(this, "Accept", FixupSession.ACTION_ACCEPT)
+      addSeparator(this)
+      addAction(this, "Reject", FixupSession.ACTION_REJECT)
+      addSeparator(this)
 
       registerWidgets()
       isDiffGroup = true
@@ -50,7 +50,7 @@ class LensGroupFactory(val session: FixupSession) {
   }
 
   fun createBlockGroup(editId: String?): LensWidgetGroup {
-    logger.warn("JM: createBlockGroup called with range: $editId")
+    logger.warn("JM: createBlockGroup called with editId: $editId")
     return LensWidgetGroup(session, session.editor).apply {
       addAction(this, "Accept", FixupSession.ACTION_ACCEPT, editId)
       addSeparator(this)

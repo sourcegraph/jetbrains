@@ -506,7 +506,7 @@ class EditCommandPrompt(
       historyManager.addPrompt(text)
       if (editor.project == null) {
         val msg = "Null project for new edit session"
-        controller.getActiveSession()?.showErrorGroup(msg)
+        controller.getActiveSession()?.showError(msg)
         logger.warn(msg)
         return
       }
@@ -525,7 +525,7 @@ class EditCommandPrompt(
   private fun validateProject(session: FixupSession?): Boolean {
     return if (editor.project == null) {
       // TODO move these to Cody bundle
-      session?.showErrorGroup("Error initiating Code Edit: Could not find current Project")
+      session?.showError("Error initiating Code Edit: Could not find current Project")
       logger.warn("Project was null when trying to add an edit session")
       false
     } else true

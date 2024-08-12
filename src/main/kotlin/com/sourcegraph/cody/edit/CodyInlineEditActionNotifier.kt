@@ -23,15 +23,15 @@ interface CodyInlineEditActionNotifier {
 
     @JvmStatic
     @Topic.ProjectLevel
-    val TOPIC_DISPLAY_DIFF_GROUP =
+    val TOPIC_DISPLAY_ACTION_GROUPS =
         Topic.create(
-            "Sourcegraph Cody: Diff lens shown", CodyInlineEditActionNotifier::class.java)
+            "Sourcegraph Cody: Action lenses shown", CodyInlineEditActionNotifier::class.java)
 
-    @JvmStatic
-    @Topic.ProjectLevel
-    val TOPIC_DISPLAY_BLOCK_GROUP =
-      Topic.create(
-        "Sourcegraph Cody: Block lens shown", CodyInlineEditActionNotifier::class.java)
+//    @JvmStatic
+//    @Topic.ProjectLevel
+//    val TOPIC_DISPLAY_BLOCK_GROUP =
+//      Topic.create(
+//        "Sourcegraph Cody: Block lens shown", CodyInlineEditActionNotifier::class.java)
 
     @JvmStatic
     @Topic.ProjectLevel

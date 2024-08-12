@@ -24,6 +24,7 @@ import com.intellij.ui.JBColor
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.protocol.Range
+import com.sourcegraph.cody.agent.protocol.TextEdit
 import com.sourcegraph.cody.edit.sessions.FixupSession
 import java.awt.Cursor
 import java.awt.Font
@@ -56,6 +57,9 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
   private val removedListeners = AtomicBoolean(false)
 
   val widgets = mutableListOf<LensWidget>()
+
+//  var displayLine = null // The line to display the group on
+//  var associatedEditIds: List<String> = emptyList() // IDs of associated TextEdits
 
   private val mouseClickListener =
       object : EditorMouseListener {

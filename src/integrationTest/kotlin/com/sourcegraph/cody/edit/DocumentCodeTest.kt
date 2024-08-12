@@ -2,7 +2,7 @@ package com.sourcegraph.cody.edit
 
 import com.intellij.testFramework.runInEdtAndGet
 import com.jetbrains.rd.util.AtomicInteger
-import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_DISPLAY_DIFF_GROUP
+import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_DISPLAY_ACTION_GROUPS
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_DISPLAY_WORKING_GROUP
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_FOLDING_RANGES
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_ACCEPT
@@ -60,7 +60,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
             assertInlayIsShown()
 
             if (isInProgress) {
-              val lenses = activeSession().diffLensGroup
+              val lenses = activeSession().getLensGroupManager().getLensGroups()
               // Lens group should match the expected structure.
               assertNotNull("Lens group should be displayed", lenses)
               val theWidgets = lenses!!.widgets

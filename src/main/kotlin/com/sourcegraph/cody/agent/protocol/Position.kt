@@ -5,7 +5,7 @@ import com.intellij.openapi.editor.LogicalPosition
 import kotlin.math.max
 import kotlin.math.min
 
-data class Position(@JvmField val line: Long, @JvmField val character: Long) {
+data class Position(@JvmField var line: Long, @JvmField val character: Long) {
   constructor(line: Int, character: Int) : this(line.toLong(), character.toLong())
 
   fun isStartOrEndOfDocumentMarker(document: Document): Boolean {
