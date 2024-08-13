@@ -4,8 +4,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.edit.FixupService
 
-class EditUndoAction : InlineEditAction() {
+class EditRejectAllAction : InlineEditAction() {
   override fun performAction(e: AnActionEvent, project: Project) {
-    FixupService.getInstance(project).getActiveSession()?.undo()
+    FixupService.getInstance(project).getActiveSession()?.rejectAll()
   }
 }

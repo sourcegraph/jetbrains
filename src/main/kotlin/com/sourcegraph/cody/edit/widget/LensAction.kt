@@ -37,8 +37,8 @@ class LensAction(
           when (actionId) {
             FixupSession.ACTION_ACCEPT -> acceptColor
             FixupSession.ACTION_ACCEPT_ALL -> acceptColor
-            FixupSession.ACTION_REJECT -> undoColor
-            FixupSession.ACTION_UNDO -> undoColor
+            FixupSession.ACTION_REJECT -> rejectColor
+            FixupSession.ACTION_REJECT_ALL -> rejectColor
             else -> actionColor
           })
 
@@ -122,7 +122,7 @@ class LensAction(
 
     val actionColor = JBColor(0x4C4D54, 0x393B40)
     private val acceptColor = JBColor(0x369650, 0x388119)
-    private val undoColor = JBColor(0xCC3645, 0x7B282C)
+    private val rejectColor = JBColor(0xCC3645, 0x7B282C)
 
     private val lastLensActionPerformed: AtomicReference<String?> = AtomicReference(null)
 

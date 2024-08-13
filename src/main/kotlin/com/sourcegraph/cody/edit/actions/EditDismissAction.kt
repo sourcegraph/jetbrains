@@ -4,10 +4,10 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.edit.FixupService
 
-// This differs from Cancel (and Undo) in a couple ways:
+// This differs from Cancel (and RejectAll) in a couple ways:
 //
 // - It doesn't send a message back to the server
-// - If the edits are already applied, doesn't Undo
+// - If the edits are already applied, doesn't un-apply them
 // - Useful outside the context of an active session
 //
 // So we have our own Action for it.

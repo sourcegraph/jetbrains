@@ -8,7 +8,7 @@ import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_FO
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_ACCEPT
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_ACCEPT_ALL
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_REJECT
-import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_UNDO
+import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_PERFORM_REJECT_ALL
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier.Companion.TOPIC_TASK_FINISHED
 import com.sourcegraph.cody.edit.actions.DocumentCodeAction
 import com.sourcegraph.cody.edit.sessions.FixupSession
@@ -120,9 +120,9 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
           widget is LensAction && widget.actionId == FixupSession.ACTION_DIFF
         })
     assertNotNull(
-        "Lens group should contain Show Undo action",
+        "Lens group should contain Show Reject All action",
         widgets.find { widget ->
-          widget is LensAction && widget.actionId == FixupSession.ACTION_UNDO
+          widget is LensAction && widget.actionId == FixupSession.ACTION_REJECT_ALL
         })
     assertNotNull(
         "Lens group should contain Show Retry action",
@@ -186,7 +186,6 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
       "Expected document to be changed", originalDocument, myFixture.editor.document.text)
     assertInlayIsShown()
 
-    //TODO: JM, not sure if this is ACTION_UNDO OR ACTION_ACCEPT
     runAndWaitForNotifications(FixupSession.ACTION_ACCEPT, TOPIC_PERFORM_REJECT, TOPIC_TASK_FINISHED)
     assertEquals(
       "Expected document changes to be reverted",
@@ -196,14 +195,14 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
   }
 
   @Test
-  fun testUndo() {
+  fun testRejectAll() {
     val originalDocument = myFixture.editor.document.text
-    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_DIFF_GROUP)
+    runAndWaitForNotifications(DocumentCodeAction.ID, TOPIC_DISPLAY_ACTION_GROUPS)
     assertNotSame(
         "Expected document to be changed", originalDocument, myFixture.editor.document.text)
     assertInlayIsShown()
 
-    runAndWaitForNotifications(FixupSession.ACTION_UNDO, TOPIC_PERFORM_UNDO, TOPIC_TASK_FINISHED)
+    runAndWaitForNotifications(FixupSession.ACTION_REJECT_ALL, TOPIC_PERFORM_REJECT_ALL, TOPIC_TASK_FINISHED)
     assertEquals(
         "Expected document changes to be reverted",
         originalDocument,

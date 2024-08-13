@@ -515,7 +515,7 @@ class EditCommandPrompt(
         session.afterSessionFinished {
           startEditCodeSession(text, if (session.isInserted) "insert" else "edit")
         }
-        session.undo()
+        session.rejectAll()
       } ?: run { startEditCodeSession(text) }
     } finally {
       performCancelAction()
@@ -621,8 +621,8 @@ class EditCommandPrompt(
         "cody.editCodeAction",
         "cody.inlineEditRetryAction" -> getFirstShortcut("cody.editCodeAction")
         "cody.inlineEditCancelAction",
-        "cody.inlineEditUndoAction",
-        "cody.inlineEditDismissAction" -> getFirstShortcut("cody.editCancelOrUndoAction")
+        "cody.inlineEditRejectAllAction",
+        "cody.inlineEditDismissAction" -> getFirstShortcut("cody.editCancelOrRejectAllAction")
         else -> getFirstShortcut(actionId)
       }
     }

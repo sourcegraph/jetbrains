@@ -28,7 +28,7 @@ class LensGroupFactory(val session: FixupSession) {
       addLogo(this)
       addAction(this, "Accept All", FixupSession.ACTION_ACCEPT_ALL)
       addSeparator(this)
-      addAction(this, "Undo", FixupSession.ACTION_UNDO)
+      addAction(this, "Reject All", FixupSession.ACTION_REJECT_ALL)
       addSeparator(this)
       // Exclude Edit & Retry from unit test commands
       if (!isUnitTestCommand) {

@@ -62,7 +62,7 @@ abstract class FixupSession(
 
   private val editsManager = EditsManager()
   private val lensGroupManager = LensGroupManager(this, project, editor, controller)
-  public fun getLensGroupManager() : LensGroupManager {
+  fun getLensGroupManager() : LensGroupManager {
     return lensGroupManager
   }
   init {
@@ -218,7 +218,7 @@ abstract class FixupSession(
       CodyTaskState.Formatting -> {
         taskId = task.id
       }
-      // Tasks remain in this state until explicit accept/reject/undo/cancel.
+      // Tasks remain in this state until explicit accept/reject/acceptAll/rejectAll/cancel.
       CodyTaskState.Applied -> {
         // Update the edit position to account for the lenses which will be displayed next
         //editsManager.repositionEdits()
@@ -241,31 +241,29 @@ abstract class FixupSession(
   fun acceptAll() {
     try {
       CodyAgentService.withAgent(project) { agent ->
-        lensGroupManager.disposeAllCodeLensesTwo(lensGroupManager.getLensGroups()) // disposes of each code lens
-        resetEditsAndLenses() // clears lensGroupManager's and editManager's data structures
         agent.server.acceptAllEditTask(TaskIdParam(taskId!!))
         publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT_ALL)
       }
     } catch (x: Exception) {
-      // Don't show error lens here; it's sort of pointless.
       logger.warn("Error sending editTask/acceptAll for taskId", x)
       dispose()
     }
+    disposeAllLenses()
   }
 
-  fun undo() { //Todo: rename to 'rejectall'
+  fun rejectAll() {
     lensGroupManager.displayLensGroups(LensGroupType.WORKING_GROUP)
     CodyAgentService.withAgentRestartIfNeeded(
       project,
       callback = { agent: CodyAgent ->
-        agent.server.undoEditTask(TaskIdParam(taskId!!))
-        publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_UNDO)
+        agent.server.rejectAllEditTask(TaskIdParam(taskId!!))
+        publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_REJECT_ALL)
       },
       onFailure = { exception ->
         lensGroupManager.displayLensGroups(LensGroupType.ERROR_GROUP,
-          "Error sending editTask/undo for taskId: ${exception.localizedMessage}")
+          "Error sending editTask/rejectAll for taskId: ${exception.localizedMessage}")
       })
-    resetEditsAndLenses()
+      disposeAllLenses()
   }
 
   fun accept(editId: String) {
@@ -278,7 +276,6 @@ abstract class FixupSession(
         publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
       }
     } catch (x: Exception) {
-      // Don't show error lens here; it's sort of pointless.
       logger.warn("Error sending editTask/accept for taskId", x)
       dispose()
     }
@@ -324,6 +321,11 @@ abstract class FixupSession(
 
     // Update displayed lens groups
     lensGroupManager.updateActionGroups()
+  }
+
+  private fun disposeAllLenses() {
+    lensGroupManager.disposeAllCodeLenses() // disposes of each code lens
+    resetEditsAndLenses() // clears lensGroupManager's and editManager's internal representations
   }
 
   private fun resetEditsAndLenses() {
@@ -502,7 +504,7 @@ abstract class FixupSession(
     const val ACTION_CANCEL = "cody.inlineEditCancelAction"
     const val ACTION_RETRY = "cody.inlineEditRetryAction"
     const val ACTION_DIFF = "cody.editShowDiffAction"
-    const val ACTION_UNDO = "cody.inlineEditUndoAction"
+    const val ACTION_REJECT_ALL = "cody.inlineEditRejectAllAction"
     const val ACTION_DISMISS = "cody.inlineEditDismissAction"
   }
 }

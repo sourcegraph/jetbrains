@@ -29,8 +29,8 @@ class KeyboardShortcutTest : BasePlatformTestCase() {
             "cody.documentCodeAction" to arrayOf("ctrl alt H", "ctrl alt H"),
             "cody.testCodeAction" to arrayOf("ctrl alt G", "ctrl alt G"),
 
-            // Handles cody.inlineEditUndoAction, inlineEditCancelAction, & inlineEditDismissAction:
-            "cody.editCancelOrUndoAction" to arrayOf("ctrl alt BACK_SPACE", "ctrl alt BACK_SPACE"),
+            // Handles cody.inlineEditRejectAllAction, inlineEditCancelAction, & inlineEditDismissAction:
+            "cody.editCancelOrRejectAllAction" to arrayOf("ctrl alt BACK_SPACE", "ctrl alt BACK_SPACE"),
             "cody.editShowDiffAction" to arrayOf("ctrl alt D", "ctrl alt K"),
             "cody.inlineEditAcceptAllAction" to arrayOf("ctrl shift EQUALS", "ctrl shift EQUALS"),
             "cody.newChat" to arrayOf("ctrl alt 0", "ctrl alt 0"),

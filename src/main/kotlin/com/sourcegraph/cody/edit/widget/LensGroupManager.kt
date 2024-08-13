@@ -195,54 +195,19 @@ class LensGroupManager(private val session: FixupSession,
     }
   }
 
-  fun disposeAllCodeLensesTwo(lensGroupsToEditIdsTwo: List<LensWidgetGroup> ) = runInEdt {
-    lensGroupsToEditIdsTwo.forEach { lensGroup ->
-//      var lensGroup = group.key
+  private fun executeDiposeAllCodeLenses(groups: List<LensWidgetGroup>) = runInEdt {
+    groups.forEach { group ->
       try {
-        //if (!lensGroup.isDisposed.get()) {
-        lensGroup.dispose()
-//        Disposer.dispose(lensGroup)
-        //} else{
-          //logger.warn("Lens group is already disposed")
-        //}
+        group.dispose()
       } catch (x: Exception) {
         logger.warn("Error disposing lens group", x)
       }
     }
-    updateDisplayBools(LensGroupType.NONE)
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_TASK_FINISHED)
   }
 
   fun disposeAllCodeLenses() = runInEdt {
-    lensGroupsToEditIds.forEach { group ->
-      var lensGroup = group.key
-      try {
-        //if (!lensGroup.isDisposed.get()) {
-        lensGroup.dispose()
-//        Disposer.dispose(lensGroup)
-        //} else{
-        //logger.warn("Lens group is already disposed")
-        //}
-      } catch (x: Exception) {
-        logger.warn("Error disposing lens group", x)
-      }
-    }
+    executeDiposeAllCodeLenses(this.getLensGroups())
     updateDisplayBools(LensGroupType.NONE)
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_TASK_FINISHED)
-  }
-  fun disposeOfAllCodeLenses() {
-    if (project.isDisposed) return
-
-    lensGroupsToEditIds.forEach { group ->
-      var lensGroup = group.key
-      try {
-        if (!lensGroup.isDisposed.get()) Disposer.dispose(lensGroup)
-      } catch (x: Exception) {
-        logger.warn("Error disposing lens group", x)
-      }
-    }
-    lensGroupsToEditIds.clear()
-
     publishProgress(CodyInlineEditActionNotifier.TOPIC_TASK_FINISHED)
   }
 

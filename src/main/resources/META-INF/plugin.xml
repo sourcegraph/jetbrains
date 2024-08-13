@@ -278,11 +278,11 @@
                     <override-text place="GoToAction" text="Cody: Retry Edit"/>
                 </action>
 
-                <action id="cody.inlineEditUndoAction"
-                        class="com.sourcegraph.cody.edit.actions.EditUndoAction"
-                        text="Undo Edit"
-                        description="Undo the fixup">
-                    <override-text place="GoToAction" text="Cody: Undo Edit"/>
+                <action id="cody.inlineEditRejectAllAction"
+                        class="com.sourcegraph.cody.edit.actions.EditRejectAllAction"
+                        text="Reject All Edits"
+                        description="Reject the fixup">
+                    <override-text place="GoToAction" text="Cody: Reject All Edits"/>
                 </action>
 
                 <action id="cody.editShowDiffAction"
@@ -310,14 +310,14 @@
                 </action>
 
                 <!-- also now dismisses error lens, if showing -->
-                <action id="cody.editCancelOrUndoAction"
-                        class="com.sourcegraph.cody.edit.actions.EditCancelOrUndoAction"
-                        text="Cancel or Undo Current Edit"
-                        description="Activates the cancel or undo lens, whichever is showing.">
+                <action id="cody.editCancelOrRejectAllAction"
+                        class="com.sourcegraph.cody.edit.actions.EditCancelOrRejectAllAction"
+                        text="Cancel or Reject All Current Edits"
+                        description="Activates the cancel or reject all lens, whichever is showing.">
                     <keyboard-shortcut replace-all="true" first-keystroke="ctrl alt BACK_SPACE" keymap="$default"/>
                     <keyboard-shortcut replace-all="true" first-keystroke="ctrl alt BACK_SPACE"
                                        keymap="Mac OS X 10.5+"/>
-                    <override-text place="GoToAction" text="Cody: Cancel or Undo Current Edit"/>
+                    <override-text place="GoToAction" text="Cody: Cancel or Reject All Current Edits"/>
                 </action>
             </group>
 

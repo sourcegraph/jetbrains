@@ -40,11 +40,6 @@ interface CodyInlineEditActionNotifier {
 
     @JvmStatic
     @Topic.ProjectLevel
-    val TOPIC_PERFORM_UNDO =
-        Topic.create("Sourcegraph Cody: Undo Inline Edit", CodyInlineEditActionNotifier::class.java)
-
-    @JvmStatic
-    @Topic.ProjectLevel
     val TOPIC_PERFORM_ACCEPT_ALL =
         Topic.create("Sourcegraph Cody: Accept All Inline Edits", CodyInlineEditActionNotifier::class.java)
 
@@ -52,6 +47,11 @@ interface CodyInlineEditActionNotifier {
     @Topic.ProjectLevel
     val TOPIC_PERFORM_ACCEPT =
         Topic.create("Sourcegraph Cody: Accept Inline Edit", CodyInlineEditActionNotifier::class.java)
+
+    @JvmStatic
+    @Topic.ProjectLevel
+    val TOPIC_PERFORM_REJECT_ALL =
+      Topic.create("Sourcegraph Cody: Reject All Inline Edits", CodyInlineEditActionNotifier::class.java)
 
     @JvmStatic
     @Topic.ProjectLevel
