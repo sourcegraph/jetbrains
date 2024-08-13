@@ -10,16 +10,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 class FixupSessionDocumentListener(private val session: FixupSession) : BulkAwareDocumentListener {
   private val logger = Logger.getInstance(FixupSessionDocumentListener::class.java)
 
-  val isActionGroupShown = AtomicBoolean(false)
-
   override fun documentChangedNonBulk(event: DocumentEvent) {
-    if (isActionGroupShown.get()) {
+    if (session.getLensGroupManager().isActionGroupDisplayed()) {
       logger.info("Auto-accepting current Fixup session: ${session.taskId}")
       session.acceptAll()
     }
-  }
-
-  fun setActionGroupShown(shown: Boolean) {
-    isActionGroupShown.set(shown)
   }
 }

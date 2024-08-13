@@ -5,4 +5,5 @@ public enum class LensGroupType {
   WORKING_GROUP,
   ERROR_GROUP,
   ACTION_GROUPS,
+  NONE
 }

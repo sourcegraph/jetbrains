@@ -37,15 +37,12 @@ class LensGroupFactory(val session: FixupSession) {
       }
       addAction(this, "Show Diff", FixupSession.ACTION_DIFF)
       addSeparator(this)
-
-      //Todo: JM. these may need to be removed
       addAction(this, "Accept", FixupSession.ACTION_ACCEPT)
       addSeparator(this)
       addAction(this, "Reject", FixupSession.ACTION_REJECT)
       addSeparator(this)
-
       registerWidgets()
-      isDiffGroup = true
+      isHeaderGroup = true
     }
   }
 

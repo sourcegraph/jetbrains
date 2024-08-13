@@ -13,8 +13,8 @@ class EditCancelOrUndoAction : InlineEditAction() {
   override fun performAction(e: AnActionEvent, project: Project) {
     val session = FixupService.getInstance(project).getActiveSession() ?: return
     when {
-      session.isShowingActionLens() -> EditUndoAction().actionPerformed(e)
-      session.isShowingErrorLens() -> EditDismissAction().actionPerformed(e)
+      session.getLensGroupManager().isActionGroupDisplayed() -> EditUndoAction().actionPerformed(e)
+      session.getLensGroupManager().isErrorGroupDisplayed() -> EditDismissAction().actionPerformed(e)
       else -> EditCancelAction().actionPerformed(e)
     }
   }

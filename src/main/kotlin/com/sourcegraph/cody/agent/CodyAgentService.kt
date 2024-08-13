@@ -10,8 +10,6 @@ import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.util.net.HttpConfigurable
-import com.sourcegraph.cody.agent.protocol.CodyTaskState
-import com.sourcegraph.cody.agent.protocol.EditTask
 import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.chat.AgentChatSessionService

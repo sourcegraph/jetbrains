@@ -8,7 +8,7 @@ import com.sourcegraph.cody.edit.widget.LensGroupManager
 import java.util.UUID
 
 
-class EditsManager(private val session: FixupSession) {
+class EditsManager() {
 
   private lateinit var lensGroupManager: LensGroupManager
 
@@ -19,20 +19,27 @@ class EditsManager(private val session: FixupSession) {
   private val logger = Logger.getInstance(LensWidgetGroup::class.java)
   var edits: List<TextEdit> = emptyList()
 
-  public fun initEdits(edits: List<TextEdit>) {
+  fun initEdits(edits: List<TextEdit>) {
     // Iterate through each edit, assign a UUID, and add it to the list of edits
     this.edits = edits.map {
       it.copy(id = it.id ?: UUID.randomUUID().toString())
     }
   }
 
-
-
-  public fun getEditById(id: String): TextEdit? {
-    return edits.find { it.id == id }
+  fun getAllEditIds(): List<String> {
+    return edits.mapNotNull { it.id }
   }
 
-  public fun getFirstEdit(): TextEdit? {
+  fun getEditById(id: String): TextEdit? {
+    val edit = edits.find { it.id == id }
+    if (edit == null) {
+      logger.warn("Edit with ID: $id not found")
+    } else {
+      logger.info("Found edit with ID: ${edit.id}")
+    }
+    return edit  }
+
+  fun getFirstEdit(): TextEdit? {
     // Get edit with the lowest position
     return edits
       .filter { it.position != null }
@@ -43,7 +50,7 @@ class EditsManager(private val session: FixupSession) {
     edits = edits.filter { it.id != editId }
   }
 
-  fun removeAllEdits() {
+  fun clearAllEdits() {
     edits = emptyList()
   }
 

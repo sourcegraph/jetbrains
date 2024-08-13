@@ -93,8 +93,9 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
 
   private var lastComputedIndent = RECOMPUTE
 
+  //ToDO: I don't think these do anything
   var isInWorkingGroup = false
-  var isDiffGroup = false
+  var isHeaderGroup = false
   var isBlockGroup = false
   var isErrorGroup = false
 
@@ -137,7 +138,8 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
       if (isDisposed.get()) {
         throw IllegalStateException("Request to show disposed inlay: $this")
       }
-      inlay = editor.inlayModel.addBlockElement(offset, false, true, 0, this)
+      inlay = editor.inlayModel.addBlockElement(offset, false,
+        true, 0, this)
       Disposer.register(this, inlay!!)
       // Make sure the lens is visible.
       val logicalPosition = range.start.toLogicalPosition(editor.document)
@@ -364,6 +366,7 @@ class LensWidgetGroup(val session: FixupSession, parentComponent: Editor) :
         Disposer.dispose(this)
       }
       inlay = null
+      editor.contentComponent.repaint()
     }
   }
 

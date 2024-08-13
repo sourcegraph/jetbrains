@@ -4,14 +4,12 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.Topic
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.toRange
-import com.sourcegraph.cody.agent.protocol.Position
 import com.sourcegraph.cody.agent.protocol.Range
 import com.sourcegraph.cody.edit.CodyInlineEditActionNotifier
 import com.sourcegraph.cody.edit.FixupService
@@ -38,10 +36,8 @@ class LensGroupManager(private val session: FixupSession,
   private var errorGroupDisplayedBool = false
   private var actionGroupDisplayedBool = false
 
+  // Toggles the passed in type on, and all others off
   fun updateDisplayBools(type : LensGroupType) {
-    workingGroupDisplayedBool = false
-    errorGroupDisplayedBool = false
-    actionGroupDisplayedBool = false
         when (type) {
             LensGroupType.WORKING_GROUP -> {
                 workingGroupDisplayedBool = true
@@ -58,67 +54,63 @@ class LensGroupManager(private val session: FixupSession,
                 errorGroupDisplayedBool = false
                 workingGroupDisplayedBool = false
             }
-        }  }
+          else -> {
+            actionGroupDisplayedBool = false
+            errorGroupDisplayedBool = false
+            workingGroupDisplayedBool = false
+          }
+        }
+  }
 
   fun isWorkingGroupDisplayed() : Boolean {
     return workingGroupDisplayedBool
   }
+
   fun isErrorGroupDisplayed() : Boolean {
     return errorGroupDisplayedBool
   }
+
   fun isActionGroupDisplayed() : Boolean {
     return actionGroupDisplayedBool
   }
-
 
   fun getLensGroups() : List<LensWidgetGroup> {
     return lensGroupsToEditIds.keys.toList()
   }
 
-  fun removeAllLenses() {
+  fun clearAllLenses() {
     lensGroupsToEditIds.clear()
-  }
-
-  fun getHeaderGroup(): LensWidgetGroup? {
-    return lensGroupsToEditIds.keys.firstOrNull()
   }
 
   fun getNumberOfLensGroups() : Int {
     return lensGroupsToEditIds.size
   }
 
-//  fun getAssociatedEditIds(lensGroup: LensWidgetGroup): List<TextEdit> {
-//    var associatedIds =  lensGroupsToEditIds[lensGroup]
-//
-//    var associatedEdits = mutableListOf<TextEdit>()
-//    if (associatedIds != null) {
-//      associatedIds.forEach {
-//        val associatedEdit = editsManager.getEditById(it)
-//        if (associatedEdit != null) {
-//          associatedEdits.add(associatedEdit)
-//        }
-//      }
-//    }
-//    return associatedEdits
-//  }
-
   fun displayLensGroups(type: LensGroupType, message: String? = null) {
+    disposeAllCodeLenses() // Dispose of any existing code lenses
     when (type) {
       LensGroupType.WORKING_GROUP -> displayWorkingGroup()
       LensGroupType.ERROR_GROUP -> displayErrorGroup(message ?: "Edit Failed")
       LensGroupType.ACTION_GROUPS -> displayActionGroups()
+      else -> {
+        logger.error("Invalid lens group type passed in: $type")
+      }
     }
   }
 
   private fun displayWorkingGroup() = runInEdt {
     val group = LensGroupFactory(session).createTaskWorkingGroup()
     session.selectionRange?.let { showLensGroup(group, it.toRange()) }
+    addLensGroup(group, emptyList())
     updateDisplayBools(LensGroupType.WORKING_GROUP)
+//    session.postAcceptActions()
     publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
   }
 
   fun displayErrorGroup(hoverText: String) = runInEdt {
-    session.selectionRange?.let { showLensGroup(LensGroupFactory(session).createErrorGroup(hoverText), it.toRange()) }
+    val group = LensGroupFactory(session).createErrorGroup(hoverText)
+    session.selectionRange?.let { showLensGroup(group, it.toRange()) }
+    addLensGroup(group, emptyList())
     updateDisplayBools(LensGroupType.ERROR_GROUP)
     publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ERROR_GROUP)
   }
@@ -134,40 +126,48 @@ class LensGroupManager(private val session: FixupSession,
     // Loop through each edit
     edits.forEachIndexed { index, edit ->
       if (index == 0) {
-        // Create a header group for the first edit
-        val headerGroup = LensGroupFactory(session).createHeaderGroup()
-        addLensGroup(headerGroup, edits.mapNotNull { it.id }) // Heading group maps to all EditIds
-
-        edit.range?.let { showLensGroup(headerGroup, it) }
+        displayHeaderGroup()
       } else {
-        // Create a block group for subsequent edits
-        val blockGroup = LensGroupFactory(session).createBlockGroup(edit.id)
-        addLensGroup(blockGroup, listOf(edit.id)) // Block group maps to just the current EditId
-
-        edit.range?.let { showLensGroup(blockGroup, it) }
+        edit.id?.let { displayBlockGroup(it) }
       }
     }
 
     updateDisplayBools(LensGroupType.ACTION_GROUPS)
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACTION_GROUPS)
+  }
 
+  private fun displayHeaderGroup() = runInEdt {
+    val group = LensGroupFactory(session).createHeaderGroup()
+    session.selectionRange?.let { showLensGroup(group, it.toRange()) }
+    val allEditIds = editsManager.getAllEditIds()
+    addLensGroup(group, allEditIds)
+    updateDisplayBools(LensGroupType.ACTION_GROUPS)
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACTION_GROUPS)
+  }
+
+  private fun displayBlockGroup(editId: String) = runInEdt {
+    val group = LensGroupFactory(session).createBlockGroup(editId)
+    val edit = editsManager.getEditById(editId)
+    val position = edit?.position
+    if (position != null) {
+      showLensGroup(group, Range(position, position))
+    } else {
+      logger.warn("Edit with id $editId not found")
+    }
+    addLensGroup(group, listOf(editId))
+    updateDisplayBools(LensGroupType.ACTION_GROUPS)
     publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACTION_GROUPS)
   }
 
   fun updateActionGroups() {
     // Remove all displayed groups (not the lensGroupsToEditIds)(Just the display)
-    unrenderAllCodeLenses()
+    disposeAllCodeLenses()
 
     // Re-display all remaining action groups
     displayActionGroups()
   }
 
   fun showLensGroup(group: LensWidgetGroup, range: Range) {
-//    try {
-//      group.let { if (!it.isDisposed.get()) Disposer.dispose(it) }
-//    } catch (x: Exception) {
-//      logger.warn("Error disposing previous lens group", x)
-//    }
-
     val future = group.show(range)
 
     // Make sure the lens is visible.
@@ -185,9 +185,9 @@ class LensGroupManager(private val session: FixupSession,
   }
 
   fun addLensGroup(lensGroup: LensWidgetGroup, editIds: List<String?>) {
-    lensGroupsToEditIds[lensGroup] = editIds as List<String>
+    val nonNullEditIds = editIds.filterNotNull()
+    lensGroupsToEditIds[lensGroup] = nonNullEditIds
   }
-
 
   private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
     ApplicationManager.getApplication().invokeLater {
@@ -195,17 +195,41 @@ class LensGroupManager(private val session: FixupSession,
     }
   }
 
-  fun unrenderAllCodeLenses() {
-    lensGroupsToEditIds.forEach { group ->
-      var lensGroup = group.key
+  fun disposeAllCodeLensesTwo(lensGroupsToEditIdsTwo: List<LensWidgetGroup> ) = runInEdt {
+    lensGroupsToEditIdsTwo.forEach { lensGroup ->
+//      var lensGroup = group.key
       try {
-        if (!lensGroup.isDisposed.get()) Disposer.dispose(lensGroup)
+        //if (!lensGroup.isDisposed.get()) {
+        lensGroup.dispose()
+//        Disposer.dispose(lensGroup)
+        //} else{
+          //logger.warn("Lens group is already disposed")
+        //}
       } catch (x: Exception) {
         logger.warn("Error disposing lens group", x)
       }
     }
+    updateDisplayBools(LensGroupType.NONE)
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_TASK_FINISHED)
   }
 
+  fun disposeAllCodeLenses() = runInEdt {
+    lensGroupsToEditIds.forEach { group ->
+      var lensGroup = group.key
+      try {
+        //if (!lensGroup.isDisposed.get()) {
+        lensGroup.dispose()
+//        Disposer.dispose(lensGroup)
+        //} else{
+        //logger.warn("Lens group is already disposed")
+        //}
+      } catch (x: Exception) {
+        logger.warn("Error disposing lens group", x)
+      }
+    }
+    updateDisplayBools(LensGroupType.NONE)
+    publishProgress(CodyInlineEditActionNotifier.TOPIC_TASK_FINISHED)
+  }
   fun disposeOfAllCodeLenses() {
     if (project.isDisposed) return
 
