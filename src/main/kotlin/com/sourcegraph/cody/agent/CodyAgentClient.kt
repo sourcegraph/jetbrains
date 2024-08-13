@@ -3,7 +3,14 @@ package com.sourcegraph.cody.agent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.fileChooser.FileChooserFactory
+import com.intellij.openapi.fileChooser.FileSaverDescriptor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
+import com.sourcegraph.cody.agent.protocol.DebugMessage
+import com.sourcegraph.cody.agent.protocol.OpenExternalParams
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.agent.protocol_generated.DebugMessage
@@ -186,5 +193,22 @@ class CodyAgentClient(private val project: Project, private val webview: NativeW
   fun webviewDispose(params: WebviewDisposeParams) {
     // TODO: Implement this.
     println("TODO, implement webview/dispose")
+  }
+
+  @JsonRequest("window/showSaveDialog")
+  fun window_showSaveDialog(): CompletableFuture<String> {
+    var outputDir: VirtualFile? = project.guessProjectDir()
+    if (outputDir == null || !outputDir.exists()) {
+      outputDir = VfsUtil.getUserHomeDir()
+    }
+
+    val descriptor = FileSaverDescriptor("Cody: Save as New File", "Save file")
+    val saveFileFuture = CompletableFuture<String>()
+    runInEdt {
+      val dialog = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project)
+      val result = dialog.save(outputDir, "Untitled")
+      saveFileFuture.complete(result?.file?.path)
+    }
+    return saveFileFuture
   }
 }
