@@ -267,32 +267,47 @@ abstract class FixupSession(
   }
 
   fun accept(editId: String) {
-    try{
-      CodyAgentService.withAgent(project) { agent ->
-        agent.server.acceptEditTask(TaskIdParam(taskId!!, editsManager.getEditById(editId)?.range!!))
+    if (lensGroupManager.getNumberOfLensGroups() <= 1) {
+      this.acceptAll()
+    } else {
+      try {
+        val position = editsManager.getEditById(editId)?.position ?: return
+        CodyAgentService.withAgent(project) { agent ->
+          agent.server.acceptEditTask(TaskIdParam(taskId!!, Range(position, position)))
+        }
 
-        updateEditsAndLensesPostBlockGroupInteraction(editId)
-
-        publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
+      } catch (x: Exception) {
+        logger.warn("Error sending editTask/accept for taskId", x)
+        dispose()
       }
-    } catch (x: Exception) {
-      logger.warn("Error sending editTask/accept for taskId", x)
-      dispose()
+      lensGroupManager.disposeCodeLensByEditId(editId)
+      editsManager.removeEditById(editId)
+      publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_ACCEPT)
     }
   }
 
   fun reject(editId: String) {
-    try{
-      CodyAgentService.withAgent(project) { agent ->
-        agent.server.rejectEditTask(TaskIdParam(taskId!!, editsManager.getEditById(editId)?.range!!))
-
-        updateEditsAndLensesPostBlockGroupInteraction(editId)
-
-        publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_REJECT)
+    if (lensGroupManager.getNumberOfLensGroups() <= 1) {
+      this.rejectAll()
+    } else {
+      try {
+        val position = editsManager.getEditById(editId)?.position ?: return
+        CodyAgentService.withAgentRestartIfNeeded(
+          project,
+          callback = { agent: CodyAgent ->
+            agent.server.rejectEditTask(TaskIdParam(taskId!!, Range(position, position)))
+          },
+          onFailure = { exception ->
+            lensGroupManager.displayLensGroups(LensGroupType.ERROR_GROUP,
+              "Error sending editTask/rejectAll for taskId: ${exception.localizedMessage}")
+          })
+      } catch (x: Exception) {
+        logger.warn("Error sending editTask/reject for taskId", x)
+        dispose()
       }
-    } catch (x: Exception) {
-      logger.warn("Error sending editTask/reject for taskId", x)
-      dispose()
+      lensGroupManager.disposeCodeLensByEditId(editId)
+      editsManager.removeEditById(editId)
+      publishProgress(CodyInlineEditActionNotifier.TOPIC_PERFORM_REJECT)
     }
   }
 
@@ -312,16 +327,16 @@ abstract class FixupSession(
     }
   }
 
-  private fun updateEditsAndLensesPostBlockGroupInteraction(editId: String){
-    // Remove the corresponding edit from the list
-    editsManager.removeEdit(editId)
-
-    // Remove corresponding code lens
-    lensGroupManager.removeLensGroupByEditId(editId)
-
-    // Update displayed lens groups
-    lensGroupManager.updateActionGroups()
-  }
+//  private fun updateEditsAndLensesPostBlockGroupInteraction(editId: String){
+//    // Remove the corresponding edit from the list
+//    editsManager.removeEdit(editId)
+//
+//    // Remove corresponding code lens
+//    lensGroupManager.removeLensGroupByEditId(editId)
+//
+//    // Update displayed lens groups
+//    lensGroupManager.updateActionGroups()
+//  }
 
   private fun disposeAllLenses() {
     lensGroupManager.disposeAllCodeLenses() // disposes of each code lens

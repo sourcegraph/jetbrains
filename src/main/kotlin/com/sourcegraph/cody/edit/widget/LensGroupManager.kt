@@ -21,57 +21,31 @@ class LensGroupManager(private val session: FixupSession,
                        val project: Project,
                        var editor: Editor,
                        val controller: FixupService)  {
+  private val logger = Logger.getInstance(LensWidgetGroup::class.java)
   private lateinit var editsManager: EditsManager
+  //A hashmap of lensGroups to list of associated text edit uuids
+  private var lensGroupsToEditIds = mutableMapOf<LensWidgetGroup, List<String>>()
+
+  // ** Get/Set **
   fun setEditsManager(editsManager: EditsManager) {
     this.editsManager = editsManager
   }
 
-  private val logger = Logger.getInstance(LensWidgetGroup::class.java)
-
-  //A hashmap of lensGroups to list of associated text edit uuids
-  private var lensGroupsToEditIds = mutableMapOf<LensWidgetGroup, List<String>>()
-
-  // Tracking which groups are displayed
-  private var workingGroupDisplayedBool = false
-  private var errorGroupDisplayedBool = false
-  private var actionGroupDisplayedBool = false
-
-  // Toggles the passed in type on, and all others off
-  fun updateDisplayBools(type : LensGroupType) {
-        when (type) {
-            LensGroupType.WORKING_GROUP -> {
-                workingGroupDisplayedBool = true
-                errorGroupDisplayedBool = false
-                actionGroupDisplayedBool = false
-            }
-            LensGroupType.ERROR_GROUP -> {
-                errorGroupDisplayedBool = true
-                workingGroupDisplayedBool = false
-                actionGroupDisplayedBool = false
-            }
-            LensGroupType.ACTION_GROUPS -> {
-                actionGroupDisplayedBool = true
-                errorGroupDisplayedBool = false
-                workingGroupDisplayedBool = false
-            }
-          else -> {
-            actionGroupDisplayedBool = false
-            errorGroupDisplayedBool = false
-            workingGroupDisplayedBool = false
-          }
-        }
+  private fun addLensGroup(lensGroup: LensWidgetGroup, editIds: List<String?>) {
+    val nonNullEditIds = editIds.filterNotNull()
+    lensGroupsToEditIds[lensGroup] = nonNullEditIds
+  }
+  fun getNumberOfLensGroups() : Int {
+    return lensGroupsToEditIds.size
   }
 
-  fun isWorkingGroupDisplayed() : Boolean {
-    return workingGroupDisplayedBool
-  }
-
-  fun isErrorGroupDisplayed() : Boolean {
-    return errorGroupDisplayedBool
-  }
-
-  fun isActionGroupDisplayed() : Boolean {
-    return actionGroupDisplayedBool
+  fun getLensGroupByEditId(editId: String): LensWidgetGroup? {
+    for ((lensGroup, editIds) in lensGroupsToEditIds) {
+      if (editIds.contains(editId)) {
+        return lensGroup
+      }
+    }
+    return null
   }
 
   fun getLensGroups() : List<LensWidgetGroup> {
@@ -82,9 +56,7 @@ class LensGroupManager(private val session: FixupSession,
     lensGroupsToEditIds.clear()
   }
 
-  fun getNumberOfLensGroups() : Int {
-    return lensGroupsToEditIds.size
-  }
+  // ** Display **
 
   fun displayLensGroups(type: LensGroupType, message: String? = null) {
     disposeAllCodeLenses() // Dispose of any existing code lenses
@@ -127,9 +99,8 @@ class LensGroupManager(private val session: FixupSession,
     edits.forEachIndexed { index, edit ->
       if (index == 0) {
         displayHeaderGroup()
-      } else {
-        edit.id?.let { displayBlockGroup(it) }
       }
+      edit.id?.let { displayBlockGroup(it) }
     }
 
     updateDisplayBools(LensGroupType.ACTION_GROUPS)
@@ -159,14 +130,6 @@ class LensGroupManager(private val session: FixupSession,
     publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACTION_GROUPS)
   }
 
-  fun updateActionGroups() {
-    // Remove all displayed groups (not the lensGroupsToEditIds)(Just the display)
-    disposeAllCodeLenses()
-
-    // Re-display all remaining action groups
-    displayActionGroups()
-  }
-
   fun showLensGroup(group: LensWidgetGroup, range: Range) {
     val future = group.show(range)
 
@@ -184,45 +147,79 @@ class LensGroupManager(private val session: FixupSession,
     controller.notifySessionStateChanged()
   }
 
-  fun addLensGroup(lensGroup: LensWidgetGroup, editIds: List<String?>) {
-    val nonNullEditIds = editIds.filterNotNull()
-    lensGroupsToEditIds[lensGroup] = nonNullEditIds
+  // ** Display Tracking **
+  private var workingGroupDisplayedBool = false
+  private var errorGroupDisplayedBool = false
+  private var actionGroupDisplayedBool = false
+
+  fun updateDisplayBools(type : LensGroupType) {
+    when (type) {
+      LensGroupType.WORKING_GROUP -> {
+        workingGroupDisplayedBool = true
+        errorGroupDisplayedBool = false
+        actionGroupDisplayedBool = false
+      }
+      LensGroupType.ERROR_GROUP -> {
+        errorGroupDisplayedBool = true
+        workingGroupDisplayedBool = false
+        actionGroupDisplayedBool = false
+      }
+      LensGroupType.ACTION_GROUPS -> {
+        actionGroupDisplayedBool = true
+        errorGroupDisplayedBool = false
+        workingGroupDisplayedBool = false
+      }
+      else -> {
+        actionGroupDisplayedBool = false
+        errorGroupDisplayedBool = false
+        workingGroupDisplayedBool = false
+      }
+    }
   }
 
+  fun isWorkingGroupDisplayed() : Boolean {
+    return workingGroupDisplayedBool
+  }
+
+  fun isErrorGroupDisplayed() : Boolean {
+    return errorGroupDisplayedBool
+  }
+
+  fun isActionGroupDisplayed() : Boolean {
+    return actionGroupDisplayedBool
+  }
+
+
+  //ToDo: probably should only implement this in FixupSession (and only call from FixupSession)
   private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
     ApplicationManager.getApplication().invokeLater {
       project.messageBus.syncPublisher(topic).afterAction()
     }
   }
 
-  private fun executeDiposeAllCodeLenses(groups: List<LensWidgetGroup>) = runInEdt {
-    groups.forEach { group ->
-      try {
-        group.dispose()
-      } catch (x: Exception) {
-        logger.warn("Error disposing lens group", x)
-      }
+  // ** Dispose **
+
+  fun disposeCodeLensByEditId(editId: String) {
+    val group = this.getLensGroupByEditId(editId)
+    lensGroupsToEditIds.remove(group)
+    if (group != null) {
+      executeDisposeOfCodeLens(group)
     }
   }
 
   fun disposeAllCodeLenses() = runInEdt {
-    executeDiposeAllCodeLenses(this.getLensGroups())
+    for (lensGroup in this.getLensGroups()) {
+      executeDisposeOfCodeLens(lensGroup)
+    }
     updateDisplayBools(LensGroupType.NONE)
     publishProgress(CodyInlineEditActionNotifier.TOPIC_TASK_FINISHED)
   }
 
-  fun removeLensGroupByEditId(editId: String) {
-    lensGroupsToEditIds.forEach { group ->
-      var editIds = group.value
-      if (editIds.contains(editId)) {
-        var lensGroup = group.key
-        try {
-          if (!lensGroup.isDisposed.get()) Disposer.dispose(lensGroup)
-        } catch (x: Exception) {
-          logger.warn("Error disposing lens group", x)
-        }
-        lensGroupsToEditIds.remove(lensGroup)
-      }
+  fun executeDisposeOfCodeLens(group: LensWidgetGroup) = runInEdt {
+    try {
+      group.dispose()
+    } catch (x: Exception) {
+      logger.warn("Error disposing lens group", x)
     }
   }
 }

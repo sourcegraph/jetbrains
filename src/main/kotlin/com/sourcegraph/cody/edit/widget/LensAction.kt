@@ -25,12 +25,10 @@ class LensAction(
     private val text: String,
     @VisibleForTesting val actionId: String,
     private val editId: String? = null
-    //private val range: Range? = null
 ) : LensWidget(group) {
 
   object DataKeys {
     val EDIT_ID_DATA_KEY: DataKey<String> = DataKey.create("com.sourcegraph.cody.edit.actions.EditId")
-    //val RANGE_DATA_KEY: DataKey<Range> = DataKey.create("com.sourcegraph.cody.edit.actions.Range")
   }
   private val highlight =
       LabelHighlight(
@@ -107,7 +105,6 @@ class LensAction(
         PlatformDataKeys.EDITOR.name -> editor
         PlatformDataKeys.PROJECT.name -> editor.project
         DataKeys.EDIT_ID_DATA_KEY.name -> editId
-        //DataKeys.RANGE_DATA_KEY.name -> range
         else -> null
       }
     }
@@ -125,9 +122,5 @@ class LensAction(
     private val rejectColor = JBColor(0xCC3645, 0x7B282C)
 
     private val lastLensActionPerformed: AtomicReference<String?> = AtomicReference(null)
-
-    fun wasLastLensActionAnAccept(): Boolean {
-      return lastLensActionPerformed.get() == FixupSession.ACTION_ACCEPT
-    }
   }
 }

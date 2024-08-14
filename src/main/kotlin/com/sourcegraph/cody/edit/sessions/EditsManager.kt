@@ -39,14 +39,7 @@ class EditsManager() {
     }
     return edit  }
 
-  fun getFirstEdit(): TextEdit? {
-    // Get edit with the lowest position
-    return edits
-      .filter { it.position != null }
-      .minByOrNull { it.position!!.line }
-  }
-
-  fun removeEdit(editId: String){
+  fun removeEditById(editId: String){
     edits = edits.filter { it.id != editId }
   }
 
