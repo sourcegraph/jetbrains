@@ -1,6 +1,10 @@
 package com.sourcegraph.cody.agent
 
-import com.sourcegraph.cody.agent.protocol.*
+import com.sourcegraph.cody.agent.protocol.ChatError
+import com.sourcegraph.cody.agent.protocol.ChatMessage
+import com.sourcegraph.cody.agent.protocol.ContextItem
+import com.sourcegraph.cody.agent.protocol.Repo
+import com.sourcegraph.cody.agent.protocol.WebviewOptions
 
 /**
  * A message sent from the webview to the extension host. See vscode/src/chat/protocol.ts for the
@@ -32,6 +36,7 @@ data class ExtensionMessage(
     val chatID: String? = null,
     val isTranscriptError: Boolean? = null,
     val customPrompts: List<List<Any>>? = null,
+    val text: String? = null,
     val userContextFiles: List<ContextItem>? = null,
     val errors: String?,
     val query: String? = null,
@@ -42,6 +47,7 @@ data class ExtensionMessage(
   object Type {
     const val TRANSCRIPT = "transcript"
     const val ERRORS = "errors"
+    const val COPY = "copy"
     const val USER_CONTEXT_FILES = "userContextFiles"
     const val SET_CONFIG_FEATURES = "setConfigFeatures"
     const val ENHANCED_CONTEXT_STATUS = "enhanced-context"

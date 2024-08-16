@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.ui
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
@@ -14,7 +15,17 @@ import com.intellij.ui.jcef.JBCefBrowserBuilder
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.intellij.util.io.isAncestor
 import com.jetbrains.rd.util.ConcurrentHashMap
-import com.sourcegraph.cody.agent.*
+import com.sourcegraph.cody.agent.CodyAgent
+import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.CommandExecuteParams
+import com.sourcegraph.cody.agent.ExtensionMessage
+import com.sourcegraph.cody.agent.WebviewDidDisposeParams
+import com.sourcegraph.cody.agent.WebviewPostMessageStringEncodedParams
+import com.sourcegraph.cody.agent.WebviewReceiveMessageStringEncodedParams
+import com.sourcegraph.cody.agent.WebviewRegisterWebviewViewProviderParams
+import com.sourcegraph.cody.agent.WebviewSetHtmlParams
+import com.sourcegraph.cody.agent.WebviewSetOptionsParams
+import com.sourcegraph.cody.agent.WebviewSetTitleParams
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.agent.protocol.WebviewOptions
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
@@ -22,6 +33,8 @@ import com.sourcegraph.cody.config.ui.AccountConfigurable
 import com.sourcegraph.cody.sidebar.WebTheme
 import com.sourcegraph.cody.sidebar.WebThemeController
 import com.sourcegraph.common.BrowserOpener
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 import java.io.IOException
 import java.net.URI
 import java.net.URLDecoder
@@ -40,7 +53,14 @@ import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.callback.CefAuthCallback
 import org.cef.callback.CefCallback
-import org.cef.handler.*
+import org.cef.handler.CefCookieAccessFilter
+import org.cef.handler.CefFocusHandler
+import org.cef.handler.CefFocusHandlerAdapter
+import org.cef.handler.CefLifeSpanHandler
+import org.cef.handler.CefLoadHandler
+import org.cef.handler.CefRequestHandler
+import org.cef.handler.CefResourceHandler
+import org.cef.handler.CefResourceRequestHandler
 import org.cef.misc.BoolRef
 import org.cef.misc.IntRef
 import org.cef.misc.StringRef
@@ -66,12 +86,40 @@ interface NativeWebviewProvider {
 
 /** A NativeWebviewProvider that thunks to WebUIService. */
 class WebUIServiceWebviewProvider(val project: Project) : NativeWebviewProvider {
+  companion object {
+    private val logger = Logger.getInstance(WebUIServiceWebviewProvider::class.java)
+  }
+
   override fun createPanel(params: WebviewCreateWebviewPanelParams) =
       WebUIService.getInstance(project).createWebviewPanel(params)
 
-  override fun receivedPostMessage(params: WebviewPostMessageStringEncodedParams) =
-      WebUIService.getInstance(project)
-          .postMessageHostToWebview(params.id, params.stringEncodedMessage)
+  override fun receivedPostMessage(params: WebviewPostMessageStringEncodedParams) {
+    fun deserializeMessage(encodedMessage: String): ExtensionMessage? {
+      return try {
+        GsonBuilder().create().fromJson(encodedMessage, ExtensionMessage::class.java)
+      } catch (e: Exception) {
+        logger.warn("Failed to deserialize message: $encodedMessage", e)
+        null
+      }
+    }
+
+    val message = deserializeMessage(params.stringEncodedMessage)
+    if (message != null && message.type == ExtensionMessage.Type.COPY) {
+      ApplicationManager.getApplication().invokeLater {
+        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+        if (message.text != null) {
+          clipboard.setContents(StringSelection(message.text), null)
+        } else {
+          logger.warn("Copy message has no text")
+        }
+      }
+
+      return
+    }
+
+    WebUIService.getInstance(project)
+        .postMessageHostToWebview(params.id, params.stringEncodedMessage)
+  }
 
   override fun registerViewProvider(params: WebviewRegisterWebviewViewProviderParams) =
       WebviewViewService.getInstance(project)

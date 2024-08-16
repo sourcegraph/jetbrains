@@ -6,9 +6,9 @@
 @file:Suppress("FunctionName", "ClassName", "RedundantNullable")
 package com.sourcegraph.cody.agent.protocol_generated;
 
-import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
-import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletableFuture
+import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
 
 @Suppress("unused")
 interface CodyAgentClient {
@@ -17,6 +17,8 @@ interface CodyAgentClient {
   // ========
   @JsonRequest("window/showMessage")
   fun window_showMessage(params: ShowWindowMessageParams): CompletableFuture<String?>
+  @JsonRequest("window/showSaveDialog")
+  fun window_showSaveDialog(params: Null?): CompletableFuture<String?>
   @JsonRequest("textDocument/edit")
   fun textDocument_edit(params: TextDocumentEditParams): CompletableFuture<Boolean>
   @JsonRequest("textDocument/openUntitledDocument")
