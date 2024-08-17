@@ -128,9 +128,12 @@ private constructor(
                               ignore = ClientCapabilities.IgnoreEnum.Enabled,
                               untitledDocuments = ClientCapabilities.UntitledDocumentsEnum.Enabled,
                               codeActions = ClientCapabilities.CodeActionsEnum.Enabled,
+                              // TODO: Enable this once we have implemented migration of old user history.
+                              // globalState = ClientCapabilities.GlobalStateEnum.`Server-managed`,
                               webview = ClientCapabilities.WebviewEnum.Native,
                               webviewNativeConfig =
                                   WebviewNativeConfigParams(
+                                      view = WebviewNativeConfigParams.ViewEnum.Multiple,
                                       cspSource = "'self' https://*.sourcegraphstatic.com",
                                       webviewBundleServingPrefix =
                                           "https://file+.sourcegraphstatic.com",
