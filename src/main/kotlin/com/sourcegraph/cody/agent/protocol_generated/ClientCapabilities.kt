@@ -1,3 +1,8 @@
+/*
+ * Generated file - DO NOT EDIT MANUALLY
+ * They are copied from the cody agent project using the copyProtocol gradle task.
+ * This is only a temporary solution before we fully migrate to generated protocol messages.
+ */
 @file:Suppress("FunctionName", "ClassName", "unused", "EnumEntryName", "UnusedImport")
 package com.sourcegraph.cody.agent.protocol_generated;
 
@@ -17,6 +22,7 @@ data class ClientCapabilities(
   val ignore: IgnoreEnum? = null, // Oneof: none, enabled
   val codeActions: CodeActionsEnum? = null, // Oneof: none, enabled
   val webviewMessages: WebviewMessagesEnum? = null, // Oneof: object-encoded, string-encoded
+  val globalState: GlobalStateEnum? = null, // Oneof: stateless, server-managed, client-managed
   val webview: WebviewEnum? = null, // Oneof: agentic, native
   val webviewNativeConfig: WebviewNativeConfigParams? = null,
 ) {
@@ -83,6 +89,12 @@ data class ClientCapabilities(
   enum class WebviewMessagesEnum {
     @SerializedName("object-encoded") `Object-encoded`,
     @SerializedName("string-encoded") `String-encoded`,
+  }
+
+  enum class GlobalStateEnum {
+    @SerializedName("stateless") Stateless,
+    @SerializedName("server-managed") `Server-managed`,
+    @SerializedName("client-managed") `Client-managed`,
   }
 
   enum class WebviewEnum {

@@ -1,3 +1,8 @@
+/*
+ * Generated file - DO NOT EDIT MANUALLY
+ * They are copied from the cody agent project using the copyProtocol gradle task.
+ * This is only a temporary solution before we fully migrate to generated protocol messages.
+ */
 @file:Suppress("unused", "ConstPropertyName")
 package com.sourcegraph.cody.agent.protocol_generated;
 
@@ -22,6 +27,7 @@ object Constants {
   const val byok = "byok"
   const val chat = "chat"
   const val `class` = "class"
+  const val `client-managed` = "client-managed"
   const val complete = "complete"
   const val `create-file` = "create-file"
   const val default = "default"
@@ -54,6 +60,7 @@ object Constants {
   const val isChatErrorGuard = "isChatErrorGuard"
   const val local = "local"
   const val method = "method"
+  const val multiple = "multiple"
   const val native = "native"
   const val none = "none"
   const val notification = "notification"
@@ -70,7 +77,10 @@ object Constants {
   const val request = "request"
   const val search = "search"
   const val selection = "selection"
+  const val `server-managed` = "server-managed"
+  const val single = "single"
   const val speed = "speed"
+  const val stateless = "stateless"
   const val streaming = "streaming"
   const val `string-encoded` = "string-encoded"
   const val suggestion = "suggestion"

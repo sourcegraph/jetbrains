@@ -1,3 +1,8 @@
+/*
+ * Generated file - DO NOT EDIT MANUALLY
+ * They are copied from the cody agent project using the copyProtocol gradle task.
+ * This is only a temporary solution before we fully migrate to generated protocol messages.
+ */
 @file:Suppress("FunctionName", "ClassName", "RedundantNullable")
 package com.sourcegraph.cody.agent.protocol_generated;
 
@@ -64,4 +69,6 @@ interface CodyAgentClient {
   fun webview_setOptions(params: Webview_SetOptionsParams)
   @JsonNotification("webview/setHtml")
   fun webview_setHtml(params: Webview_SetHtmlParams)
+  @JsonNotification("window/didChangeContext")
+  fun window_didChangeContext(params: Window_DidChangeContextParams)
 }
