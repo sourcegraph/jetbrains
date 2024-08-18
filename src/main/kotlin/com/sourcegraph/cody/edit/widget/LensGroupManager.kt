@@ -23,10 +23,12 @@ class LensGroupManager(private val session: FixupSession,
                        val controller: FixupService)  {
   private val logger = Logger.getInstance(LensWidgetGroup::class.java)
   private lateinit var editsManager: EditsManager
+
   //A hashmap of lensGroups to list of associated text edit uuids
   private var lensGroupsToEditIds = mutableMapOf<LensWidgetGroup, List<String>>()
 
   // ** Get/Set **
+
   fun setEditsManager(editsManager: EditsManager) {
     this.editsManager = editsManager
   }
@@ -41,7 +43,7 @@ class LensGroupManager(private val session: FixupSession,
 
   fun getLensGroupByEditId(editId: String): LensWidgetGroup? {
     for ((lensGroup, editIds) in lensGroupsToEditIds) {
-      if (editIds.contains(editId)) {
+      if (!lensGroup.isHeaderGroup && editIds.contains(editId)) { // Don't return the header group
         return lensGroup
       }
     }
@@ -75,8 +77,7 @@ class LensGroupManager(private val session: FixupSession,
     session.selectionRange?.let { showLensGroup(group, it.toRange()) }
     addLensGroup(group, emptyList())
     updateDisplayBools(LensGroupType.WORKING_GROUP)
-//    session.postAcceptActions()
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
+    session.publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_WORKING_GROUP)
   }
 
   fun displayErrorGroup(hoverText: String) = runInEdt {
@@ -84,7 +85,7 @@ class LensGroupManager(private val session: FixupSession,
     session.selectionRange?.let { showLensGroup(group, it.toRange()) }
     addLensGroup(group, emptyList())
     updateDisplayBools(LensGroupType.ERROR_GROUP)
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ERROR_GROUP)
+    session.publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ERROR_GROUP)
   }
 
   @RequiresEdt
@@ -97,14 +98,14 @@ class LensGroupManager(private val session: FixupSession,
 
     // Loop through each edit
     edits.forEachIndexed { index, edit ->
+      edit.id?.let { displayBlockGroup(it) }
       if (index == 0) {
         displayHeaderGroup()
       }
-      edit.id?.let { displayBlockGroup(it) }
     }
 
     updateDisplayBools(LensGroupType.ACTION_GROUPS)
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACTION_GROUPS)
+    session.publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACTION_GROUPS)
   }
 
   private fun displayHeaderGroup() = runInEdt {
@@ -113,7 +114,6 @@ class LensGroupManager(private val session: FixupSession,
     val allEditIds = editsManager.getAllEditIds()
     addLensGroup(group, allEditIds)
     updateDisplayBools(LensGroupType.ACTION_GROUPS)
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACTION_GROUPS)
   }
 
   private fun displayBlockGroup(editId: String) = runInEdt {
@@ -127,10 +127,9 @@ class LensGroupManager(private val session: FixupSession,
     }
     addLensGroup(group, listOf(editId))
     updateDisplayBools(LensGroupType.ACTION_GROUPS)
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_DISPLAY_ACTION_GROUPS)
   }
 
-  fun showLensGroup(group: LensWidgetGroup, range: Range) {
+  private fun showLensGroup(group: LensWidgetGroup, range: Range) {
     val future = group.show(range)
 
     // Make sure the lens is visible.
@@ -147,7 +146,8 @@ class LensGroupManager(private val session: FixupSession,
     controller.notifySessionStateChanged()
   }
 
-  // ** Display Tracking **
+  // ** Display State Tracking **
+
   private var workingGroupDisplayedBool = false
   private var errorGroupDisplayedBool = false
   private var actionGroupDisplayedBool = false
@@ -189,14 +189,6 @@ class LensGroupManager(private val session: FixupSession,
     return actionGroupDisplayedBool
   }
 
-
-  //ToDo: probably should only implement this in FixupSession (and only call from FixupSession)
-  private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
-    ApplicationManager.getApplication().invokeLater {
-      project.messageBus.syncPublisher(topic).afterAction()
-    }
-  }
-
   // ** Dispose **
 
   fun disposeCodeLensByEditId(editId: String) {
@@ -208,14 +200,15 @@ class LensGroupManager(private val session: FixupSession,
   }
 
   fun disposeAllCodeLenses() = runInEdt {
-    for (lensGroup in this.getLensGroups()) {
-      executeDisposeOfCodeLens(lensGroup)
+    val groups = this.getLensGroups()
+    for (group in groups) {
+      executeDisposeOfCodeLens(group)
     }
     updateDisplayBools(LensGroupType.NONE)
-    publishProgress(CodyInlineEditActionNotifier.TOPIC_TASK_FINISHED)
+    clearAllLenses()
   }
 
-  fun executeDisposeOfCodeLens(group: LensWidgetGroup) = runInEdt {
+  private fun executeDisposeOfCodeLens(group: LensWidgetGroup) = runInEdt {
     try {
       group.dispose()
     } catch (x: Exception) {

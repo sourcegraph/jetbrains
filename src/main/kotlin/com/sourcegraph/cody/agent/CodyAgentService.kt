@@ -313,6 +313,7 @@ class CodyAgentService(private val project: Project) : Disposable {
       }
     }
 
+    //ToDO: JM THis should be here
     fun RangeMarker.toRange(): Range {
       val start = Position.fromOffset(this.document, this.startOffset)
       val end = Position.fromOffset(this.document, this.endOffset)

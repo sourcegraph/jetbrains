@@ -251,8 +251,9 @@ abstract class FixupSession(
     disposeAllLenses()
   }
 
+  // ToDo: Needs to be refactored into 'rejectRemaining'
   fun rejectAll() {
-    lensGroupManager.displayLensGroups(LensGroupType.WORKING_GROUP)
+    //lensGroupManager.displayLensGroups(LensGroupType.WORKING_GROUP)
     CodyAgentService.withAgentRestartIfNeeded(
       project,
       callback = { agent: CodyAgent ->
@@ -287,20 +288,23 @@ abstract class FixupSession(
   }
 
   fun reject(editId: String) {
-    if (lensGroupManager.getNumberOfLensGroups() <= 1) {
+    if (lensGroupManager.getNumberOfLensGroups() <= 2) { // One for the last block group, one for the header group
       this.rejectAll()
     } else {
       try {
         val position = editsManager.getEditById(editId)?.position ?: return
-        CodyAgentService.withAgentRestartIfNeeded(
-          project,
-          callback = { agent: CodyAgent ->
-            agent.server.rejectEditTask(TaskIdParam(taskId!!, Range(position, position)))
-          },
-          onFailure = { exception ->
-            lensGroupManager.displayLensGroups(LensGroupType.ERROR_GROUP,
-              "Error sending editTask/rejectAll for taskId: ${exception.localizedMessage}")
-          })
+        CodyAgentService.withAgent(project) { agent ->
+          agent.server.rejectEditTask(TaskIdParam(taskId!!, Range(position, position)))
+        }
+//        CodyAgentService.withAgentRestartIfNeeded(
+//          project,
+//          callback = { agent: CodyAgent ->
+//            agent.server.rejectEditTask(TaskIdParam(taskId!!, Range(position, position)))
+//          },
+//          onFailure = { exception ->
+//            lensGroupManager.displayLensGroups(LensGroupType.ERROR_GROUP,
+//              "Error sending editTask/rejectAll for taskId: ${exception.localizedMessage}")
+//          })
       } catch (x: Exception) {
         logger.warn("Error sending editTask/reject for taskId", x)
         dispose()
@@ -500,7 +504,7 @@ abstract class FixupSession(
     publishProgress(CodyInlineEditActionNotifier.TOPIC_TASK_FINISHED)
   }
 
-  private fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
+  fun publishProgress(topic: Topic<CodyInlineEditActionNotifier>) {
     ApplicationManager.getApplication().invokeLater {
       project.messageBus.syncPublisher(topic).afterAction()
     }
@@ -511,7 +515,7 @@ abstract class FixupSession(
     return "${this::javaClass.name} for ${file?.path ?: "unknown file"}"
   }
 
-  companion object { //ToDo: These need modification
+  companion object {
     // JetBrains Actions that we fire when the lenses are clicked.
     const val ACTION_ACCEPT_ALL = "cody.inlineEditAcceptAllAction"
     const val ACTION_ACCEPT = "cody.inlineEditAcceptAction"

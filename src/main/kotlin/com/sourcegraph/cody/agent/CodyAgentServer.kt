@@ -75,8 +75,7 @@ interface CodyAgentServer {
 
   @JsonRequest("editTask/reject") fun rejectEditTask(params: TaskIdParam): CompletableFuture<Void?>
 
-  //TOdo:JM - when make agents changes, also change this to editTask/rejectAll
-  @JsonRequest("editTask/undo") fun rejectAllEditTask(params: TaskIdParam): CompletableFuture<Void?>
+  @JsonRequest("editTask/rejectAll") fun rejectAllEditTask(params: TaskIdParam): CompletableFuture<Void?>
 
   @JsonRequest("editTask/cancel") fun cancelEditTask(params: TaskIdParam): CompletableFuture<Void?>
 
