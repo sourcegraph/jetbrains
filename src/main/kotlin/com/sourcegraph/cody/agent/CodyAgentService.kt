@@ -10,18 +10,10 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.util.net.HttpConfigurable
-import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.config.CodyApplicationSettings
-import com.sourcegraph.cody.context.RemoteRepoSearcher
-import com.sourcegraph.cody.edit.EditService
-import com.sourcegraph.cody.edit.LensesService
-import com.sourcegraph.cody.error.CodyConsole
-import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.listeners.CodyFileEditorListener
 import com.sourcegraph.cody.statusbar.CodyStatusService
-import com.sourcegraph.common.BrowserOpener
 import com.sourcegraph.common.CodyBundle
-import com.sourcegraph.utils.CodyEditorUtil
 import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.CompletableFuture
@@ -29,7 +21,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
-import java.util.function.Function
 
 @Service(Service.Level.PROJECT)
 class CodyAgentService(private val project: Project) : Disposable {
@@ -57,69 +48,6 @@ class CodyAgentService(private val project: Project) : Disposable {
         0,
         5000) // Check every 5 seconds
     onStartup { agent ->
-      agent.client.onOpenExternal = Function { params ->
-        BrowserOpener.openInBrowser(project, params.uri)
-        true
-      }
-
-      agent.client.onWorkspaceEdit = Function { params ->
-        try {
-          EditService.getInstance(project).performWorkspaceEdit(params)
-        } catch (e: RuntimeException) {
-          logger.error(e)
-          false
-        }
-      }
-
-      agent.client.onCodeLensesDisplay = Consumer { params ->
-        LensesService.getInstance(project).updateLenses(params.uri, params.codeLenses)
-      }
-
-      agent.client.onTextDocumentEdit = Function { params ->
-        try {
-          EditService.getInstance(project).performTextEdits(params.uri, params.edits)
-        } catch (e: RuntimeException) {
-          logger.error(e)
-          false
-        }
-      }
-
-      agent.client.onTextDocumentShow = Function { params ->
-        val selection = params.options?.selection
-        val preserveFocus = params.options?.preserveFocus
-        val vf = CodyEditorUtil.findFileOrScratch(project, params.uri) ?: return@Function false
-        CodyEditorUtil.showDocument(project, vf, selection, preserveFocus)
-        true
-      }
-
-      agent.client.onOpenUntitledDocument = Function { params ->
-        val result = CompletableFuture<ProtocolTextDocument?>()
-        ApplicationManager.getApplication().invokeAndWait {
-          val vf =
-              CodyEditorUtil.createFileOrScratchFromUntitled(project, params.uri, params.content)
-          result.complete(if (vf == null) null else ProtocolTextDocument.fromVirtualFile(vf))
-        }
-        result.get()
-      }
-
-      agent.client.onRemoteRepoDidChange = Consumer {
-        RemoteRepoSearcher.getInstance(project).remoteRepoDidChange()
-      }
-
-      agent.client.onRemoteRepoDidChangeState = Consumer { state ->
-        RemoteRepoSearcher.getInstance(project).remoteRepoDidChangeState(state)
-      }
-
-      agent.client.onIgnoreDidChange = Consumer {
-        IgnoreOracle.getInstance(project).onIgnoreDidChange()
-      }
-
-      agent.client.onDebugMessage = Consumer { message ->
-        if (!project.isDisposed) {
-          CodyConsole.getInstance(project).addMessage(message)
-        }
-      }
-
       if (!project.isDisposed) {
         CodyFileEditorListener.registerAllOpenedFiles(project, agent)
       }
