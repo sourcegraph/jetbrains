@@ -9,14 +9,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.sourcegraph.cody.agent.protocol.DebugMessage
-import com.sourcegraph.cody.agent.protocol.OpenExternalParams
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.agent.protocol_generated.DebugMessage
 import com.sourcegraph.cody.agent.protocol_generated.DisplayCodeLensParams
 import com.sourcegraph.cody.agent.protocol_generated.Env_OpenExternalParams
 import com.sourcegraph.cody.agent.protocol_generated.Null
+import com.sourcegraph.cody.agent.protocol_generated.SaveDialogOptionsParams
 import com.sourcegraph.cody.agent.protocol_generated.TextDocumentEditParams
 import com.sourcegraph.cody.agent.protocol_generated.TextDocument_ShowParams
 import com.sourcegraph.cody.agent.protocol_generated.UntitledTextDocument
@@ -28,6 +27,7 @@ import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.ui.NativeWebviewProvider
 import com.sourcegraph.common.BrowserOpener
 import com.sourcegraph.utils.CodyEditorUtil
+import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
@@ -196,19 +196,31 @@ class CodyAgentClient(private val project: Project, private val webview: NativeW
   }
 
   @JsonRequest("window/showSaveDialog")
-  fun window_showSaveDialog(): CompletableFuture<String> {
-    var outputDir: VirtualFile? = project.guessProjectDir()
+  fun window_showSaveDialog(params: SaveDialogOptionsParams): CompletableFuture<String> {
+    var fileName = "Untitled"
+    var outputDir: VirtualFile? =
+        if (params.defaultUri != null) {
+          val defaultUriPath = Paths.get(params.defaultUri)
+          fileName = defaultUriPath.fileName.toString()
+          VfsUtil.findFile(defaultUriPath.parent, true)
+        } else {
+          project.guessProjectDir()
+        }
+
     if (outputDir == null || !outputDir.exists()) {
       outputDir = VfsUtil.getUserHomeDir()
     }
 
-    val descriptor = FileSaverDescriptor("Cody: Save as New File", "Save file")
+    val title = if (params.title != null) "Cody: ${params.title}" else "Cody: Save as New File"
+    val descriptor = FileSaverDescriptor(title, "Save file")
+
     val saveFileFuture = CompletableFuture<String>()
     runInEdt {
       val dialog = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project)
-      val result = dialog.save(outputDir, "Untitled")
+      val result = dialog.save(outputDir, fileName)
       saveFileFuture.complete(result?.file?.path)
     }
+
     return saveFileFuture
   }
 }
