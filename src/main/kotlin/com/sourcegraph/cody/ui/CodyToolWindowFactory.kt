@@ -380,6 +380,8 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
       document.addEventListener('DOMContentLoaded', () => {
         ${viewToHost.inject("JSON.stringify({what:'DOMContentLoaded'})")}
       });
+
+      document.documentElement.dataset.ide = 'JetBrains';
     """
               .trimIndent()
       browser.jbCefClient.addRequestHandler(
@@ -493,14 +495,13 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
     val code =
         """
     (() => {
-      let e = new CustomEvent('message');
-      e.data = {
-        type: 'ui/theme',
-        agentIDE: 'JetBrains',
-        cssVariables: ${gson.toJson(theme.variables)},
-        isDark: ${theme.isDark}
-      };
-      window.dispatchEvent(e);
+      // Script to add css variables directly to the document
+      document.documentElement.style = ''; // Clear all existing CSS variables.
+      const rootStyle = document.documentElement.style
+      const cssVariables =  ${gson.toJson(theme.variables)}
+      for (const [name, value] of Object.entries(cssVariables || {})) {
+          rootStyle.setProperty(name, value)
+      }
     })()
     """
             .trimIndent()
