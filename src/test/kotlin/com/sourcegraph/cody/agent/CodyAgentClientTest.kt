@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.agent
 
+import com.intellij.openapi.project.Project
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.util.concurrent.locks.ReentrantLock
@@ -20,8 +21,8 @@ class CodyAgentClientTest : BasePlatformTestCase() {
   private val lock = ReentrantLock()
   private val condition = lock.newCondition()
 
-  private fun client(): CodyAgentClient {
-    val client = CodyAgentClient(StubWebviewProvider())
+  private fun client(project: Project): CodyAgentClient {
+    val client = CodyAgentClient(project, StubWebviewProvider())
     client.onSetConfigFeatures = ConfigFeaturesObserver {
       lock.lock()
       try {
@@ -37,7 +38,7 @@ class CodyAgentClientTest : BasePlatformTestCase() {
   @Test
   fun `notifies observer`() {
     val expected = ConfigFeatures(attribution = true, serverSentModels = true)
-    client()
+    client(myFixture.project)
         .webviewPostMessage(
             WebviewPostMessageParams(
                 id = WEBVIEW_ID,
