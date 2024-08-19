@@ -2,7 +2,6 @@ package com.sourcegraph.cody.agent
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
-import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
@@ -35,9 +34,6 @@ class CodyAgentClient(private val project: Project, private val webview: NativeW
   companion object {
     private val logger = Logger.getInstance(CodyAgentClient::class.java)
   }
-
-  // Callback that is invoked when the agent sends a "setConfigFeatures" message.
-  var onSetConfigFeatures: ConfigFeaturesObserver = project.service<CurrentConfigFeatures>()
 
   /**
    * Helper to run client request/notification handlers on the IntelliJ event thread. Use this
@@ -190,22 +186,5 @@ class CodyAgentClient(private val project: Project, private val webview: NativeW
   fun webviewDispose(params: WebviewDisposeParams) {
     // TODO: Implement this.
     println("TODO, implement webview/dispose")
-  }
-
-  // TODO: Remove this
-  @JsonNotification("webview/postMessage")
-  fun webviewPostMessage(params: WebviewPostMessageParams) {
-    if (params.message.type == ExtensionMessage.Type.SET_CONFIG_FEATURES) {
-      runInEdt { onSetConfigFeatures.update(params.message.configFeatures) }
-    }
-
-    logger.debug("webview/postMessage ${params.id}: ${params.message}")
-  }
-
-  // TODO: Remove this
-  @JsonRequest("webview/create")
-  fun webviewCreate(params: WebviewCreateParams): CompletableFuture<Void> {
-    logger.error("webview/create This request should not happen if you are using chat/new.")
-    return CompletableFuture.completedFuture(null)
   }
 }
