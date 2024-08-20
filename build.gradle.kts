@@ -188,7 +188,9 @@ fun download(url: String, output: File, bearerToken: String? = null) {
   assert(output.parentFile.mkdirs()) { output.parentFile }
   val connection = URL(url).openConnection() as HttpURLConnection
   if (bearerToken != null) {
+    connection.setRequestProperty("Accept", "application/vnd.github+json")
     connection.setRequestProperty("Authorization", "Bearer $bearerToken")
+    connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
   }
 
   Files.copy(connection.inputStream, output.toPath())
@@ -324,9 +326,10 @@ tasks {
   val codeSearchCommit = "9d86a4f7d183e980acfe5d6b6468f06aaa0d8acf"
   fun downloadCodeSearch(): File {
     val GITHUB_TOKEN = System.getenv("PRIVATE_SG_ACCESS_TOKEN")
-    val url = "https://github.com/sourcegraph/sourcegraph/archive/$codeSearchCommit.zip"
-    val destination = githubArchiveCache.resolve("$codeSearchCommit.zip")
+    val url = "https://api.github.com/repos/sourcegraph/sourcegraph/tarball/$codeSearchCommit"
+    val destination = githubArchiveCache.resolve("$codeSearchCommit.tar.gz")
     download(url, destination, GITHUB_TOKEN)
+    println("CS SIZE: " + destination.length())
     return destination
   }
 
