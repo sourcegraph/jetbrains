@@ -259,6 +259,7 @@ tasks {
   val codeSearchCommit = "9d86a4f7d183e980acfe5d6b6468f06aaa0d8acf"
   fun downloadCodeSearch(): File {
     val GITHUB_TOKEN = System.getenv("PRIVATE_SG_ACCESS_TOKEN")
+    println("GT len: ${GITHUB_TOKEN.length}")
     val url = "https://github.com/sourcegraph/sourcegraph/archive/$codeSearchCommit.zip"
     val destination = githubArchiveCache.resolve("$codeSearchCommit.zip")
     download(url, destination, GITHUB_TOKEN)
