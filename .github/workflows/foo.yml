@@ -11,7 +11,7 @@ jobs:
     steps: 
       - name: try dl
         env: 
-          PRIVATE_SG_ACCESS_TOKEN: ${{ secrets.PRIVATE_SG_ACCESS_TOKEN }}
+          PRIVATE_SG_ACCESS_TOKEN: ${{ secrets.TEST_PRV_TOKEN }}
         run: |
           curl -L \
             -H "Accept: application/vnd.github+json" \
