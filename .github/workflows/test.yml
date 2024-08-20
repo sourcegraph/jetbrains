@@ -46,6 +46,8 @@ jobs:
 #      - run: echo "SKIP_CODE_SEARCH_BUILD=true" >> $GITHUB_ENV
 #      - run: ./gradlew spotlessCheck
       - run: ./gradlew check
+        env:
+          PRIVATE_SG_ACCESS_TOKEN: ${{ secrets.PRIVATE_SG_ACCESS_TOKEN }}
       - name: Upload the test report
         if: always()
         uses: actions/upload-artifact@v4

@@ -34,3 +34,4 @@ jobs:
           ./gradlew "-PpluginVersion=${RELEASE_VERSION}-nightly" publishPlugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          PRIVATE_SG_ACCESS_TOKEN: ${{ secrets.PRIVATE_SG_ACCESS_TOKEN }}

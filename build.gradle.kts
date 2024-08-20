@@ -1,4 +1,5 @@
 import com.jetbrains.plugin.structure.base.utils.isDirectory
+import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.file.FileSystems
 import java.nio.file.FileVisitResult
@@ -129,14 +130,19 @@ java {
 
 tasks.named("classpathIndexCleanup") { dependsOn("compileIntegrationTestKotlin") }
 
-fun download(url: String, output: File) {
+fun download(url: String, output: File, bearerToken: String? = null) {
   if (output.exists()) {
     println("Cached $output")
     return
   }
   println("Downloading... $url")
   assert(output.parentFile.mkdirs()) { output.parentFile }
-  Files.copy(URL(url).openStream(), output.toPath())
+  val connection = URL(url).openConnection() as HttpURLConnection
+  if (bearerToken != null) {
+    connection.setRequestProperty("Authorization", "Bearer $bearerToken")
+  }
+
+  Files.copy(connection.inputStream, output.toPath())
 }
 
 fun copyRecursively(input: File, output: File) {
@@ -250,9 +256,10 @@ val pnpmPath =
 tasks {
   val codeSearchCommit = "9d86a4f7d183e980acfe5d6b6468f06aaa0d8acf"
   fun downloadCodeSearch(): File {
+    val GITHUB_TOKEN = System.getenv("PRIVATE_SG_ACCESS_TOKEN")
     val url = "https://github.com/sourcegraph/sourcegraph/archive/$codeSearchCommit.zip"
     val destination = githubArchiveCache.resolve("$codeSearchCommit.zip")
-    download(url, destination)
+    download(url, destination, GITHUB_TOKEN)
     return destination
   }
 
