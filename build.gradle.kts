@@ -260,7 +260,7 @@ tasks {
   fun downloadCodeSearch(): File {
     val GITHUB_TOKEN = System.getenv("PRIVATE_SG_ACCESS_TOKEN")
     println("GT len: ${GITHUB_TOKEN.length}")
-    val url = "https://api.github.com/repos/sourcegraph/sourcegraph/tarball/$codeSearchCommit.zip"
+    val url = "https://api.github.com/repos/sourcegraph/sourcegraph/tarball/$codeSearchCommit"
     val destination = githubArchiveCache.resolve("$codeSearchCommit.zip")
     download(url, destination, GITHUB_TOKEN)
     return destination
