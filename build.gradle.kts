@@ -261,7 +261,7 @@ tasks {
     val zip = downloadCodeSearch()
     val dir = githubArchiveCache.resolve("code-search")
     unzip(zip, dir, FileSystems.getDefault().getPathMatcher("glob:**.go"))
-    return dir.resolve("sourcegraph-$codeSearchCommit")
+    return dir.resolve("sourcegraph-public-snapshot-$codeSearchCommit")
   }
 
   fun buildCodeSearch(): File? {
@@ -273,19 +273,23 @@ tasks {
     }
 
     val sourcegraphDir = unzipCodeSearch()
+    println("[] Download finished")
     exec {
       workingDir(sourcegraphDir.toString())
       commandLine(pnpmPath, "install", "--frozen-lockfile")
     }
+    println("[] Install finished")
     exec {
       workingDir(sourcegraphDir.toString())
       commandLine(pnpmPath, "generate")
     }
+    println("[] Generate finished")
     val jetbrainsDir = sourcegraphDir.resolve("client").resolve("jetbrains")
     exec {
       commandLine(pnpmPath, "build")
       workingDir(jetbrainsDir)
     }
+    println("[] Build finished")
     val buildOutput =
         jetbrainsDir.resolve("src").resolve("main").resolve("resources").resolve("dist")
     copyRecursively(buildOutput, destinationDir)
