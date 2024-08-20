@@ -139,7 +139,9 @@ fun download(url: String, output: File, bearerToken: String? = null) {
   assert(output.parentFile.mkdirs()) { output.parentFile }
   val connection = URL(url).openConnection() as HttpURLConnection
   if (bearerToken != null) {
+    connection.setRequestProperty("Accept", "application/vnd.github+json")
     connection.setRequestProperty("Authorization", "Bearer $bearerToken")
+    connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
   }
 
   Files.copy(connection.inputStream, output.toPath())
