@@ -1,0 +1,21 @@
+name: Build, test and verify
+on:
+  push:
+    branches:
+      - jh/hotfix-script
+
+jobs:
+  qa:
+    name: QA hotfix
+    runs-on: ubuntu-latest
+    steps: 
+      - name: try dl
+        env: 
+          PRIVATE_SG_ACCESS_TOKEN: ${{ secrets.PRIVATE_SG_ACCESS_TOKEN }}
+        run: |
+          curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $PRIVATE_SG_ACCESS_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            --output srcgrph.tar.gz \
+            https://api.github.com/repos/sourcegraph/sourcegraph/tarball/9d86a4f7d183e980acfe5d6b6468f06aaa0d8acf
