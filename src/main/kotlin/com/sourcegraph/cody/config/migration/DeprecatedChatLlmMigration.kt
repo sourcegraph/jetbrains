@@ -7,10 +7,11 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.sourcegraph.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.ChatModelsParams
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ModelUsage
+import com.sourcegraph.cody.agent.protocol_generated.Chat_ModelsParams
 import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.history.HistoryService.Companion.convertModelsToChatModelProviders
 import com.sourcegraph.cody.history.state.AccountData
 import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.common.CodyBundle
@@ -22,12 +23,14 @@ object DeprecatedChatLlmMigration {
 
   fun migrate(project: Project) {
     CodyAgentService.withAgent(project) { agent ->
-      val chatModels = agent.server.chatModels(ChatModelsParams(ModelUsage.CHAT.value))
+      val chatModels = agent.server.chat_models(Chat_ModelsParams(ModelUsage.CHAT.value))
       val models =
           chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get()?.models ?: return@withAgent
+
+      val chatModelProviders = convertModelsToChatModelProviders(models)
       migrateHistory(
           HistoryService.getInstance(project).state.accountData,
-          models,
+          chatModelProviders,
           this::showLlmUpgradeNotification)
     }
   }

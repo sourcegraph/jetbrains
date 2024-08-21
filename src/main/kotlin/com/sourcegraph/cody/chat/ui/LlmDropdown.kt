@@ -8,13 +8,14 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ConfigFeatures
 import com.sourcegraph.cody.agent.CurrentConfigFeatures
-import com.sourcegraph.cody.agent.protocol.ChatModelsParams
 import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ModelUsage
+import com.sourcegraph.cody.agent.protocol_generated.Chat_ModelsParams
 import com.sourcegraph.cody.config.AccountTier
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.history.HistoryService
+import com.sourcegraph.cody.history.HistoryService.Companion.convertModelsToChatModelProviders
 import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.ui.LlmComboBoxRenderer
 import com.sourcegraph.common.BrowserOpener
@@ -42,10 +43,12 @@ class LlmDropdown(
 
   private fun updateModels() {
     CodyAgentService.withAgent(project) { agent ->
-      val chatModels = agent.server.chatModels(ChatModelsParams(modelUsage.value))
-      val response =
-          chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get() ?: return@withAgent
-      invokeLater { updateModelsInUI(response.models) }
+      val chatModels = agent.server.chat_models(Chat_ModelsParams(modelUsage.value))
+      val models =
+          chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get()?.models ?: return@withAgent
+
+      val chatModelProviders = convertModelsToChatModelProviders(models)
+      invokeLater { updateModelsInUI(chatModelProviders) }
     }
   }
 
