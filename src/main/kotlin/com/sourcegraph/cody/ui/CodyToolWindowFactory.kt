@@ -3,12 +3,17 @@ package com.sourcegraph.cody.ui
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonParser
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
@@ -273,6 +278,27 @@ class WebUIHostImpl(
         runInEdt {
           ShowSettingsUtil.getInstance()
               .showSettingsDialog(project, AccountConfigurable::class.java)
+        }
+      }
+      // TODO: Delete this intercept when Cody edits UI is abstracted so JetBrains' native UI can be invoked from the
+      // extension TypeScript side through Agent.
+      "{\"command\":\"command\",\"id\":\"cody.action.command\",\"arg\":\"edit\"}" -> {
+        runInEdt {
+          // Invoke the Cody "edit" action in JetBrains directly.
+          val actionManager = ActionManager.getInstance()
+          val action = actionManager.getAction("cody.editCodeAction")
+          action?.actionPerformed(
+              AnActionEvent.createFromAnAction(
+                  action,
+                  null,
+                  "",
+                  DataContext { dataId ->
+                    when (dataId) {
+                      CommonDataKeys.EDITOR.name ->
+                          FileEditorManager.getInstance(project).selectedTextEditor
+                      else -> null
+                    }
+                  }))
         }
       }
       else -> {
