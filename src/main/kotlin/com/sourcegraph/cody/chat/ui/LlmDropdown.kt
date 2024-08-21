@@ -76,9 +76,7 @@ class LlmDropdown(
 
     selectedItem =
         models.find {
-          it.id == model ||
-              it.id == selectedFromHistory?.id ||
-              it.id == selectedFromChatState?.id
+          it.id == model || it.id == selectedFromHistory?.id || it.id == selectedFromChatState?.id
         } ?: models.firstOrNull()
 
     val isEnterpriseAccount =

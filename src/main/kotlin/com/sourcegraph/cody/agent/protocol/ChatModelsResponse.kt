@@ -1,7 +1,7 @@
 package com.sourcegraph.cody.agent.protocol
 
-import com.sourcegraph.cody.agent.protocol_generated.Model
 import com.sourcegraph.cody.Icons
+import com.sourcegraph.cody.agent.protocol_generated.Model
 import javax.swing.Icon
 
 data class ChatModelsResponse(val models: List<ChatModelProvider>) {
@@ -16,14 +16,14 @@ data class ChatModelsResponse(val models: List<ChatModelProvider>) {
     @Deprecated("No longer provided by agent") val deprecated: Boolean = false
 
     fun getIcon(): Icon? =
-      when (provider) {
-        "Anthropic" -> Icons.LLM.Anthropic
-        "OpenAI" -> Icons.LLM.OpenAI
-        "Mistral" -> Icons.LLM.Mistral
-        "Google" -> Icons.LLM.Google
-        "Ollama" -> Icons.LLM.Ollama
-        else -> null
-      }
+        when (provider) {
+          "Anthropic" -> Icons.LLM.Anthropic
+          "OpenAI" -> Icons.LLM.OpenAI
+          "Mistral" -> Icons.LLM.Mistral
+          "Google" -> Icons.LLM.Google
+          "Ollama" -> Icons.LLM.Ollama
+          else -> null
+        }
 
     fun displayName(): String = buildString {
       if (title == null) {
