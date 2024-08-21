@@ -159,7 +159,7 @@ class HistoryService(private val project: Project) :
           ChatModelsResponse.ChatModelProvider(
               provider = model.provider,
               title = model.title,
-              model = model.model,
+              model = model.id,
               tags = model.tags.toMutableList(),
               usage = model.usage.toMutableList(),
               default =
