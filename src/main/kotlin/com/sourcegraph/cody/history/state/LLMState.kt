@@ -7,7 +7,7 @@ import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 
 @Tag("llm")
 class LLMState : BaseState() {
-  @get:OptionTag(tag = "model", nameAttribute = "") var model: String? by string()
+  @get:OptionTag(tag = "id", nameAttribute = "") var id: String? by string()
 
   @get:OptionTag(tag = "title", nameAttribute = "") var title: String? by string()
 
@@ -20,7 +20,7 @@ class LLMState : BaseState() {
   companion object {
     fun fromChatModel(chatModelProvider: ChatModelsResponse.ChatModelProvider): LLMState {
       return LLMState().also {
-        it.model = chatModelProvider.model
+        it.id = chatModelProvider.id
         it.title = chatModelProvider.title
         it.provider = chatModelProvider.provider
         it.tags = chatModelProvider.tags ?: mutableListOf()
