@@ -286,7 +286,7 @@ class SettingsMigrationTest : BasePlatformTestCase() {
       if (isCodyPro) myTags.add("pro")
       return Model(
           id = "anthropic/claude-$version",
-          usage = listOf("chat"),
+          usage = usage,
           contextWindow = ModelContextWindow(0, 0, null),
           clientSideConfig = null,
           provider = "Anthropic",
@@ -336,7 +336,7 @@ class SettingsMigrationTest : BasePlatformTestCase() {
             })
 
     fun getTagsAndUsage(chat: ChatState): Pair<List<String>, List<String>> {
-      val llm = chat.llm ?: return Pair(listOf<String>(), listOf<String>())
+      val llm = chat.llm ?: return Pair(listOf(), listOf())
       return Pair(llm.tags.toList(), llm.usage.toList())
     }
 
