@@ -273,7 +273,8 @@ class WebUIHostImpl(
   override fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
     // Some commands can be handled by the client and do not need to round-trip client -> Agent ->
     // client.
-    val stringsOfInterest = listOf("cody.auth.signin", "cody.auth.signout", "cody.action.command", "command")
+    val stringsOfInterest =
+        listOf("cody.auth.signin", "cody.auth.signout", "cody.action.command", "command")
     val decodedJson =
         if (stringsOfInterest.any { stringEncodedJsonMessage.contains(it) }) {
           JsonParser.parseString(stringEncodedJsonMessage).asJsonObject
