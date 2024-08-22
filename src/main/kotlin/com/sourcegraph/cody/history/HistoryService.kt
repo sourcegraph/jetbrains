@@ -6,8 +6,6 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
-import com.sourcegraph.cody.agent.protocol_generated.Model
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.state.AccountData
 import com.sourcegraph.cody.history.state.ChatState
@@ -61,21 +59,5 @@ class HistoryService(private val project: Project) :
 
   companion object {
     @JvmStatic fun getInstance(project: Project): HistoryService = project.service<HistoryService>()
-
-    fun convertModelsToChatModelProviders(models: List<Model>) =
-        models.mapIndexed { index, model ->
-          ChatModelsResponse.ChatModelProvider(
-              provider = model.provider,
-              title = model.title,
-              model = model.id,
-              tags = model.tags.toMutableList(),
-              usage = model.usage.toMutableList(),
-              default =
-                  index ==
-                      0, // no longer provided by the server, the first model is always the default
-              codyProOnly = model.tags.contains("pro"),
-              deprecated = model.tags.contains("deprecated"),
-          )
-        }
   }
 }
