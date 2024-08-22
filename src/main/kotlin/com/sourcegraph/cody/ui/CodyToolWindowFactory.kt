@@ -271,18 +271,26 @@ class WebUIHostImpl(
   override fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
     // Some commands can be handled by the client and do not need to round-trip client -> Agent ->
     // client.
-    when (stringEncodedJsonMessage) {
-      // TODO: Remove this redirection when sign in moves to Web UI.
-      "{\"command\":\"command\",\"id\":\"cody.auth.signin\"}",
-      "{\"command\":\"command\",\"id\":\"cody.auth.signout\"}" -> {
+    val stringsOfInterest = listOf("cody.auth.signin", "cody.auth.signout", "cody.action.command")
+    val decodedJson =
+        if (stringsOfInterest.any { stringEncodedJsonMessage.contains(it) }) {
+          JsonParser.parseString(stringEncodedJsonMessage).asJsonObject
+        } else {
+          null
+        }
+    val isCommand = decodedJson?.get("command")?.asString == "command"
+    val id = decodedJson?.get("id")?.asString
+    when {
+      isCommand && id == "cody.auth.signin" || id == "cody.auth.signout" -> {
         runInEdt {
           ShowSettingsUtil.getInstance()
               .showSettingsDialog(project, AccountConfigurable::class.java)
         }
       }
-      // TODO: Delete this intercept when Cody edits UI is abstracted so JetBrains' native UI can be invoked from the
+      // TODO: Delete this intercept when Cody edits UI is abstracted so JetBrains' native UI can be
+      // invoked from the
       // extension TypeScript side through Agent.
-      "{\"command\":\"command\",\"id\":\"cody.action.command\",\"arg\":\"edit\"}" -> {
+      isCommand && id == "cody.action.command" && decodedJson?.get("arg")?.asString == "edit" -> {
         runInEdt {
           // Invoke the Cody "edit" action in JetBrains directly.
           val actionManager = ActionManager.getInstance()
