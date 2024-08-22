@@ -345,17 +345,17 @@ class SettingsMigrationTest : BasePlatformTestCase() {
     accountData.forEach { ad ->
       ad.chats.forEach { chat ->
         when (chat.llm?.model) {
-          claude20Old.model -> {
+          claude20Old.id -> {
             val (tags, usage) = getTagsAndUsage(chat)
             assertEquals(listOf("deprecated", "free"), tags)
             assertEquals(listOf("chat", "edit"), usage)
           }
-          claude21Old.model -> {
+          claude21Old.id -> {
             val (tags, usage) = getTagsAndUsage(chat)
             assertEquals(listOf("deprecated", "pro"), tags)
             assertEquals(listOf("chat", "edit"), usage)
           }
-          claude30Old.model -> {
+          claude30Old.id -> {
             val (tags, usage) = getTagsAndUsage(chat)
             assertEquals(listOf("pro", "other"), tags)
             assertEquals(listOf("edit"), usage)
