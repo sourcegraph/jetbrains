@@ -36,6 +36,7 @@ import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.agent.protocol.WebviewOptions
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
 import com.sourcegraph.cody.config.ui.AccountConfigurable
+import com.sourcegraph.cody.config.ui.CodyConfigurable
 import com.sourcegraph.cody.sidebar.WebTheme
 import com.sourcegraph.cody.sidebar.WebThemeController
 import com.sourcegraph.common.BrowserOpener
@@ -313,8 +314,7 @@ class WebUIHostImpl(
       }
       isCommand && id == "cody.status-bar.interacted" -> {
         runInEdt {
-          ShowSettingsUtil.getInstance()
-              .showSettingsDialog(project, AccountConfigurable::class.java)
+          ShowSettingsUtil.getInstance().showSettingsDialog(project, CodyConfigurable::class.java)
         }
       }
       else -> {
