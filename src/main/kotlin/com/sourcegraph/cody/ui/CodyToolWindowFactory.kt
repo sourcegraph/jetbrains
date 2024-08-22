@@ -273,7 +273,7 @@ class WebUIHostImpl(
   override fun postMessageWebviewToHost(stringEncodedJsonMessage: String) {
     // Some commands can be handled by the client and do not need to round-trip client -> Agent ->
     // client.
-    val stringsOfInterest = listOf("cody.auth.signin", "cody.auth.signout", "cody.action.command")
+    val stringsOfInterest = listOf("cody.auth.signin", "cody.auth.signout", "cody.action.command", "command")
     val decodedJson =
         if (stringsOfInterest.any { stringEncodedJsonMessage.contains(it) }) {
           JsonParser.parseString(stringEncodedJsonMessage).asJsonObject
@@ -290,8 +290,7 @@ class WebUIHostImpl(
         }
       }
       // TODO: Delete this intercept when Cody edits UI is abstracted so JetBrains' native UI can be
-      // invoked from the
-      // extension TypeScript side through Agent.
+      // invoked from the extension TypeScript side through Agent.
       isCommand && id == "cody.action.command" && decodedJson.get("arg")?.asString == "edit" -> {
         runInEdt {
           // Invoke the Cody "edit" action in JetBrains directly.
@@ -309,6 +308,12 @@ class WebUIHostImpl(
                       else -> null
                     }
                   }))
+        }
+      }
+      isCommand && id == "cody.status-bar.interacted" -> {
+        runInEdt {
+          ShowSettingsUtil.getInstance()
+              .showSettingsDialog(project, AccountConfigurable::class.java)
         }
       }
       else -> {
