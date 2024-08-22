@@ -19,7 +19,6 @@ import com.sourcegraph.cody.history.HistoryService.Companion.convertModelsToChat
 import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.ui.LlmComboBoxRenderer
 import com.sourcegraph.common.BrowserOpener
-import com.sourcegraph.common.CodyBundle
 import java.util.concurrent.TimeUnit
 
 class LlmDropdown(
@@ -122,14 +121,4 @@ class LlmDropdown(
       CodyAuthenticationManager.getInstance(project)
           .getActiveAccountTier()
           .getNow(AccountTier.DOTCOM_FREE) == AccountTier.DOTCOM_FREE
-
-  @RequiresEdt
-  fun updateAfterFirstMessage() {
-    isEnabled = false
-
-    val activeAccountType = CodyAuthenticationManager.getInstance(project).account
-    if (activeAccountType?.isDotcomAccount() == true) {
-      toolTipText = CodyBundle.getString("LlmDropdown.disabled.text")
-    }
-  }
 }
