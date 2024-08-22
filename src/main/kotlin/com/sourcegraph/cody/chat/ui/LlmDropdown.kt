@@ -8,14 +8,15 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.ConfigFeatures
 import com.sourcegraph.cody.agent.CurrentConfigFeatures
-import com.sourcegraph.cody.agent.protocol.ChatModelsResponse
 import com.sourcegraph.cody.agent.protocol.ModelUsage
+import com.sourcegraph.cody.agent.protocol_extensions.isCodyProOnly
+import com.sourcegraph.cody.agent.protocol_extensions.isDeprecated
 import com.sourcegraph.cody.agent.protocol_generated.Chat_ModelsParams
+import com.sourcegraph.cody.agent.protocol_generated.Model
 import com.sourcegraph.cody.config.AccountTier
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.history.HistoryService
-import com.sourcegraph.cody.history.HistoryService.Companion.convertModelsToChatModelProviders
 import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.ui.LlmComboBoxRenderer
 import com.sourcegraph.common.BrowserOpener
@@ -24,11 +25,11 @@ import java.util.concurrent.TimeUnit
 class LlmDropdown(
     private val modelUsage: ModelUsage,
     private val project: Project,
-    private val onSetSelectedItem: (ChatModelsResponse.ChatModelProvider) -> Unit,
+    private val onSetSelectedItem: (Model) -> Unit,
     val parentDialog: EditCommandPrompt?,
-    private val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?,
+    private val chatModelFromState: Model?,
     private val model: String? = null
-) : ComboBox<ChatModelsResponse.ChatModelProvider>(MutableCollectionComboBoxModel()) {
+) : ComboBox<Model>(MutableCollectionComboBoxModel()) {
   private var hasServerSentModels = false
 
   init {
@@ -46,8 +47,7 @@ class LlmDropdown(
       val models =
           chatModels.completeOnTimeout(null, 10, TimeUnit.SECONDS).get()?.models ?: return@withAgent
 
-      val chatModelProviders = convertModelsToChatModelProviders(models)
-      invokeLater { updateModelsInUI(chatModelProviders) }
+      invokeLater { updateModelsInUI(models) }
     }
   }
 
@@ -66,21 +66,21 @@ class LlmDropdown(
   }
 
   @RequiresEdt
-  private fun updateModelsInUI(models: List<ChatModelsResponse.ChatModelProvider>) {
+  private fun updateModelsInUI(models: List<Model>) {
     if (project.isDisposed) return
     this.removeAllItems()
 
     val availableModels = models.filterNot { it.isDeprecated() }
     availableModels.sortedBy { it.isCodyProOnly() }.forEach(::addItem)
 
-    val selectedFromChatState = chatModelProviderFromState
+    val selectedFromChatState = chatModelFromState
     val selectedFromHistory = HistoryService.getInstance(project).getDefaultLlm()
 
     selectedItem =
         models.find {
-          it.model == model ||
-              it.model == selectedFromHistory?.model ||
-              it.model == selectedFromChatState?.model
+          it.id == model ||
+              it.id == selectedFromHistory?.model ||
+              it.id == selectedFromChatState?.id
         } ?: models.firstOrNull()
 
     val isEnterpriseAccount =
@@ -88,7 +88,7 @@ class LlmDropdown(
 
     // If the dropdown is already disabled, don't change it. It can happen
     // in the case of the legacy commands (updateAfterFirstMessage happens before this call).
-    isEnabled = isEnabled && chatModelProviderFromState == null
+    isEnabled = isEnabled && chatModelFromState == null
 
     isVisible = !isEnterpriseAccount || hasServerSentModels
     setMaximumRowCount(15)
@@ -96,14 +96,14 @@ class LlmDropdown(
     revalidate()
   }
 
-  override fun getModel(): MutableCollectionComboBoxModel<ChatModelsResponse.ChatModelProvider> {
+  override fun getModel(): MutableCollectionComboBoxModel<Model> {
     return super.getModel() as MutableCollectionComboBoxModel
   }
 
   @RequiresEdt
   override fun setSelectedItem(anObject: Any?) {
     if (project.isDisposed) return
-    val modelProvider = anObject as? ChatModelsResponse.ChatModelProvider
+    val modelProvider = anObject as? Model
     if (modelProvider != null) {
       if (modelProvider.isCodyProOnly() && isCurrentUserFree()) {
         BrowserOpener.openInBrowser(project, "https://sourcegraph.com/cody/subscription")
