@@ -64,6 +64,9 @@ class SettingsMigration : Activity {
 
     DeprecatedChatLlmMigration.migrate(project)
     ChatTagsLlmMigration.migrate(project)
+    RunOnceUtil.runOnceForApp("CodyMigrateChatHistory") {
+      ChatHistoryMigration.migrate(project)
+    }
   }
 
   private fun migrateOrphanedChatsToActiveAccount(project: Project) {
