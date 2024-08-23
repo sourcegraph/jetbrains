@@ -6,6 +6,7 @@ import com.sourcegraph.cody.agent.protocol_generated.Chat_ImportParams
 import com.sourcegraph.cody.agent.protocol_generated.SerializedChatInteraction
 import com.sourcegraph.cody.agent.protocol_generated.SerializedChatMessage
 import com.sourcegraph.cody.agent.protocol_generated.SerializedChatTranscript
+import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.ChatState
@@ -16,19 +17,25 @@ import com.sourcegraph.cody.history.state.MessageState
 object ChatHistoryMigration {
     fun migrate(project: Project) {
         CodyAgentService.withAgent(project) { agent ->
-            val chats = CodyAuthenticationManager.getInstance(project).getAccounts().fold(mutableMapOf<String, Map<String, SerializedChatTranscript>>()){ map, account ->
-                val chatHistory = HistoryService.getInstance(project).getChatHistoryFor(account.id)
-                val serializedChats = chatHistory?.mapNotNull(::toSerializedChatTranscript) ?: listOf()
-                val byDate = serializedChats.associateBy{ it.lastInteractionTimestamp }
-                val chatId = "${account.server.url}-${account.name}"
-                map[chatId] = byDate
-                map
+            val chats = CodyAuthenticationManager.getInstance(project).getAccounts().associateWith { account ->
+                (HistoryService.getInstance(project).getChatHistoryFor(account.id) ?: listOf())
             }
+            val history = toChatInput(chats)
+
             agent.server.chat_import(Chat_ImportParams(
-                history = chats.toMap(),
+                history = history,
                 merge = true
             )).get()
         }
+    }
+
+    fun toChatInput(chats: Map<CodyAccount, List<ChatState>>): Map<String, Map<String, SerializedChatTranscript>> {
+        return chats.map{ (account, chats) ->
+            val serializedChats = chats.mapNotNull(::toSerializedChatTranscript) ?: listOf()
+            val byDate = serializedChats.associateBy{ it.lastInteractionTimestamp }
+
+            "${account.server.url}-${account.name}" to byDate
+        }.toMap()
     }
 
     private fun toSerializedChatTranscript(chat: ChatState): SerializedChatTranscript? {
