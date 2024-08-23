@@ -11,14 +11,11 @@ import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindowManager
-import com.sourcegraph.cody.CodyToolWindowFactory
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
-import com.sourcegraph.cody.config.CodyAccount
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.config.CodyAccountDetails
 import com.sourcegraph.cody.config.CodyApplicationSettings
-import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.config.CodyProjectSettings
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.AccountData
@@ -26,11 +23,10 @@ import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.EnhancedContextState
 import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.initialization.Activity
+import com.sourcegraph.cody.ui.WebUIToolWindowFactory
 import com.sourcegraph.config.AccessTokenStorage
 import com.sourcegraph.config.CodyApplicationService
 import com.sourcegraph.config.CodyProjectService
-import com.sourcegraph.config.ConfigUtil
-import com.sourcegraph.config.UserLevelConfig
 import com.sourcegraph.vcs.convertGitCloneURLToCodebaseNameOrError
 import java.util.concurrent.CompletableFuture
 
@@ -42,10 +38,6 @@ class SettingsMigration : Activity {
   }
 
   override fun runActivity(project: Project) {
-    RunOnceUtil.runOnceForProject(project, "CodyProjectSettingsMigration") {
-      migrateProjectSettings(project)
-      migrateAccounts(project)
-    }
     RunOnceUtil.runOnceForProject(project, "CodyHistoryLlmMigration") { migrateLlms(project) }
     RunOnceUtil.runOnceForProject(project, "CodyConvertUrlToCodebaseName") {
       migrateUrlsToCodebaseNames(project)
@@ -67,7 +59,7 @@ class SettingsMigration : Activity {
   }
 
   private fun migrateOrphanedChatsToActiveAccount(project: Project) {
-    val activeAccountId = CodyAuthenticationManager.getInstance(project).account?.id
+    val activeAccountId = CodyAccountManager.getInstance(project).account?.id
     HistoryService.getInstance(project)
         .state
         .chats
@@ -77,9 +69,9 @@ class SettingsMigration : Activity {
 
   private fun refreshAccountsIds(project: Project) {
     val customRequestHeaders = extractCustomRequestHeaders(project)
-    CodyAuthenticationManager.getInstance(project).getAccounts().forEach { codyAccount ->
+    CodyAccountManager.getInstance(project).accounts.forEach { codyAccount ->
       val server = SourcegraphServerPath.from(codyAccount.server.url, customRequestHeaders)
-      val token = CodyAuthenticationManager.getInstance(project).getTokenForAccount(codyAccount)
+      val token = codyAccount.getToken()
       if (token != null) {
         loadUserDetails(
             SourcegraphApiRequestExecutor.Factory.instance,
@@ -87,7 +79,6 @@ class SettingsMigration : Activity {
             EmptyProgressIndicator(ModalityState.NON_MODAL),
             server) {
               codyAccount.id = it.id
-              CodyAuthenticationManager.getInstance(project).updateAccountToken(codyAccount, token)
             }
       }
     }
@@ -96,16 +87,9 @@ class SettingsMigration : Activity {
   private fun toggleCodyToolbarWindow(project: Project) {
     ApplicationManager.getApplication().invokeLater {
       val toolWindowManager = ToolWindowManager.getInstance(project)
-      val toolWindow = toolWindowManager.getToolWindow(CodyToolWindowFactory.TOOL_WINDOW_ID)
+      val toolWindow = toolWindowManager.getToolWindow(WebUIToolWindowFactory.TOOL_WINDOW_ID)
       toolWindow?.setAvailable(CodyApplicationSettings.instance.isCodyEnabled, null)
     }
-  }
-
-  private fun migrateAccounts(project: Project) {
-    val customRequestHeaders = extractCustomRequestHeaders(project)
-    val requestExecutorFactory = SourcegraphApiRequestExecutor.Factory.instance
-    migrateDotcomAccount(project, requestExecutorFactory, customRequestHeaders)
-    migrateEnterpriseAccount(project, requestExecutorFactory, customRequestHeaders)
   }
 
   private fun migrateLlms(project: Project) {
@@ -157,93 +141,6 @@ class SettingsMigration : Activity {
                   "Mistral",
                   "Mixtral 8x7B"))
 
-  private fun migrateDotcomAccount(
-      project: Project,
-      requestExecutorFactory: SourcegraphApiRequestExecutor.Factory,
-      customRequestHeaders: String
-  ) {
-    val dotcomAccessToken = extractDotcomAccessToken(project)
-    if (!dotcomAccessToken.isNullOrEmpty()) {
-      val server = SourcegraphServerPath.from(ConfigUtil.DOTCOM_URL, customRequestHeaders)
-      val extractedAccountType = extractAccountType(project)
-      val shouldSetAccountAsDefault = extractedAccountType == AccountType.DOTCOM
-      if (shouldSetAccountAsDefault) {
-        addAsDefaultAccountIfUnique(
-            project,
-            dotcomAccessToken,
-            server,
-            requestExecutorFactory,
-            EmptyProgressIndicator(ModalityState.NON_MODAL))
-      } else {
-        addAccountIfUnique(
-            project,
-            dotcomAccessToken,
-            server,
-            requestExecutorFactory,
-            EmptyProgressIndicator(ModalityState.NON_MODAL))
-      }
-    }
-  }
-
-  private fun migrateEnterpriseAccount(
-      project: Project,
-      requestExecutorFactory: SourcegraphApiRequestExecutor.Factory,
-      customRequestHeaders: String
-  ) {
-    val enterpriseAccessToken = extractEnterpriseAccessToken(project)
-    if (!enterpriseAccessToken.isNullOrEmpty()) {
-      val enterpriseUrl = extractEnterpriseUrl(project)
-      runCatching { SourcegraphServerPath.from(enterpriseUrl, customRequestHeaders) }
-          .fold({
-            val shouldSetAccountAsDefault = extractAccountType(project) == AccountType.ENTERPRISE
-            if (shouldSetAccountAsDefault) {
-              addAsDefaultAccountIfUnique(
-                  project,
-                  enterpriseAccessToken,
-                  it,
-                  requestExecutorFactory,
-                  EmptyProgressIndicator(ModalityState.NON_MODAL))
-            } else {
-              addAccountIfUnique(
-                  project,
-                  enterpriseAccessToken,
-                  it,
-                  requestExecutorFactory,
-                  EmptyProgressIndicator(ModalityState.NON_MODAL))
-            }
-          }) {
-            LOG.warn("Unable to parse enterprise server url: '$enterpriseUrl'", it)
-          }
-    }
-  }
-
-  private fun addAccountIfUnique(
-      project: Project,
-      accessToken: String,
-      server: SourcegraphServerPath,
-      requestExecutorFactory: SourcegraphApiRequestExecutor.Factory,
-      progressIndicator: EmptyProgressIndicator,
-  ) {
-    loadUserDetails(requestExecutorFactory, accessToken, progressIndicator, server) {
-      addAccount(project, CodyAccount(it.name, it.displayName, server, it.id), accessToken)
-    }
-  }
-
-  private fun addAsDefaultAccountIfUnique(
-      project: Project,
-      accessToken: String,
-      server: SourcegraphServerPath,
-      requestExecutorFactory: SourcegraphApiRequestExecutor.Factory,
-      progressIndicator: EmptyProgressIndicator,
-  ) {
-    loadUserDetails(requestExecutorFactory, accessToken, progressIndicator, server) {
-      val codyAccount = CodyAccount(it.name, it.displayName, server, it.id)
-      addAccount(project, codyAccount, accessToken)
-      if (CodyAuthenticationManager.getInstance(project).hasNoActiveAccount())
-          CodyAuthenticationManager.getInstance(project).setActiveAccount(codyAccount)
-    }
-  }
-
   private fun loadUserDetails(
       requestExecutorFactory: SourcegraphApiRequestExecutor.Factory,
       accessToken: String,
@@ -265,35 +162,6 @@ class SettingsMigration : Activity {
             }
           }
 
-  private fun addAccount(project: Project, codyAccount: CodyAccount, token: String) {
-    if (isAccountUnique(project, codyAccount)) {
-      CodyAuthenticationManager.getInstance(project).updateAccountToken(codyAccount, token)
-    }
-  }
-
-  private fun isAccountUnique(project: Project, codyAccount: CodyAccount): Boolean {
-    return CodyAuthenticationManager.getInstance(project)
-        .isAccountUnique(codyAccount.name, codyAccount.server)
-  }
-
-  private fun extractEnterpriseUrl(project: Project): String {
-    // Project level
-    val projectLevelUrl = project.service<CodyProjectService>().sourcegraphUrl
-    if (!projectLevelUrl.isNullOrEmpty()) {
-      return addSlashIfNeeded(projectLevelUrl)
-    }
-
-    // Application level
-    val applicationLevelUrl = service<CodyApplicationService>().sourcegraphUrl
-    if (!applicationLevelUrl.isNullOrEmpty()) {
-      return addSlashIfNeeded(applicationLevelUrl)
-    }
-
-    // User level or default
-    val userLevelUrl = UserLevelConfig.getSourcegraphUrl()
-    return if (userLevelUrl.isNotEmpty()) addSlashIfNeeded(userLevelUrl) else ""
-  }
-
   private fun extractCustomRequestHeaders(project: Project): String {
     // Project level
     val projectLevelCustomRequestHeaders =
@@ -308,42 +176,6 @@ class SettingsMigration : Activity {
     return if (!applicationLevelCustomRequestHeaders.isNullOrEmpty()) {
       applicationLevelCustomRequestHeaders
     } else ""
-  }
-
-  private fun extractDefaultBranchName(project: Project): String {
-    // Project level
-    val projectLevelDefaultBranchName = project.service<CodyProjectService>().defaultBranchName
-    if (!projectLevelDefaultBranchName.isNullOrEmpty()) {
-      return projectLevelDefaultBranchName
-    }
-
-    // Application level
-    val applicationLevelDefaultBranchName = service<CodyApplicationService>().defaultBranchName
-    if (!applicationLevelDefaultBranchName.isNullOrEmpty()) {
-      return applicationLevelDefaultBranchName
-    }
-
-    // User level or default
-    val userLevelDefaultBranchName = UserLevelConfig.getDefaultBranchName()
-    return userLevelDefaultBranchName ?: "main"
-  }
-
-  private fun extractRemoteUrlReplacements(project: Project): String {
-    // Project level
-    val projectLevelReplacements = project.service<CodyProjectService>().getRemoteUrlReplacements()
-    if (!projectLevelReplacements.isNullOrEmpty()) {
-      return projectLevelReplacements
-    }
-
-    // Application level
-    val applicationLevelReplacements = service<CodyApplicationService>().getRemoteUrlReplacements()
-    if (!applicationLevelReplacements.isNullOrEmpty()) {
-      return applicationLevelReplacements
-    }
-
-    // User level or default
-    val userLevelRemoteUrlReplacements = UserLevelConfig.getRemoteUrlReplacements()
-    return userLevelRemoteUrlReplacements ?: ""
   }
 
   private fun extractDotcomAccessToken(project: Project): String? {
@@ -389,12 +221,6 @@ class SettingsMigration : Activity {
     val service = service<CodyApplicationService>()
     val unsafeApplicationLevelAccessToken = service.enterpriseAccessToken
     return unsafeApplicationLevelAccessToken ?: ""
-  }
-
-  private fun migrateProjectSettings(project: Project) {
-    val codyProjectSettings = project.service<CodyProjectSettings>()
-    codyProjectSettings.defaultBranchName = extractDefaultBranchName(project)
-    codyProjectSettings.remoteUrlReplacements = extractRemoteUrlReplacements(project)
   }
 
   private fun addSlashIfNeeded(url: String): String {

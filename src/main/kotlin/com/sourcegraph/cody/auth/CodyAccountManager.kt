@@ -1,4 +1,4 @@
-package com.sourcegraph.cody.config
+package com.sourcegraph.cody.auth
 
 import com.intellij.collaboration.async.CompletableFutureUtil.submitIOTask
 import com.intellij.openapi.Disposable
@@ -10,36 +10,27 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.StoragePathMacros
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.WindowManager
-import com.intellij.util.AuthData
-import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
+import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.notification.AccountSettingChangeActionNotifier
 import com.sourcegraph.cody.config.notification.AccountSettingChangeContext
 import com.sourcegraph.cody.config.notification.AccountSettingChangeContext.Companion.UNAUTHORIZED_ERROR_MESSAGE
+import com.sourcegraph.cody.telemetry.TelemetryV2
 import com.sourcegraph.config.ConfigUtil
-import java.awt.Component
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import org.jetbrains.annotations.CalledInAny
-
-internal class CodyAuthData(val account: CodyAccount, login: String, token: String) :
-    AuthData(login, token) {
-  val server: SourcegraphServerPath
-    get() = account.server
-
-  val token: String
-    get() = password!!
-}
 
 enum class AccountTier(val value: Int) {
   DOTCOM_FREE(0),
@@ -58,8 +49,8 @@ data class AuthenticationState(
     storages = [Storage(StoragePathMacros.WORKSPACE_FILE)],
     reportStatistic = false)
 @Service(Service.Level.PROJECT)
-class CodyAuthenticationManager(val project: Project) :
-    PersistentStateComponent<CodyAuthenticationManager.AccountState>, Disposable {
+class CodyAccountManager(val project: Project) :
+    PersistentStateComponent<CodyAccountManager.AccountState>, Disposable {
 
   var account: CodyAccount? = null
     private set
@@ -91,10 +82,21 @@ class CodyAuthenticationManager(val project: Project) :
     Disposer.register(this) { frame?.removeWindowListener(listener) }
   }
 
-  private val accountManager: CodyAccountManager
-    get() = service()
+  private val persistentAccounts
+    get() = service<CodyPersistentAccounts>()
 
-  @CalledInAny fun getAccounts(): Set<CodyAccount> = accountManager.accounts
+  val accounts: Set<CodyAccount>
+    get() = persistentAccounts.accounts
+
+  fun removeAccount(account: CodyAccount) {
+    val currentSet = persistentAccounts.accounts
+    val newSet = currentSet - account
+    if (newSet.size != currentSet.size) {
+      persistentAccounts.accounts = newSet
+      account.saveToken(null)
+      logger.debug("Removed account: $account")
+    }
+  }
 
   @CalledInAny
   private fun getAuthenticationState(): AuthenticationState {
@@ -104,7 +106,7 @@ class CodyAuthenticationManager(val project: Project) :
     val tierFuture = CompletableFuture<AccountTier>()
     val authenticationState = AuthenticationState(tierFuture, isTokenInvalidFuture)
     val theAccount = account ?: return authenticationState
-    val token = theAccount.let(::getTokenForAccount)
+    val token = theAccount.getToken()
 
     if (isTokenInvalid == null) isTokenInvalid = isTokenInvalidFuture
     if (tier == null) tier = tierFuture
@@ -180,28 +182,18 @@ class CodyAuthenticationManager(val project: Project) :
     return isTokenInvalid ?: getAuthenticationState().isTokenInvalid
   }
 
-  @CalledInAny
-  internal fun getTokenForAccount(account: CodyAccount): String? =
-      accountManager.findCredentials(account)
+  fun addAccount(server: SourcegraphServerPath, token: String, id: String) {
+    TelemetryV2.sendTelemetryEvent(project, "auth.signin.token", "clicked")
 
-  internal fun isAccountUnique(name: String, server: SourcegraphServerPath) =
-      accountManager.accounts.none { it.name == name && it.server.url == server.url }
-
-  @RequiresEdt
-  internal fun login(parentComponent: Component?, request: CodyLoginRequest): CodyAuthData? =
-      request.loginWithToken(project, parentComponent)
-
-  @RequiresEdt
-  internal fun updateAccountToken(newAccount: CodyAccount, newToken: String) {
-    val oldToken = getTokenForAccount(newAccount)
-    accountManager.updateAccount(newAccount, newToken)
-    if (oldToken != newToken && newAccount == account) {
-      CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
-        if (!project.isDisposed) {
-          agent.server.extensionConfiguration_didChange(ConfigUtil.getAgentConfiguration(project))
-          publisher.afterAction(AccountSettingChangeContext(accessTokenChanged = true))
-        }
-      }
+    val existingAccounts = persistentAccounts.accounts
+    val existingAccount = existingAccounts.find { it.getToken() == token }
+    if (existingAccount != null) {
+      logger.debug("Account already exists: $server, $token")
+      setActiveAccount(existingAccount)
+    } else {
+      val newAccount = CodyAccount(server, id).also { it.saveToken(token) }
+      persistentAccounts.accounts += newAccount
+      setActiveAccount(newAccount)
     }
   }
 
@@ -238,8 +230,6 @@ class CodyAuthenticationManager(val project: Project) :
 
   fun hasNoActiveAccount() = account == null
 
-  fun showInvalidAccessTokenError() = getIsTokenInvalid().getNow(null) == true
-
   override fun dispose() {
     scheduler.shutdown()
   }
@@ -250,8 +240,7 @@ class CodyAuthenticationManager(val project: Project) :
 
   override fun loadState(state: AccountState) {
     val initialAccount =
-        state.activeAccountId?.let { id -> accountManager.accounts.find { it.id == id } }
-            ?: getAccounts().firstOrNull()
+        state.activeAccountId?.let { id -> accounts.find { it.id == id } } ?: accounts.firstOrNull()
     if (initialAccount != null) {
       setActiveAccount(initialAccount)
     }
@@ -263,10 +252,11 @@ class CodyAuthenticationManager(val project: Project) :
   }
 
   companion object {
+    private val logger = Logger.getInstance(CodyAccountManager::class.java)
 
     @JvmStatic
-    fun getInstance(project: Project): CodyAuthenticationManager {
-      return project.service<CodyAuthenticationManager>()
+    fun getInstance(project: Project): CodyAccountManager {
+      return project.service<CodyAccountManager>()
     }
   }
 

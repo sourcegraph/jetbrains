@@ -1,10 +1,9 @@
-package com.sourcegraph.cody.config
+package com.sourcegraph.cody.auth
 
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.SettingsCategory
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
-import com.sourcegraph.cody.auth.AccountsRepository
 
 @State(
     name = "CodyAccounts",
@@ -14,11 +13,10 @@ import com.sourcegraph.cody.auth.AccountsRepository
         ],
     reportStatistic = false,
     category = SettingsCategory.TOOLS)
-class CodyPersistentAccounts :
-    AccountsRepository<CodyAccount>, PersistentStateComponent<Array<CodyAccount>> {
+class CodyPersistentAccounts : PersistentStateComponent<Array<CodyAccount>> {
   private var state = emptyArray<CodyAccount>()
 
-  override var accounts: Set<CodyAccount>
+  var accounts: Set<CodyAccount>
     get() = state.toSet()
     set(value) {
       state = value.toTypedArray()

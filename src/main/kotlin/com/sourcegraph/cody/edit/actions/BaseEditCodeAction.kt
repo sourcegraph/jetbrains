@@ -6,8 +6,8 @@ import com.intellij.openapi.editor.actionSystem.EditorAction
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.autocomplete.action.CodyAction
-import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.ignore.IgnorePolicy
 import com.sourcegraph.common.CodyBundle
@@ -35,7 +35,7 @@ open class BaseEditCodeAction(runAction: (Editor) -> Unit) :
           CodyBundle.getString("action.cody.not-working")
         } else if (isBlockedByPolicy(project, event)) {
           CodyBundle.getString("filter.action-in-ignored-file.detail")
-        } else if (CodyAuthenticationManager.getInstance(project).hasNoActiveAccount()) {
+        } else if (CodyAccountManager.getInstance(project).hasNoActiveAccount()) {
           CodyBundle.getString("action.sourcegraph.disabled.description")
         } else {
           ""

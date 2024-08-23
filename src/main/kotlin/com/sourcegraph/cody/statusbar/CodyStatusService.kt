@@ -8,8 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.config.CodyAccountManager
-import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.common.UpgradeToCodyProNotification
 import com.sourcegraph.config.ConfigUtil
@@ -45,12 +44,10 @@ class CodyStatusService(val project: Project) : Disposable {
   private fun didStatusChange(project: Project): Boolean {
     synchronized(this) {
       val oldStatus = status
-      val service = ApplicationManager.getApplication().getService(CodyAccountManager::class.java)
-      val authManager = CodyAuthenticationManager.getInstance(project)
+      val authManager = CodyAccountManager.getInstance(project)
       val isTokenInvalid = authManager.getIsTokenInvalid().getNow(null) == true
 
-      val token =
-          CodyAuthenticationManager.getInstance(project).account?.let(service::findCredentials)
+      val token = CodyAccountManager.getInstance(project).account?.getToken()
       // Note, the order of these clauses is important because earlier clauses take precedence over
       // later ones.
       // Fundamental issues are tested first.

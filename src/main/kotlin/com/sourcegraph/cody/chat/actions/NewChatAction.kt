@@ -2,7 +2,7 @@ package com.sourcegraph.cody.chat.actions
 
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.common.CodyBundle
 import com.sourcegraph.common.ui.DumbAwareEDTAction
 
@@ -13,7 +13,7 @@ class NewChatAction : DumbAwareEDTAction() {
 
   override fun update(event: AnActionEvent) {
     val project = event.project ?: return
-    val hasActiveAccount = CodyAuthenticationManager.getInstance(project).hasActiveAccount()
+    val hasActiveAccount = CodyAccountManager.getInstance(project).hasActiveAccount()
     event.presentation.isEnabled = hasActiveAccount
     if (!event.presentation.isEnabled) {
       event.presentation.description =

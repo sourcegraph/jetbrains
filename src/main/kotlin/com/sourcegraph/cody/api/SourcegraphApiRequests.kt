@@ -1,7 +1,7 @@
 package com.sourcegraph.cody.api
 
 import com.intellij.openapi.progress.ProgressIndicator
-import com.sourcegraph.cody.config.CodyAccountCodyProEnabled
+import com.sourcegraph.cody.auth.CodyAccountCodyProEnabled
 import com.sourcegraph.cody.config.CodyAccountDetails
 import java.awt.Image
 

@@ -9,7 +9,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.edit.LensesService
 import com.sourcegraph.common.CodyBundle
 
@@ -23,7 +23,7 @@ abstract class LensEditAction(val editAction: (Project, AnActionEvent, Editor, S
 
   override fun update(event: AnActionEvent) {
     val project = event.project ?: return
-    val hasActiveAccount = CodyAuthenticationManager.getInstance(project).hasActiveAccount()
+    val hasActiveAccount = CodyAccountManager.getInstance(project).hasActiveAccount()
     event.presentation.isEnabled = hasActiveAccount
     if (!event.presentation.isEnabled) {
       event.presentation.description =

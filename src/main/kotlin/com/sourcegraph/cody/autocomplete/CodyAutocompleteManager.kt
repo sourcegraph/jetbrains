@@ -39,12 +39,12 @@ import com.sourcegraph.cody.agent.protocol.SelectedCompletionInfo
 import com.sourcegraph.cody.agent.protocol_extensions.Position
 import com.sourcegraph.cody.agent.protocol_generated.Position
 import com.sourcegraph.cody.agent.protocol_generated.Range
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.autocomplete.render.AutocompleteRendererType
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteBlockElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteSingleLineRenderer
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil.getAllInlaysForEditor
-import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.ignore.ActionInIgnoredFileNotification
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.ignore.IgnorePolicy
@@ -172,8 +172,7 @@ class CodyAutocompleteManager {
 
     val textDocument: TextDocument = IntelliJTextDocument(editor, project)
 
-    if (isTriggeredExplicitly &&
-        CodyAuthenticationManager.getInstance(project).hasNoActiveAccount()) {
+    if (isTriggeredExplicitly && CodyAccountManager.getInstance(project).hasNoActiveAccount()) {
       HintManager.getInstance().showErrorHint(editor, "Cody: Sign in to use autocomplete")
       return
     }

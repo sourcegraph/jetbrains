@@ -4,8 +4,8 @@ import com.google.gson.JsonObject;
 import com.intellij.openapi.project.Project;
 import com.sourcegraph.cody.agent.CodyAgentService;
 import com.sourcegraph.cody.agent.protocol.Event;
+import com.sourcegraph.cody.auth.CodyAccountManager;
 import com.sourcegraph.cody.config.CodyApplicationSettings;
-import com.sourcegraph.cody.config.CodyAuthenticationManager;
 import com.sourcegraph.cody.config.SourcegraphServerPath;
 import com.sourcegraph.config.ConfigUtil;
 import java.util.concurrent.CompletableFuture;
@@ -81,7 +81,7 @@ public class GraphQlLogger {
     // project specific properties
     var updatedEventParameters = eventParameters.deepCopy();
     var activeAccountTier =
-        CodyAuthenticationManager.getInstance(project).getActiveAccountTier().getNow(null);
+        CodyAccountManager.getInstance(project).getActiveAccountTier().getNow(null);
     if (activeAccountTier != null) {
       updatedEventParameters.addProperty("tier", activeAccountTier.getValue());
     }

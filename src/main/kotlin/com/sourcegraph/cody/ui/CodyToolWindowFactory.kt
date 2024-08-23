@@ -2,6 +2,7 @@ package com.sourcegraph.cody.ui
 
 import com.google.gson.Gson
 import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -34,8 +35,9 @@ import com.sourcegraph.cody.agent.WebviewSetOptionsParams
 import com.sourcegraph.cody.agent.WebviewSetTitleParams
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.agent.protocol.WebviewOptions
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.chat.actions.ExportChatsAction.Companion.gson
-import com.sourcegraph.cody.config.ui.AccountConfigurable
+import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.ui.CodyConfigurable
 import com.sourcegraph.cody.sidebar.WebTheme
 import com.sourcegraph.cody.sidebar.WebThemeController
@@ -50,6 +52,7 @@ import java.nio.channels.AsynchronousFileChannel
 import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
 import java.nio.file.StandardOpenOption
+import java.util.UUID
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
 import javax.swing.JComponent
@@ -190,7 +193,7 @@ class WebUIService(private val project: Project) {
                 portMapping = emptyList(),
                 enableFindWidget = false,
                 retainContextWhenHidden = false))
-    val proxy = WebUIProxy.create(delegate)
+    val proxy = WebUIProxy.create(project, delegate)
     delegate.view = createView(proxy)
     proxy.updateTheme(themeController.getTheme())
     withCreationGate(handle) {
@@ -203,7 +206,7 @@ class WebUIService(private val project: Project) {
   fun createWebviewPanel(params: WebviewCreateWebviewPanelParams) {
     runInEdt {
       val delegate = WebUIHostImpl(project, params.handle, params.options)
-      val proxy = WebUIProxy.create(delegate)
+      val proxy = WebUIProxy.create(project, delegate)
       delegate.view = WebviewViewService.getInstance(project).createPanel(proxy, params)
       proxy.updateTheme(themeController.getTheme())
       withCreationGate(params.handle) {
@@ -285,12 +288,6 @@ class WebUIHostImpl(
     val isCommand = decodedJson?.get("command")?.asString == "command"
     val id = decodedJson?.get("id")?.asString
     when {
-      isCommand && id == "cody.auth.signin" || id == "cody.auth.signout" -> {
-        runInEdt {
-          ShowSettingsUtil.getInstance()
-              .showSettingsDialog(project, AccountConfigurable::class.java)
-        }
-      }
       // TODO: Delete this intercept when Cody edits UI is abstracted so JetBrains' native UI can be
       // invoked from the extension TypeScript side through Agent.
       isCommand && id == "cody.action.command" && decodedJson.get("arg")?.asString == "edit" -> {
@@ -371,7 +368,11 @@ class WebUIHostImpl(
   }
 }
 
-class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserBase) {
+class WebUIProxy(
+    private val project: Project,
+    private val host: WebUIHost,
+    private val browser: JBCefBrowserBase
+) {
   companion object {
 
     /**
@@ -420,7 +421,7 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
           browser.cefBrowser)
     }
 
-    fun create(host: WebUIHost): WebUIProxy {
+    fun create(project: Project, host: WebUIHost): WebUIProxy {
       val browser =
           JBCefBrowserBuilder()
               .apply {
@@ -433,7 +434,7 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
               .build()
 
       patchBrowserFocusHandler(browser)
-      val proxy = WebUIProxy(host, browser)
+      val proxy = WebUIProxy(project, host, browser)
 
       val viewToHost =
           JBCefJSQuery.create(browser as JBCefBrowserBase).apply {
@@ -519,11 +520,8 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
         val queryValue = queryObject["value"] ?: return
         host.postMessageWebviewToHost(queryValue.toString())
 
-        val messageObject = if (queryValue.isJsonObject) queryValue.asJsonObject else return
-        if (messageObject["command"]?.asString == "copy" &&
-            messageObject["text"]?.asString != null) {
-          val textToCopy = messageObject["text"].asString
-          CopyPasteManager.getInstance().setContents(StringSelection(textToCopy))
+        if (queryValue.isJsonObject) {
+          handleMessage(queryValue.asJsonObject)
         }
       }
       "setState" -> {
@@ -533,6 +531,40 @@ class WebUIProxy(private val host: WebUIHost, private val browser: JBCefBrowserB
       "DOMContentLoaded" -> onDOMContentLoaded()
       else -> {
         logger.warn("unhandled query from Webview to host: $query")
+      }
+    }
+  }
+
+  private fun handleMessage(messageObject: JsonObject) {
+    when (messageObject["command"].asString) {
+      "copy" -> {
+        val textToCopy = messageObject["text"]?.asString
+        CopyPasteManager.getInstance().setContents(StringSelection(textToCopy))
+      }
+      "auth" -> {
+        handleAuth(messageObject)
+      }
+    }
+  }
+
+  private fun handleAuth(messageObject: JsonObject) {
+    when (messageObject["authKind"].asString) {
+      "signout" -> {
+        CodyAccountManager.getInstance(project).setActiveAccount(null)
+      }
+      "signin" -> {
+        val token = messageObject["value"]?.asString
+        val endpoint = messageObject["endpoint"]?.asString
+
+        if (token == null || endpoint == null) {
+          throw RuntimeException("Invalid auth message: $messageObject")
+        }
+
+        CodyAccountManager.getInstance(project)
+            .addAccount(
+                SourcegraphServerPath.from(endpoint, ""),
+                token = token,
+                id = UUID.randomUUID().toString())
       }
     }
   }

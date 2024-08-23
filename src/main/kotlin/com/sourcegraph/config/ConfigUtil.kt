@@ -14,8 +14,8 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.util.io.readText
 import com.sourcegraph.cody.agent.CodyAgentCodebase
 import com.sourcegraph.cody.agent.protocol_generated.ExtensionConfiguration
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.config.CodyApplicationSettings
-import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.ServerAuthLoader
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
@@ -100,7 +100,7 @@ object ConfigUtil {
 
   @JvmStatic
   fun getServerPath(project: Project): SourcegraphServerPath {
-    val activeAccount = CodyAuthenticationManager.getInstance(project).account
+    val activeAccount = CodyAccountManager.getInstance(project).account
     return activeAccount?.server ?: from(DOTCOM_URL, "")
   }
 

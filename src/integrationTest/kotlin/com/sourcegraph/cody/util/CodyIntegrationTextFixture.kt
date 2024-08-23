@@ -20,7 +20,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolCodeLens
-import com.sourcegraph.cody.config.CodyPersistentAccountsHost
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.edit.LensListener
 import com.sourcegraph.cody.edit.LensesService
@@ -96,11 +96,9 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   // change anything.
   private fun initCredentialsAndAgent() {
     val credentials = TestingCredentials.dotcom
-    CodyPersistentAccountsHost(project)
+    CodyAccountManager.getInstance(project)
         .addAccount(
             SourcegraphServerPath.from(credentials.serverEndpoint, ""),
-            login = "test_user",
-            displayName = "Test User",
             token = credentials.token ?: credentials.redactedToken,
             id = "random-unique-testing-id-1337")
 

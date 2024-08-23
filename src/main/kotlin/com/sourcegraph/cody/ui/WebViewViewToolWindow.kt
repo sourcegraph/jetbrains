@@ -1,5 +1,6 @@
 package com.sourcegraph.cody.ui
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.Service
@@ -12,19 +13,25 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.content.ContentFactory
-import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.Icons
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.WebviewResolveWebviewViewParams
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
+import java.awt.CardLayout
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
-import javax.swing.JComponent
 import javax.swing.JPanel
 
 class WebUIToolWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    WebviewViewService.getInstance(project).provideToolWindow(toolWindow)
+    runInEdt {
+      toolWindow.stripeTitle = defaultToolWindowTitles[toolWindow.id] ?: toolWindow.id
+      WebviewViewService.getInstance(project).provideCodyToolWindowContent(toolWindow)
+    }
+  }
+
+  companion object {
+    const val TOOL_WINDOW_ID: String = "Cody"
   }
 }
 
@@ -57,16 +64,12 @@ class ToolWindowWebviewHost(private val toolWindow: ToolWindow) : WebviewHost {
   override fun adopt(proxy: WebUIProxy) {
     toolWindow.isAvailable = true
     val lockable = true
-    val content =
-        ContentFactory.SERVICE.getInstance().createContent(proxy.component, proxy.title, lockable)
+    val content = ContentFactory.getInstance().createContent(proxy.component, proxy.title, lockable)
     toolWindow.contentManager.addContent(content)
   }
 }
 
-class CodyToolWindowContentWebviewHost(
-    private val owner: CodyToolWindowContent,
-    val placeholder: JComponent
-) : WebviewHost {
+class CodyToolWindowContentWebviewHost(private val allContentPanel: JPanel) : WebviewHost {
   override val id = "cody.chat"
 
   override val viewDelegate =
@@ -77,9 +80,8 @@ class CodyToolWindowContentWebviewHost(
       }
 
   override fun adopt(proxy: WebUIProxy) {
-    owner.allContentPanel.remove(placeholder)
-    owner.allContentPanel.add(
-        proxy.component, CodyToolWindowContent.MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
+    allContentPanel.removeAll()
+    allContentPanel.add(proxy.component)
   }
 }
 
@@ -102,7 +104,7 @@ class WebviewViewService(val project: Project) {
   )
 
   fun registerProvider(id: String, retainContextWhenHidden: Boolean) {
-    var provider = Provider(id, ProviderOptions(retainContextWhenHidden))
+    val provider = Provider(id, ProviderOptions(retainContextWhenHidden))
     providers[id] = provider
     val viewHost = views[id] ?: return
     runInEdt { provideView(viewHost, provider) }
@@ -116,21 +118,23 @@ class WebviewViewService(val project: Project) {
     runInEdt { provideView(viewHost, provider) }
   }
 
-  fun provideToolWindow(toolWindow: ToolWindow) {
-    toolWindow.stripeTitle = defaultToolWindowTitles[toolWindow.id] ?: toolWindow.id
-    provideHost(ToolWindowWebviewHost(toolWindow))
-  }
-
-  fun provideCodyToolWindowContent(codyContent: CodyToolWindowContent) {
+  fun provideCodyToolWindowContent(toolWindow: ToolWindow) {
     // Because the webview may be created lazily, populate a placeholder control.
     val placeholder = JPanel(GridBagLayout())
     val spinnerLabel =
         JBLabel("Starting Cody...", Icons.StatusBar.CompletionInProgress, JBLabel.CENTER)
     placeholder.add(spinnerLabel, GridBagConstraints())
 
-    codyContent.allContentPanel.add(
-        placeholder, CodyToolWindowContent.MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
-    provideHost(CodyToolWindowContentWebviewHost(codyContent, placeholder))
+    val allContentPanel = JPanel(CardLayout())
+    allContentPanel.add(placeholder)
+    provideHost(CodyToolWindowContentWebviewHost(allContentPanel))
+
+    val content =
+        ApplicationManager.getApplication()
+            .getService(ContentFactory::class.java)
+            .createContent(allContentPanel, "", false)
+    content.preferredFocusableComponent = null
+    toolWindow.contentManager.addContent(content)
   }
 
   private fun provideView(viewHost: WebviewHost, provider: Provider) {

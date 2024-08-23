@@ -4,6 +4,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.registerServiceInstance
 import com.sourcegraph.cody.agent.protocol_generated.Model
 import com.sourcegraph.cody.agent.protocol_generated.ModelContextWindow
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.config.migration.ChatTagsLlmMigration
 import com.sourcegraph.cody.config.migration.DeprecatedChatLlmMigration
 import com.sourcegraph.cody.config.migration.SettingsMigration
@@ -175,8 +176,7 @@ class SettingsMigrationTest : BasePlatformTestCase() {
                   ChatState("chat4"))
         }
     val project = myFixture.project
-    project.registerServiceInstance(
-        CodyAuthenticationManager::class.java, CodyAuthenticationManager(project))
+    project.registerServiceInstance(CodyAccountManager::class.java, CodyAccountManager(project))
     project.registerServiceInstance(HistoryService::class.java, HistoryService(project))
     HistoryService.getInstance(project)
         .loadState(HistoryState().also { it.copyFrom(originalHistory) })

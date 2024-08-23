@@ -6,7 +6,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.history.state.AccountData
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.HistoryState
@@ -19,7 +19,7 @@ class HistoryService(private val project: Project) :
 
   @Synchronized
   fun getDefaultLlm(): LLMState? {
-    val account = CodyAuthenticationManager.getInstance(project).account
+    val account = CodyAccountManager.getInstance(project).account
     val llm = account?.let { findEntry(it.id) }?.defaultLlm
     if (llm == null) return null
     return LLMState().also { it.copyFrom(llm) }
@@ -46,11 +46,11 @@ class HistoryService(private val project: Project) :
 
   @Synchronized
   fun getActiveAccountHistory(): AccountData? =
-      CodyAuthenticationManager.getInstance(project).account?.let { findEntry(it.id) }
+      CodyAccountManager.getInstance(project).account?.let { findEntry(it.id) }
 
   private fun getOrCreateActiveAccountEntry(): AccountData {
     val activeAccount =
-        CodyAuthenticationManager.getInstance(project).account
+        CodyAccountManager.getInstance(project).account
             ?: throw IllegalStateException("No active account")
 
     val existingEntry = findEntry(activeAccount.id)

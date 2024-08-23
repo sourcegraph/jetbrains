@@ -13,8 +13,8 @@ import com.sourcegraph.cody.agent.protocol_extensions.isCodyProOnly
 import com.sourcegraph.cody.agent.protocol_extensions.isDeprecated
 import com.sourcegraph.cody.agent.protocol_generated.Chat_ModelsParams
 import com.sourcegraph.cody.agent.protocol_generated.Model
-import com.sourcegraph.cody.config.AccountTier
-import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.auth.AccountTier
+import com.sourcegraph.cody.auth.CodyAccountManager
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.LLMState
@@ -84,7 +84,7 @@ class LlmDropdown(
         } ?: models.firstOrNull()
 
     val isEnterpriseAccount =
-        CodyAuthenticationManager.getInstance(project).account?.isEnterpriseAccount() ?: false
+        CodyAccountManager.getInstance(project).account?.isEnterpriseAccount() ?: false
 
     // If the dropdown is already disabled, don't change it. It can happen
     // in the case of the legacy commands (updateAfterFirstMessage happens before this call).
@@ -118,7 +118,7 @@ class LlmDropdown(
   }
 
   fun isCurrentUserFree(): Boolean =
-      CodyAuthenticationManager.getInstance(project)
+      CodyAccountManager.getInstance(project)
           .getActiveAccountTier()
           .getNow(AccountTier.DOTCOM_FREE) == AccountTier.DOTCOM_FREE
 }

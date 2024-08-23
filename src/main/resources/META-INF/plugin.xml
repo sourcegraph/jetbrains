@@ -53,7 +53,7 @@
         />
 
         <applicationService
-                serviceImplementation="com.sourcegraph.cody.config.CodyPersistentAccounts"/>
+                serviceImplementation="com.sourcegraph.cody.auth.CodyPersistentAccounts"/>
 
         <actionPromoter implementation="com.sourcegraph.cody.edit.CodyActionPromoter"/>
 
@@ -68,14 +68,6 @@
                         serviceImplementation="com.sourcegraph.find.FindService"/>
         <postStartupActivity
                 implementation="com.sourcegraph.cody.initialization.PostStartupActivity"/>
-
-        <!-- Cody -->
-        <toolWindow
-                id="Cody"
-                icon="/icons/codyLogoMonochromatic.svg"
-                anchor="right"
-                secondary="false"
-                factoryClass="com.sourcegraph.cody.CodyToolWindowFactory"/>
 
         <errorHandler
                 implementation="com.sourcegraph.cody.error.CodyErrorSubmitter"/>
@@ -104,14 +96,12 @@
              (or a subtype.) For now, VSCode view "when" conditions need to be manually ported to
              ToolWindow.isAvailable updates.
          -->
-        <!-- TODO: Uncomment this when login and onboarding are ported from CodyToolWindowContent to Web UI.
         <toolWindow
-                id="cody.chat"
+                id="Cody"
                 icon="/icons/codyLogoMonochromatic.svg"
                 anchor="right"
                 secondary="false"
-                factoryClass="com.sourcegraph.cody.ui.WebUIToolWindowFactory" />
-        -->
+                factoryClass="com.sourcegraph.cody.ui.WebUIToolWindowFactory"/>
     </extensions>
 
     <applicationListeners>
