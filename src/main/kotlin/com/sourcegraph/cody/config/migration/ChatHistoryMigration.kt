@@ -32,9 +32,9 @@ object ChatHistoryMigration {
     fun toChatInput(chats: Map<CodyAccount, List<ChatState>>): Map<String, Map<String, SerializedChatTranscript>> {
         return chats.map{ (account, chats) ->
             val serializedChats = chats.mapNotNull(::toSerializedChatTranscript) ?: listOf()
-            val byDate = serializedChats.associateBy{ it.lastInteractionTimestamp }
+            val byId = serializedChats.associateBy{ it.id }
 
-            "${account.server.url}-${account.name}" to byDate
+            "${account.server.url}-${account.name}" to byId
         }.toMap()
     }
 
