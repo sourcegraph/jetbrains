@@ -49,6 +49,8 @@ class PostStartupActivity : StartupActivity.DumbAware {
 
     CodyStatusService.resetApplication(project)
 
+    CodyNewUINotification.showIfApplicable(project)
+
     val multicaster = EditorFactory.getInstance().eventMulticaster as EditorEventMulticasterEx
     val disposable = CodyAgentService.getInstance(project)
     multicaster.addFocusChangeListener(CodyFocusChangeListener(project), disposable)
