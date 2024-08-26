@@ -78,9 +78,15 @@ class CodyToolWindowContentWebviewHost(
       }
 
   override fun adopt(proxy: WebUIProxy) {
+    val isVisible =
+        owner.allContentPanel.getComponent(CodyToolWindowContent.MAIN_PANEL_INDEX).isVisible
+
     owner.allContentPanel.remove(placeholder)
     owner.allContentPanel.add(proxy.component, MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
-    owner.allContentLayout.show(owner.allContentPanel, MAIN_PANEL)
+
+    if (isVisible) {
+      owner.allContentLayout.show(owner.allContentPanel, MAIN_PANEL)
+    }
   }
 }
 
