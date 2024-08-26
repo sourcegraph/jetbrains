@@ -151,8 +151,7 @@ interface _LegacyAgentServer {
 
   @JsonRequest("chat/export") fun chatExport(): CompletableFuture<List<ChatHistoryResponse>>
 
-  @JsonRequest("chat/import")
-  fun chat_import(params: Chat_ImportParams): CompletableFuture<Null?>
+  @JsonRequest("chat/import") fun chat_import(params: Chat_ImportParams): CompletableFuture<Null?>
 
   @JsonRequest("ignore/test")
   fun ignoreTest(params: IgnoreTestParams): CompletableFuture<IgnoreTestResponse>

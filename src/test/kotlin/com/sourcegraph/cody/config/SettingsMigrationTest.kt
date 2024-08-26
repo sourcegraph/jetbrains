@@ -366,113 +366,113 @@ class SettingsMigrationTest : BasePlatformTestCase() {
     }
   }
 
+  fun `test toChatInput`() {
+    val account1 =
+        CodyAccount(name = "account1", server = SourcegraphServerPath("https://sourcegraph.com"))
+    val account2 =
+        CodyAccount(name = "account2", server = SourcegraphServerPath("https://sourcegraph.com"))
 
-    fun `test toChatInput`() {
-        val account1 = CodyAccount(name = "account1",  server= SourcegraphServerPath("https://sourcegraph.com"))
-        val account2 = CodyAccount(name = "account2", server= SourcegraphServerPath("https://sourcegraph.com"))
-
-        val chat1 = ChatState("chat1").apply {
-            updatedAt = LocalDateTime.now().toString()
-            messages = mutableListOf(
-                MessageState().apply {
+    val chat1 =
+        ChatState("chat1").apply {
+          updatedAt = LocalDateTime.now().toString()
+          messages =
+              mutableListOf(
+                  MessageState().apply {
                     text = "Hello"
                     speaker = MessageState.SpeakerState.HUMAN
-                },
-                MessageState().apply {
+                  },
+                  MessageState().apply {
                     text = "Hi there!"
                     speaker = MessageState.SpeakerState.ASSISTANT
-                }
-            )
-            llm = LLMState.fromChatModel(
-                Model(
-                    id = "model1",
-                    usage = listOf("chat"),
-                    contextWindow = ModelContextWindow(0, 0, null),
-                    clientSideConfig = null,
-                    provider = "Anthropic",
-                    title = "Claude",
-                    tags = emptyList(),
-                    modelRef = null
-                )
-            )
+                  })
+          llm =
+              LLMState.fromChatModel(
+                  Model(
+                      id = "model1",
+                      usage = listOf("chat"),
+                      contextWindow = ModelContextWindow(0, 0, null),
+                      clientSideConfig = null,
+                      provider = "Anthropic",
+                      title = "Claude",
+                      tags = emptyList(),
+                      modelRef = null))
         }
 
-        val chat2 = ChatState("chat2").apply {
-            updatedAt = LocalDateTime.now().minusDays(1).toString()
-            messages = mutableListOf(
-                MessageState().apply {
+    val chat2 =
+        ChatState("chat2").apply {
+          updatedAt = LocalDateTime.now().minusDays(1).toString()
+          messages =
+              mutableListOf(
+                  MessageState().apply {
                     text = "What's up?"
                     speaker = MessageState.SpeakerState.HUMAN
-                },
-                MessageState().apply {
+                  },
+                  MessageState().apply {
                     text = "Not much."
                     speaker = MessageState.SpeakerState.ASSISTANT
-                }
-            )
-            llm = LLMState.fromChatModel(
-                Model(
-                    id = "model2",
-                    usage = listOf("chat"),
-                    contextWindow = ModelContextWindow(0, 0, null),
-                    clientSideConfig = null,
-                    provider = "Anthropic",
-                    title = "Claude",
-                    tags = emptyList(),
-                    modelRef = null
-                )
-            )
+                  })
+          llm =
+              LLMState.fromChatModel(
+                  Model(
+                      id = "model2",
+                      usage = listOf("chat"),
+                      contextWindow = ModelContextWindow(0, 0, null),
+                      clientSideConfig = null,
+                      provider = "Anthropic",
+                      title = "Claude",
+                      tags = emptyList(),
+                      modelRef = null))
         }
 
-        val chats = mapOf(
-            account1 to listOf(chat1),
-            account2 to listOf(chat2)
-        )
+    val chats = mapOf(account1 to listOf(chat1), account2 to listOf(chat2))
 
-        val result = ChatHistoryMigration.toChatInput(chats)
+    val result = ChatHistoryMigration.toChatInput(chats)
 
-        val expectedResult = mapOf(
-            "https://sourcegraph.com-account1" to mapOf(
-                chat1.updatedAt to SerializedChatTranscript(
-                    id = chat1.internalId!!,
-                    lastInteractionTimestamp = chat1.updatedAt!!,
-                    interactions = listOf(
-                        SerializedChatInteraction(
-                            humanMessage = SerializedChatMessage(
-                                text = "Hello",
-                                model = "model1",
-                                speaker = SerializedChatMessage.SpeakerEnum.Human
-                            ),
-                            assistantMessage = SerializedChatMessage(
-                                text = "Hi there!",
-                                model = "model1",
-                                speaker = SerializedChatMessage.SpeakerEnum.Assistant
-                            )
-                        )
-                    )
-                )
-            ),
-            "https://sourcegraph.com-account2" to mapOf(
-                chat2.updatedAt to SerializedChatTranscript(
-                    id = chat2.internalId!!,
-                    lastInteractionTimestamp = chat2.updatedAt!!,
-                    interactions = listOf(
-                        SerializedChatInteraction(
-                            humanMessage = SerializedChatMessage(
-                                text = "What's up?",
-                                model = "model2",
-                                speaker = SerializedChatMessage.SpeakerEnum.Human
-                            ),
-                            assistantMessage = SerializedChatMessage(
-                                text = "Not much.",
-                                model = "model2",
-                                speaker = SerializedChatMessage.SpeakerEnum.Assistant
-                            )
-                        )
-                    )
-                )
-            )
-        )
+    val expectedResult =
+        mapOf(
+            "https://sourcegraph.com-account1" to
+                mapOf(
+                    chat1.updatedAt to
+                        SerializedChatTranscript(
+                            id = chat1.internalId!!,
+                            lastInteractionTimestamp = chat1.updatedAt!!,
+                            interactions =
+                                listOf(
+                                    SerializedChatInteraction(
+                                        humanMessage =
+                                            SerializedChatMessage(
+                                                text = "Hello",
+                                                model = "model1",
+                                                speaker = SerializedChatMessage.SpeakerEnum.Human),
+                                        assistantMessage =
+                                            SerializedChatMessage(
+                                                text = "Hi there!",
+                                                model = "model1",
+                                                speaker =
+                                                    SerializedChatMessage.SpeakerEnum
+                                                        .Assistant))))),
+            "https://sourcegraph.com-account2" to
+                mapOf(
+                    chat2.updatedAt to
+                        SerializedChatTranscript(
+                            id = chat2.internalId!!,
+                            lastInteractionTimestamp = chat2.updatedAt!!,
+                            interactions =
+                                listOf(
+                                    SerializedChatInteraction(
+                                        humanMessage =
+                                            SerializedChatMessage(
+                                                text = "What's up?",
+                                                model = "model2",
+                                                speaker = SerializedChatMessage.SpeakerEnum.Human),
+                                        assistantMessage =
+                                            SerializedChatMessage(
+                                                text = "Not much.",
+                                                model = "model2",
+                                                speaker =
+                                                    SerializedChatMessage.SpeakerEnum
+                                                        .Assistant))))))
 
-        assertEquals(expectedResult, result)
-    }
+    assertEquals(expectedResult, result)
+  }
 }
