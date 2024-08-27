@@ -2,7 +2,11 @@ package com.sourcegraph.cody.config
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.registerServiceInstance
-import com.sourcegraph.cody.agent.protocol_generated.*
+import com.sourcegraph.cody.agent.protocol_generated.Model
+import com.sourcegraph.cody.agent.protocol_generated.ModelContextWindow
+import com.sourcegraph.cody.agent.protocol_generated.SerializedChatInteraction
+import com.sourcegraph.cody.agent.protocol_generated.SerializedChatMessage
+import com.sourcegraph.cody.agent.protocol_generated.SerializedChatTranscript
 import com.sourcegraph.cody.config.migration.ChatHistoryMigration
 import com.sourcegraph.cody.config.migration.ChatTagsLlmMigration
 import com.sourcegraph.cody.config.migration.DeprecatedChatLlmMigration
@@ -379,11 +383,11 @@ class SettingsMigrationTest : BasePlatformTestCase() {
               mutableListOf(
                   MessageState().apply {
                     text = "Hello"
-                    speaker = MessageState.SpeakerState.HUMAN
+                    speaker = SpeakerState.HUMAN
                   },
                   MessageState().apply {
                     text = "Hi there!"
-                    speaker = MessageState.SpeakerState.ASSISTANT
+                    speaker = SpeakerState.ASSISTANT
                   })
           llm =
               LLMState.fromChatModel(
@@ -405,11 +409,11 @@ class SettingsMigrationTest : BasePlatformTestCase() {
               mutableListOf(
                   MessageState().apply {
                     text = "What's up?"
-                    speaker = MessageState.SpeakerState.HUMAN
+                    speaker = SpeakerState.HUMAN
                   },
                   MessageState().apply {
                     text = "Not much."
-                    speaker = MessageState.SpeakerState.ASSISTANT
+                    speaker = SpeakerState.ASSISTANT
                   })
           llm =
               LLMState.fromChatModel(
@@ -432,7 +436,7 @@ class SettingsMigrationTest : BasePlatformTestCase() {
         mapOf(
             "https://sourcegraph.com-account1" to
                 mapOf(
-                    chat1.updatedAt to
+                    chat1.internalId to
                         SerializedChatTranscript(
                             id = chat1.internalId!!,
                             lastInteractionTimestamp = chat1.updatedAt!!,
@@ -453,7 +457,7 @@ class SettingsMigrationTest : BasePlatformTestCase() {
                                                         .Assistant))))),
             "https://sourcegraph.com-account2" to
                 mapOf(
-                    chat2.updatedAt to
+                    chat2.internalId to
                         SerializedChatTranscript(
                             id = chat2.internalId!!,
                             lastInteractionTimestamp = chat2.updatedAt!!,

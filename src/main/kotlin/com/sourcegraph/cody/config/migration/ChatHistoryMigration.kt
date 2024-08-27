@@ -32,7 +32,7 @@ object ChatHistoryMigration {
   ): Map<String, Map<String, SerializedChatTranscript>> {
     return chats
         .map { (account, chats) ->
-          val serializedChats = chats.mapNotNull(::toSerializedChatTranscript) ?: listOf()
+          val serializedChats = chats.mapNotNull(::toSerializedChatTranscript)
           val byId = serializedChats.associateBy { it.id }
 
           "${account.server.url}-${account.name}" to byId
