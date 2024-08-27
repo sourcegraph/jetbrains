@@ -104,6 +104,14 @@ class CodyConfigurable(val project: Project) : BoundConfigurable(ConfigUtil.CODY
                   settingsModel::blacklistedLanguageIds.toMutableProperty())
         }
       }
+
+      group("Commit Message Template") {
+        row {
+          textField()
+              .bindText(settingsModel::commitMessageTemplate.toMutableProperty())
+              .horizontalAlign(HorizontalAlign.FILL)
+        }
+      }
     }
     return dialogPanel
   }
@@ -123,6 +131,7 @@ class CodyConfigurable(val project: Project) : BoundConfigurable(ConfigUtil.CODY
     settingsModel.blacklistedLanguageIds = codyApplicationSettings.blacklistedLanguageIds
     settingsModel.shouldAcceptNonTrustedCertificatesAutomatically =
         codyApplicationSettings.shouldAcceptNonTrustedCertificatesAutomatically
+    settingsModel.commitMessageTemplate = codyApplicationSettings.commitMessageTemplate
     dialogPanel.reset()
   }
 
@@ -156,6 +165,7 @@ class CodyConfigurable(val project: Project) : BoundConfigurable(ConfigUtil.CODY
     codyApplicationSettings.blacklistedLanguageIds = settingsModel.blacklistedLanguageIds
     codyApplicationSettings.shouldAcceptNonTrustedCertificatesAutomatically =
         settingsModel.shouldAcceptNonTrustedCertificatesAutomatically
+    codyApplicationSettings.commitMessageTemplate = settingsModel.commitMessageTemplate
 
     publisher.afterAction(context)
   }

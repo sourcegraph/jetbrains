@@ -405,6 +405,14 @@
                     <keyboard-shortcut replace-all="true" first-keystroke="ctrl shift L" keymap="Mac OS X 10.5+"/>
                     <override-text place="GoToAction" text="Cody: Open Log"/>
                 </action>
+                <action id="cody.generateCommitMessage"
+                        class="com.sourcegraph.cody.actions.GenerateCommitMessageAction"
+                        text="Generate Commit Message"
+                        description="Generates a commit message based on code changes">
+                    <keyboard-shortcut replace-all="true" first-keystroke="ctrl alt M" keymap="$default"/>
+                    <keyboard-shortcut replace-all="true" first-keystroke="ctrl alt M" keymap="Mac OS X 10.5+"/>
+                    <override-text place="GoToAction" text="Cody: Generate Commit Message"/>
+                </action>
             </group>
         </group>
 
