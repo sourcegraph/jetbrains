@@ -23,6 +23,7 @@ data class CodyApplicationSettings(
     var isOnboardingGuidanceDismissed: Boolean = false,
     var shouldAcceptNonTrustedCertificatesAutomatically: Boolean = false,
     var shouldCheckForUpdates: Boolean = true,
+    var commitMessageTemplate: String? = null, // P6bf9
 ) : PersistentStateComponent<CodyApplicationSettings> {
   override fun getState(): CodyApplicationSettings = this
 
@@ -44,6 +45,15 @@ data class CodyApplicationSettings(
     this.shouldAcceptNonTrustedCertificatesAutomatically =
         state.shouldAcceptNonTrustedCertificatesAutomatically
     this.shouldCheckForUpdates = state.shouldCheckForUpdates
+    this.commitMessageTemplate = state.commitMessageTemplate // Pb717
+  }
+
+  fun getCommitMessageTemplate(): String? {
+    return commitMessageTemplate
+  }
+
+  fun setCommitMessageTemplate(template: String) {
+    this.commitMessageTemplate = template
   }
 
   companion object {
