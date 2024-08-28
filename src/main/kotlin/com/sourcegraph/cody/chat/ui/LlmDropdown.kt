@@ -1,6 +1,7 @@
 package com.sourcegraph.cody.chat.ui
 
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.MutableCollectionComboBoxModel
@@ -29,7 +30,7 @@ class LlmDropdown(
     private val chatModelProviderFromState: ChatModelsResponse.ChatModelProvider?,
     private val model: String? = null
 ) : ComboBox<ChatModelsResponse.ChatModelProvider>(MutableCollectionComboBoxModel()) {
-  private var hasServerSentModels = false
+  private var hasServerSentModels = project.service<CurrentConfigFeatures>().get().serverSentModels
 
   init {
     renderer = LlmComboBoxRenderer(this)
