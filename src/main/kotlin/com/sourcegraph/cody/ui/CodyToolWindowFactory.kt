@@ -299,8 +299,8 @@ class WebUIHostImpl(
     val id = decodedJson?.get("id")?.asString
     val arg = decodedJson?.get("arg")?.asString
 
-    if ((command == "auth" && decodedJson.get("authKind")?.asString == "signout" ||
-        command == "cody.auth.signout")) {
+    if ((command == "auth" && decodedJson.get("authKind")?.asString == "signout") ||
+        (isCommand && id == "cody.auth.signout")) {
       CodyAuthenticationManager.getInstance(project).setActiveAccount(null)
     } else if (isCommand && id == "cody.auth.switchAccount") {
       runInEdt {
