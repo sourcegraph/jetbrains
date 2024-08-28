@@ -409,12 +409,23 @@ tasks {
           "cody.autocomplete.enableFormatting" to
               (project.property("cody.autocomplete.enableFormatting") ?: "true"))
 
-  fun getIdeaInstallDir(ideaVersion: String, ideaType: String): File? {
+  fun getPlatformName(ideaType: String) =
+      when (ideaType) {
+        "PC" -> "pycharm"
+        "IC",
+        "IU" -> "idea"
+        else -> throw IllegalArgumentException("Unsupported ideaType: $ideaType")
+      }
+
+  fun getIDEInstallDir(ideaVersion: String, platformType: String): File? {
     val gradleHome = project.gradle.gradleUserHomeDir
+    val platformName = getPlatformName(platformType)
     val cacheDir =
-        File(gradleHome, "caches/modules-2/files-2.1/com.jetbrains.intellij.idea/idea$ideaType")
+        File(
+            gradleHome,
+            "caches/modules-2/files-2.1/com.jetbrains.intellij.$platformName/$platformName$platformType")
     val ideaDir = File(cacheDir, ideaVersion)
-    return ideaDir.walk().find { it.name == "idea$ideaType-$ideaVersion" }
+    return ideaDir.walk().find { it.name == "$platformName$platformType-$ideaVersion" }
   }
 
   register("copyProtocol") { copyProtocol() }
@@ -502,7 +513,7 @@ tasks {
     val platformRuntimeType = project.findProperty("platformRuntimeType")
     if (platformRuntimeVersion != null || platformRuntimeType != null) {
       val ideaInstallDir =
-          getIdeaInstallDir(
+          getIDEInstallDir(
               platformRuntimeVersion.or(project.property("platformVersion")).toString(),
               platformRuntimeType.or(project.property("platformType")).toString())
               ?: throw GradleException(
