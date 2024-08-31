@@ -1,9 +1,5 @@
 package com.sourcegraph.cody.config.migration
 
-import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol_generated.Chat_ImportParams
@@ -15,7 +11,6 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.history.HistoryService
 import com.sourcegraph.cody.history.state.ChatState
 import com.sourcegraph.cody.history.state.MessageState
-
 
 // Copies chat history from locally stored jetbrains state to the cody agent
 // so historical chats can be viewed in the cody webview
@@ -46,31 +41,12 @@ object ChatHistoryMigration {
   }
 
   private fun toSerializedChatTranscript(chat: ChatState): SerializedChatTranscript? {
-      val lastInteractionTimestamp = convertDateFormat(chat.updatedAt)
-
-      if (lastInteractionTimestamp == null) {
-          return null
-      }
     return SerializedChatTranscript(
-        id = lastInteractionTimestamp,
-        lastInteractionTimestamp = lastInteractionTimestamp,
+        id = chat.updatedAt ?: return null,
+        lastInteractionTimestamp = chat.updatedAt ?: return null,
         interactions = toSerializedInteractions(chat.messages, chat.llm?.model),
     )
   }
-}
-
-// Converts to UTC string
-fun convertDateFormat(inputDate: String?): String? {
-    if (inputDate == null) {
-        return null
-    }
-    val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
-    val outputFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.ENGLISH).withZone(ZoneOffset.UTC)
-
-    val dateTime = LocalDateTime.parse(inputDate, inputFormatter)
-    val instant = dateTime.toInstant(ZoneOffset.UTC)
-
-    return outputFormatter.format(instant)
 }
 
 private fun toSerializedInteractions(
