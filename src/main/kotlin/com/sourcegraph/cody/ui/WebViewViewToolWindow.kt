@@ -107,7 +107,7 @@ class WebviewViewService(val project: Project) {
   fun registerProvider(id: String, retainContextWhenHidden: Boolean) {
     val viewHost: WebviewHost
     val provider = Provider(id, ProviderOptions(retainContextWhenHidden))
-    synchronized (providers) {
+    synchronized(providers) {
       providers[id] = provider
       viewHost = views[id] ?: return
     }
