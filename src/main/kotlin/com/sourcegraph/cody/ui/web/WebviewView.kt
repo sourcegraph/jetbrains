@@ -54,11 +54,11 @@ private class CodyToolWindowContentWebviewHost(
   }
 
   override fun reset() {
-    // TODO: Flip the tool window back to showing the placeholder, when we can remove the browser component without
-    // causing an exception that the component is already disposed as it is resized during remove.
+    // TODO: Flip the tool window back to showing the placeholder, when we can remove the browser
+    // component without causing an exception that the component is already disposed as it is
+    // resized during remove.
     this.proxy = null
   }
-
 }
 
 // Responsibilities:
@@ -82,8 +82,8 @@ internal class WebviewViewManager(private val project: Project) {
     val viewsToReset = mutableListOf<WebviewHost>()
     synchronized(providers) {
       viewsToReset.addAll(views.values)
-      // We do not clear views here. The Tool Windows, etc. are still available, so we will re-adopt new webviews into
-      // them after Agent restarts and sends new providers.
+      // We do not clear views here. The Tool Windows, etc. are still available, so we will re-adopt
+      // new webviews into them after Agent restarts and sends new providers.
       providers.clear()
     }
     viewsToReset.forEach { it.reset() }
