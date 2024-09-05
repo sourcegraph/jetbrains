@@ -1,10 +1,8 @@
 package com.sourcegraph.cody.ui.web
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBLabel
-import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.CodyToolWindowContent.Companion.MAIN_PANEL
 import com.sourcegraph.cody.Icons
@@ -12,7 +10,6 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.WebviewResolveWebviewViewParams
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
-import java.util.concurrent.CompletableFuture
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -26,7 +23,7 @@ private interface WebviewHost {
   fun adopt(proxy: WebUIProxy)
 
   // Resets the webview host to its pre-adopted state.
-  @RequiresEdt fun reset()
+  fun reset()
 }
 
 private class CodyToolWindowContentWebviewHost(
@@ -48,24 +45,20 @@ private class CodyToolWindowContentWebviewHost(
     runInEdt {
       assert(this.proxy == null)
       this.proxy = proxy
-      swapMainPanel(remove = placeholder, insert = proxy.component)
+      owner.allContentPanel.remove(placeholder)
+      proxy.component?.let {
+        owner.allContentPanel.add(it, MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
+      }
+      owner.refreshPanelsVisibility()
     }
   }
 
-  @RequiresEdt
   override fun reset() {
-    assert(ApplicationManager.getApplication().isDispatchThread)
-    swapMainPanel(remove = proxy?.component, insert = placeholder)
+    // TODO: Flip the tool window back to showing the placeholder, when we can remove the browser component without
+    // causing an exception that the component is already disposed as it is resized during remove.
     this.proxy = null
   }
 
-  private fun swapMainPanel(remove: JComponent?, insert: JComponent?) {
-    remove?.let { owner.allContentPanel.remove(it) }
-    insert?.let {
-      owner.allContentPanel.add(it, MAIN_PANEL, CodyToolWindowContent.MAIN_PANEL_INDEX)
-    }
-    owner.refreshPanelsVisibility()
-  }
 }
 
 // Responsibilities:
@@ -85,19 +78,15 @@ internal class WebviewViewManager(private val project: Project) {
       val retainContextWhenHidden: Boolean,
   )
 
-  fun reset(): CompletableFuture<Void> {
+  fun reset() {
     val viewsToReset = mutableListOf<WebviewHost>()
     synchronized(providers) {
       viewsToReset.addAll(views.values)
-      views.clear()
+      // We do not clear views here. The Tool Windows, etc. are still available, so we will re-adopt new webviews into
+      // them after Agent restarts and sends new providers.
       providers.clear()
     }
-    val result = CompletableFuture<Void>()
-    runInEdt {
-      viewsToReset.forEach { it.reset() }
-      result.complete(null)
-    }
-    return result
+    viewsToReset.forEach { it.reset() }
   }
 
   fun registerProvider(id: String, retainContextWhenHidden: Boolean) {

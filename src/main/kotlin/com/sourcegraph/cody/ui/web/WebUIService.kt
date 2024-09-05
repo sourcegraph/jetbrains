@@ -41,7 +41,8 @@ class WebUIService(private val project: Project) {
 
   fun reset(): CompletableFuture<Void> {
     proxies.clear()
-    return CompletableFuture.allOf(views.reset(), panels.reset())
+    views.reset()
+    return panels.reset()
   }
 
   private fun <T> withCreationGate(name: String, action: (gate: WebUIProxyCreationGate) -> T): T {
