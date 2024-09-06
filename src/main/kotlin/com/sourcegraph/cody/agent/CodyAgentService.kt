@@ -123,8 +123,8 @@ class CodyAgentService(private val project: Project) : Disposable {
   fun stopAgent(project: Project?): CompletableFuture<Void>? {
     try {
       val shutdownFuture = codyAgent.getNow(null)?.shutdown()
-      return (shutdownFuture ?: CompletableFuture.completedFuture(null)).thenRun {
-        project?.let { WebUIService.getInstance(it).reset().get() }
+      return (shutdownFuture ?: CompletableFuture.completedFuture(null)).thenCompose {
+        project?.let { WebUIService.getInstance(it).reset() }
       }
     } catch (e: Exception) {
       logger.warn("Failed to stop Cody agent gracefully", e)
