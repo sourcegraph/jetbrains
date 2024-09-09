@@ -23,6 +23,7 @@ import com.sourcegraph.cody.agent.protocol_generated.Diagnostics_PublishParams
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolDiagnostic
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolLocation
 import com.sourcegraph.cody.agent.protocol_generated.Range
+import com.sourcegraph.utils.ThreadingUtil
 import java.util.concurrent.CompletableFuture
 
 class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
@@ -46,34 +47,37 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
         DaemonCodeAnalyzerImpl.getHighlights(editor.document, HighlightSeverity.ERROR, file.project)
 
     val protocolDiagnostics =
-        myHighlights
-            // TODO: We need to check how Enum comparison works to check if we can do things like >=
-            // HighlightSeverity.INFO
-            .asSequence()
-            .filter { it.severity == HighlightSeverity.ERROR }
-            .filter { it.startOffset <= document.textLength }
-            .filter { it.endOffset <= document.textLength }
-            .filter { it.startOffset <= it.endOffset }
-            .mapNotNull {
-              try {
-                ProtocolDiagnostic(
-                    message = it.description,
-                    severity =
-                        "error", // TODO: Wait for CODY-2882. This isn't currently used by the
-                    // agent,
-                    // so we just keep our lives simple.
-                    location =
-                        // TODO: Rik Nauta -- Got incorrect range; see QA report Aug 6 2024.
-                        ProtocolLocation(
-                            uri = uri, range = document.codyRange(it.startOffset, it.endOffset)),
-                    code = it.problemGroup?.problemName)
-              } catch (x: Exception) {
-                // Don't allow range errors to throw user-visible exceptions (QA found this).
-                logger.warn("Failed to convert highlight to protocol diagnostic", x)
-                null
+        ThreadingUtil.runInEdtAndGet {
+          myHighlights
+              // TODO: We need to check how Enum comparison works to check if we can do things like
+              // >=
+              // HighlightSeverity.INFO
+              .asSequence()
+              .filter { it.severity == HighlightSeverity.ERROR }
+              .filter { it.startOffset <= document.textLength }
+              .filter { it.endOffset <= document.textLength }
+              .filter { it.startOffset <= it.endOffset }
+              .mapNotNull {
+                try {
+                  ProtocolDiagnostic(
+                      message = it.description,
+                      severity =
+                          "error", // TODO: Wait for CODY-2882. This isn't currently used by the
+                      // agent,
+                      // so we just keep our lives simple.
+                      location =
+                          // TODO: Rik Nauta -- Got incorrect range; see QA report Aug 6 2024.
+                          ProtocolLocation(
+                              uri = uri, range = document.codyRange(it.startOffset, it.endOffset)),
+                      code = it.problemGroup?.problemName)
+                } catch (x: Exception) {
+                  // Don't allow range errors to throw user-visible exceptions (QA found this).
+                  logger.warn("Failed to convert highlight to protocol diagnostic", x)
+                  null
+                }
               }
-            }
-            .toList()
+              .toList()
+        }
 
     if (protocolDiagnostics.isEmpty()) {
       return
@@ -84,17 +88,23 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
       try {
         agent.server.diagnostics_publish(
             Diagnostics_PublishParams(diagnostics = protocolDiagnostics))
+
         for (highlight in myHighlights) {
           if (progress.isCanceled) {
             break
           }
-          if (highlight.startOffset > document.textLength ||
-              highlight.endOffset > document.textLength ||
-              highlight.startOffset > highlight.endOffset) {
-            break
-          }
 
-          val range = document.codyRange(highlight.startOffset, highlight.endOffset)
+          val range =
+              ThreadingUtil.runInEdtAndGet {
+                if (highlight.startOffset > document.textLength ||
+                    highlight.endOffset > document.textLength ||
+                    highlight.startOffset > highlight.endOffset) {
+                  return@runInEdtAndGet null
+                }
+
+                return@runInEdtAndGet document.codyRange(highlight.startOffset, highlight.endOffset)
+              } ?: break
+
           if (myRangeActions.containsKey(range)) {
             continue
           }
