@@ -76,7 +76,11 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
         myHighlights
             // TODO: We need to check how Enum comparison works to check if we can do things like >=
             // HighlightSeverity.INFO
+            .asSequence()
             .filter { it.severity == HighlightSeverity.ERROR }
+            .filter { it.startOffset <= document.textLength }
+            .filter { it.endOffset <= document.textLength }
+            .filter { it.startOffset <= it.endOffset }
             .mapNotNull {
               try {
                 ProtocolDiagnostic(
@@ -97,6 +101,12 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
                 null
               }
             }
+            .toList()
+
+    if (protocolDiagnostics.isEmpty()) {
+      return
+    }
+
     val done = CompletableFuture<Unit>()
     CodyAgentService.withAgentRestartIfNeeded(file.project) { agent ->
       try {
@@ -106,15 +116,18 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
           if (progress.isCanceled) {
             break
           }
+          if (highlight.startOffset > document.textLength ||
+              highlight.endOffset > document.textLength ||
+              highlight.startOffset > highlight.endOffset) {
+            break
+          }
+
           val range = document.codyRange(highlight.startOffset, highlight.endOffset)
 
           if (myRangeActions.containsKey(range)) {
             continue
           }
-          val location =
-              ProtocolLocation(
-                  uri = protocolTextDocument.uri,
-                  range = document.codyRange(highlight.startOffset, highlight.endOffset))
+          val location = ProtocolLocation(uri = protocolTextDocument.uri, range = range)
           val provideResponse =
               agent.server
                   .codeActions_provide(
