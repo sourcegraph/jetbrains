@@ -1,7 +1,5 @@
 package com.sourcegraph.vcs;
 
-import static com.sourcegraph.vcs.ConvertUtilKt.convertGitCloneURLToCodebaseNameOrError;
-
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -9,12 +7,18 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.vcsUtil.VcsUtil;
+import com.sourcegraph.cody.agent.CodyAgentService;
+import com.sourcegraph.cody.agent.protocol_generated.Git_CodebaseNameParams;
 import com.sourcegraph.cody.config.CodyProjectSettings;
 import com.sourcegraph.common.ErrorNotification;
 import git4idea.GitVcs;
 import git4idea.repo.GitRepository;
 import java.io.File;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.idea.perforce.perforce.PerforceSettings;
@@ -128,7 +132,25 @@ public class RepoUtil {
 
     if (vcsType == VCSType.GIT && repository != null) {
       String cloneURL = GitUtil.getRemoteRepoUrl((GitRepository) repository, project);
-      return convertGitCloneURLToCodebaseNameOrError(cloneURL).getValue();
+      AtomicReference<String> repoURl = new AtomicReference<>();
+      CodyAgentService.withAgent(
+          project,
+          agent -> {
+            try {
+              repoURl.set(
+                  agent
+                      .getServer()
+                      .git_codebaseName(new Git_CodebaseNameParams(cloneURL))
+                      .get(5, TimeUnit.SECONDS));
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+              throw new RuntimeException(e);
+            }
+          });
+
+      if (repoURl.get() != null) {
+        return repoURl.get();
+      }
+      throw new Exception("Could not get remote repo URL");
     }
 
     if (vcsType == VCSType.PERFORCE) {

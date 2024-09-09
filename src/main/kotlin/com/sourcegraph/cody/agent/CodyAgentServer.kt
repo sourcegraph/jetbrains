@@ -55,6 +55,9 @@ interface _SubsetGeneratedCodyAgentServer {
   @JsonRequest("extensionConfiguration/getSettingsSchema")
   fun extensionConfiguration_getSettingsSchema(params: Null?): CompletableFuture<String>
 
+  @JsonRequest("git/codebaseName")
+  fun git_codebaseName(params: Git_CodebaseNameParams): CompletableFuture<String?>
+
   //  // =============
   //  // Notifications
   //  // =============
