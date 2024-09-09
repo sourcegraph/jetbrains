@@ -122,8 +122,8 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
       highlight.unregisterQuickFix { it.familyName == CodeActionQuickFix.FAMILY_NAME }
 
       if (highlight.startOffset > document.textLength ||
-        highlight.endOffset > document.textLength ||
-        highlight.startOffset > highlight.endOffset) {
+          highlight.endOffset > document.textLength ||
+          highlight.startOffset > highlight.endOffset) {
         break
       }
 
