@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Document
 import com.sourcegraph.cody.agent.protocol_extensions.Position
 import com.sourcegraph.cody.agent.protocol_generated.Position
 import com.sourcegraph.cody.agent.protocol_generated.Range
+import kotlin.math.min
 
 fun Document.codyPosition(offset: Int): Position {
   val line = this.getLineNumber(offset)
@@ -13,7 +14,7 @@ fun Document.codyPosition(offset: Int): Position {
 }
 
 fun Document.codyRange(startOffset: Int, endOffset: Int): Range {
-  val startLine = this.getLineNumber(startOffset)
+  val startLine = this.getLineNumber(min(startOffset, this.textLength))
   val lineStartOffset1 = this.getLineStartOffset(startLine)
   val startCharacter = startOffset - lineStartOffset1
 
