@@ -121,6 +121,12 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
     for (highlight in myHighlights) {
       highlight.unregisterQuickFix { it.familyName == CodeActionQuickFix.FAMILY_NAME }
 
+      if (highlight.startOffset > document.textLength ||
+        highlight.endOffset > document.textLength ||
+        highlight.startOffset > highlight.endOffset) {
+        break
+      }
+
       val range = document.codyRange(highlight.startOffset, highlight.endOffset)
       for (action in myRangeActions[range].orEmpty()) {
         highlight.registerFix(
