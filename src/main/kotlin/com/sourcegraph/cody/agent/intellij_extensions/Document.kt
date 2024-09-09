@@ -18,7 +18,7 @@ fun Document.codyRange(startOffset: Int, endOffset: Int): Range {
   val lineStartOffset1 = this.getLineStartOffset(startLine)
   val startCharacter = startOffset - lineStartOffset1
 
-  val endLine = this.getLineNumber(endOffset)
+  val endLine = this.getLineNumber(min(endOffset, this.textLength))
   val lineStartOffset2 =
       if (startLine == endLine) {
         lineStartOffset1
