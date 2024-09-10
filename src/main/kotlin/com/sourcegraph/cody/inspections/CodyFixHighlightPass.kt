@@ -15,6 +15,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.intellij_extensions.codyRange
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument.Companion.uriFor
@@ -127,6 +128,7 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
     ProgressIndicatorUtils.awaitWithCheckCanceled(done, progress)
   }
 
+  @RequiresEdt
   override fun doApplyInformationToEditor() {
     for (highlight in myHighlights) {
       highlight.unregisterQuickFix { it.familyName == CodeActionQuickFix.FAMILY_NAME }
