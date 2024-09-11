@@ -250,6 +250,7 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
       "--add-opens=java.desktop/javax.swing.plaf.basic=ALL-UNNAMED",
       "--add-opens=java.desktop/java.awt.peer=ALL-UNNAMED",
       "--add-opens=java.desktop/javax.swing.text.html=ALL-UNNAMED",
+      "--add-exports=java.base/jdk.internal.vm=ALL-UNNAMED",
       "--add-exports=java.desktop/sun.font=ALL-UNNAMED",
       "--add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED",
       "--add-exports=java.desktop/com.apple.laf=ALL-UNNAMED",
@@ -604,6 +605,7 @@ tasks {
   withType<Test> {
     systemProperty(
         "idea.test.src.dir", "${layout.buildDirectory.asFile.get()}/resources/integrationTest")
+    systemProperty("idea.force.use.core.classloader", "true")
   }
 
   withType<KotlinCompile> { dependsOn("copyProtocol") }
