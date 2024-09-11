@@ -237,6 +237,24 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
 
   include("**/AllSuites.class")
 
+  jvmArgs(
+      "-Djava.system.class.loader=com.intellij.util.lang.PathClassLoader",
+      "--add-opens=java.desktop/java.awt.event=ALL-UNNAMED",
+      "--add-opens=java.desktop/sun.font=ALL-UNNAMED",
+      "--add-opens=java.desktop/java.awt=ALL-UNNAMED",
+      "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
+      "--add-opens=java.base/java.lang=ALL-UNNAMED",
+      "--add-opens=java.base/java.util=ALL-UNNAMED",
+      "--add-opens=java.desktop/javax.swing=ALL-UNNAMED",
+      "--add-opens=java.desktop/sun.swing=ALL-UNNAMED",
+      "--add-opens=java.desktop/javax.swing.plaf.basic=ALL-UNNAMED",
+      "--add-opens=java.desktop/java.awt.peer=ALL-UNNAMED",
+      "--add-opens=java.desktop/javax.swing.text.html=ALL-UNNAMED",
+      "--add-exports=java.desktop/sun.font=ALL-UNNAMED",
+      "--add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED",
+      "--add-exports=java.desktop/com.apple.laf=ALL-UNNAMED",
+      "--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
+
   val resourcesDir = project.file("src/integrationTest/resources")
   systemProperties(
       "cody-agent.trace-path" to
@@ -247,7 +265,7 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
           (project.property("cody.autocomplete.enableFormatting") as String? ?: "true"),
       "cody.integration.testing" to "true",
       "cody.ignore.policy.timeout" to 1500, // Increased to 1500ms as CI tends to be slower
-      "idea.test.execution.policy" to "com.sourcegraph.cody.test.NonEdtIdeaTestExecutionPolicy",
+      "idea.test.execution.policy" to "com.sourcegraph.cody.NonEdtIdeaTestExecutionPolicy",
       "test.resources.dir" to resourcesDir.absolutePath)
 
   environment(
@@ -501,18 +519,18 @@ tasks {
 
     agentProperties.forEach { (key, value) -> systemProperty(key, value) }
 
-    val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
-    val platformRuntimeType = project.findProperty("platformRuntimeType")
-    if (platformRuntimeVersion != null || platformRuntimeType != null) {
-      val ideaInstallDir =
-          getIdeaInstallDir(
-              (platformRuntimeVersion ?: platformVersion).toString(),
-              (platformRuntimeType ?: platformType).toString())
-              ?: throw GradleException(
-                  "Could not find IntelliJ install for version: $platformRuntimeVersion")
-      //      ideDir.set(ideaInstallDir) // todo: revert me?
+    //    val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
+    //    val platformRuntimeType = project.findProperty("platformRuntimeType")
+    //    if (platformRuntimeVersion != null || platformRuntimeType != null) {
+    //      val ideaInstallDir =
+    //          getIdeaInstallDir(
+    //              (platformRuntimeVersion ?: platformVersion).toString(),
+    //              (platformRuntimeType ?: platformType).toString())
+    //              ?: throw GradleException(
+    //                  "Could not find IntelliJ install for version: $platformRuntimeVersion")
+    //      ideDir.set(ideaInstallDir) // todo: revert me?
 
-    }
+    //    }
     val platformRuntimePlugins = project.findProperty("platformRuntimePlugins")
   }
 
@@ -551,8 +569,8 @@ tasks {
   sourceSets {
     create("integrationTest") {
       kotlin.srcDir("src/integrationTest/kotlin")
-      compileClasspath += main.get().output
-      runtimeClasspath += main.get().output
+      compileClasspath += main.get().output + configurations.testCompileClasspath.get()
+      runtimeClasspath += compileClasspath + configurations.testRuntimeClasspath.get()
     }
   }
 
