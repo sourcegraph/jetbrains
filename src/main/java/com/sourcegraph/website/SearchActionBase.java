@@ -14,7 +14,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.sourcegraph.common.BrowserOpener;
 import com.sourcegraph.common.ui.DumbAwareEDTAction;
 import com.sourcegraph.find.SourcegraphVirtualFile;
-import com.sourcegraph.vcs.RepoInfo;
 import com.sourcegraph.vcs.RepoUtil;
 import com.sourcegraph.vcs.VCSType;
 import java.util.logging.Level;
@@ -37,9 +36,8 @@ public abstract class SearchActionBase extends DumbAwareEDTAction {
             .getFile(FileEditorManager.getInstance(project).getSelectedTextEditor().getDocument());
     assert currentFile != null; // selectedText != null, so this can't be null.
 
-    if (currentFile instanceof SourcegraphVirtualFile) {
+    if (currentFile instanceof SourcegraphVirtualFile sourcegraphFile) {
       String url;
-      SourcegraphVirtualFile sourcegraphFile = (SourcegraphVirtualFile) currentFile;
       String repoUrl = (scope == Scope.REPOSITORY) ? sourcegraphFile.getRepoUrl() : null;
       url = URLBuilder.buildEditorSearchUrl(selectedText, repoUrl, null);
       BrowserOpener.INSTANCE.openInBrowser(project, url);
@@ -48,23 +46,32 @@ public abstract class SearchActionBase extends DumbAwareEDTAction {
       ApplicationManager.getApplication()
           .executeOnPooledThread(
               () -> {
-                String url;
-                RepoInfo repoInfo = RepoUtil.getRepoInfo(project, currentFile);
-                String remoteUrl = (scope == Scope.REPOSITORY) ? repoInfo.remoteUrl : null;
-                String remoteBranchName =
-                    (scope == Scope.REPOSITORY) ? repoInfo.remoteBranchName : null;
-                if (repoInfo.vcsType == VCSType.PERFORCE) {
-                  // Our "editor" backend doesn't support Perforce, but we have all the info we
-                  // need, so we'll go to the final URL directly.
-                  String codeHostUrl =
-                      (scope == Scope.REPOSITORY) ? repoInfo.getCodeHostUrl() : null;
-                  String repoName = (scope == Scope.REPOSITORY) ? repoInfo.getRepoName() : null;
-                  url =
-                      URLBuilder.buildDirectSearchUrl(project, selectedText, codeHostUrl, repoName);
-                } else {
-                  url = URLBuilder.buildEditorSearchUrl(selectedText, remoteUrl, remoteBranchName);
-                }
-                BrowserOpener.INSTANCE.openInBrowser(project, url);
+                RepoUtil.getRepoInfo(project, currentFile)
+                    .thenAccept(
+                        repoInfo -> {
+                          String url;
+                          String remoteUrl =
+                              (scope == Scope.REPOSITORY) ? repoInfo.remoteUrl : null;
+                          String remoteBranchName =
+                              (scope == Scope.REPOSITORY) ? repoInfo.remoteBranchName : null;
+                          if (repoInfo.vcsType == VCSType.PERFORCE) {
+                            // Our "editor" backend doesn't support Perforce, but we have all the
+                            // info we
+                            // need, so we'll go to the final URL directly.
+                            String codeHostUrl =
+                                (scope == Scope.REPOSITORY) ? repoInfo.getCodeHostUrl() : null;
+                            String repoName =
+                                (scope == Scope.REPOSITORY) ? repoInfo.getRepoName() : null;
+                            url =
+                                URLBuilder.buildDirectSearchUrl(
+                                    project, selectedText, codeHostUrl, repoName);
+                          } else {
+                            url =
+                                URLBuilder.buildEditorSearchUrl(
+                                    selectedText, remoteUrl, remoteBranchName);
+                          }
+                          BrowserOpener.INSTANCE.openInBrowser(project, url);
+                        });
               });
     }
   }

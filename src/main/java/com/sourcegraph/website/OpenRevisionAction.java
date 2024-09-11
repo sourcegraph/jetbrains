@@ -19,6 +19,7 @@ import com.sourcegraph.vcs.RepoUtil;
 import com.sourcegraph.vcs.RevisionContext;
 import com.sourcegraph.vcs.VCSType;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 
 /** JetBrains IDE action to open a selected revision in Sourcegraph. */
@@ -73,36 +74,39 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
     ApplicationManager.getApplication()
         .executeOnPooledThread(
             () -> {
-              String remoteUrl;
+              CompletableFuture<String> remoteUrlFuture;
               try {
-                remoteUrl = RepoUtil.getRemoteRepoUrl(project, context.getRepoRoot());
+                remoteUrlFuture = RepoUtil.getRemoteRepoUrl(project, context.getRepoRoot());
               } catch (Exception e) {
                 throw new RuntimeException(e);
               }
 
-              String url;
-              try {
-                url =
-                    URLBuilder.buildCommitUrl(
-                        ConfigUtil.getServerPath().getUrl(),
-                        context.getRevisionNumber(),
-                        remoteUrl,
-                        productName,
-                        productVersion);
-              } catch (IllegalArgumentException e) {
-                logger.warn(
-                    "Unable to build commit view URI for url "
-                        + ConfigUtil.getServerPath().getUrl()
-                        + ", revision "
-                        + context.getRevisionNumber()
-                        + ", product "
-                        + productName
-                        + ", version "
-                        + productVersion,
-                    e);
-                return;
-              }
-              BrowserOpener.INSTANCE.openInBrowser(project, url);
+              remoteUrlFuture.thenAccept(
+                  (remoteUrl) -> {
+                    String url;
+                    try {
+                      url =
+                          URLBuilder.buildCommitUrl(
+                              ConfigUtil.getServerPath().getUrl(),
+                              context.getRevisionNumber(),
+                              remoteUrl,
+                              productName,
+                              productVersion);
+                    } catch (IllegalArgumentException e) {
+                      logger.warn(
+                          "Unable to build commit view URI for url "
+                              + ConfigUtil.getServerPath().getUrl()
+                              + ", revision "
+                              + context.getRevisionNumber()
+                              + ", product "
+                              + productName
+                              + ", version "
+                              + productVersion,
+                          e);
+                      return;
+                    }
+                    BrowserOpener.INSTANCE.openInBrowser(project, url);
+                  });
             });
   }
 
