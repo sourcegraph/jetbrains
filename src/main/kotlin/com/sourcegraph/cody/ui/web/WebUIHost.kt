@@ -70,6 +70,7 @@ internal class WebUIHostImpl(
 
     if ((command == "auth" && decodedJson.get("authKind")?.asString == "signout") ||
         (isCommand && id == "cody.auth.signout")) {
+      dispatchWebviewMessage(stringEncodedJsonMessage)
       CodyAuthenticationManager.getInstance().setActiveAccount(null)
     } else if (isCommand && id == "cody.auth.switchAccount") {
       runInEdt {
@@ -94,10 +95,14 @@ internal class WebUIHostImpl(
         action?.actionPerformed(AnActionEvent.createFromAnAction(action, null, "", dataContext))
       }
     } else {
-      CodyAgentService.withAgent(project) {
-        it.server.webviewReceiveMessageStringEncoded(
-            WebviewReceiveMessageStringEncodedParams(handle, stringEncodedJsonMessage))
-      }
+      dispatchWebviewMessage(stringEncodedJsonMessage)
+    }
+  }
+
+  private fun dispatchWebviewMessage(stringEncodedJsonMessage: String) {
+    CodyAgentService.withAgent(project) {
+      it.server.webviewReceiveMessageStringEncoded(
+          WebviewReceiveMessageStringEncodedParams(handle, stringEncodedJsonMessage))
     }
   }
 
