@@ -130,6 +130,7 @@ dependencies {
   implementation("org.commonmark:commonmark-ext-gfm-tables:0.22.0")
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.23.1")
   implementation("io.github.java-diff-utils:java-diff-utils:4.12")
+  testImplementation("net.java.dev.jna:jna:5.10.0")
   testImplementation("org.awaitility:awaitility-kotlin:4.2.1")
   testImplementation("org.mockito:mockito-core:5.12.0")
   testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
