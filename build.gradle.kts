@@ -302,8 +302,7 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
       "CODY_TEMPERATURE_ZERO" to "true",
       "CODY_TELEMETRY_EXPORTER" to "testing",
       // Fastpass has custom bearer tokens that are difficult to record with Polly
-      "CODY_DISABLE_FASTPATH" to "true",
-      "ide.browser.jcef.headless.enabled" to "true")
+      "CODY_DISABLE_FASTPATH" to "true")
 
   useJUnit()
   dependsOn("buildCody")
