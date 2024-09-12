@@ -269,10 +269,7 @@ fun Test.sharedIntegrationTestConfig(buildCodyDir: File, mode: String) {
       "--add-opens=java.desktop/java.awt.peer=ALL-UNNAMED",
       "--add-opens=java.desktop/javax.swing.text.html=ALL-UNNAMED",
       "--add-exports=java.base/jdk.internal.vm=ALL-UNNAMED",
-      "--add-exports=java.desktop/sun.font=ALL-UNNAMED",
-      "--add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED",
-      "--add-exports=java.desktop/com.apple.laf=ALL-UNNAMED",
-      "--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
+      "--add-exports=java.desktop/sun.font=ALL-UNNAMED")
 
   val resourcesDir = project.file("src/integrationTest/resources")
   systemProperties(
