@@ -12,13 +12,14 @@ import java.util.EnumSet
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
-fun properties(key: String) = project.findProperty(key).toString()
+fun properties(key: String) = project.findProperty(key)?.toString()
 
 val isForceBuild = properties("forceBuild") == "true"
 val isForceAgentBuild =
@@ -64,9 +65,9 @@ val platformVersion: String by project
 val platformType: String by project
 val javaVersion: String by project
 
-group = properties("pluginGroup")
+group = properties("pluginGroup")!!
 
-version = properties("pluginVersion")
+version = properties("pluginVersion")!!
 
 repositories {
   maven { url = uri("https://www.jetbrains.com/intellij-repository/releases") }
@@ -115,7 +116,11 @@ dependencies {
     jetbrainsRuntime()
     create(platformType, platformVersion)
     bundledPlugins(
-        properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+        properties("platformPlugins")
+            .orEmpty()
+            .split(',')
+            .map(String::trim)
+            .filter(String::isNotEmpty))
     instrumentationTools()
     pluginVerifier()
     testFramework(TestFrameworkType.Bundled)
@@ -339,8 +344,8 @@ tasks {
   }
 
   fun downloadNodeBinaries(): File {
-    val nodeCommit = properties("nodeBinaries.commit")
-    val nodeVersion = properties("nodeBinaries.version")
+    val nodeCommit = properties("nodeBinaries.commit")!!
+    val nodeVersion = properties("nodeBinaries.version")!!
     val url = "https://github.com/sourcegraph/node-binaries/archive/$nodeCommit.zip"
     val zipFile = githubArchiveCache.resolve("$nodeCommit.zip")
     download(url, zipFile)
@@ -515,25 +520,19 @@ tasks {
     }
   }
 
+  val customRunIde by
+      intellijPlatformTesting.runIde.registering {
+        version.set(properties("platformRuntimeVersion"))
+        val myType = IntelliJPlatformType.fromCode(properties("platformRuntimeType") ?: "IC")
+        type.set(myType)
+        plugins { plugins(properties("platformRuntimePlugins").orEmpty()) }
+      }
+
   runIde {
     dependsOn(project.tasks.getByPath("buildCody"))
     jvmArgs("-Djdk.module.illegalAccess.silent=true")
 
     agentProperties.forEach { (key, value) -> systemProperty(key, value) }
-
-    //    val platformRuntimeVersion = project.findProperty("platformRuntimeVersion")
-    //    val platformRuntimeType = project.findProperty("platformRuntimeType")
-    //    if (platformRuntimeVersion != null || platformRuntimeType != null) {
-    //      val ideaInstallDir =
-    //          getIdeaInstallDir(
-    //              (platformRuntimeVersion ?: platformVersion).toString(),
-    //              (platformRuntimeType ?: platformType).toString())
-    //              ?: throw GradleException(
-    //                  "Could not find IntelliJ install for version: $platformRuntimeVersion")
-    //      ideDir.set(ideaInstallDir) // todo: revert me?
-
-    //    }
-    val platformRuntimePlugins = project.findProperty("platformRuntimePlugins")
   }
 
   signPlugin {
@@ -550,7 +549,7 @@ tasks {
     // Specify pre-release label to publish the plugin in a custom Release Channel automatically.
     // Read more:
     // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
-    val channel = properties("pluginVersion").split('-').getOrElse(1) { "default" }
+    val channel = properties("pluginVersion")!!.split('-').getOrElse(1) { "default" }
     channels.set(listOf(channel))
 
     if (channel == "default") {
