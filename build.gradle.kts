@@ -159,7 +159,19 @@ spotless {
   }
 }
 
-java { toolchain { languageVersion.set(JavaLanguageVersion.of(javaVersion.toInt())) } }
+java {
+  toolchain {
+    languageVersion.set(JavaLanguageVersion.of(javaVersion.toInt()))
+    vendor = JvmVendorSpec.JETBRAINS
+  }
+}
+
+kotlin {
+  jvmToolchain {
+    languageVersion.set(JavaLanguageVersion.of(javaVersion.toInt()))
+    vendor = JvmVendorSpec.JETBRAINS
+  }
+}
 
 fun download(url: String, output: File) {
   if (output.exists()) {
