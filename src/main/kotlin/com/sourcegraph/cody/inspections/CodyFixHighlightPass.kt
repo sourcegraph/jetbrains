@@ -49,23 +49,25 @@ class CodyFixHighlightPass(val file: PsiFile, val editor: Editor) :
     val protocolDiagnostics =
         // TODO: We need to check how Enum comparison works to check if we can do things like
         // >= HighlightSeverity.INFO
-        myHighlights.mapNotNull {
-          try {
-            val range = document.codyRange(it.startOffset, it.endOffset)
-            ProtocolDiagnostic(
-                message = it.description,
-                // TODO: Wait for CODY-2882. This isn't currently used by the agent,  so we just
-                // keep our lives simple.
-                severity = "error",
-                // TODO: Rik Nauta -- Got incorrect range; see QA report Aug 6 2024.
-                location = ProtocolLocation(uri = uri, range = range),
-                code = it.problemGroup?.problemName)
-          } catch (x: Exception) {
-            // Don't allow range errors to throw user-visible exceptions (QA found this).
-            logger.warn("Failed to convert highlight to protocol diagnostic", x)
-            null
-          }
-        }
+        myHighlights
+            .filter { it.severity == HighlightSeverity.ERROR }
+            .mapNotNull {
+              try {
+                val range = document.codyRange(it.startOffset, it.endOffset)
+                ProtocolDiagnostic(
+                    message = it.description,
+                    // TODO: Wait for CODY-2882. This isn't currently used by the agent,  so we just
+                    // keep our lives simple.
+                    severity = "error",
+                    // TODO: Rik Nauta -- Got incorrect range; see QA report Aug 6 2024.
+                    location = ProtocolLocation(uri = uri, range = range),
+                    code = it.problemGroup?.problemName)
+              } catch (x: Exception) {
+                // Don't allow range errors to throw user-visible exceptions (QA found this).
+                logger.warn("Failed to convert highlight to protocol diagnostic", x)
+                null
+              }
+            }
 
     if (protocolDiagnostics.isEmpty()) {
       return
