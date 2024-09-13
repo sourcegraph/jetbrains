@@ -73,7 +73,10 @@ repositories {
   maven { url = uri("https://www.jetbrains.com/intellij-repository/releases") }
   mavenCentral()
   gradlePluginPortal()
-  intellijPlatform { defaultRepositories() }
+  intellijPlatform {
+    defaultRepositories()
+    jetbrainsRuntime()
+  }
 }
 
 intellijPlatform {
@@ -123,7 +126,7 @@ dependencies {
             .filter(String::isNotEmpty))
     instrumentationTools()
     pluginVerifier()
-    testFramework(TestFrameworkType.Bundled)
+    testFramework(TestFrameworkType.Platform)
   }
 
   implementation("org.commonmark:commonmark:0.22.0")
