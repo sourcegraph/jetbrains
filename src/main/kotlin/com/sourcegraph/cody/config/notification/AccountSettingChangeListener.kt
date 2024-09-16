@@ -32,10 +32,10 @@ class AccountSettingChangeListener(project: Project) : ChangeListener(project) {
 
             if (context.serverUrlChanged) {
               TelemetryV2.sendTelemetryEvent(
-                project, feature = "settings.serverURL", action = "changed")
+                  project, feature = "settings.serverURL", action = "changed")
             } else if (context.accessTokenChanged) {
               TelemetryV2.sendTelemetryEvent(
-                project, feature = "settings.accessToken", action = "changed")
+                  project, feature = "settings.accessToken", action = "changed")
             }
           }
         })
