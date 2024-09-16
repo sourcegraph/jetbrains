@@ -70,6 +70,13 @@ class CodyConfigurable(val project: Project) : BoundConfigurable(ConfigUtil.CODY
       }
 
       group("Autocomplete") {
+        row {
+          checkBox("Use experimental completion provider")
+              .comment(
+                  "Enable this to use the experimental completion provider instead of the inlays")
+              .enabledIf(enableCodyCheckbox.selected)
+              .bindSelected(settingsModel::isExperimentalCompletionProviderEnabled)
+        }
         lateinit var enableAutocompleteCheckbox: Cell<JBCheckBox>
         row {
           val enableCustomAutocompleteColor =
@@ -118,6 +125,8 @@ class CodyConfigurable(val project: Project) : BoundConfigurable(ConfigUtil.CODY
     settingsModel.customAutocompleteColor =
         // note: this sets the same value for both light & dark mode, currently
         codyApplicationSettings.customAutocompleteColor?.let { JBColor(it, it) }
+    settingsModel.isExperimentalCompletionProviderEnabled =
+        codyApplicationSettings.isExperimentalCompletionProviderEnabled
     settingsModel.isLookupAutocompleteEnabled = codyApplicationSettings.isLookupAutocompleteEnabled
     settingsModel.isCodyUIHintsEnabled = codyApplicationSettings.isCodyUIHintsEnabled
     settingsModel.blacklistedLanguageIds = codyApplicationSettings.blacklistedLanguageIds
@@ -150,6 +159,8 @@ class CodyConfigurable(val project: Project) : BoundConfigurable(ConfigUtil.CODY
     codyApplicationSettings.isCodyVerboseDebugEnabled = settingsModel.isCodyVerboseDebugEnabled
     codyApplicationSettings.isCustomAutocompleteColorEnabled =
         settingsModel.isCustomAutocompleteColorEnabled
+    codyApplicationSettings.isExperimentalCompletionProviderEnabled =
+        settingsModel.isExperimentalCompletionProviderEnabled
     codyApplicationSettings.customAutocompleteColor = settingsModel.customAutocompleteColor?.rgb
     codyApplicationSettings.isLookupAutocompleteEnabled = settingsModel.isLookupAutocompleteEnabled
     codyApplicationSettings.isCodyUIHintsEnabled = settingsModel.isCodyUIHintsEnabled

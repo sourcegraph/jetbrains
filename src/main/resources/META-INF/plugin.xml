@@ -98,12 +98,6 @@
 
         <keymapExtension implementation="com.sourcegraph.cody.config.CodyKeymapExtension"/>
 
-        <!-- Web UI Sidebar Views
-             For each sourcegraph/cody/vscode/package.json "views" entry with type "webview",
-             add a toolWindow with factoryClass="com.sourcegraph.cody.sidebar.WebUIToolWindowFactory"
-             (or a subtype.) For now, VSCode view "when" conditions need to be manually ported to
-             ToolWindow.isAvailable updates.
-         -->
         <inline.completion.provider implementation="com.sourcegraph.cody.autocomplete.CodyInlineCompletionProvider"/>
 
         <codeInsight.codeVisionProvider

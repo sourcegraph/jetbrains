@@ -16,6 +16,7 @@ data class CodyApplicationSettings(
     var anonymousUserId: String? = null,
     var isInstallEventLogged: Boolean = false,
     var isCustomAutocompleteColorEnabled: Boolean = false,
+    var isExperimentalCompletionProviderEnabled: Boolean = true,
     var customAutocompleteColor: Int? = null,
     var isLookupAutocompleteEnabled: Boolean = true,
     var isCodyUIHintsEnabled: Boolean = false,
@@ -37,6 +38,7 @@ data class CodyApplicationSettings(
     this.anonymousUserId = state.anonymousUserId
     this.isInstallEventLogged = state.isInstallEventLogged
     this.isCustomAutocompleteColorEnabled = state.isCustomAutocompleteColorEnabled
+    this.isExperimentalCompletionProviderEnabled = state.isExperimentalCompletionProviderEnabled
     this.customAutocompleteColor = state.customAutocompleteColor
     this.isLookupAutocompleteEnabled = state.isLookupAutocompleteEnabled
     this.isCodyUIHintsEnabled = state.isCodyUIHintsEnabled

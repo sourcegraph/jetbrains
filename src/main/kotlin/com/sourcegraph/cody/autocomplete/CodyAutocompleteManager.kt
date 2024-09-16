@@ -44,6 +44,7 @@ import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteBlockElementRend
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteElementRenderer
 import com.sourcegraph.cody.autocomplete.render.CodyAutocompleteSingleLineRenderer
 import com.sourcegraph.cody.autocomplete.render.InlayModelUtil.getAllInlaysForEditor
+import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.ignore.ActionInIgnoredFileNotification
 import com.sourcegraph.cody.ignore.IgnoreOracle
@@ -154,6 +155,11 @@ class CodyAutocompleteManager {
       }
       return
     }
+    val codyApplicationSettings = service<CodyApplicationSettings>()
+    if (codyApplicationSettings.isExperimentalCompletionProviderEnabled) {
+      return
+    }
+
     if (!isEditorValidForAutocomplete(editor)) {
       if (isTriggeredExplicitly) {
         logger.warn("triggered autocomplete with invalid editor $editor")
