@@ -80,8 +80,6 @@ interface _LegacyAgentServer {
   @JsonRequest("telemetry/recordEvent")
   fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
 
-  @JsonRequest("graphql/logEvent") fun logEvent(event: Event): CompletableFuture<Void?>
-
   // TODO(CODY-2826): Would be nice if we can generate some set of "known" feature flags from the
   // protocol
   @JsonRequest("featureFlags/getFeatureFlag")
