@@ -20,9 +20,8 @@ private interface WebviewHost {
   fun reset()
 }
 
-private class CodyToolWindowContentWebviewHost(
-    private val owner: CodyToolWindowContent
-) : WebviewHost {
+private class CodyToolWindowContentWebviewHost(private val owner: CodyToolWindowContent) :
+    WebviewHost {
   override val id = "cody.chat"
 
   var proxy: WebUIProxy? = null

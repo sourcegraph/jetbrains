@@ -38,7 +38,7 @@ class CodyToolWindowContent(project: Project) {
     // Because the webview may be created lazily, populate a placeholder control.
     val placeholder = JPanel(GridBagLayout())
     val spinnerLabel =
-      JBLabel("Starting Cody...", Icons.StatusBar.CompletionInProgress, JBLabel.CENTER)
+        JBLabel("Starting Cody...", Icons.StatusBar.CompletionInProgress, JBLabel.CENTER)
     placeholder.add(spinnerLabel, GridBagConstraints())
     cardPanel.add(placeholder, LOADING_PANEL, LOADING_PANEL_INDEX)
 
@@ -80,9 +80,7 @@ class CodyToolWindowContent(project: Project) {
     }
   }
 
-  /**
-   * Sets the webview component to display, if any.
-   */
+  /** Sets the webview component to display, if any. */
   @RequiresEdt
   fun setWebviewComponent(component: JComponent?) {
     webviewPanel = component
