@@ -22,10 +22,10 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolCodeLens
 import com.sourcegraph.cody.config.CodyPersistentAccountsHost
 import com.sourcegraph.cody.config.SourcegraphServerPath
-import com.sourcegraph.cody.edit.LensListener
-import com.sourcegraph.cody.edit.LensesService
-import com.sourcegraph.cody.edit.widget.LensAction
-import com.sourcegraph.cody.edit.widget.LensWidgetGroup
+import com.sourcegraph.cody.edit.lenses.LensListener
+import com.sourcegraph.cody.edit.lenses.LensesService
+import com.sourcegraph.cody.edit.lenses.widget.LensActionWidget
+import com.sourcegraph.cody.edit.lenses.widget.LensWidgetGroup
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
@@ -257,8 +257,8 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
     lensSubscribers.add(check to future)
 
     runInEdtAndWait {
-      val action: LensAction? =
-          lensWidgetGroup.widgets.filterIsInstance<LensAction>().find {
+      val action: LensActionWidget? =
+          lensWidgetGroup.widgets.filterIsInstance<LensActionWidget>().find {
             it.actionId == actionLensId
           }
       PlatformTestUtil.dispatchAllEventsInIdeEventQueue()

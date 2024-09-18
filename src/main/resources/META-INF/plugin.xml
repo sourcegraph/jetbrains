@@ -104,6 +104,26 @@
              (or a subtype.) For now, VSCode view "when" conditions need to be manually ported to
              ToolWindow.isAvailable updates.
          -->
+
+        <codeInsight.codeVisionProvider
+                id="CodyFocusCodeVisionProvider"
+                implementation="com.sourcegraph.cody.edit.lenses.providers.EditWorkingCodeVisionProvider"/>
+        <codeInsight.codeVisionProvider
+                id="CodyCancelCodeVisionProvider"
+                implementation="com.sourcegraph.cody.edit.lenses.providers.EditCancelCodeVisionProvider"/>
+        <codeInsight.codeVisionProvider
+                id="CodyAcceptCodeVisionProvider"
+                implementation="com.sourcegraph.cody.edit.lenses.providers.EditAcceptCodeVisionProvider"/>
+        <codeInsight.codeVisionProvider
+                id="CodyDiffCodeVisionProvider"
+                implementation="com.sourcegraph.cody.edit.lenses.providers.EditDiffCodeVisionProvider"/>
+        <codeInsight.codeVisionProvider
+                id="CodyUndoCodeVisionProvider"
+                implementation="com.sourcegraph.cody.edit.lenses.providers.EditUndoCodeVisionProvider"/>
+        <codeInsight.codeVisionProvider
+                id="CodyRetryCodeVisionProvider"
+                implementation="com.sourcegraph.cody.edit.lenses.providers.EditRetryCodeVisionProvider"/>
+
     </extensions>
 
     <applicationListeners>
@@ -242,7 +262,7 @@
 
                 <!-- Lens widget actions -->
                 <action id="cody.fixup.codelens.accept"
-                        class="com.sourcegraph.cody.edit.actions.lenses.EditAcceptAction"
+                        class="com.sourcegraph.cody.edit.lenses.actions.EditAcceptAction"
                         text="Accept Edit"
                         description="Accept the fixup">
                     <keyboard-shortcut replace-all="true" first-keystroke="alt A" keymap="$default"/>
@@ -251,7 +271,7 @@
                 </action>
 
                 <action id="cody.fixup.codelens.cancel"
-                        class="com.sourcegraph.cody.edit.actions.lenses.EditCancelAction"
+                        class="com.sourcegraph.cody.edit.lenses.actions.EditCancelAction"
                         text="Cancel Edit"
                         description="Cancel the fixup">
                     <override-text place="GoToAction" text="Cody: Cancel Edit"/>
@@ -260,7 +280,7 @@
                 </action>
 
                 <action id="cody.fixup.codelens.retry"
-                        class="com.sourcegraph.cody.edit.actions.lenses.EditRetryAction"
+                        class="com.sourcegraph.cody.edit.lenses.actions.EditRetryAction"
                         text="Retry Edit"
                         description="Retry the fixup">
                     <keyboard-shortcut replace-all="true" first-keystroke="alt R" keymap="$default"/>
@@ -269,7 +289,7 @@
                 </action>
 
                 <action id="cody.fixup.codelens.undo"
-                        class="com.sourcegraph.cody.edit.actions.lenses.EditUndoAction"
+                        class="com.sourcegraph.cody.edit.lenses.actions.EditUndoAction"
                         text="Undo Edit"
                         description="Undo the fixup">
                     <override-text place="GoToAction" text="Cody: Undo Edit"/>
@@ -279,7 +299,7 @@
                 </action>
 
                 <action id="cody.fixup.codelens.diff"
-                        class="com.sourcegraph.cody.edit.actions.lenses.EditShowDiffAction"
+                        class="com.sourcegraph.cody.edit.lenses.actions.EditShowDiffAction"
                         text="Show Diff"
                         description="Show a diff view of the fixup">
                     <keyboard-shortcut replace-all="true" first-keystroke="alt D" keymap="$default"/>

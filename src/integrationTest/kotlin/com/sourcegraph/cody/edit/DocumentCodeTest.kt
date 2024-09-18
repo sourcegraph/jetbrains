@@ -1,15 +1,16 @@
 package com.sourcegraph.cody.edit
 
 import com.sourcegraph.cody.edit.actions.DocumentCodeAction
-import com.sourcegraph.cody.edit.actions.lenses.EditAcceptAction
-import com.sourcegraph.cody.edit.actions.lenses.EditCancelAction
-import com.sourcegraph.cody.edit.actions.lenses.EditUndoAction
-import com.sourcegraph.cody.edit.widget.LensAction
-import com.sourcegraph.cody.edit.widget.LensHotkey
-import com.sourcegraph.cody.edit.widget.LensIcon
-import com.sourcegraph.cody.edit.widget.LensLabel
-import com.sourcegraph.cody.edit.widget.LensSpinner
-import com.sourcegraph.cody.edit.widget.LensWidgetGroup
+import com.sourcegraph.cody.edit.lenses.LensesService
+import com.sourcegraph.cody.edit.lenses.actions.EditAcceptAction
+import com.sourcegraph.cody.edit.lenses.actions.EditCancelAction
+import com.sourcegraph.cody.edit.lenses.actions.EditUndoAction
+import com.sourcegraph.cody.edit.lenses.widget.LensActionWidget
+import com.sourcegraph.cody.edit.lenses.widget.LensHotkeyWidget
+import com.sourcegraph.cody.edit.lenses.widget.LensIconWidget
+import com.sourcegraph.cody.edit.lenses.widget.LensLabelWidget
+import com.sourcegraph.cody.edit.lenses.widget.LensSpinnerWidget
+import com.sourcegraph.cody.edit.lenses.widget.LensWidgetGroup
 import com.sourcegraph.cody.util.CodyIntegrationTextFixture
 import com.sourcegraph.cody.util.CustomJunitClassRunner
 import org.hamcrest.MatcherAssert.assertThat
@@ -37,20 +38,21 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     val theWidgets = codeLensGroup!!.widgets
 
     assertEquals("Lens group should have 9 widgets", 9, theWidgets.size)
-    assertTrue("Zeroth lens group should be an icon", theWidgets[0] is LensIcon)
+    assertTrue("Zeroth lens group should be an icon", theWidgets[0] is LensIconWidget)
     assertTrue(
-        "First lens group is space separator label", (theWidgets[1] as LensLabel).text == " ")
-    assertTrue("Second lens group is a spinner", theWidgets[2] is LensSpinner)
+        "First lens group is space separator label", (theWidgets[1] as LensLabelWidget).text == " ")
+    assertTrue("Second lens group is a spinner", theWidgets[2] is LensSpinnerWidget)
     assertTrue(
-        "Third lens group is space separator label", (theWidgets[3] as LensLabel).text == " ")
+        "Third lens group is space separator label", (theWidgets[3] as LensLabelWidget).text == " ")
     assertTrue(
         "Fourth lens group is a description label",
-        (theWidgets[4] as LensAction).text == " Cody is working...")
+        (theWidgets[4] as LensActionWidget).text == " Cody is working...")
     assertTrue(
         "Fifth lens group is separator label",
-        (theWidgets[5] as LensLabel).text == LensesService.SEPARATOR)
-    assertTrue("Sixth lens group should be an action", theWidgets[6] is LensAction)
-    assertTrue("Seventh lens group should be a label with a hotkey", theWidgets[7] is LensHotkey)
+        (theWidgets[5] as LensLabelWidget).text == LensesService.SEPARATOR)
+    assertTrue("Sixth lens group should be an action", theWidgets[6] is LensActionWidget)
+    assertTrue(
+        "Seventh lens group should be a label with a hotkey", theWidgets[7] is LensHotkeyWidget)
 
     runLensAction(codeLensGroup, EditCancelAction.ID)
     assertNoInlayShown()
@@ -74,10 +76,14 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
     assertTrue("Lens group should have at least 4 widgets", widgets.size >= 4)
     assertNotNull(
         "Lens group should contain Accept action",
-        widgets.find { widget -> widget is LensAction && widget.actionId == EditAcceptAction.ID })
+        widgets.find { widget ->
+          widget is LensActionWidget && widget.actionId == EditAcceptAction.ID
+        })
     assertNotNull(
         "Lens group should contain Show Undo action",
-        widgets.find { widget -> widget is LensAction && widget.actionId == EditUndoAction.ID })
+        widgets.find { widget ->
+          widget is LensActionWidget && widget.actionId == EditUndoAction.ID
+        })
 
     // Make sure a doc comment was inserted.
     assertTrue(hasJavadocComment(myFixture.editor.document.text))
