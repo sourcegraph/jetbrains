@@ -7,7 +7,6 @@ import com.sourcegraph.cody.agent.protocol.AutocompleteResult
 import com.sourcegraph.cody.agent.protocol.ChatHistoryResponse
 import com.sourcegraph.cody.agent.protocol.CompletionItemParams
 import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
-import com.sourcegraph.cody.agent.protocol.Event
 import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.agent.protocol.IgnorePolicySpec
 import com.sourcegraph.cody.agent.protocol.IgnoreTestParams
