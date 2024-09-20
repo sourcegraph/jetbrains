@@ -48,7 +48,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Fri, 20 Sep 2024 10:35:14 GMT
+            value: Fri, 20 Sep 2024 10:58:30 GMT
           - name: content-type
             value: text/plain; charset=utf-8
           - name: transfer-encoding
@@ -79,7 +79,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-20T10:35:13.980Z
+      startedDateTime: 2024-09-20T10:58:29.810Z
       time: 0
       timings:
         blocked: -1
@@ -106,7 +106,7 @@ log:
           - name: user-agent
             value: JetBrains / 6.0-localbuild
           - name: traceparent
-            value: 00-3242a758b262e2c7e69b4ccdc616bf25-ffe701046f988c12-01
+            value: 00-9b4e74b88c22decc5ed5bc93db05d813-cbd81cec67fc71b7-01
           - name: connection
             value: keep-alive
           - name: host
@@ -207,14 +207,14 @@ log:
             value: 6.0-localbuild
         url: https://sourcegraph.com/.api/completions/stream?api-version=2&client-name=jetbrains&client-version=6.0-localbuild
       response:
-        bodySize: 672
+        bodySize: 790
         content:
           mimeType: text/event-stream
-          size: 672
+          size: 790
           text: >+
             event: completion
 
-            data: {"deltaText":"/**\n * Imports the necessary Java utilities, including the ArrayList data structure.\n */","stopReason":"stop_sequence"}
+            data: {"deltaText":"\n/**\n * Imports the necessary Java utility classes, such as the `ArrayList` implementation of the `List` interface.\n */\n","stopReason":"stop_sequence"}
 
 
             event: done
@@ -224,15 +224,13 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Fri, 20 Sep 2024 10:35:17 GMT
+            value: Fri, 20 Sep 2024 10:58:31 GMT
           - name: content-type
             value: text/event-stream
           - name: transfer-encoding
             value: chunked
           - name: connection
             value: keep-alive
-          - name: retry-after
-            value: "598"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -250,12 +248,12 @@ log:
             value: 1; mode=block
           - name: strict-transport-security
             value: max-age=31536000; includeSubDomains; preload
-        headersSize: 1406
+        headersSize: 1299
         httpVersion: HTTP/1.1
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-20T10:35:16.531Z
+      startedDateTime: 2024-09-20T10:58:30.472Z
       time: 0
       timings:
         blocked: -1
@@ -342,7 +340,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Fri, 20 Sep 2024 10:35:13 GMT
+            value: Fri, 20 Sep 2024 10:58:28 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -373,7 +371,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-20T10:35:13.014Z
+      startedDateTime: 2024-09-20T10:58:28.630Z
       time: 0
       timings:
         blocked: -1
@@ -448,7 +446,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Fri, 20 Sep 2024 10:35:13 GMT
+            value: Fri, 20 Sep 2024 10:58:28 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -479,7 +477,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-20T10:35:13.047Z
+      startedDateTime: 2024-09-20T10:58:28.672Z
       time: 0
       timings:
         blocked: -1
@@ -554,7 +552,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Fri, 20 Sep 2024 10:35:13 GMT
+            value: Fri, 20 Sep 2024 10:58:29 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -585,7 +583,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-20T10:35:13.031Z
+      startedDateTime: 2024-09-20T10:58:28.652Z
       time: 0
       timings:
         blocked: -1
@@ -682,7 +680,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Fri, 20 Sep 2024 10:35:13 GMT
+            value: Fri, 20 Sep 2024 10:58:28 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -713,7 +711,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-20T10:35:13.064Z
+      startedDateTime: 2024-09-20T10:58:28.690Z
       time: 0
       timings:
         blocked: -1
@@ -798,7 +796,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Fri, 20 Sep 2024 10:35:13 GMT
+            value: Fri, 20 Sep 2024 10:58:29 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -829,7 +827,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-20T10:35:13.342Z
+      startedDateTime: 2024-09-20T10:58:29.000Z
       time: 0
       timings:
         blocked: -1
@@ -901,7 +899,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Fri, 20 Sep 2024 10:35:13 GMT
+            value: Fri, 20 Sep 2024 10:58:28 GMT
           - name: content-type
             value: application/json
           - name: transfer-encoding
@@ -932,7 +930,7 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-20T10:35:12.978Z
+      startedDateTime: 2024-09-20T10:58:28.590Z
       time: 0
       timings:
         blocked: -1
