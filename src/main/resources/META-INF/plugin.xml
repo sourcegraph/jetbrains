@@ -106,24 +106,25 @@
          -->
 
         <codeInsight.codeVisionProvider
-                id="CodyFocusCodeVisionProvider"
+                id="EditWorkingCodeVisionProvider"
                 implementation="com.sourcegraph.cody.edit.lenses.providers.EditWorkingCodeVisionProvider"/>
         <codeInsight.codeVisionProvider
-                id="CodyCancelCodeVisionProvider"
+                id="EditCancelCodeVisionProvider"
                 implementation="com.sourcegraph.cody.edit.lenses.providers.EditCancelCodeVisionProvider"/>
         <codeInsight.codeVisionProvider
-                id="CodyAcceptCodeVisionProvider"
+                id="EditAcceptCodeVisionProvider"
                 implementation="com.sourcegraph.cody.edit.lenses.providers.EditAcceptCodeVisionProvider"/>
         <codeInsight.codeVisionProvider
-                id="CodyDiffCodeVisionProvider"
+                id="EditDiffCodeVisionProvider"
                 implementation="com.sourcegraph.cody.edit.lenses.providers.EditDiffCodeVisionProvider"/>
         <codeInsight.codeVisionProvider
-                id="CodyUndoCodeVisionProvider"
+                id="EditUndoCodeVisionProvider"
                 implementation="com.sourcegraph.cody.edit.lenses.providers.EditUndoCodeVisionProvider"/>
         <codeInsight.codeVisionProvider
-                id="CodyRetryCodeVisionProvider"
+                id="EditRetryCodeVisionProvider"
                 implementation="com.sourcegraph.cody.edit.lenses.providers.EditRetryCodeVisionProvider"/>
 
+        <config.codeVisionGroupSettingProvider implementation="com.sourcegraph.cody.edit.lenses.EditCodeVisionGroupSettingProvider"/>
     </extensions>
 
     <applicationListeners>
