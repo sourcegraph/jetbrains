@@ -119,6 +119,7 @@ private constructor(
                       extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
                       capabilities =
                           ClientCapabilities(
+                              authentication = ClientCapabilities.AuthenticationEnum.Enabled,
                               edit = ClientCapabilities.EditEnum.Enabled,
                               editWorkspace = ClientCapabilities.EditWorkspaceEnum.Enabled,
                               codeLenses = ClientCapabilities.CodeLensesEnum.Enabled,

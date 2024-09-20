@@ -8,32 +8,46 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolCodeLens
+import com.sourcegraph.config.ConfigUtil
+import com.sourcegraph.utils.CodyEditorUtil
 import java.awt.Point
-import java.net.URI
 
 typealias TaskId = String
 
 interface LensListener {
-  fun onLensesUpdate(uri: URI, codeLenses: List<ProtocolCodeLens>)
+  fun onLensesUpdate(vf: VirtualFile, codeLenses: List<ProtocolCodeLens>)
 }
 
 @Service(Service.Level.PROJECT)
 class LensesService(val project: Project) {
-  @Volatile private var lensGroups = mutableMapOf<URI, List<ProtocolCodeLens>>()
+  @Volatile private var lensGroups = mutableMapOf<VirtualFile, List<ProtocolCodeLens>>()
 
   private val listeners = mutableListOf<LensListener>()
 
   fun getTaskIdsOfFirstVisibleLens(editor: Editor): TaskId? {
-    val lenses = getLenses(editor).sortedBy { it.range.start.line }
-    val visibleArea = editor.scrollingModel.visibleArea
-    val startPosition = editor.xyToVisualPosition(visibleArea.location)
-    val endPosition =
-        editor.xyToVisualPosition(
-            Point(visibleArea.x + visibleArea.width, visibleArea.y + visibleArea.height))
-    val cmd = lenses.find { it.range.start.line in (startPosition.line..endPosition.line) }?.command
-    val taskId = (cmd?.arguments?.firstOrNull() as com.google.gson.JsonPrimitive).asString
+    val lenses =
+        getLenses(editor)
+            .sortedBy { it.range.start.line }
+            .filter { it.command?.arguments?.isNotEmpty() == true }
+
+    val cmd =
+        if (ConfigUtil.isIntegrationTestModeEnabled()) {
+          // Unfortunately headless mode does not seem to properly support `scrollingModel` so for
+          // tests we just return first available lens
+          lenses.firstOrNull()?.command
+        } else {
+          val visibleArea = editor.scrollingModel.visibleArea
+          val startPosition = editor.xyToVisualPosition(visibleArea.location)
+          val endPosition =
+              editor.xyToVisualPosition(
+                  Point(visibleArea.x + visibleArea.width, visibleArea.y + visibleArea.height))
+          lenses.find { it.range.start.line in (startPosition.line..endPosition.line) }?.command
+        }
+
+    val taskId = (cmd?.arguments?.firstOrNull() as com.google.gson.JsonPrimitive?)?.asString
     return taskId
   }
 
@@ -46,10 +60,8 @@ class LensesService(val project: Project) {
   }
 
   fun updateLenses(uriString: String, codeLens: List<ProtocolCodeLens>) {
-    val uri = URI.create(uriString) ?: return
-    synchronized(this) { lensGroups[uri] = codeLens }
-
-    listeners.forEach { it.onLensesUpdate(uri, codeLens) }
+    val vf = CodyEditorUtil.findFileOrScratch(project, uriString) ?: return
+    synchronized(this) { lensGroups[vf] = codeLens }
 
     runInEdt {
       if (project.isDisposed) return@runInEdt
@@ -60,16 +72,16 @@ class LensesService(val project: Project) {
               CodeVisionHost.LensInvalidateSignal(
                   editor, EditCodeVisionProvider.allEditProviders().map { it.id }))
     }
+    listeners.forEach { it.onLensesUpdate(vf, codeLens) }
   }
 
   fun getLenses(editor: Editor): List<ProtocolCodeLens> {
     val document = editor.document
     val file = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return emptyList()
-    val virtualFile = file.viewProvider.virtualFile
-    val uri = URI.create(virtualFile.url) ?: return emptyList()
+    val vf = file.viewProvider.virtualFile
 
     synchronized(this) {
-      return lensGroups[uri] ?: emptyList()
+      return lensGroups[vf] ?: emptyList()
     }
   }
 
