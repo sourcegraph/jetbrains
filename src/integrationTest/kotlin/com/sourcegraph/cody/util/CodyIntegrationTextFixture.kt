@@ -248,9 +248,9 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
     try {
       return future.get(ASYNC_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     } catch (e: Exception) {
-      val stackTrace = e.stackTrace.joinToString("\n") { it.toString() }
+      val codeLenses = LensesService.getInstance(myFixture.project).getLenses(myFixture.editor)
       assertTrue(
-          "Error while awaiting condition after action $actionIdToRun: ${e.localizedMessage}\n$stackTrace",
+          "Error while awaiting after action $actionIdToRun. Expected lenses: [${expectedLenses.joinToString()}], got: $codeLenses",
           false)
       throw e
     }
