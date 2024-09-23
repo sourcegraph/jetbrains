@@ -3,6 +3,7 @@ package com.sourcegraph.cody.edit.lenses
 import com.intellij.codeInsight.codeVision.CodeVisionHost
 import com.intellij.codeInsight.codeVision.CodeVisionInitializer
 import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -77,7 +78,9 @@ class LensesService(val project: Project) {
 
   fun getLenses(editor: Editor): List<ProtocolCodeLens> {
     val document = editor.document
-    val file = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return emptyList()
+    val file =
+        runReadAction { PsiDocumentManager.getInstance(project).getPsiFile(document) }
+            ?: return emptyList()
     val vf = file.viewProvider.virtualFile
 
     synchronized(this) {

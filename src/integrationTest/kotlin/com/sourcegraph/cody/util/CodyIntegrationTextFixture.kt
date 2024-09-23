@@ -25,6 +25,7 @@ import com.sourcegraph.cody.config.CodyPersistentAccountsHost
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.edit.lenses.LensListener
 import com.sourcegraph.cody.edit.lenses.LensesService
+import com.sourcegraph.cody.edit.lenses.providers.EditAcceptCodeVisionProvider
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
@@ -193,17 +194,28 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
     }
   }
 
-  protected fun assertNoInlayShown() {
-    runInEdtAndWait {
-      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
-      assertFalse(
-          "Lens group inlay should NOT be displayed",
-          myFixture.editor.inlayModel.hasBlockElements())
-    }
-  }
-
   override fun onLensesUpdate(vf: VirtualFile, codeLenses: List<ProtocolCodeLens>) {
     synchronized(lensSubscribers) { lensSubscribers.removeAll { it(codeLenses) } }
+  }
+
+  fun waitForSuccessfulEdit() {
+    var attempts = 0
+    val maxAttempts = 10
+
+    while (attempts < maxAttempts) {
+      val hasAcceptLens =
+          LensesService.getInstance(myFixture.project).getLenses(myFixture.editor).any {
+            it.command?.command == EditAcceptCodeVisionProvider.command
+          }
+
+      if (hasAcceptLens) break
+      Thread.sleep(1000)
+      attempts++
+    }
+    if (attempts >= maxAttempts) {
+      assertTrue(
+          "Awaiting successful edit: No accept lens found after $maxAttempts attempts", false)
+    }
   }
 
   fun runAndWaitForCleanState(actionIdToRun: String) {

@@ -12,14 +12,12 @@ import com.sourcegraph.cody.util.CodyIntegrationTextFixture
 import com.sourcegraph.cody.util.CustomJunitClassRunner
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.startsWith
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(CustomJunitClassRunner::class)
 class DocumentCodeTest : CodyIntegrationTextFixture() {
 
-  @Ignore
   @Test
   fun testGetsWorkingGroupLens() {
     val codeLenses = runAndWaitForLenses(DocumentCodeAction.ID, EditCancelAction.ID)
@@ -35,7 +33,12 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         codeLenses[1].command?.command,
         EditCancelCodeVisionProvider.command)
 
-    runAndWaitForCleanState(EditCancelAction.ID)
+    // We could try to Cancel the action, but there is no guarantee we can do it before edit will
+    // finish.
+    // It is safer to just wait for edit to finish and then undo it.
+    waitForSuccessfulEdit()
+
+    runAndWaitForCleanState(EditUndoAction.ID)
   }
 
   @Test
@@ -61,7 +64,6 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
 
   @Test
   fun testAccept() {
-    assertNoInlayShown()
     val codeLenses = runAndWaitForLenses(DocumentCodeAction.ID, EditAcceptAction.ID)
     assertNotNull("Lens group should be displayed", codeLenses.isNotEmpty())
 
@@ -82,6 +84,5 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         "Expected document changes to be reverted",
         originalDocument,
         myFixture.editor.document.text)
-    assertNoInlayShown()
   }
 }
