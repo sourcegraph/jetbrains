@@ -16,6 +16,7 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.keymap.KeymapUtil
+import com.intellij.openapi.project.DumbAware
 import com.intellij.ui.JBColor
 import com.intellij.ui.SimpleTextAttributes
 import com.sourcegraph.cody.Icons
@@ -45,7 +46,7 @@ abstract class EditCodeVisionProviderMetadata {
 }
 
 abstract class EditCodeVisionProvider(private val metadata: EditCodeVisionProviderMetadata) :
-    CodeVisionProvider<Unit> {
+    CodeVisionProvider<Unit>, DumbAware {
   override val id: String = metadata.id
   override val groupId: String = "EditCodeVisionProvider"
   override val name: String = "Cody Edit Lenses"

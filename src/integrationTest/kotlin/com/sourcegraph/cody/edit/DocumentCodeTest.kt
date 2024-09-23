@@ -34,8 +34,7 @@ class DocumentCodeTest : CodyIntegrationTextFixture() {
         EditCancelCodeVisionProvider.command)
 
     // We could try to Cancel the action, but there is no guarantee we can do it before edit will
-    // finish.
-    // It is safer to just wait for edit to finish and then undo it.
+    // finish. It is safer to just wait for edit to finish and then undo it.
     waitForSuccessfulEdit()
 
     runAndWaitForCleanState(EditUndoAction.ID)

@@ -227,20 +227,22 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
       vararg expectedLenses: String
   ): List<ProtocolCodeLens> {
     val future = CompletableFuture<List<ProtocolCodeLens>>()
-    lensSubscribers.add { codeLenses ->
-      val error = codeLenses.find { it.command?.command == "cody.fixup.codelens.error" }
-      if (error != null) {
-        future.completeExceptionally(
-            IllegalStateException("Error group shown: ${error.command?.title}"))
-        return@add true
-      }
+    synchronized(lensSubscribers) {
+      lensSubscribers.add { codeLenses ->
+        val error = codeLenses.find { it.command?.command == "cody.fixup.codelens.error" }
+        if (error != null) {
+          future.completeExceptionally(
+              IllegalStateException("Error group shown: ${error.command?.title}"))
+          return@add false
+        }
 
-      if ((expectedLenses.isEmpty() && codeLenses.isEmpty()) ||
-          expectedLenses.all { expected -> codeLenses.any { it.command?.command == expected } }) {
-        future.complete(codeLenses)
-        return@add true
+        if ((expectedLenses.isEmpty() && codeLenses.isEmpty()) ||
+            expectedLenses.all { expected -> codeLenses.any { it.command?.command == expected } }) {
+          future.complete(codeLenses)
+          return@add true
+        }
+        return@add false
       }
-      return@add false
     }
 
     triggerAction(actionIdToRun)
