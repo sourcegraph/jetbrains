@@ -1,13 +1,15 @@
 package com.sourcegraph.cody.autocomplete
 
-import com.intellij.codeInsight.inline.completion.InlineCompletionElement
+import com.intellij.codeInsight.inline.completion.InlineCompletionEvent
 import com.intellij.codeInsight.inline.completion.InlineCompletionProvider
+import com.intellij.codeInsight.inline.completion.InlineCompletionProviderID
 import com.intellij.codeInsight.inline.completion.InlineCompletionRequest
+import com.intellij.codeInsight.inline.completion.InlineCompletionSuggestion
+import com.intellij.codeInsight.inline.completion.elements.InlineCompletionGrayTextElement
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -48,16 +50,15 @@ import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 class CodyInlineCompletionProvider : InlineCompletionProvider {
   private val logger = Logger.getInstance(CodyInlineCompletionProvider::class.java)
   private val currentJob = AtomicReference(CancellationToken())
+  override val id = InlineCompletionProviderID("Cody")
 
-  override suspend fun getProposals(
-      request: InlineCompletionRequest
-  ): List<InlineCompletionElement> {
+  override suspend fun getSuggestion(request: InlineCompletionRequest): InlineCompletionSuggestion {
     val editor = request.editor
-    val project = editor.project ?: return emptyList()
+    val project = editor.project ?: return InlineCompletionSuggestion.empty()
     val enabled = isImplicitAutocompleteEnabledForEditor(editor)
     val codyApplicationSettings = service<CodyApplicationSettings>()
     if (!enabled || !codyApplicationSettings.isExperimentalCompletionProviderEnabled) {
-      return emptyList()
+      return InlineCompletionSuggestion.empty()
     }
     val lookupString: String? = null // todo: can we use this provider for lookups?
 
@@ -74,15 +75,17 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
                   cancellationToken,
                   lookupString)
               .get()
-        } ?: return emptyList()
+        } ?: return InlineCompletionSuggestion.empty()
 
     val offset = request.endOffset
     val lineNumber = editor.document.getLineNumber(offset)
     val caretPositionInLine = offset - editor.document.getLineStartOffset(lineNumber)
 
-    return completions.items
-        .map { InlineCompletionElement(it.insertText.substring(caretPositionInLine)) }
-        .toList()
+    return InlineCompletionSuggestion.withFlow {
+      completions.items
+          .map { InlineCompletionGrayTextElement(it.insertText.substring(caretPositionInLine)) }
+          .forEach { emit(it) }
+    }
   }
 
   @RequiresEdt
@@ -210,7 +213,7 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
     return 0
   }
 
-  override fun isEnabled(event: DocumentEvent): Boolean {
+  override fun isEnabled(event: InlineCompletionEvent): Boolean {
     return ConfigUtil.isCodyEnabled() && ConfigUtil.isCodyAutocompleteEnabled()
   }
 }
