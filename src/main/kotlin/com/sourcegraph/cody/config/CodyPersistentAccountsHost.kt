@@ -11,7 +11,14 @@ class CodyPersistentAccountsHost(private val project: Project) : CodyAccountsHos
       token: String,
       id: String
   ) {
-    TelemetryV2.sendTelemetryEvent(project, "auth.signin.token", "clicked")
+    TelemetryV2.sendTelemetryEvent(
+      project,
+      "auth.signin.token",
+      "clicked",
+      TelemetryEventParameters(
+          billingMetadata = BillingMetadata(BillingProduct.CODY, BillingCategory.BILLABLE)
+      )
+    )
 
     val codyAccount = CodyAccount(login, displayName, server, id)
     val authManager = CodyAuthenticationManager.getInstance()

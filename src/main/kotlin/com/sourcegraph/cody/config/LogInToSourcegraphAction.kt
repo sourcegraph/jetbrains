@@ -19,7 +19,14 @@ class LogInToSourcegraphAction : BaseAddAccountWithTokenAction() {
     get() = SourcegraphServerPath.DEFAULT_HOST
 
   override fun actionPerformed(e: AnActionEvent) {
-    e.project?.let { TelemetryV2.sendTelemetryEvent(it, "auth.login", "clicked") }
+    e.project?.let { TelemetryV2.sendTelemetryEvent(
+      it,
+      "auth.login",
+      "clicked",
+      TelemetryEventParameters(
+          billingMetadata = BillingMetadata(BillingProduct.CODY, BillingCategory.BILLABLE)
+      ))
+    }
 
     val accountsHost = getCodyAccountsHost(e) ?: return
     val authMethod: SsoAuthMethod =
@@ -45,7 +52,14 @@ class AddCodyEnterpriseAccountAction : BaseAddAccountWithTokenAction() {
     get() = ""
 
   override fun actionPerformed(e: AnActionEvent) {
-    e.project?.let { TelemetryV2.sendTelemetryEvent(it, "auth.login", "clicked") }
+    e.project?.let { TelemetryV2.sendTelemetryEvent(
+      it,
+      "auth.login",
+      "clicked",
+      TelemetryEventParameters(
+          billingMetadata = BillingMetadata(BillingProduct.CODY, BillingCategory.BILLABLE)
+      ))
+    }
 
     val accountsHost = getCodyAccountsHost(e) ?: return
     val dialog =
