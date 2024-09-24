@@ -5,6 +5,10 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformCoreDataKeys
 import com.intellij.openapi.project.Project
 import com.intellij.util.ui.JBUI
+import com.sourcegraph.cody.agent.protocol.BillingCategory
+import com.sourcegraph.cody.agent.protocol.BillingMetadata
+import com.sourcegraph.cody.agent.protocol.BillingProduct
+import com.sourcegraph.cody.agent.protocol.TelemetryEventParameters
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.auth.SsoAuthMethod
 import com.sourcegraph.cody.telemetry.TelemetryV2

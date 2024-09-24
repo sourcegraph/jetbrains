@@ -3,6 +3,7 @@ package com.sourcegraph.cody.telemetry
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.protocol.BillingMetadata
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
 import com.sourcegraph.cody.agent.protocol.TelemetryEventParameters
 
