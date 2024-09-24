@@ -3,7 +3,7 @@ package com.intellij.codeInsight.inline.completion
 
 import com.intellij.codeInsight.inline.completion.elements.InlineCompletionElement
 import com.intellij.codeInsight.inline.completion.logs.InlineCompletionUsageTracker.ShownEvents.FinishType
-import java.util.*
+import java.util.EventListener
 
 sealed class InlineCompletionEventType {
   class Request(

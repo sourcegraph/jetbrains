@@ -1,4 +1,4 @@
 @ApiStatus.Experimental
-package intellij233.completion;
+package com.intellij.codeInsight.inline.completion;
 
 import org.jetbrains.annotations.ApiStatus;

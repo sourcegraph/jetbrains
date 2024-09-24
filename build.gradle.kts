@@ -80,10 +80,9 @@ repositories {
 }
 
 sourceSets {
-  val intellij233 by creating {
-    kotlin.srcDir("src/main/kotlin/intellij233/completion")
-    val configuration = configurations["compileClasspath"]
-    compileClasspath += configuration
+  create("intellij233") {
+    kotlin.srcDir("src/intellij233/kotlin")
+    compileClasspath += configurations["compileClasspath"]
     runtimeClasspath += configurations["runtimeClasspath"]
   }
 
@@ -91,6 +90,10 @@ sourceSets {
     kotlin.srcDir("src/integrationTest/kotlin")
     compileClasspath += main.get().output + configurations.testCompileClasspath.get()
     runtimeClasspath += compileClasspath + configurations.testRuntimeClasspath.get()
+  }
+
+  getByName("main") {
+    compileClasspath +=  getByName("intellij233").compileClasspath
   }
 }
 
@@ -144,8 +147,6 @@ dependencies {
     testFramework(TestFrameworkType.Platform)
   }
 
-  implementation(sourceSets["intellij233"].output)
-
   implementation("org.commonmark:commonmark:0.22.0")
   implementation("org.commonmark:commonmark-ext-gfm-tables:0.22.0")
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.23.1")
@@ -174,8 +175,8 @@ spotless {
     ktfmt()
     trimTrailingWhitespace()
     target("src/**/*.kt")
-    targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**/*.kt")
-    targetExclude("src/main/kotlin/intellij233/**")
+    targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**")
+    targetExclude("src/intellij233/**")
     toggleOffOn()
   }
 }
@@ -516,14 +517,8 @@ tasks {
     withType<JavaCompile> {
       sourceCompatibility = it
       targetCompatibility = it
-      options.compilerArgs.add("-Xlint:-path")
-      doFirst {
-        classpath =
-            files(
-                classpath.files.filter {
-                  !it.path.contains("com/intellij/codeInsight/inline/completion")
-                })
-      }
+
+
     }
     withType<KotlinJvmCompile> { compilerOptions.jvmTarget.set(JvmTarget.JVM_17) }
   }
