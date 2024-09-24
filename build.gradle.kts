@@ -159,27 +159,27 @@ dependencies {
   testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1")
 }
 
-spotless {
-  lineEndings = com.diffplug.spotless.LineEnding.UNIX
-  java {
-    target("src/*/java/**/*.java")
-    importOrder()
-    removeUnusedImports()
-    googleJavaFormat()
-  }
-  kotlinGradle {
-    ktfmt()
-    trimTrailingWhitespace()
-  }
-  kotlin {
-    ktfmt()
-    trimTrailingWhitespace()
-    target("src/**/*.kt")
-    targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**")
-    targetExclude("src/intellij233/**")
-    toggleOffOn()
-  }
-}
+//spotless {
+//  lineEndings = com.diffplug.spotless.LineEnding.UNIX
+//  java {
+//    target("src/*/java/**/*.java")
+//    importOrder()
+//    removeUnusedImports()
+//    googleJavaFormat()
+//  }
+//  kotlinGradle {
+//    ktfmt()
+//    trimTrailingWhitespace()
+//  }
+//  kotlin {
+//    ktfmt()
+//    trimTrailingWhitespace()
+//    target("src/**/*.kt")
+//    targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**")
+//    targetExclude("src/intellij233/**")
+//    toggleOffOn()
+//  }
+//}
 
 java {
   toolchain {
