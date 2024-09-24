@@ -46,7 +46,13 @@ class TelemetryV2 {
       }
     }
 
-    fun sendCodeGenerationEvent(project: Project, feature: String, action: String, code: String, billingMetadata: BillingMetadata? = null) {
+    fun sendCodeGenerationEvent(
+        project: Project,
+        feature: String,
+        action: String,
+        code: String,
+        billingMetadata: BillingMetadata? = null
+    ) {
       val op =
           if (action.startsWith("copy")) "copy"
           else if (action.startsWith("insert")) "insert" else "save"
@@ -61,7 +67,10 @@ class TelemetryV2 {
           feature = feature,
           action = action,
           parameters =
-              TelemetryEventParameters(metadata = metadata, privateMetadata = privateMetadata, billingMetadata = billingMetadata))
+              TelemetryEventParameters(
+                  metadata = metadata,
+                  privateMetadata = privateMetadata,
+                  billingMetadata = billingMetadata))
     }
   }
 }

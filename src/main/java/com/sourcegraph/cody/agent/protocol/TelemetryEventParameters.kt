@@ -1,18 +1,15 @@
 package com.sourcegraph.cody.agent.protocol
 
 enum class BillingProduct {
-    CODY
+  CODY
 }
 
 enum class BillingCategory {
-    CORE,
-    BILLABLE
+  CORE,
+  BILLABLE
 }
 
-data class BillingMetadata (
-    val product: BillingProduct,
-    val category: BillingCategory
-)
+data class BillingMetadata(val product: BillingProduct, val category: BillingCategory)
 
 data class TelemetryEventParameters(
     val version: Long? = null,

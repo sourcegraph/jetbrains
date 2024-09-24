@@ -20,13 +20,12 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
     val pastedCode = event.newFragment.toString()
     if (pastedCode.isNotBlank() && CodeEditorFactory.lastCopiedText == pastedCode) {
       CodeEditorFactory.lastCopiedText = null
-        TelemetryV2.sendCodeGenerationEvent(
-            project,
-            feature = "keyDown",
-            action = "paste",
-            pastedCode,
-            billingMetadata = BillingMetadata(BillingProduct.CODY, BillingCategory.CORE)
-        )
+      TelemetryV2.sendCodeGenerationEvent(
+          project,
+          feature = "keyDown",
+          action = "paste",
+          pastedCode,
+          billingMetadata = BillingMetadata(BillingProduct.CODY, BillingCategory.CORE))
     }
   }
 

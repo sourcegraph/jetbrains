@@ -68,9 +68,7 @@ class CodyAccountListModel(private val project: Project) :
         "auth.signin.token",
         "clicked",
         TelemetryEventParameters(
-            billingMetadata = BillingMetadata(BillingProduct.CODY, BillingCategory.BILLABLE)
-        )
-    )
+            billingMetadata = BillingMetadata(BillingProduct.CODY, BillingCategory.BILLABLE)))
 
     val account = CodyAccount(login, displayName, server, id)
     if (accountsListModel.isEmpty) {
