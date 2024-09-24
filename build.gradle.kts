@@ -79,6 +79,21 @@ repositories {
   }
 }
 
+sourceSets {
+  val intellij233 by creating {
+    kotlin.srcDir("src/main/kotlin/intellij233/completion")
+    val configuration = configurations["compileClasspath"]
+    compileClasspath += configuration
+    runtimeClasspath += configurations["runtimeClasspath"]
+  }
+
+  create("integrationTest") {
+    kotlin.srcDir("src/integrationTest/kotlin")
+    compileClasspath += main.get().output + configurations.testCompileClasspath.get()
+    runtimeClasspath += compileClasspath + configurations.testRuntimeClasspath.get()
+  }
+}
+
 intellijPlatform {
   pluginConfiguration {
     name = properties("pluginName")
@@ -129,6 +144,8 @@ dependencies {
     testFramework(TestFrameworkType.Platform)
   }
 
+  implementation(sourceSets["intellij233"].output)
+
   implementation("org.commonmark:commonmark:0.22.0")
   implementation("org.commonmark:commonmark-ext-gfm-tables:0.22.0")
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.23.1")
@@ -158,6 +175,7 @@ spotless {
     trimTrailingWhitespace()
     target("src/**/*.kt")
     targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**/*.kt")
+    targetExclude("src/main/kotlin/intellij233/**")
     toggleOffOn()
   }
 }
@@ -498,6 +516,14 @@ tasks {
     withType<JavaCompile> {
       sourceCompatibility = it
       targetCompatibility = it
+      options.compilerArgs.add("-Xlint:-path")
+      doFirst {
+        classpath =
+            files(
+                classpath.files.filter {
+                  !it.path.contains("com/intellij/codeInsight/inline/completion")
+                })
+      }
     }
     withType<KotlinJvmCompile> { compilerOptions.jvmTarget.set(JvmTarget.JVM_17) }
   }
@@ -584,19 +610,6 @@ tasks {
   }
 
   test { dependsOn(project.tasks.getByPath("buildCody")) }
-
-  configurations {
-    create("integrationTestImplementation") { extendsFrom(configurations.testImplementation.get()) }
-    create("integrationTestRuntimeClasspath") { extendsFrom(configurations.testRuntimeOnly.get()) }
-  }
-
-  sourceSets {
-    create("integrationTest") {
-      kotlin.srcDir("src/integrationTest/kotlin")
-      compileClasspath += main.get().output + configurations.testCompileClasspath.get()
-      runtimeClasspath += compileClasspath + configurations.testRuntimeClasspath.get()
-    }
-  }
 
   register<Test>("integrationTest") {
     description = "Runs the integration tests."
