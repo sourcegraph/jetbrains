@@ -152,7 +152,7 @@ spotless {
     ktfmt()
     trimTrailingWhitespace()
     target("src/**/*.kt")
-    targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**/*.kt")
+    targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**")
     toggleOffOn()
   }
 }
@@ -168,6 +168,14 @@ kotlin {
   jvmToolchain {
     languageVersion.set(JavaLanguageVersion.of(javaVersion.toInt()))
     vendor = JvmVendorSpec.JETBRAINS
+  }
+}
+
+sourceSets {
+  create("integrationTest") {
+    kotlin.srcDir("src/integrationTest/kotlin")
+    compileClasspath += main.get().output + configurations.testCompileClasspath.get()
+    runtimeClasspath += compileClasspath + configurations.testRuntimeClasspath.get()
   }
 }
 
@@ -499,6 +507,8 @@ tasks {
 
   buildPlugin {
     dependsOn(project.tasks.getByPath("buildCody"))
+    val get = composedJar.get()
+    get.exclude("com/intellij/codeInsight/inline/completion/**")
     from(
         fileTree(buildCodyDir) {
           include("*")
@@ -579,19 +589,6 @@ tasks {
   }
 
   test { dependsOn(project.tasks.getByPath("buildCody")) }
-
-  configurations {
-    create("integrationTestImplementation") { extendsFrom(configurations.testImplementation.get()) }
-    create("integrationTestRuntimeClasspath") { extendsFrom(configurations.testRuntimeOnly.get()) }
-  }
-
-  sourceSets {
-    create("integrationTest") {
-      kotlin.srcDir("src/integrationTest/kotlin")
-      compileClasspath += main.get().output + configurations.testCompileClasspath.get()
-      runtimeClasspath += compileClasspath + configurations.testRuntimeClasspath.get()
-    }
-  }
 
   register<Test>("integrationTest") {
     description = "Runs the integration tests."
