@@ -12,6 +12,8 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindowManager
 import com.sourcegraph.cody.CodyToolWindowFactory
+import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.protocol_generated.Git_CodebaseNameParams
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
 import com.sourcegraph.cody.config.CodyAccount
@@ -31,8 +33,8 @@ import com.sourcegraph.config.CodyApplicationService
 import com.sourcegraph.config.CodyProjectService
 import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.config.UserLevelConfig
-import com.sourcegraph.vcs.convertGitCloneURLToCodebaseNameOrError
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 
 class SettingsMigration : Activity {
 
@@ -131,13 +133,13 @@ class SettingsMigration : Activity {
     val enhancedContextState =
         HistoryService.getInstance(project).state.defaultEnhancedContext ?: return
 
-    migrateUrlsToCodebaseNames(enhancedContextState)
+    migrateUrlsToCodebaseNames(project, enhancedContextState)
 
     HistoryService.getInstance(project)
         .state
         .chats
         .mapNotNull(ChatState::enhancedContext)
-        .forEach(Companion::migrateUrlsToCodebaseNames)
+        .forEach { ctx -> migrateUrlsToCodebaseNames(project, ctx) }
   }
 
   private val modelToProviderAndTitle =
@@ -428,22 +430,26 @@ class SettingsMigration : Activity {
   companion object {
     private val LOG = logger<SettingsMigration>()
 
-    fun migrateUrlsToCodebaseNames(enhancedContextState: EnhancedContextState) {
-      val remoteRepositories =
-          enhancedContextState.remoteRepositories
-              .onEach { remoteRepositoryState ->
-                runCatching {
-                      remoteRepositoryState.remoteUrl?.let { remoteUrl ->
-                        convertGitCloneURLToCodebaseNameOrError(remoteUrl)
+    fun migrateUrlsToCodebaseNames(project: Project, enhancedContextState: EnhancedContextState) {
+      CodyAgentService.withAgent(project) { agent ->
+        val remoteRepositories =
+            enhancedContextState.remoteRepositories
+                .onEach { remoteRepositoryState ->
+                  runCatching {
+                        remoteRepositoryState.remoteUrl?.let { remoteUrl ->
+                          agent.server
+                              .git_codebaseName(Git_CodebaseNameParams(remoteUrl))
+                              .get(10, TimeUnit.SECONDS)
+                        }
                       }
-                    }
-                    .getOrNull()
-                    ?.let { remoteRepositoryState.codebaseName = it.value }
-              }
-              .filter { it.codebaseName != null }
-              .distinctBy { it.codebaseName }
-              .toMutableList()
-      enhancedContextState.remoteRepositories = remoteRepositories
+                      .getOrNull()
+                      ?.let { remoteRepositoryState.codebaseName = it }
+                }
+                .filter { it.codebaseName != null }
+                .distinctBy { it.codebaseName }
+                .toMutableList()
+        enhancedContextState.remoteRepositories = remoteRepositories
+      }
     }
 
     fun organiseChatsByAccount(project: Project) {

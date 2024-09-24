@@ -27,11 +27,12 @@ class CodyAgentCodebase(val project: Project) {
 
   fun onFileOpened(file: VirtualFile?) {
     ApplicationManager.getApplication().executeOnPooledThread {
-      val repositoryName = RepoUtil.findRepositoryName(project, file)
-      if (repositoryName != null && inferredUrl.getNow(null) != repositoryName) {
-        inferredUrl.complete(repositoryName)
-        CodyAgentService.withAgent(project) {
-          it.server.extensionConfiguration_didChange(ConfigUtil.getAgentConfiguration(project))
+      RepoUtil.findRepositoryName(project, file)?.thenAccept { repositoryName ->
+        if (repositoryName != null && inferredUrl.getNow(null) != repositoryName) {
+          inferredUrl.complete(repositoryName)
+          CodyAgentService.withAgent(project) {
+            it.server.extensionConfiguration_didChange(ConfigUtil.getAgentConfiguration(project))
+          }
         }
       }
     }

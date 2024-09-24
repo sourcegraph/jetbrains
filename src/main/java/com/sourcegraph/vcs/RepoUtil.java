@@ -1,7 +1,5 @@
 package com.sourcegraph.vcs;
 
-import static com.sourcegraph.vcs.ConvertUtilKt.convertGitCloneURLToCodebaseNameOrError;
-
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -9,12 +7,15 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.vcsUtil.VcsUtil;
+import com.sourcegraph.cody.agent.CodyAgentService;
+import com.sourcegraph.cody.agent.protocol_generated.Git_CodebaseNameParams;
 import com.sourcegraph.cody.config.CodyProjectSettings;
 import com.sourcegraph.common.ErrorNotification;
 import git4idea.GitVcs;
 import git4idea.repo.GitRepository;
 import java.io.File;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.idea.perforce.perforce.PerforceSettings;
@@ -26,36 +27,18 @@ public class RepoUtil {
   // relative to the repository root. If the repository URI cannot be
   // determined, a RepoInfo with empty strings is returned.
   @NotNull
-  public static RepoInfo getRepoInfo(@NotNull Project project, @NotNull VirtualFile file) {
+  public static CompletableFuture<RepoInfo> getRepoInfo(
+      @NotNull Project project, @NotNull VirtualFile file) {
     VCSType vcsType = getVcsType(project, file);
-    String relativePath = "";
-    String remoteUrl = "";
-    String remoteBranchName = "";
     CodyProjectSettings codyProjectSettings = CodyProjectSettings.getInstance(project);
+    String repoRootPath = getRepoRootPath(project, file);
+    if (repoRootPath == null) {
+      return CompletableFuture.completedFuture(new RepoInfo(vcsType, "", "", ""));
+    }
+
+    CompletableFuture<String> urlFuture;
     try {
-      String repoRootPath = getRepoRootPath(project, file);
-      if (repoRootPath == null) {
-        return new RepoInfo(vcsType, "", "", "");
-      }
-
-      // Determine file path, relative to repository root.
-      relativePath =
-          file.getPath().length() > repoRootPath.length()
-              ? file.getPath().substring(repoRootPath.length() + 1)
-              : "";
-      if (vcsType == VCSType.PERFORCE && relativePath.indexOf('/') != -1) {
-        relativePath = relativePath.substring(relativePath.indexOf("/") + 1);
-      }
-
-      remoteUrl = getRemoteRepoUrl(project, file);
-      remoteUrl = doReplacements(codyProjectSettings, remoteUrl);
-
-      // If the current branch doesn't exist on the remote
-      // use the default branch for the project.
-      remoteBranchName = getRemoteBranchName(project, file);
-      if (remoteBranchName == null) {
-        remoteBranchName = codyProjectSettings.getDefaultBranchName();
-      }
+      urlFuture = getRemoteRepoUrl(project, file);
     } catch (Exception err) {
       String message;
       if (err.getClass().getName().contains("PerforceAuthenticationException")) {
@@ -66,16 +49,35 @@ public class RepoUtil {
       ErrorNotification.INSTANCE.show(project, message);
       logger.warn(message);
       logger.warn(err);
+      return CompletableFuture.completedFuture(new RepoInfo(vcsType, "", "", ""));
     }
-    return new RepoInfo(
-        vcsType,
-        remoteUrl,
-        remoteBranchName != null ? remoteBranchName : codyProjectSettings.getDefaultBranchName(),
-        relativePath);
+
+    return urlFuture.thenApply(
+        remoteUrl -> {
+          // Determine file path, relative to repository root.
+          String relativePath =
+              file.getPath().length() > repoRootPath.length()
+                  ? file.getPath().substring(repoRootPath.length() + 1)
+                  : "";
+          if (vcsType == VCSType.PERFORCE && relativePath.indexOf('/') != -1) {
+            relativePath = relativePath.substring(relativePath.indexOf("/") + 1);
+          }
+
+          // If the current branch doesn't exist on the remote
+          // use the default branch for the project.
+          var remoteBranchName = getRemoteBranchName(project, file);
+          return new RepoInfo(
+              vcsType,
+              doReplacements(codyProjectSettings, remoteUrl),
+              remoteBranchName != null
+                  ? remoteBranchName
+                  : codyProjectSettings.getDefaultBranchName(),
+              relativePath);
+        });
   }
 
   @Nullable
-  public static String findRepositoryName(
+  public static CompletableFuture<String> findRepositoryName(
       @NotNull Project project, @Nullable VirtualFile currentFile) {
     VirtualFile fileFromTheRepository =
         currentFile != null
@@ -87,7 +89,8 @@ public class RepoUtil {
     try {
       return RepoUtil.getRemoteRepoUrl(project, fileFromTheRepository);
     } catch (Exception e) {
-      return RepoUtil.getSimpleRepositoryName(project, fileFromTheRepository);
+      return CompletableFuture.completedFuture(
+          RepoUtil.getSimpleRepositoryName(project, fileFromTheRepository));
     }
   }
 
@@ -121,18 +124,27 @@ public class RepoUtil {
 
   // Returned format: github.com:sourcegraph/sourcegraph.git
   // Must be called from non-EDT context
-  public static @NotNull String getRemoteRepoUrl(
+  public static @NotNull CompletableFuture<String> getRemoteRepoUrl(
       @NotNull Project project, @NotNull VirtualFile file) throws Exception {
     Repository repository = VcsRepositoryManager.getInstance(project).getRepositoryForFile(file);
     VCSType vcsType = getVcsType(project, file);
 
     if (vcsType == VCSType.GIT && repository != null) {
       String cloneURL = GitUtil.getRemoteRepoUrl((GitRepository) repository, project);
-      return convertGitCloneURLToCodebaseNameOrError(cloneURL).getValue();
+      var repoURL = new CompletableFuture<String>();
+      CodyAgentService.withAgent(
+          project,
+          agent ->
+              agent
+                  .getServer()
+                  .git_codebaseName(new Git_CodebaseNameParams(cloneURL))
+                  .thenAccept(repoURL::complete));
+
+      return repoURL;
     }
 
     if (vcsType == VCSType.PERFORCE) {
-      return PerforceUtil.getRemoteRepoUrl(project, file);
+      return CompletableFuture.completedFuture(PerforceUtil.getRemoteRepoUrl(project, file));
     }
 
     if (repository == null) {

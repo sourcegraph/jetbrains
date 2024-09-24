@@ -12,7 +12,6 @@ import com.sourcegraph.common.ErrorNotification;
 import com.sourcegraph.common.ui.DumbAwareEDTAction;
 import com.sourcegraph.find.PreviewContent;
 import com.sourcegraph.find.SourcegraphVirtualFile;
-import com.sourcegraph.vcs.RepoInfo;
 import com.sourcegraph.vcs.RepoUtil;
 import com.sourcegraph.vcs.VCSType;
 import org.jetbrains.annotations.NotNull;
@@ -40,8 +39,7 @@ public abstract class FileActionBase extends DumbAwareEDTAction {
     LogicalPosition selectionStartPosition = getSelectionStartPosition(editor);
     LogicalPosition selectionEndPosition = getSelectionEndPosition(editor);
 
-    if (currentFile instanceof SourcegraphVirtualFile) {
-      SourcegraphVirtualFile sourcegraphFile = (SourcegraphVirtualFile) currentFile;
+    if (currentFile instanceof SourcegraphVirtualFile sourcegraphFile) {
       handleFileUri(
           project,
           URLBuilder.buildSourcegraphBlobUrl(
@@ -55,36 +53,40 @@ public abstract class FileActionBase extends DumbAwareEDTAction {
       ApplicationManager.getApplication()
           .executeOnPooledThread(
               () -> {
-                RepoInfo repoInfo = RepoUtil.getRepoInfo(project, currentFile);
-                if (repoInfo.remoteUrl.isEmpty()) {
-                  ErrorNotification.INSTANCE.show(
-                      project,
-                      "The file is not under version control that your IDE + this plugin supports. The plugin currently only supports Git and Perforce. For the IDE part, make sure you have the Git or Perforce plugin (whichever you need) installed. If you are seeing this error for a supported VCS with the plugin installed, please reach out to support@sourcegraph.com.");
-                  return;
-                }
+                RepoUtil.getRepoInfo(project, currentFile)
+                    .thenAccept(
+                        repoInfo -> {
+                          if (repoInfo.remoteUrl.isEmpty()) {
+                            ErrorNotification.INSTANCE.show(
+                                project,
+                                "The file is not under version control that your IDE + this plugin supports. The plugin currently only supports Git and Perforce. For the IDE part, make sure you have the Git or Perforce plugin (whichever you need) installed. If you are seeing this error for a supported VCS with the plugin installed, please reach out to support@sourcegraph.com.");
+                            return;
+                          }
 
-                String url;
-                if (repoInfo.vcsType == VCSType.PERFORCE) {
-                  // Our "editor" backend doesn't support Perforce, but we have all the info we
-                  // need, so we'll go to the final URL directly.
-                  url =
-                      URLBuilder.buildSourcegraphBlobUrl(
-                          repoInfo.getCodeHostUrl() + "/" + repoInfo.getRepoName(),
-                          null,
-                          repoInfo.relativePath,
-                          selectionStartPosition,
-                          selectionEndPosition);
-                } else {
-                  url =
-                      URLBuilder.buildEditorFileUrl(
-                          project,
-                          repoInfo.remoteUrl,
-                          repoInfo.remoteBranchName,
-                          repoInfo.relativePath,
-                          selectionStartPosition,
-                          selectionEndPosition);
-                }
-                handleFileUri(project, url);
+                          String url;
+                          if (repoInfo.vcsType == VCSType.PERFORCE) {
+                            // Our "editor" backend doesn't support Perforce, but we have all the
+                            // info we
+                            // need, so we'll go to the final URL directly.
+                            url =
+                                URLBuilder.buildSourcegraphBlobUrl(
+                                    repoInfo.getCodeHostUrl() + "/" + repoInfo.getRepoName(),
+                                    null,
+                                    repoInfo.relativePath,
+                                    selectionStartPosition,
+                                    selectionEndPosition);
+                          } else {
+                            url =
+                                URLBuilder.buildEditorFileUrl(
+                                    project,
+                                    repoInfo.remoteUrl,
+                                    repoInfo.remoteBranchName,
+                                    repoInfo.relativePath,
+                                    selectionStartPosition,
+                                    selectionEndPosition);
+                          }
+                          handleFileUri(project, url);
+                        });
               });
     }
   }
