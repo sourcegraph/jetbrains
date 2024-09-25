@@ -3,7 +3,7 @@ package com.intellij.codeInsight.inline.completion.session
 
 import com.intellij.codeInsight.inline.completion.InlineCompletionProvider
 import com.intellij.codeInsight.inline.completion.InlineCompletionRequest
-import com.intellij.codeInsight.inline.completion.utils.InlineCompletionJob
+import completion.utils.InlineCompletionJob
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.Editor
@@ -22,12 +22,12 @@ class InlineCompletionSession private constructor(
     Disposer.register(this, context)
   }
 
-  private val myJob = AtomicReference<InlineCompletionJob?>()
+  private val myJob = AtomicReference<completion.utils.InlineCompletionJob?>()
 
-  internal val job: InlineCompletionJob?
+  internal val job: completion.utils.InlineCompletionJob?
     get() = myJob.get()
 
-  internal fun assignJob(job: InlineCompletionJob) {
+  internal fun assignJob(job: completion.utils.InlineCompletionJob) {
     val currentJob = myJob.getAndSet(job)
     check(currentJob == null) { "Job is already assigned to a session." }
     Disposer.register(this, job)

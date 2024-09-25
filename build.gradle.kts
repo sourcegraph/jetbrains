@@ -79,24 +79,6 @@ repositories {
   }
 }
 
-sourceSets {
-  create("intellij233") {
-    kotlin.srcDir("src/intellij233/kotlin")
-    compileClasspath += configurations["compileClasspath"]
-    runtimeClasspath += configurations["runtimeClasspath"]
-  }
-
-  create("integrationTest") {
-    kotlin.srcDir("src/integrationTest/kotlin")
-    compileClasspath += main.get().output + configurations.testCompileClasspath.get()
-    runtimeClasspath += compileClasspath + configurations.testRuntimeClasspath.get()
-  }
-
-  getByName("main") {
-    compileClasspath +=  getByName("intellij233").compileClasspath
-  }
-}
-
 intellijPlatform {
   pluginConfiguration {
     name = properties("pluginName")
@@ -159,27 +141,26 @@ dependencies {
   testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1")
 }
 
-//spotless {
-//  lineEndings = com.diffplug.spotless.LineEnding.UNIX
-//  java {
-//    target("src/*/java/**/*.java")
-//    importOrder()
-//    removeUnusedImports()
-//    googleJavaFormat()
-//  }
-//  kotlinGradle {
-//    ktfmt()
-//    trimTrailingWhitespace()
-//  }
-//  kotlin {
-//    ktfmt()
-//    trimTrailingWhitespace()
-//    target("src/**/*.kt")
-//    targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**")
-//    targetExclude("src/intellij233/**")
-//    toggleOffOn()
-//  }
-//}
+spotless {
+  lineEndings = com.diffplug.spotless.LineEnding.UNIX
+  java {
+    target("src/*/java/**/*.java")
+    importOrder()
+    removeUnusedImports()
+    googleJavaFormat()
+  }
+  kotlinGradle {
+    ktfmt()
+    trimTrailingWhitespace()
+  }
+  kotlin {
+    ktfmt()
+    trimTrailingWhitespace()
+    target("src/**/*.kt")
+    targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**")
+    toggleOffOn()
+  }
+}
 
 java {
   toolchain {
@@ -192,6 +173,14 @@ kotlin {
   jvmToolchain {
     languageVersion.set(JavaLanguageVersion.of(javaVersion.toInt()))
     vendor = JvmVendorSpec.JETBRAINS
+  }
+}
+
+sourceSets {
+  create("integrationTest") {
+    kotlin.srcDir("src/integrationTest/kotlin")
+    compileClasspath += main.get().output + configurations.testCompileClasspath.get()
+    runtimeClasspath += compileClasspath + configurations.testRuntimeClasspath.get()
   }
 }
 
@@ -517,14 +506,13 @@ tasks {
     withType<JavaCompile> {
       sourceCompatibility = it
       targetCompatibility = it
-
-
     }
     withType<KotlinJvmCompile> { compilerOptions.jvmTarget.set(JvmTarget.JVM_17) }
   }
 
   buildPlugin {
     dependsOn(project.tasks.getByPath("buildCody"))
+    exclude("com/intellij/codeInsight/inline/completion")
     from(
         fileTree(buildCodyDir) {
           include("*")

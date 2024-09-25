@@ -25,7 +25,7 @@ internal class SafeInlineCompletionExecutor(private val scope: CoroutineScope) {
   private val lastRequestedJobTimestamp = AtomicLong(0)
   private val lastExecutedJobTimestamp = AtomicLong(0)
 
-  private val nextTask = Channel<JobWithTimestamp>(capacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+  private val nextTask = Channel<completion.utils.SafeInlineCompletionExecutor.JobWithTimestamp>(capacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
   init {
     scope.launch {
@@ -42,18 +42,22 @@ internal class SafeInlineCompletionExecutor(private val scope: CoroutineScope) {
   }
 
   @RequiresEdt
-  fun switchJobSafely(onJob: (InlineCompletionJob) -> Unit, block: suspend CoroutineScope.() -> Unit) {
+  fun switchJobSafely(onJob: (completion.utils.InlineCompletionJob) -> Unit, block: suspend CoroutineScope.() -> Unit) {
     if (checkNotCancelled()) {
       return
     }
 
     // create a new lazy job
     val nextJob = scope.launch(ClientId.coroutineContext(), start = CoroutineStart.LAZY, block = block)
-    onJob(InlineCompletionJob(nextJob))
-    val jobWithTimestamp = JobWithTimestamp(nextJob, lastRequestedJobTimestamp.incrementAndGet())
+    onJob(completion.utils.InlineCompletionJob(nextJob))
+    val jobWithTimestamp =
+      completion.utils.SafeInlineCompletionExecutor.JobWithTimestamp(
+        nextJob,
+        lastRequestedJobTimestamp.incrementAndGet()
+      )
     val sendResult = nextTask.trySend(jobWithTimestamp)
     if (!sendResult.isSuccess) {
-      LOG.error("Cannot schedule a request.")
+      completion.utils.SafeInlineCompletionExecutor.Companion.LOG.error("Cannot schedule a request.")
     }
   }
 
@@ -76,7 +80,7 @@ internal class SafeInlineCompletionExecutor(private val scope: CoroutineScope) {
   private fun checkNotCancelled(): Boolean {
     val isCancelled = !scope.isActive
     if (isCancelled) {
-      LOG.error("Inline completion executor is cancelled.")
+      completion.utils.SafeInlineCompletionExecutor.Companion.LOG.error("Inline completion executor is cancelled.")
     }
     return isCancelled
   }

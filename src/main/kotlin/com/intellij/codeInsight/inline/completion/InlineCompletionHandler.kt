@@ -9,7 +9,7 @@ import com.intellij.codeInsight.inline.completion.session.InlineCompletionContex
 import com.intellij.codeInsight.inline.completion.session.InlineCompletionSession
 import com.intellij.codeInsight.inline.completion.session.InlineCompletionSessionManager
 import com.intellij.codeInsight.inline.completion.tooltip.onboarding.InlineCompletionOnboardingListener
-import com.intellij.codeInsight.inline.completion.utils.SafeInlineCompletionExecutor
+import completion.utils.SafeInlineCompletionExecutor
 import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.EDT
@@ -45,7 +45,7 @@ class InlineCompletionHandler(
   val editor: Editor,
   private val parentDisposable: Disposable
 ) {
-  private val executor = SafeInlineCompletionExecutor(scope)
+  private val executor = completion.utils.SafeInlineCompletionExecutor(scope)
   private val eventListeners = EventDispatcher.create(InlineCompletionEventListener::class.java)
   private val sessionManager = createSessionManager()
   private val typingTracker = InlineCompletionTypingTracker(parentDisposable)
