@@ -71,11 +71,11 @@ tags.forEach(tag => {
         if (match) {
             codyCommit = match[1];
         } else {
-            console.log(`${tag}: ? No cody.commit found`);
+            console.log(`? ${tag}: No cody.commit found`);
             return;
         }
     } catch (error) {
-        console.log(`${tag}: ? Error reading gradle.properties`);
+        console.log(`? ${tag}: Error reading gradle.properties`);
         return;
     }
 
@@ -83,21 +83,21 @@ tags.forEach(tag => {
     try {
         execSync(`git -C ${CODY_DIR} fetch origin ${codyCommit}`, {stdio: 'ignore'});
     } catch (error) {
-        console.log(`${tag}: ? Error fetching commit ${codyCommit}`);
+        console.log(`? ${tag}: Error fetching commit ${codyCommit}`);
         return;
     }
 
     // Step 5: Determine if the target commit is in the history of codyCommit
     try {
         execSync(`git -C ${CODY_DIR} merge-base --is-ancestor ${targetCommit} ${codyCommit}`);
-        console.log(`${tag}: ✓`);
+        console.log(`✔️ ${tag}`);
     } catch (error: any) {
         if (error.status === 1) {
             // Exit code 1 means the target commit is not an ancestor
-            console.log(`${tag}: ✗`);
+            console.log(`❌ ${tag}`);
         } else {
             // Any other error
-            console.log(`${tag}: ? Error checking merge-base`);
+            console.log(`? ${tag}: Error checking merge-base`);
         }
     }
 });
