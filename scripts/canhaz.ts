@@ -26,7 +26,7 @@ if (!targetCommit) {
     process.exit(1);
 }
 
-// Step 2: Enumerate matching tags and sort them in reverse order
+// Enumerate matching tags and sort them in reverse order
 let tags: string[];
 try {
     tags = execSync('git tag -l "v[0-9]*.[0-9]*.[0-9]*"')
@@ -62,8 +62,8 @@ try {
     process.exit(1);
 }
 
-// Step 3: Extract cody.commit from gradle.properties for each tag
 tags.forEach(tag => {
+    // Extract cody.commit from gradle.properties for each tag
     let codyCommit;
     try {
         const gradleProperties = execSync(`git show ${tag}:gradle.properties`).toString();
@@ -79,7 +79,7 @@ tags.forEach(tag => {
         return;
     }
 
-    // Step 4: Fetch the relevant commit in the Cody repository
+    // Fetch the relevant commit in the Cody repository
     try {
         execSync(`git -C ${CODY_DIR} fetch origin ${codyCommit}`, {stdio: 'ignore'});
     } catch (error) {
@@ -87,7 +87,7 @@ tags.forEach(tag => {
         return;
     }
 
-    // Step 5: Determine if the target commit is in the history of codyCommit
+    // Determine if the target commit is in the history of codyCommit
     try {
         execSync(`git -C ${CODY_DIR} merge-base --is-ancestor ${targetCommit} ${codyCommit}`);
         console.log(`✔️ ${tag}`);
