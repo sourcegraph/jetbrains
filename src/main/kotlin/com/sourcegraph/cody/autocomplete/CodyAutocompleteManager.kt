@@ -5,6 +5,7 @@ import com.github.difflib.patch.DeltaType
 import com.github.difflib.patch.Patch
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.client.ClientSessionsManager
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
@@ -160,7 +161,8 @@ class CodyAutocompleteManager {
       }
       return
     }
-    if (isTriggeredImplicitly && !isImplicitAutocompleteEnabledForEditor(editor)) {
+    val isRemoteDev = ClientSessionsManager.getAppSession()?.isRemote ?: false
+    if (isTriggeredImplicitly && !isImplicitAutocompleteEnabledForEditor(editor) && !isRemoteDev) {
       return
     }
     val currentCommand = CommandProcessor.getInstance().currentCommandName

@@ -6,7 +6,9 @@ import com.intellij.codeInsight.inline.completion.InlineCompletionProvider
 import com.intellij.codeInsight.inline.completion.InlineCompletionRequest
 import com.intellij.codeInsight.inline.completion.InlineCompletionSuggestion
 import com.intellij.codeInsight.inline.completion.elements.InlineCompletionGrayTextElement
+import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.client.ClientSessionsManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -46,8 +48,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 
-@JvmInline
-value class InlineCompletionProviderID(val id: String)
+@JvmInline value class InlineCompletionProviderID(val id: String)
 
 class CodyInlineCompletionProvider : InlineCompletionProvider {
   private val logger = Logger.getInstance(CodyInlineCompletionProvider::class.java)
@@ -214,14 +215,25 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
   }
 
   fun isEnabled(event: InlineCompletionEvent): Boolean {
-    return ConfigUtil.isCodyEnabled() && ConfigUtil.isCodyAutocompleteEnabled()
+    return isEnabled()
   }
 
-  override suspend fun getProposals(request: InlineCompletionRequest): List<InlineCompletionElement> {
-    TODO("Not yet implemented")
+  override suspend fun getProposals(
+      request: InlineCompletionRequest
+  ): List<InlineCompletionElement> {
+    return emptyList()
   }
 
   override fun isEnabled(event: DocumentEvent): Boolean {
-    TODO("Not yet implemented")
+    return isEnabled()
+  }
+
+  private fun isEnabled(): Boolean {
+    val ideVersion = ApplicationInfo.getInstance().build.baselineVersion
+    val isRemoteDev = ClientSessionsManager.getAppSession()?.isRemote ?: false
+    return ideVersion >= 233 &&
+        isRemoteDev &&
+        ConfigUtil.isCodyEnabled() &&
+        ConfigUtil.isCodyAutocompleteEnabled()
   }
 }
