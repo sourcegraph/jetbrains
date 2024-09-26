@@ -20,7 +20,9 @@ import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
 import com.sourcegraph.cody.vscode.IntelliJTextDocument
 import com.sourcegraph.config.ConfigUtil
+import com.sourcegraph.utils.CodyEditorUtil.getTextRange
 import com.sourcegraph.utils.CodyEditorUtil.isImplicitAutocompleteEnabledForEditor
+import com.sourcegraph.utils.CodyFormatter
 import com.sourcegraph.utils.ThreadingUtil
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicReference
@@ -56,13 +58,39 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
         } ?: return InlineCompletionSuggestion.empty()
 
     val offset = request.endOffset
-    val lineNumber = editor.document.getLineNumber(offset)
-    val caretPositionInLine = offset - editor.document.getLineStartOffset(lineNumber)
 
     return InlineCompletionSuggestion.withFlow {
       completions.items
-          .map { InlineCompletionGrayTextElement(it.insertText.substring(caretPositionInLine)) }
-          .forEach { emit(it) }
+          .map {
+            val range = getTextRange(editor.document, it.range)
+            val originalText = editor.document.getText(range)
+            val cursorOffsetInOriginalText = offset - range.startOffset
+
+            val formattedCompletionText =
+                if (System.getProperty("cody.autocomplete.enableFormatting") == "false") {
+                  it.insertText
+                } else {
+                  CodyFormatter.formatStringBasedOnDocument(
+                      it.insertText, project, editor.document, range, offset)
+                }
+
+            // ...
+
+            val originalTextBeforeCursor = originalText.substring(0, cursorOffsetInOriginalText)
+            val originalTextAfterCursor = originalText.substring(cursorOffsetInOriginalText)
+            val completionText =
+                formattedCompletionText
+                    .removePrefix(originalTextBeforeCursor)
+                    .removeSuffix(originalTextAfterCursor)
+            if (completionText.trim().isBlank()) {
+              null
+            } else {
+              InlineCompletionGrayTextElement(completionText)
+            }
+          }
+          .filterNotNull()
+          .firstOrNull()
+          ?.let { emit(it) }
     }
   }
 
