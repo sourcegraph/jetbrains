@@ -8,6 +8,7 @@ import com.intellij.codeInsight.inline.completion.InlineCompletionSuggestion
 import com.intellij.codeInsight.inline.completion.elements.InlineCompletionGrayTextElement
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.client.ClientSessionsManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -61,17 +62,21 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
 
     return InlineCompletionSuggestion.withFlow {
       completions.items
-          .map {
+          .firstNotNullOfOrNull {
             val range = getTextRange(editor.document, it.range)
             val originalText = editor.document.getText(range)
             val cursorOffsetInOriginalText = offset - range.startOffset
 
-            val formattedCompletionText =
+            val formattedCompletionText: String =
                 if (System.getProperty("cody.autocomplete.enableFormatting") == "false") {
                   it.insertText
                 } else {
-                  CodyFormatter.formatStringBasedOnDocument(
-                      it.insertText, project, editor.document, range, offset)
+                  WriteCommandAction.runWriteCommandAction<String>(
+                      editor.project,
+                      {
+                        CodyFormatter.formatStringBasedOnDocument(
+                            it.insertText, project, editor.document, range, offset)
+                      })
                 }
 
             // ...
@@ -88,8 +93,6 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
               InlineCompletionGrayTextElement(completionText)
             }
           }
-          .filterNotNull()
-          .firstOrNull()
           ?.let { emit(it) }
     }
   }
@@ -128,6 +131,10 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
     currentJob.get().abort()
     project?.let { resetApplication(it) }
   }
+
+  //  fun restartOn(event: InlineCompletionEvent): Boolean {
+  //    return event is InlineCompletionEvent.InlineLookupEvent
+  //  }
 
   fun isEnabled(event: InlineCompletionEvent): Boolean {
     return isEnabled()

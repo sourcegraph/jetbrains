@@ -141,7 +141,10 @@ class CodyAutocompleteManager {
       return
     }
     val isRemoteDev = ClientSessionsManager.getAppSession()?.isRemote ?: false
-    if (isTriggeredImplicitly && !isImplicitAutocompleteEnabledForEditor(editor) && !isRemoteDev) {
+    if (isRemoteDev) {
+      return
+    }
+    if (isTriggeredImplicitly && !isImplicitAutocompleteEnabledForEditor(editor)) {
       return
     }
     val currentCommand = CommandProcessor.getInstance().currentCommandName

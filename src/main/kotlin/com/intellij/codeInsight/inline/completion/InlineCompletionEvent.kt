@@ -3,6 +3,7 @@
 package com.intellij.codeInsight.inline.completion
 
 import com.intellij.codeInsight.lookup.LookupElement
+import com.intellij.codeInsight.lookup.LookupEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Caret
@@ -44,6 +45,25 @@ interface InlineCompletionEvent {
       val project = editor.project ?: return null
       val file = getPsiFile(caret, project) ?: return null
       return InlineCompletionRequest(this, file, editor, editor.document, offset, offset)
+    }
+  }
+
+  sealed interface InlineLookupEvent : InlineCompletionEvent {
+    val event: LookupEvent
+
+    override fun toRequest(): InlineCompletionRequest? {
+      val editor = runReadAction { event.lookup?.editor } ?: return null
+      val caretModel = editor.caretModel
+      if (caretModel.caretCount != 1) return null
+
+      val project = editor.project ?: return null
+
+      val (file, offset) =
+          runReadAction { getPsiFile(caretModel.currentCaret, project) to caretModel.offset }
+      if (file == null) return null
+
+      return InlineCompletionRequest(
+          this, file, editor, editor.document, offset, offset, event.item)
     }
   }
 }
