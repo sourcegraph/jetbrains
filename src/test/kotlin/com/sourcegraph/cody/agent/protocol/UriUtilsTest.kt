@@ -8,7 +8,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.net.URI
 import kotlin.io.path.toPath
 
-class ContextItemTest : BasePlatformTestCase() {
+class UriUtilsTest : BasePlatformTestCase() {
 
   fun `test getPath`() {
     fun contextFilePath(path: String) = VfsUtil.toUri(path)?.toPath().toString()
