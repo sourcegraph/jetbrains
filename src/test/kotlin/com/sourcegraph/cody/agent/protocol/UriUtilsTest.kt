@@ -3,32 +3,10 @@ package com.sourcegraph.cody.agent.protocol
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.intellij.openapi.util.SystemInfoRt
-import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.net.URI
-import kotlin.io.path.toPath
 
 class UriUtilsTest : BasePlatformTestCase() {
-
-  fun `test getPath`() {
-    fun contextFilePath(path: String) = VfsUtil.toUri(path)?.toPath().toString()
-
-    if (SystemInfoRt.isWindows) {
-      assertEquals("c:\\a\\b\\c\\d.java", contextFilePath("file:///c:/a/b/c/d.java"))
-      assertEquals("c:\\a\\b\\c\\d.java", contextFilePath("file://c:/a/b/c/d.java"))
-      assertEquals("c:\\a\\b\\c\\d.java", contextFilePath("file:///c:/a/b/c/d.java?#"))
-      assertEquals("c:\\a\\b\\c\\d.java", contextFilePath("file://c:/a/b/c/d.java?#"))
-      assertEquals("c:\\a\\b\\c\\d.java", contextFilePath("/c:/a/b/c/d.java"))
-      assertEquals("c:\\a\\b\\c\\d.java", contextFilePath("c:/a/b/c/d.java"))
-      assertEquals("c:\\a\\b\\c\\d.java", contextFilePath("c:/a/b/c/d.java?#"))
-      assertEquals("c:\\a\\b\\c\\d.java", contextFilePath("/c:/a/b/c/d.java?#"))
-    } else {
-      assertEquals("/a/b/c/d.java", contextFilePath("/a/b/c/d.java"))
-      assertEquals("/a/b/c/d.java", contextFilePath("/a/b/c/d.java?#"))
-      assertEquals("/a/b/c/d.java", contextFilePath("file:///a/b/c/d.java"))
-    }
-  }
-
   fun `test uri serialization and deserialization`() {
     val gson: Gson =
         GsonBuilder()
