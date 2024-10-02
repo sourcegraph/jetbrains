@@ -71,12 +71,10 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
                 if (System.getProperty("cody.autocomplete.enableFormatting") == "false") {
                   it.insertText
                 } else {
-                  WriteCommandAction.runWriteCommandAction<String>(
-                      editor.project,
-                      {
-                        CodyFormatter.formatStringBasedOnDocument(
-                            it.insertText, project, editor.document, range, offset)
-                      })
+                  WriteCommandAction.runWriteCommandAction<String>(editor.project) {
+                    CodyFormatter.formatStringBasedOnDocument(
+                        it.insertText, project, editor.document, range, offset)
+                  }
                 }
 
             // ...
@@ -131,10 +129,6 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
     currentJob.get().abort()
     project?.let { resetApplication(it) }
   }
-
-  //  fun restartOn(event: InlineCompletionEvent): Boolean {
-  //    return event is InlineCompletionEvent.InlineLookupEvent
-  //  }
 
   fun isEnabled(event: InlineCompletionEvent): Boolean {
     return isEnabled()
