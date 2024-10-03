@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.ex.EditorEventMulticasterEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.CodySettingsChangeListener
 import com.sourcegraph.cody.config.migration.SettingsMigration
 import com.sourcegraph.cody.config.ui.CheckUpdatesTask
@@ -28,7 +27,6 @@ class PostStartupActivity : ProjectActivity {
   override suspend fun execute(project: Project) {
     SettingsMigration().runActivity(project)
     CodyAuthNotificationActivity().runActivity(project)
-    CodyAuthenticationManager.getInstance().addAuthChangeListener(project)
     ApplicationManager.getApplication().executeOnPooledThread {
       // Scheduling because this task takes ~2s to run
       CheckUpdatesTask(project).queue()

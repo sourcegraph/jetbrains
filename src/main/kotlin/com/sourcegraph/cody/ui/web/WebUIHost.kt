@@ -12,8 +12,6 @@ import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.*
 import com.sourcegraph.cody.agent.protocol.WebviewOptions
-import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.config.ui.AccountConfigurable
 import com.sourcegraph.cody.config.ui.CodyConfigurable
 import com.sourcegraph.utils.CodyEditorUtil
 import java.net.URLDecoder
@@ -68,14 +66,7 @@ internal class WebUIHostImpl(
     val id = decodedJson?.get("id")?.asString
     val arg = decodedJson?.get("arg")?.asString
 
-    if ((command == "auth" && decodedJson.get("authKind")?.asString == "signout") ||
-        (isCommand && id == "cody.auth.signout")) {
-      CodyAuthenticationManager.getInstance().setActiveAccount(null)
-    } else if (isCommand && id == "cody.auth.switchAccount") {
-      runInEdt {
-        ShowSettingsUtil.getInstance().showSettingsDialog(project, AccountConfigurable::class.java)
-      }
-    } else if (isCommand && id == "cody.status-bar.interacted") {
+    if (isCommand && id == "cody.status-bar.interacted") {
       runInEdt {
         ShowSettingsUtil.getInstance().showSettingsDialog(project, CodyConfigurable::class.java)
       }

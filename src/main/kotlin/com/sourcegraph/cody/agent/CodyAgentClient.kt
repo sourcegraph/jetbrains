@@ -15,12 +15,19 @@ import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
 import com.sourcegraph.cody.agent.protocol_generated.DebugMessage
 import com.sourcegraph.cody.agent.protocol_generated.DisplayCodeLensParams
 import com.sourcegraph.cody.agent.protocol_generated.Env_OpenExternalParams
+import com.sourcegraph.cody.agent.protocol_generated.GlobalStorage_DidChangeParams
 import com.sourcegraph.cody.agent.protocol_generated.Null
 import com.sourcegraph.cody.agent.protocol_generated.SaveDialogOptionsParams
+import com.sourcegraph.cody.agent.protocol_generated.Secrets_DeleteParams
+import com.sourcegraph.cody.agent.protocol_generated.Secrets_GetParams
+import com.sourcegraph.cody.agent.protocol_generated.Secrets_StoreParams
 import com.sourcegraph.cody.agent.protocol_generated.TextDocumentEditParams
 import com.sourcegraph.cody.agent.protocol_generated.TextDocument_ShowParams
 import com.sourcegraph.cody.agent.protocol_generated.UntitledTextDocument
+import com.sourcegraph.cody.agent.protocol_generated.Window_DidChangeContextParams
 import com.sourcegraph.cody.agent.protocol_generated.WorkspaceEditParams
+import com.sourcegraph.cody.auth.CodyAccount
+import com.sourcegraph.cody.auth.SourcegraphServerPath
 import com.sourcegraph.cody.edit.EditService
 import com.sourcegraph.cody.edit.lenses.LensesService
 import com.sourcegraph.cody.error.CodyConsole
@@ -121,6 +128,24 @@ class CodyAgentClient(private val project: Project, private val webview: NativeW
       val vf = CodyEditorUtil.createFileOrScratchFromUntitled(project, params.uri, params.content)
       vf?.let { ProtocolTextDocument.fromVirtualFile(it) }
     }
+  }
+
+  @JsonRequest("secrets/get")
+  fun secrets_get(params: Secrets_GetParams): CompletableFuture<String?> {
+    return CompletableFuture.completedFuture(
+        CodyAccount(SourcegraphServerPath(params.key)).getToken())
+  }
+
+  @JsonRequest("secrets/store")
+  fun secrets_store(params: Secrets_StoreParams): CompletableFuture<Null?> {
+    CodyAccount(SourcegraphServerPath(params.key)).storeToken(params.value)
+    return CompletableFuture.completedFuture(null)
+  }
+
+  @JsonRequest("secrets/delete")
+  fun secrets_delete(params: Secrets_DeleteParams): CompletableFuture<Null?> {
+    CodyAccount(SourcegraphServerPath(params.key)).storeToken(null)
+    return CompletableFuture.completedFuture(null)
   }
 
   // =============
@@ -225,5 +250,17 @@ class CodyAgentClient(private val project: Project, private val webview: NativeW
     }
 
     return saveFileFuture
+  }
+
+  @JsonNotification("window/didChangeContext")
+  fun window_didChangeContext(params: Window_DidChangeContextParams) {
+    println(params)
+  }
+
+  @JsonNotification("globalStorage/didChange")
+  fun globalStorage_didChange(params: GlobalStorage_DidChangeParams) {
+    if (params.key == "SOURCEGRAPH_CODY_ENDPOINT") {
+      CodyAccount.setActiveAccount(CodyAccount(SourcegraphServerPath(params.value.trim('"'))))
+    }
   }
 }

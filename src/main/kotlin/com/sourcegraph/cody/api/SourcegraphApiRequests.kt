@@ -1,9 +1,6 @@
 package com.sourcegraph.cody.api
 
 import com.intellij.openapi.progress.ProgressIndicator
-import com.sourcegraph.cody.config.CodyAccountCodyProEnabled
-import com.sourcegraph.cody.config.CodyAccountDetails
-import java.awt.Image
 
 object SourcegraphApiRequests {
   class CurrentUser(
@@ -30,14 +27,16 @@ object SourcegraphApiRequests {
 
     data class CurrentUserCodyProEnabledWrapper(val currentUser: CodyAccountCodyProEnabled)
 
-    fun getAvatar(url: String): Image =
-        executor.execute(
-            progressIndicator,
-            object : SourcegraphApiRequest.Get<Image>(url) {
-                  override fun extractResult(response: SourcegraphApiResponse): Image {
-                    return response.handleBody { SourcegraphApiContentHelper.loadImage(it) }
-                  }
-                }
-                .apply { operationName = "get profile avatar" })
+    class CodyAccountCodyProEnabled(val codyProEnabled: Boolean?)
+
+    class CodyAccountDetails(
+        val id: String,
+        val username: String,
+        val displayName: String?,
+        val avatarURL: String?
+    ) {
+      val name: String
+        get() = displayName ?: username
+    }
   }
 }
