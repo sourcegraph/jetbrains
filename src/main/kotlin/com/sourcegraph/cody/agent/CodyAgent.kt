@@ -291,8 +291,6 @@ private constructor(
                   .serializeNulls()
                   // TODO: Once all protocols have migrated we can remove these legacy enum
                   // conversions
-                  .registerTypeAdapter(Speaker::class.java, speakerDeserializer)
-                  .registerTypeAdapter(Speaker::class.java, speakerSerializer)
                   .registerTypeAdapter(URI::class.java, uriDeserializer)
                   .registerTypeAdapter(URI::class.java, uriSerializer)
 
