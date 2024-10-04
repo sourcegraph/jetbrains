@@ -507,8 +507,7 @@ tasks {
 
   buildPlugin {
     dependsOn(project.tasks.getByPath("buildCody"))
-    val get = composedJar.get()
-    get.exclude("com/intellij/codeInsight/inline/completion/**")
+    composedJar.get().exclude("com/intellij/codeInsight/inline/completion/**")
     from(
         fileTree(buildCodyDir) {
           include("*")
