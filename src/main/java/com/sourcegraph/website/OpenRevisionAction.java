@@ -82,6 +82,7 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
 
               String url;
               try {
+                // todo: this is broken. url contains `null` in the path. we need to fix it.
                 url =
                     URLBuilder.buildCommitUrl(
                         ConfigUtil.getServerPath().getUrl(),
@@ -131,6 +132,7 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
 
   @NotNull
   private Optional<RevisionContext> getLogRevisionContext(@NotNull AnActionEvent event) {
+    // todo: it does not work when triggered from the editor's context menu. we need to fix it.
     VcsLogCommitSelection log =
         event.getDataContext().getData(VcsLogDataKeys.VCS_LOG_COMMIT_SELECTION);
     Project project = event.getProject();
