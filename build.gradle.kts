@@ -478,7 +478,7 @@ tasks {
           "cody-agent.panic-when-out-of-sync" to
               (System.getProperty("cody-agent.panic-when-out-of-sync") ?: "true"),
           "cody-agent.fullDocumentSyncEnabled" to
-              (System.getProperty("cody-agent.fullDocumentSyncEnabled") ?: "false"),
+              (System.getProperty("cody-agent.fullDocumentSyncEnabled") ?: "true"),
           "cody.autocomplete.enableFormatting" to
               (project.property("cody.autocomplete.enableFormatting") ?: "true"))
 

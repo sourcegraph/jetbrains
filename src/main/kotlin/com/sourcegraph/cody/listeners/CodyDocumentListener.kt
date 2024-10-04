@@ -25,6 +25,7 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
     }
   }
 
+  // todo: documentChanged
   override fun documentChangedNonBulk(event: DocumentEvent) {
     try {
       // Can be called on non-EDT during IDE shutdown.
