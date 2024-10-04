@@ -8,7 +8,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsDataKeys;
 import com.intellij.openapi.vcs.history.VcsFileRevision;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.vcs.log.VcsLog;
+import com.intellij.vcs.log.VcsLogCommitSelection;
 import com.intellij.vcs.log.VcsLogDataKeys;
 import com.intellij.vcsUtil.VcsUtil;
 import com.sourcegraph.common.BrowserOpener;
@@ -131,18 +131,19 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
 
   @NotNull
   private Optional<RevisionContext> getLogRevisionContext(@NotNull AnActionEvent event) {
-    VcsLog log = event.getDataContext().getData(VcsLogDataKeys.VCS_LOG);
+    VcsLogCommitSelection log =
+        event.getDataContext().getData(VcsLogDataKeys.VCS_LOG_COMMIT_SELECTION);
     Project project = event.getProject();
 
     if (project == null) {
       return Optional.empty();
     }
-    if (log == null || log.getSelectedCommits().isEmpty()) {
+    if (log == null || log.getCommits().isEmpty()) {
       return Optional.empty();
     }
 
-    String revision = log.getSelectedCommits().get(0).getHash().asString();
-    VirtualFile root = log.getSelectedCommits().get(0).getRoot();
+    String revision = log.getCommits().get(0).getHash().asString();
+    VirtualFile root = log.getCommits().get(0).getRoot();
     return Optional.of(new RevisionContext(revision, root));
   }
 }
