@@ -171,14 +171,6 @@ kotlin {
   }
 }
 
-sourceSets {
-  create("integrationTest") {
-    kotlin.srcDir("src/integrationTest/kotlin")
-    compileClasspath += main.get().output + configurations.testCompileClasspath.get()
-    runtimeClasspath += compileClasspath + configurations.testRuntimeClasspath.get()
-  }
-}
-
 fun download(url: String, output: File) {
   if (output.exists()) {
     println("Cached $output")
@@ -588,6 +580,14 @@ tasks {
   }
 
   test { dependsOn(project.tasks.getByPath("buildCody")) }
+
+  sourceSets {
+    create("integrationTest") {
+      kotlin.srcDir("src/integrationTest/kotlin")
+      compileClasspath += main.get().output + configurations.testCompileClasspath.get()
+      runtimeClasspath += compileClasspath + configurations.testRuntimeClasspath.get()
+    }
+  }
 
   register<Test>("integrationTest") {
     description = "Runs the integration tests."
