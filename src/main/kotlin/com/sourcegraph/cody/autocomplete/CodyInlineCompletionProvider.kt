@@ -59,7 +59,7 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
                 InlineCompletionTriggerKind.AUTOMATIC,
                 cancellationToken,
                 lookupString)
-            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+            .completeOnTimeout(null, 1, TimeUnit.SECONDS)
             .get() ?: return InlineCompletionSuggestion.empty()
 
     return InlineCompletionSuggestion.withFlow {
