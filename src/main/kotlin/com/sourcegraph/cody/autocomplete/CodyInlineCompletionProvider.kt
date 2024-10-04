@@ -7,6 +7,8 @@ import com.intellij.codeInsight.inline.completion.InlineCompletionRequest
 import com.intellij.codeInsight.inline.completion.InlineCompletionSuggestion
 import com.intellij.codeInsight.inline.completion.elements.InlineCompletionGrayTextElement
 import com.intellij.openapi.application.ApplicationInfo
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.client.ClientSessionsManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
@@ -14,8 +16,10 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.concurrency.annotations.RequiresReadLock
+import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.AutocompleteResult
+import com.sourcegraph.cody.agent.protocol.CompletionItemParams
 import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.resetApplication
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
@@ -24,8 +28,8 @@ import com.sourcegraph.config.ConfigUtil
 import com.sourcegraph.utils.CodyEditorUtil.getTextRange
 import com.sourcegraph.utils.CodyEditorUtil.isImplicitAutocompleteEnabledForEditor
 import com.sourcegraph.utils.CodyFormatter
-import com.sourcegraph.utils.ThreadingUtil
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 @JvmInline value class InlineCompletionProviderID(val id: String)
@@ -36,6 +40,7 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
   val id = InlineCompletionProviderID("Cody")
 
   suspend fun getSuggestion(request: InlineCompletionRequest): InlineCompletionSuggestion {
+    ApplicationManager.getApplication().assertIsNonDispatchThread()
     val editor = request.editor
     val project = editor.project ?: return InlineCompletionSuggestion.empty()
     if (!isImplicitAutocompleteEnabledForEditor(editor)) {
@@ -48,54 +53,58 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
     currentJob.set(cancellationToken)
 
     val completions =
-        ThreadingUtil.runInEdtAndGet {
-          fetchCompletions(
-                  project,
-                  editor,
-                  InlineCompletionTriggerKind.AUTOMATIC,
-                  cancellationToken,
-                  lookupString)
-              .get()
-        } ?: return InlineCompletionSuggestion.empty()
-
-    val offset = request.endOffset
+        fetchCompletions(
+                project,
+                editor,
+                InlineCompletionTriggerKind.AUTOMATIC,
+                cancellationToken,
+                lookupString)
+            .completeOnTimeout(null, 3, TimeUnit.SECONDS)
+            .get() ?: return InlineCompletionSuggestion.empty()
 
     return InlineCompletionSuggestion.withFlow {
       completions.items
           .firstNotNullOfOrNull {
-            val range = getTextRange(editor.document, it.range)
-            val originalText = editor.document.getText(range)
-            val cursorOffsetInOriginalText = offset - range.startOffset
+            WriteCommandAction.runWriteCommandAction<InlineCompletionGrayTextElement?>(
+                editor.project) {
+                  val range = getTextRange(editor.document, it.range)
+                  val originalText = editor.document.getText(range)
+                  val cursorOffsetInOriginalText = request.endOffset - range.startOffset
 
-            val formattedCompletionText: String =
-                if (System.getProperty("cody.autocomplete.enableFormatting") == "false") {
-                  it.insertText
-                } else {
-                  WriteCommandAction.runWriteCommandAction<String>(editor.project) {
-                    CodyFormatter.formatStringBasedOnDocument(
-                        it.insertText, project, editor.document, range, offset)
+                  val formattedCompletionText: String =
+                      if (System.getProperty("cody.autocomplete.enableFormatting") == "false") {
+                        it.insertText
+                      } else {
+                        CodyFormatter.formatStringBasedOnDocument(
+                            it.insertText, project, editor.document, range, request.endOffset)
+                      }
+
+                  // ...
+
+                  val originalTextBeforeCursor =
+                      originalText.substring(0, cursorOffsetInOriginalText)
+                  val originalTextAfterCursor = originalText.substring(cursorOffsetInOriginalText)
+                  val completionText =
+                      formattedCompletionText
+                          .removePrefix(originalTextBeforeCursor)
+                          .removeSuffix(originalTextAfterCursor)
+                  if (completionText.trim().isBlank()) {
+                    null
+                  } else {
+
+                    CodyAgentService.withAgent(project) { agent ->
+                      agent.server.completionSuggested(CompletionItemParams(it.id))
+                    }
+
+                    InlineCompletionGrayTextElement(completionText)
                   }
                 }
-
-            // ...
-
-            val originalTextBeforeCursor = originalText.substring(0, cursorOffsetInOriginalText)
-            val originalTextAfterCursor = originalText.substring(cursorOffsetInOriginalText)
-            val completionText =
-                formattedCompletionText
-                    .removePrefix(originalTextBeforeCursor)
-                    .removeSuffix(originalTextAfterCursor)
-            if (completionText.trim().isBlank()) {
-              null
-            } else {
-              InlineCompletionGrayTextElement(completionText)
-            }
           }
           ?.let { emit(it) }
     }
   }
 
-  @RequiresEdt
+  @RequiresReadLock
   private fun fetchCompletions(
       project: Project,
       editor: Editor,
@@ -104,7 +113,7 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
       lookupString: String?,
   ): CompletableFuture<AutocompleteResult?> {
     val textDocument = IntelliJTextDocument(editor, project)
-    val offset = editor.caretModel.offset
+    val offset = ReadAction.compute<Int, Throwable> { editor.caretModel.offset }
     val lineNumber = editor.document.getLineNumber(offset)
     val caretPositionInLine = offset - editor.document.getLineStartOffset(lineNumber)
     val originalText = editor.document.getText(TextRange(offset - caretPositionInLine, offset))
