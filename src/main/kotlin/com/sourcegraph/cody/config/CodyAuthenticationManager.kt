@@ -273,6 +273,12 @@ class CodyAuthenticationManager :
 
   fun showInvalidAccessTokenError() = getIsTokenInvalid().getNow(null) == true
 
+  fun removeAll() {
+    accountManager.accounts.forEach {
+     accountManager.removeAccount(it)
+    }
+  }
+
   override fun dispose() {
     scheduler.shutdown()
   }
