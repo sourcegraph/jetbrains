@@ -99,9 +99,11 @@ public class URLBuilder {
     }
 
     URI remote = URI.create(remoteUrl);
+    String host = remote.getHost() != null ? remote.getHost() : "";
+    String slash = sourcegraphBase.endsWith("/") ? "" : "/";
 
     return sourcegraphBase
-        + String.format("/%s%s", remote.getHost(), remote.getPath())
+        + String.format("%s%s%s", slash, host, remote.getPath())
         + String.format("/-/commit/%s", revisionNumber)
         + String.format("?editor=%s", URLEncoder.encode("JetBrains", StandardCharsets.UTF_8))
         + String.format(

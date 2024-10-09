@@ -1,5 +1,6 @@
 package com.sourcegraph.website;
 
+import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationManager;
@@ -18,6 +19,7 @@ import com.sourcegraph.config.ConfigUtil;
 import com.sourcegraph.vcs.RepoUtil;
 import com.sourcegraph.vcs.RevisionContext;
 import com.sourcegraph.vcs.VCSType;
+import git4idea.GitVcs;
 import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,7 +37,10 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
     // This action handles events for both log and history views, so attempt to load from any
     // possible option.
     RevisionContext context =
-        getHistoryRevisionContext(event).or(() -> getLogRevisionContext(event)).orElse(null);
+        getHistoryRevisionContext(event)
+            .or(() -> getLogRevisionContext(event))
+            .or(() -> getEditorRevisionContext(event))
+            .orElse(null);
 
     if (context == null) {
       VirtualFile file = event.getDataContext().getData(VcsDataKeys.VCS_VIRTUAL_FILE);
@@ -132,7 +137,6 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
 
   @NotNull
   private Optional<RevisionContext> getLogRevisionContext(@NotNull AnActionEvent event) {
-    // todo: it does not work when triggered from the editor's context menu. we need to fix it.
     VcsLogCommitSelection log =
         event.getDataContext().getData(VcsLogDataKeys.VCS_LOG_COMMIT_SELECTION);
     Project project = event.getProject();
@@ -148,4 +152,20 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
     VirtualFile root = log.getCommits().get(0).getRoot();
     return Optional.of(new RevisionContext(revision, root));
   }
+
+  private Optional<RevisionContext> getEditorRevisionContext(@NotNull AnActionEvent event) {
+    Project project = event.getProject();
+
+    if (project == null) {
+      return Optional.empty();
+    }
+
+    return VcsRepositoryManager.getInstance(project).getRepositories().stream()
+        .filter(it -> it.getVcs().getName().equals(GitVcs.NAME))
+        .findFirst()
+        .map(
+            repository ->
+                new RevisionContext(repository.getCurrentRevision(), repository.getRoot()));
+  }
 }
+
