@@ -1,7 +1,6 @@
 package com.sourcegraph.website;
 
 import com.intellij.openapi.editor.LogicalPosition;
-import com.intellij.openapi.project.Project;
 import com.sourcegraph.common.RegexEscaper;
 import com.sourcegraph.config.ConfigUtil;
 import java.net.URI;
@@ -13,7 +12,6 @@ import org.jetbrains.annotations.Nullable;
 public class URLBuilder {
   @NotNull
   public static String buildEditorFileUrl(
-      @NotNull Project project,
       @NotNull String remoteUrl,
       @NotNull String branchName,
       @NotNull String relativePath,
