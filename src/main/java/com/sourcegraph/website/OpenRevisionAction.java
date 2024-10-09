@@ -167,4 +167,3 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
                 new RevisionContext(repository.getCurrentRevision(), repository.getRoot()));
   }
 }
-
