@@ -87,7 +87,6 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
 
               String url;
               try {
-                // todo: this is broken. url contains `null` in the path. we need to fix it.
                 url =
                     URLBuilder.buildCommitUrl(
                         ConfigUtil.getServerPath().getUrl(),
