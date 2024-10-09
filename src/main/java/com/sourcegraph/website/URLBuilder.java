@@ -66,10 +66,7 @@ public class URLBuilder {
 
   @NotNull
   public static String buildDirectSearchUrl(
-      @NotNull Project project,
-      @NotNull String search,
-      @Nullable String codeHost,
-      @Nullable String repoName) {
+      @NotNull String search, @Nullable String codeHost, @Nullable String repoName) {
     String repoFilter =
         (codeHost != null && repoName != null)
             ? "repo:^" + RegexEscaper.INSTANCE.escapeRegexChars(codeHost + "/" + repoName) + "$"
