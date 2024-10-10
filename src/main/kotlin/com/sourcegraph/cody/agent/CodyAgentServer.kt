@@ -150,8 +150,6 @@ interface _LegacyAgentServer {
   @JsonRequest("editCommands/code")
   fun commandsEdit(params: InlineEditParams): CompletableFuture<EditTask>
 
-  @JsonRequest("editCommands/test") fun commandsTest(): CompletableFuture<EditTask>
-
   @JsonRequest("chat/web/new") fun chatNew(): CompletableFuture<Any>
 
   @JsonRequest("webview/receiveMessageStringEncoded")
