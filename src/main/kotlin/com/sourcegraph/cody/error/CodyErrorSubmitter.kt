@@ -12,6 +12,7 @@ import com.intellij.util.Consumer
 import java.awt.Component
 import java.net.URLEncoder
 import java.util.concurrent.CompletableFuture
+import kotlin.math.max
 
 class CodyErrorSubmitter : ErrorReportSubmitter() {
   private val DOTS = "..."
@@ -54,13 +55,12 @@ class CodyErrorSubmitter : ErrorReportSubmitter() {
             "&projects=sourcegraph/381"
 
     val title = throwableText?.let { "&title=${encode(getTitle(it))}" } ?: ""
-    val text = getAboutText(project).get()
-    val about = "&about=${encode(text.repeat(6))}"
+    val about = "&about=${encode(getAboutText(project).get())}"
 
     val availableSpace =
         MAX_URL_LENGTH - baseUrl.length - title.length - about.length - "&logs=".length
 
-    val trimmedLogs = trimLogs(throwableText, additionalInfo, availableSpace)
+    val trimmedLogs = trimLogs(throwableText, additionalInfo, max(0, availableSpace))
 
     return "$baseUrl$title$about&logs=$trimmedLogs"
   }
