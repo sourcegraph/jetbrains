@@ -145,8 +145,6 @@ interface _LegacyAgentServer {
   @JsonRequest("commands/custom")
   fun commands_custom(params: Commands_CustomParams): CompletableFuture<CustomCommandResult>
 
-  @JsonRequest("editCommands/document") fun commandsDocument(): CompletableFuture<EditTask>
-
   @JsonRequest("editCommands/code")
   fun commandsEdit(params: InlineEditParams): CompletableFuture<EditTask>
 
