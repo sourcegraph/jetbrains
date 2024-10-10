@@ -108,7 +108,6 @@ class CodyAgentClient(private val project: Project, private val webview: NativeW
           val selection = params.options?.selection
           val preserveFocus = params.options?.preserveFocus
           CodyEditorUtil.showDocument(project, vf, selection, preserveFocus)
-          true
         } else {
           false
         }
