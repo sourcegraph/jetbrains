@@ -21,6 +21,8 @@ import com.sourcegraph.cody.agent.protocol_generated.ClientInfo
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_ProvideParams
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_ProvideResult
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_TriggerParams
+import com.sourcegraph.cody.agent.protocol_generated.Commands_CustomParams
+import com.sourcegraph.cody.agent.protocol_generated.CustomCommandResult
 import com.sourcegraph.cody.agent.protocol_generated.Diagnostics_PublishParams
 import com.sourcegraph.cody.agent.protocol_generated.EditTask
 import com.sourcegraph.cody.agent.protocol_generated.EditTask_AcceptParams
@@ -139,6 +141,9 @@ interface _LegacyAgentServer {
 
   @JsonRequest("editTask/cancel")
   fun cancelEditTask(params: EditTask_CancelParams): CompletableFuture<Void?>
+
+  @JsonRequest("commands/custom")
+  fun commands_custom(params: Commands_CustomParams): CompletableFuture<CustomCommandResult>
 
   @JsonRequest("editCommands/document") fun commandsDocument(): CompletableFuture<EditTask>
 
