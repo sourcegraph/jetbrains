@@ -49,6 +49,7 @@ import com.sourcegraph.utils.CodyEditorUtil.isEditorValidForAutocomplete
 import com.sourcegraph.utils.CodyEditorUtil.isImplicitAutocompleteEnabledForEditor
 import com.sourcegraph.utils.CodyFormatter
 import java.util.concurrent.atomic.AtomicReference
+import org.jetbrains.annotations.VisibleForTesting
 
 /** Responsible for triggering and clearing inline code completions (the autocomplete feature). */
 @Service
@@ -347,33 +348,6 @@ class CodyAutocompleteManager {
     }
   }
 
-  // todo: tests
-  fun trimCommonPrefixAndSuffix(formatted: String, original: String): Pair<Int, String> {
-    var startIndex = 0
-    val formattedHead = formatted.lines().first()
-    val formattedTail = formatted.lines().drop(1).joinToString("\n")
-    var endIndex = formattedHead.length
-
-    // Trim common prefix
-    while (startIndex < formattedHead.length &&
-        startIndex < original.length &&
-        formattedHead[startIndex] == original[startIndex]) {
-      startIndex++
-    }
-
-    // Trim common suffix
-    while (endIndex > 0 &&
-        endIndex > startIndex &&
-        original.length - (formattedHead.length - endIndex) > 0 &&
-        formattedHead[endIndex - 1] ==
-            original[original.length - (formattedHead.length - endIndex) - 1]) {
-      endIndex--
-    }
-
-    val result = formattedHead.substring(startIndex, endIndex).plus("\n").plus(formattedTail)
-    return Pair(startIndex, result)
-  }
-
   private fun getLineHeight(): Int {
     val colorsManager = EditorColorsManager.getInstance()
     val fontPreferences = colorsManager.globalScheme.fontPreferences
@@ -394,5 +368,35 @@ class CodyAutocompleteManager {
       get() = service()
 
     private val lineBreaks = listOf("\r\n", "\n", "\r")
+
+    @VisibleForTesting
+    fun trimCommonPrefixAndSuffix(formatted: String, original: String): Pair<Int, String> {
+      var startIndex = 0
+      val formattedHead = formatted.lines().first()
+      val formattedTail = formatted.lines().drop(1)
+      var endIndex = formattedHead.length
+
+      // Trim common prefix
+      while (startIndex < formattedHead.length &&
+          startIndex < original.length &&
+          formattedHead[startIndex] == original[startIndex]) {
+        startIndex++
+      }
+
+      // Trim common suffix
+      while (endIndex > 0 &&
+          endIndex > startIndex &&
+          original.length - (formattedHead.length - endIndex) > 0 &&
+          formattedHead[endIndex - 1] ==
+              original[original.length - (formattedHead.length - endIndex) - 1]) {
+        endIndex--
+      }
+
+      val result =
+          listOf(formattedHead.substring(startIndex, endIndex))
+              .plus(formattedTail)
+              .joinToString("\n")
+      return Pair(startIndex, result)
+    }
   }
 }
