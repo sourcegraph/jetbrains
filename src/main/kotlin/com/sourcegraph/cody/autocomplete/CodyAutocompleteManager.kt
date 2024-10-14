@@ -248,15 +248,15 @@ class CodyAutocompleteManager {
               defaultItem.insertText, project, editor.document, range, cursorOffset)
         }
 
+    val completionText = formattedCompletionText.removeSuffix(originalText)
+    defaultItem.insertText = completionText
+    if (completionText.trim().isBlank()) return
+
     project?.let {
       CodyAgentService.withAgent(project) { agent ->
         agent.server.completionSuggested(CompletionItemParams(defaultItem.id))
       }
     }
-
-    val completionText = formattedCompletionText.removeSuffix(originalText)
-    defaultItem.insertText = completionText
-    if (completionText.trim().isBlank()) return
 
     val lineBreaks = listOf("\r\n", "\n", "\r")
     val startsInline = lineBreaks.none { separator -> completionText.startsWith(separator) }
