@@ -40,9 +40,9 @@ Streamline your development process by using prompts to understand, improve, fix
 
 ### Choose your LLM
 
-Cody users can select the LLM they want to use for chat and experiment to choose the best model for the job. Choose from Claude 3 Opus, Claude 3.5 Sonnet, Claude 3 Haiku, GPT-4 Turbo, GPT-3.5 Turbo, Google Gemini 1.5 Pro, Gemini 1.5 Flash, and Mixtral. Cody Pro users can also select Claude 3 Opus and GPT-4o.
+Cody users can select the LLM they want to use for chat and experiment to choose the best model for the job. Choose from multiple options including Claude 3.5 Sonnet, Gemini 1.5 Pro, and Mixtral 8x7B. Cody Pro users can also select Claude 3 Opus and GPT-4o. [See the full list of model options here](https://sourcegraph.com/docs/cody/capabilities/supported-models).
 
-Administrators for Sourcegraph Enterprise instances can choose betweeen Claude and ChatGPT models to set for their teams as well.
+Administrators for Sourcegraph Enterprise instances can configure which model options to let team members choose from.
 
 ### Usage
 
