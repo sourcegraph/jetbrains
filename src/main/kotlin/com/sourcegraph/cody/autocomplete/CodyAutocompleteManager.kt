@@ -248,8 +248,8 @@ class CodyAutocompleteManager {
               defaultItem.insertText, project, editor.document, range, cursorOffset)
         }
 
-    val completionText = formattedCompletionText.removeSuffix(originalText)
-    defaultItem.insertText = completionText
+    val (inlayOffset, completionText) =
+        trimCommonPrefixAndSuffix(formattedCompletionText, originalText)
     if (completionText.trim().isBlank()) return
 
     project?.let {
@@ -258,7 +258,6 @@ class CodyAutocompleteManager {
       }
     }
 
-    val lineBreaks = listOf("\r\n", "\n", "\r")
     val startsInline = lineBreaks.none { separator -> completionText.startsWith(separator) }
 
     var inlay: Inlay<*>? = null
@@ -268,7 +267,8 @@ class CodyAutocompleteManager {
         val renderer =
             CodyAutocompleteSingleLineRenderer(text, items, editor, AutocompleteRendererType.INLINE)
         inlay =
-            inlayModel.addInlineElement(cursorOffset, /* relatesToPrecedingText = */ true, renderer)
+            inlayModel.addInlineElement(
+                cursorOffset + inlayOffset, /* relatesToPrecedingText = */ true, renderer)
       }
     }
     val lines = completionText.lines()
@@ -279,7 +279,7 @@ class CodyAutocompleteManager {
         val renderer = CodyAutocompleteBlockElementRenderer(text, items, editor)
         val inlay2 =
             inlayModel.addBlockElement(
-                /* offset = */ cursorOffset,
+                /* offset = */ cursorOffset + inlayOffset,
                 /* relatesToPrecedingText = */ true,
                 /* showAbove = */ false,
                 /* priority = */ Int.MAX_VALUE,
@@ -347,6 +347,33 @@ class CodyAutocompleteManager {
     }
   }
 
+  // todo: tests
+  fun trimCommonPrefixAndSuffix(formatted: String, original: String): Pair<Int, String> {
+    var startIndex = 0
+    val formattedHead = formatted.lines().first()
+    val formattedTail = formatted.lines().drop(1).joinToString("\n")
+    var endIndex = formattedHead.length
+
+    // Trim common prefix
+    while (startIndex < formattedHead.length &&
+        startIndex < original.length &&
+        formattedHead[startIndex] == original[startIndex]) {
+      startIndex++
+    }
+
+    // Trim common suffix
+    while (endIndex > 0 &&
+        endIndex > startIndex &&
+        original.length - (formattedHead.length - endIndex) > 0 &&
+        formattedHead[endIndex - 1] ==
+            original[original.length - (formattedHead.length - endIndex) - 1]) {
+      endIndex--
+    }
+
+    val result = formattedHead.substring(startIndex, endIndex).plus("\n").plus(formattedTail)
+    return Pair(startIndex, result)
+  }
+
   private fun getLineHeight(): Int {
     val colorsManager = EditorColorsManager.getInstance()
     val fontPreferences = colorsManager.globalScheme.fontPreferences
@@ -365,5 +392,7 @@ class CodyAutocompleteManager {
     @JvmStatic
     val instance: CodyAutocompleteManager
       get() = service()
+
+    private val lineBreaks = listOf("\r\n", "\n", "\r")
   }
 }
