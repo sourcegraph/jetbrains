@@ -15,7 +15,7 @@ import javax.swing.text.StyleConstants
 class MissingJcefPanel : JPanel(GridBagLayout()) {
   private val jcefDescription =
       JTextPane().apply {
-        text = CodyBundle.getString("JcefRuntimeNotification.content")
+        text = CodyBundle.getString("MissingJcefPanel.content")
         foreground = SimpleTextAttributes.GRAY_ATTRIBUTES.fgColor
         val center = SimpleAttributeSet()
         StyleConstants.setAlignment(center, StyleConstants.ALIGN_CENTER)
@@ -23,7 +23,7 @@ class MissingJcefPanel : JPanel(GridBagLayout()) {
       }
 
   private val jcefButton =
-      JButton(CodyBundle.getString("JcefRuntimeNotification.button")).apply {
+      JButton(CodyBundle.getString("chooseRuntimeWithJcef.button")).apply {
         addActionListener { RuntimeChooserUtil.showRuntimeChooserPopup() }
       }
 

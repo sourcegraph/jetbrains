@@ -40,8 +40,7 @@ class JcefRuntimeNotification :
     icon = Icons.CodyLogoSlash
 
     addAction(
-        object :
-            NotificationAction(CodyBundle.getString("JcefRuntimeNotification.select-runtime")) {
+        object : NotificationAction(CodyBundle.getString("chooseRuntimeWithJcef.button")) {
           override fun actionPerformed(anActionEvent: AnActionEvent, notification: Notification) {
             RuntimeChooserUtil.showRuntimeChooserPopup()
           }
