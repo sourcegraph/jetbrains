@@ -249,9 +249,7 @@ class CodyAutocompleteManager {
               defaultItem.insertText, project, editor.document, range, cursorOffset)
         }
 
-    val (inlayOffset, completionText) =
-        trimCommonPrefixAndSuffix(formattedCompletionText, originalText)
-    if (completionText.trim().isBlank()) return
+    if (formattedCompletionText.trim().isBlank()) return
 
     project?.let {
       CodyAgentService.withAgent(project) { agent ->
@@ -259,20 +257,24 @@ class CodyAutocompleteManager {
       }
     }
 
-    val startsInline = lineBreaks.none { separator -> completionText.startsWith(separator) }
+    val startsInline =
+        lineBreaks.none { separator -> formattedCompletionText.startsWith(separator) }
 
     var inlay: Inlay<*>? = null
     if (startsInline) {
-      val text = completionText.lines().first()
-      if (text.isNotEmpty()) {
+      val (inlayOffset, completionText) =
+          trimCommonPrefixAndSuffix(
+              formattedCompletionText.lines().first(), originalText.lines().first())
+      if (completionText.isNotEmpty()) {
         val renderer =
-            CodyAutocompleteSingleLineRenderer(text, items, editor, AutocompleteRendererType.INLINE)
+            CodyAutocompleteSingleLineRenderer(
+                completionText, items, editor, AutocompleteRendererType.INLINE)
         inlay =
             inlayModel.addInlineElement(
                 cursorOffset + inlayOffset, /* relatesToPrecedingText = */ true, renderer)
       }
     }
-    val lines = completionText.lines()
+    val lines = formattedCompletionText.lines()
     if (lines.size > 1) {
       val text =
           (if (startsInline) lines.drop(1) else lines).dropWhile { it.isBlank() }.joinToString("\n")
@@ -280,7 +282,7 @@ class CodyAutocompleteManager {
         val renderer = CodyAutocompleteBlockElementRenderer(text, items, editor)
         val inlay2 =
             inlayModel.addBlockElement(
-                /* offset = */ cursorOffset + inlayOffset,
+                /* offset = */ cursorOffset,
                 /* relatesToPrecedingText = */ true,
                 /* showAbove = */ false,
                 /* priority = */ Int.MAX_VALUE,
@@ -370,33 +372,27 @@ class CodyAutocompleteManager {
     private val lineBreaks = listOf("\r\n", "\n", "\r")
 
     @VisibleForTesting
-    fun trimCommonPrefixAndSuffix(formatted: String, original: String): Pair<Int, String> {
+    fun trimCommonPrefixAndSuffix(completion: String, original: String): Pair<Int, String> {
       var startIndex = 0
-      val formattedHead = formatted.lines().first()
-      val formattedTail = formatted.lines().drop(1)
-      var endIndex = formattedHead.length
+      var endIndex = completion.length
 
       // Trim common prefix
-      while (startIndex < formattedHead.length &&
+      while (startIndex < completion.length &&
           startIndex < original.length &&
-          formattedHead[startIndex] == original[startIndex]) {
+          completion[startIndex] == original[startIndex]) {
         startIndex++
       }
 
       // Trim common suffix
       while (endIndex > 0 &&
           endIndex > startIndex &&
-          original.length - (formattedHead.length - endIndex) > 0 &&
-          formattedHead[endIndex - 1] ==
-              original[original.length - (formattedHead.length - endIndex) - 1]) {
+          original.length - (completion.length - endIndex) > 0 &&
+          completion[endIndex - 1] ==
+              original[original.length - (completion.length - endIndex) - 1]) {
         endIndex--
       }
 
-      val result =
-          listOf(formattedHead.substring(startIndex, endIndex))
-              .plus(formattedTail)
-              .joinToString("\n")
-      return Pair(startIndex, result)
+      return Pair(startIndex, completion.substring(startIndex, endIndex))
     }
   }
 }

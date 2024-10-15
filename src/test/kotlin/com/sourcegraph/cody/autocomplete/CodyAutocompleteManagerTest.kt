@@ -41,21 +41,6 @@ class CodyAutocompleteManagerTest : BasePlatformTestCase() {
   }
 
   @Test
-  fun testTrimCommonPrefixAndSuffix_MultilineFormatted() {
-    val formatted =
-        """
-      Hello, World!
-      This is a test.
-      Goodbye!
-      """
-            .trimIndent()
-    val original = "Hello, Universe!"
-    val (startIndex, result) = trimCommonPrefixAndSuffix(formatted, original)
-    assertEquals(7, startIndex)
-    assertEquals("World\nThis is a test.\nGoodbye!", result)
-  }
-
-  @Test
   fun testTrimCommonPrefixAndSuffix_EmptyStrings() {
     val formatted = ""
     val original = ""
