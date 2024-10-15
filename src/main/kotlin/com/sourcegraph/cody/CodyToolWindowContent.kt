@@ -4,26 +4,22 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.chat.SignInWithSourcegraphPanel
 import com.sourcegraph.cody.chat.ui.CodyOnboardingGuidancePanel
+import com.sourcegraph.cody.chat.ui.MissingJcefPanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.ui.web.CodyToolWindowContentWebviewHost
 import com.sourcegraph.cody.ui.web.WebUIService
-import com.sourcegraph.common.CodyBundle
 import java.awt.CardLayout
-import java.awt.FlowLayout
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.GridLayout
-import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
-import javax.swing.JTextArea
 
 @Service(Service.Level.PROJECT)
 class CodyToolWindowContent(val project: Project) {
@@ -47,14 +43,7 @@ class CodyToolWindowContent(val project: Project) {
         JBLabel("Starting Cody...", Icons.StatusBar.CompletionInProgress, JBLabel.CENTER)
     spinnerPlaceholder.add(spinnerLabel, GridBagConstraints())
     cardPanel.add(spinnerPlaceholder, LOADING_PANEL, LOADING_PANEL_INDEX)
-    val jcefPlaceholder = JPanel(FlowLayout())
-    val jcefButton = JButton(CodyBundle.getString("JcefRuntimeNotification.button"))
-    val jcefDescription = JTextArea(CodyBundle.getString("JcefRuntimeNotification.content"))
-    jcefDescription.lineWrap = true
-    jcefDescription.wrapStyleWord = true
-    jcefPlaceholder.add(jcefDescription, AlignX.FILL)
-    jcefPlaceholder.add(jcefButton)
-    cardPanel.add(jcefPlaceholder, CHANGE_RUNTIME_PANEL, CHANGE_RUNTIME_PANEL_INDEX)
+    cardPanel.add(MissingJcefPanel(), CHANGE_RUNTIME_PANEL, CHANGE_RUNTIME_PANEL_INDEX)
 
     WebUIService.getInstance(project).views.provideCodyToolWindowContent(this)
 
