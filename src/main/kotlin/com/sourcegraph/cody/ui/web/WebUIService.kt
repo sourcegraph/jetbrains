@@ -7,6 +7,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.jetbrains.rd.util.ConcurrentHashMap
+import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.ConfigFeatures
 import com.sourcegraph.cody.agent.CurrentConfigFeatures
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
@@ -14,6 +15,7 @@ import com.sourcegraph.cody.agent.protocol.WebviewOptions
 import com.sourcegraph.cody.sidebar.WebTheme
 import com.sourcegraph.cody.sidebar.WebThemeController
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -31,6 +33,9 @@ internal data class WebUIProxyCreationGate(
 @Service(Service.Level.PROJECT)
 class WebUIService(private val project: Project) {
   companion object {
+    private val JCEF_NOT_SUPPORTED_MESSAGE =
+        "JCEF is not supported in this env or failed to initialize"
+
     @JvmStatic fun getInstance(project: Project): WebUIService = project.service<WebUIService>()
   }
 
@@ -44,6 +49,8 @@ class WebUIService(private val project: Project) {
     views.reset()
     return panels.reset()
   }
+
+  val missingJcefExceptionOccurred = AtomicBoolean(false)
 
   private fun <T> withCreationGate(name: String, action: (gate: WebUIProxyCreationGate) -> T): T {
     val gate =
@@ -112,7 +119,8 @@ class WebUIService(private val project: Project) {
                 portMapping = emptyList(),
                 enableFindWidget = false,
                 retainContextWhenHidden = false))
-    val proxy = WebUIProxy.create(delegate)
+
+    val proxy = createWebUIProxy(delegate) ?: return
     delegate.view = createView(proxy)
     proxy.updateTheme(themeController.getTheme())
     withCreationGate(handle) {
@@ -121,6 +129,22 @@ class WebUIService(private val project: Project) {
       it.createdCondition.signalAll()
     }
   }
+
+  private fun createWebUIProxy(delegate: WebUIHost): WebUIProxy? =
+      try {
+        missingJcefExceptionOccurred.set(false)
+        WebUIProxy.create(delegate)
+      } catch (e: IllegalStateException) {
+        if (e.message == JCEF_NOT_SUPPORTED_MESSAGE) {
+          missingJcefExceptionOccurred.set(true)
+          CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
+            refreshPanelsVisibility()
+          }
+        } else {
+          throw e
+        }
+        null
+      }
 
   internal fun createWebviewPanel(params: WebviewCreateWebviewPanelParams) {
     runInEdt {
