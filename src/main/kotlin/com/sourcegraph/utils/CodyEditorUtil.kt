@@ -6,6 +6,7 @@ import com.intellij.injected.editor.EditorWindow
 import com.intellij.lang.Language
 import com.intellij.lang.LanguageUtil
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
@@ -31,7 +32,6 @@ import com.intellij.util.withScheme
 import com.sourcegraph.cody.agent.protocol_extensions.toOffsetRange
 import com.sourcegraph.cody.agent.protocol_generated.Range
 import com.sourcegraph.config.ConfigUtil
-import com.sourcegraph.utils.ThreadingUtil.runInEdtAndGet
 import java.net.URI
 import java.net.URISyntaxException
 import kotlin.io.path.createDirectories
@@ -184,7 +184,7 @@ object CodyEditorUtil {
                 selection.start.line.toInt(),
                 /* logicalColumn= */ selection.start.character.toInt())
           }
-      runInEdtAndGet { descriptor.navigate(/* requestFocus= */ preserveFocus != true) }
+      invokeLater { descriptor.navigate(/* requestFocus= */ preserveFocus != true) }
       return true
     } catch (e: Exception) {
       logger.error("Cannot switch view to file ${vf.path}", e)
