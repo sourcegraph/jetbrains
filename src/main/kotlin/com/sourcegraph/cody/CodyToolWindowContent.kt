@@ -8,6 +8,7 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.sourcegraph.cody.chat.SignInWithSourcegraphPanel
 import com.sourcegraph.cody.chat.ui.CodyOnboardingGuidancePanel
+import com.sourcegraph.cody.chat.ui.ErrorPanel
 import com.sourcegraph.cody.chat.ui.MissingJcefPanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
@@ -45,6 +46,7 @@ class CodyToolWindowContent(val project: Project) {
     spinnerPlaceholder.add(spinnerLabel, GridBagConstraints())
     cardPanel.add(spinnerPlaceholder, LOADING_PANEL, LOADING_PANEL_INDEX)
     cardPanel.add(MissingJcefPanel(), CHANGE_RUNTIME_PANEL, CHANGE_RUNTIME_PANEL_INDEX)
+    cardPanel.add(ErrorPanel(), ERROR_PANEL, ERROR_INDEX)
 
     WebUIService.getInstance(project).views.provideCodyToolWindowContent(this)
 
@@ -75,10 +77,12 @@ class CodyToolWindowContent(val project: Project) {
       if (isCurrentRuntimeMissingJcef()) {
         cardLayout.show(cardPanel, CHANGE_RUNTIME_PANEL)
         showView(cardPanel)
-        return
       } else {
+        cardLayout.show(cardPanel, ERROR_PANEL)
+        showView(cardPanel)
         logger.error(errorOnProxyCreation)
       }
+      return
     }
     cardLayout.show(cardPanel, LOADING_PANEL)
     showView(webview?.proxy?.component ?: cardPanel)
@@ -113,11 +117,13 @@ class CodyToolWindowContent(val project: Project) {
     const val SIGN_IN_PANEL = "signInWithSourcegraphPanel"
     const val LOADING_PANEL = "loadingPanel"
     const val CHANGE_RUNTIME_PANEL = "changeRuntime"
+    const val ERROR_PANEL = "error"
 
     const val SIGN_IN_PANEL_INDEX = 0
     const val ONBOARDING_PANEL_INDEX = 1
     const val LOADING_PANEL_INDEX = 2
     const val CHANGE_RUNTIME_PANEL_INDEX = 3
+    const val ERROR_INDEX = 4
 
     var logger = Logger.getInstance(CodyToolWindowContent::class.java)
 
