@@ -21,8 +21,8 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.runInEdtAndWait
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolCodeLens
-import com.sourcegraph.cody.config.CodyPersistentAccountsHost
-import com.sourcegraph.cody.config.SourcegraphServerPath
+import com.sourcegraph.cody.auth.CodyPersistentAccountsHost
+import com.sourcegraph.cody.auth.SourcegraphServerPath
 import com.sourcegraph.cody.edit.lenses.LensListener
 import com.sourcegraph.cody.edit.lenses.LensesService
 import com.sourcegraph.cody.edit.lenses.providers.EditAcceptCodeVisionProvider
