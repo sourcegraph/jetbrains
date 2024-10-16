@@ -8,7 +8,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.jetbrains.rd.util.AtomicReference
 import com.jetbrains.rd.util.ConcurrentHashMap
-import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.ConfigFeatures
 import com.sourcegraph.cody.agent.CurrentConfigFeatures
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
@@ -33,9 +32,6 @@ internal data class WebUIProxyCreationGate(
 @Service(Service.Level.PROJECT)
 class WebUIService(private val project: Project) {
   companion object {
-    private val JCEF_NOT_SUPPORTED_MESSAGE =
-        "JCEF is not supported in this env or failed to initialize"
-
     @JvmStatic fun getInstance(project: Project): WebUIService = project.service<WebUIService>()
   }
 
@@ -135,14 +131,7 @@ class WebUIService(private val project: Project) {
         proxyCreationException.getAndSet(null)
         WebUIProxy.create(delegate)
       } catch (e: IllegalStateException) {
-        if (e.message == JCEF_NOT_SUPPORTED_MESSAGE) {
-          proxyCreationException.getAndSet(e)
-          CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
-            refreshPanelsVisibility()
-          }
-        } else {
-          throw e
-        }
+        proxyCreationException.getAndSet(e)
         null
       }
 
