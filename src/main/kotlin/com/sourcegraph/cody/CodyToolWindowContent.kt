@@ -12,6 +12,7 @@ import com.sourcegraph.cody.chat.ui.MissingJcefPanel
 import com.sourcegraph.cody.config.CodyAccount
 import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.initialization.VerifyJavaBootRuntimeVersion.Companion.isCurrentRuntimeMissingJcef
 import com.sourcegraph.cody.ui.web.CodyToolWindowContentWebviewHost
 import com.sourcegraph.cody.ui.web.WebUIService
 import java.awt.CardLayout
@@ -69,10 +70,15 @@ class CodyToolWindowContent(val project: Project) {
       showView(cardPanel)
       return
     }
-    if (WebUIService.getInstance(project).missingJcefExceptionOccurred.get()) {
-      cardLayout.show(cardPanel, CHANGE_RUNTIME_PANEL)
-      showView(cardPanel)
-      return
+    val errorOnProxyCreation = WebUIService.getInstance(project).proxyCreationException.get()
+    if (errorOnProxyCreation != null) {
+      if (isCurrentRuntimeMissingJcef()) {
+        cardLayout.show(cardPanel, CHANGE_RUNTIME_PANEL)
+        showView(cardPanel)
+        return
+      } else {
+        logger.error(errorOnProxyCreation)
+      }
     }
     cardLayout.show(cardPanel, LOADING_PANEL)
     showView(webview?.proxy?.component ?: cardPanel)

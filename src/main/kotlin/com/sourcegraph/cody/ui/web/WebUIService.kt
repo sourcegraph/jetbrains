@@ -6,6 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.jetbrains.rd.util.AtomicReference
 import com.jetbrains.rd.util.ConcurrentHashMap
 import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.ConfigFeatures
@@ -15,7 +16,6 @@ import com.sourcegraph.cody.agent.protocol.WebviewOptions
 import com.sourcegraph.cody.sidebar.WebTheme
 import com.sourcegraph.cody.sidebar.WebThemeController
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -50,7 +50,7 @@ class WebUIService(private val project: Project) {
     return panels.reset()
   }
 
-  val missingJcefExceptionOccurred = AtomicBoolean(false)
+  val proxyCreationException = AtomicReference<IllegalStateException?>(null)
 
   private fun <T> withCreationGate(name: String, action: (gate: WebUIProxyCreationGate) -> T): T {
     val gate =
@@ -132,11 +132,11 @@ class WebUIService(private val project: Project) {
 
   private fun createWebUIProxy(delegate: WebUIHost): WebUIProxy? =
       try {
-        missingJcefExceptionOccurred.set(false)
+        proxyCreationException.getAndSet(null)
         WebUIProxy.create(delegate)
       } catch (e: IllegalStateException) {
         if (e.message == JCEF_NOT_SUPPORTED_MESSAGE) {
-          missingJcefExceptionOccurred.set(true)
+          proxyCreationException.getAndSet(e)
           CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) {
             refreshPanelsVisibility()
           }

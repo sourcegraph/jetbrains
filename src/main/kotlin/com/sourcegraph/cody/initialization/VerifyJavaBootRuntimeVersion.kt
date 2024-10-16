@@ -21,10 +21,12 @@ class VerifyJavaBootRuntimeVersion : Activity {
     }
   }
 
-  private fun isCurrentRuntimeMissingJcef(): Boolean {
-    val model = RuntimeChooserCurrentItem.currentRuntime()
-    val doesNameContainJcefSuffix = model.version?.endsWith("-jcef") ?: true
-    return !doesNameContainJcefSuffix
+  companion object {
+    fun isCurrentRuntimeMissingJcef(): Boolean {
+      val model = RuntimeChooserCurrentItem.currentRuntime()
+      val doesNameContainJcefSuffix = model.version?.endsWith("-jcef") ?: true
+      return !doesNameContainJcefSuffix
+    }
   }
 }
 
