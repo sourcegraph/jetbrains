@@ -26,6 +26,7 @@ object ConfigUtil {
   const val DOTCOM_URL = "https://sourcegraph.com/"
   const val CODY_DISPLAY_NAME = "Cody"
   const val CODE_SEARCH_DISPLAY_NAME = "Code Search"
+  const val SOURCEGRAPH_DISPLAY_NAME = "Sourcegraph"
   private const val FEATURE_FLAGS_ENV_VAR = "CODY_JETBRAINS_FEATURES"
 
   private val logger = Logger.getInstance(ConfigUtil::class.java)

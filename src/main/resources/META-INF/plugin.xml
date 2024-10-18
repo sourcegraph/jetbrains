@@ -27,6 +27,13 @@
                 serviceImplementation="com.sourcegraph.config.CodyApplicationService"/>
 
         <projectConfigurable
+                parentId="tools"
+                instance="com.sourcegraph.cody.config.ui.SourcegraphConfigurable"
+                id="com.sourcegraph.cody.config.ui.AccountConfigurable"
+                displayName="Sourcegraph &amp; Cody"
+                nonDefaultProject="false"
+        />
+        <projectConfigurable
                 parentId="com.sourcegraph.cody.config.ui.AccountConfigurable"
                 instance="com.sourcegraph.cody.config.ui.CodyConfigurable"
                 id="com.sourcegraph.cody.config.ui.CodyConfigurable"
