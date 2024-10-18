@@ -133,7 +133,6 @@ class WebUIService(private val project: Project) {
         WebUIProxy.create(delegate)
       } catch (e: IllegalStateException) {
         proxyCreationException.getAndSet(e)
-        CodyToolWindowContent.executeOnInstanceIfNotDisposed(project) { refreshPanelsVisibility() }
         null
       }
 

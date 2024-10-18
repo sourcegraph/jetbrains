@@ -12,7 +12,7 @@ import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.config.CodyAuthenticationManager
+import com.sourcegraph.cody.auth.CodyAccount
 import com.sourcegraph.cody.ignore.IgnoreOracle
 import com.sourcegraph.cody.ignore.IgnorePolicy
 import com.sourcegraph.config.ConfigUtil
@@ -37,7 +37,7 @@ class CodySelectionInlayManager(val project: Project) {
         !CodyAgentService.isConnected(project) ||
         !ConfigUtil.isCodyUIHintsEnabled() ||
         !CodyEditorUtil.isEditorValidForAutocomplete(editor) ||
-        CodyAuthenticationManager.getInstance().hasNoActiveAccount() ||
+        !CodyAccount.hasActiveAccount() ||
         IgnoreOracle.getInstance(project).policyForEditor(editor) != IgnorePolicy.USE) {
       return
     }

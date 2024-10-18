@@ -12,11 +12,10 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.sourcegraph.cody.agent.protocol_generated.ExtensionConfiguration
+import com.sourcegraph.cody.auth.CodyAccount
+import com.sourcegraph.cody.auth.SourcegraphServerPath
+import com.sourcegraph.cody.auth.SourcegraphServerPath.Companion.from
 import com.sourcegraph.cody.config.CodyApplicationSettings
-import com.sourcegraph.cody.config.CodyAuthenticationManager
-import com.sourcegraph.cody.config.ServerAuthLoader
-import com.sourcegraph.cody.config.SourcegraphServerPath
-import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.readText
@@ -25,10 +24,8 @@ import org.jetbrains.annotations.VisibleForTesting
 
 object ConfigUtil {
   const val DOTCOM_URL = "https://sourcegraph.com/"
-  const val SERVICE_DISPLAY_NAME = "Sourcegraph"
   const val CODY_DISPLAY_NAME = "Cody"
   const val CODE_SEARCH_DISPLAY_NAME = "Code Search"
-  const val SOURCEGRAPH_DISPLAY_NAME = "Sourcegraph"
   private const val FEATURE_FLAGS_ENV_VAR = "CODY_JETBRAINS_FEATURES"
 
   private val logger = Logger.getInstance(ConfigUtil::class.java)
@@ -68,13 +65,13 @@ object ConfigUtil {
       project: Project,
       customConfigContent: String? = null
   ): ExtensionConfiguration {
-    val serverAuth = ServerAuthLoader.loadServerAuth()
+    val account = CodyAccount.getActiveAccount()
 
     return ExtensionConfiguration(
         anonymousUserID = CodyApplicationSettings.instance.anonymousUserId,
-        serverEndpoint = serverAuth.instanceUrl,
-        accessToken = serverAuth.accessToken,
-        customHeaders = getCustomRequestHeadersAsMap(serverAuth.customRequestHeaders),
+        serverEndpoint = account?.server?.url ?: "",
+        accessToken = account?.getToken() ?: "",
+        customHeaders = emptyMap(),
         proxy = UserLevelConfig.getProxy(),
         autocompleteAdvancedProvider =
             UserLevelConfig.getAutocompleteProviderType()?.vscodeSettingString(),
@@ -86,11 +83,11 @@ object ConfigUtil {
 
   @JvmStatic
   fun getConfigAsJson(): JsonObject {
-    val (instanceUrl, accessToken, customRequestHeaders) = ServerAuthLoader.loadServerAuth()
+    val account = CodyAccount.getActiveAccount()
     return JsonObject().apply {
-      addProperty("instanceURL", instanceUrl)
-      addProperty("accessToken", accessToken)
-      addProperty("customRequestHeadersAsString", customRequestHeaders)
+      addProperty("instanceURL", account?.server?.url)
+      addProperty("accessToken", account?.getToken())
+      addProperty("customRequestHeadersAsString", "")
       addProperty("pluginVersion", getPluginVersion())
       addProperty("anonymousUserId", CodyApplicationSettings.instance.anonymousUserId)
     }
@@ -98,21 +95,8 @@ object ConfigUtil {
 
   @JvmStatic
   fun getServerPath(): SourcegraphServerPath {
-    val activeAccount = CodyAuthenticationManager.getInstance().account
+    val activeAccount = CodyAccount.getActiveAccount()
     return activeAccount?.server ?: from(DOTCOM_URL, "")
-  }
-
-  @JvmStatic
-  fun getCustomRequestHeadersAsMap(customRequestHeaders: String): Map<String, String> {
-    val result: MutableMap<String, String> = HashMap()
-    val pairs =
-        customRequestHeaders.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-    var i = 0
-    while (i + 1 < pairs.size) {
-      result[pairs[i]] = pairs[i + 1]
-      i += 2
-    }
-    return result
   }
 
   @JvmStatic fun shouldConnectToDebugAgent() = System.getenv("CODY_AGENT_DEBUG_REMOTE") == "true"
