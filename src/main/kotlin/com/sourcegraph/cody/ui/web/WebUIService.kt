@@ -8,7 +8,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.jetbrains.rd.util.AtomicReference
 import com.jetbrains.rd.util.ConcurrentHashMap
-import com.sourcegraph.cody.CodyToolWindowContent
 import com.sourcegraph.cody.agent.ConfigFeatures
 import com.sourcegraph.cody.agent.CurrentConfigFeatures
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams

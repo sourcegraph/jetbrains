@@ -18,7 +18,7 @@ import com.sourcegraph.utils.CodyEditorUtil
 
 class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
 
-  // TODO: Looks like this functionality is broken after the migration to webview
+  // TODO (CODY-4121) Fix keyDown:paste telemetry events logging
   private fun logCodeCopyPastedFromChat(event: DocumentEvent) {
     val pastedCode = event.newFragment.toString()
     if (pastedCode.isNotBlank() && lastCopiedText == pastedCode) {
