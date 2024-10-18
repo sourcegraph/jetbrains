@@ -8,10 +8,8 @@ import com.intellij.openapi.editor.ex.EditorEventMulticasterEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.CodySettingsFileChangeListener
 import com.sourcegraph.cody.config.migration.SettingsMigration
-import com.sourcegraph.cody.config.notification.AccountSettingChangeListener
 import com.sourcegraph.cody.config.notification.CodySettingChangeListener
 import com.sourcegraph.cody.config.ui.CheckUpdatesTask
 import com.sourcegraph.cody.listeners.CodyCaretListener
@@ -32,7 +30,6 @@ class PostStartupActivity : ProjectActivity {
     VerifyJavaBootRuntimeVersion().runActivity(project)
     SettingsMigration().runActivity(project)
     CodyAuthNotificationActivity().runActivity(project)
-    CodyAuthenticationManager.getInstance().addAuthChangeListener(project)
     ApplicationManager.getApplication().executeOnPooledThread {
       // Scheduling because this task takes ~2s to run
       CheckUpdatesTask(project).queue()
@@ -59,7 +56,6 @@ class PostStartupActivity : ProjectActivity {
 
     // DO NOT remove those lines.
     // Project level listeners need to be used at least once to get initialized.
-    project.service<AccountSettingChangeListener>()
     project.service<CodySettingChangeListener>()
 
     TelemetryV2.sendTelemetryEvent(project, "extension", "started")

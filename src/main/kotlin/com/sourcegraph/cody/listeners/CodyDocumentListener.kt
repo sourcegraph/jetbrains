@@ -12,17 +12,17 @@ import com.sourcegraph.cody.agent.protocol.CompletionItemParams
 import com.sourcegraph.cody.agent.protocol.ProtocolTextDocument
 import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager
 import com.sourcegraph.cody.autocomplete.action.AcceptCodyAutocompleteAction
-import com.sourcegraph.cody.chat.CodeEditorFactory
 import com.sourcegraph.cody.telemetry.TelemetryV2
 import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
 import com.sourcegraph.utils.CodyEditorUtil
 
 class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
 
+  // TODO (CODY-4121) Fix keyDown:paste telemetry events logging
   private fun logCodeCopyPastedFromChat(event: DocumentEvent) {
     val pastedCode = event.newFragment.toString()
-    if (pastedCode.isNotBlank() && CodeEditorFactory.lastCopiedText == pastedCode) {
-      CodeEditorFactory.lastCopiedText = null
+    if (pastedCode.isNotBlank() && lastCopiedText == pastedCode) {
+      lastCopiedText = null
       TelemetryV2.sendCodeGenerationEvent(
           project,
           feature = "keyDown",
@@ -71,5 +71,9 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
             editor, changeOffset, InlineCompletionTriggerKind.AUTOMATIC)
       }
     }
+  }
+
+  companion object {
+    var lastCopiedText: String? = null
   }
 }
