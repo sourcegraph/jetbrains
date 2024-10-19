@@ -12,6 +12,7 @@ import com.sourcegraph.cody.agent.protocol.BillingProduct
 import com.sourcegraph.cody.agent.protocol.TelemetryEventParameters
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.telemetry.TelemetryV2
+import com.sourcegraph.config.ConfigUtil
 import java.util.concurrent.TimeUnit
 
 class UninstallListener : StartupActivity {
@@ -19,6 +20,10 @@ class UninstallListener : StartupActivity {
     PluginInstaller.addStateListener(
         object : PluginStateListener {
           override fun uninstall(descriptor: IdeaPluginDescriptor) {
+            // Only run for this plugin
+            if (descriptor.pluginId != ConfigUtil.getPluginId()) {
+              return
+            }
             val authManager = CodyAuthenticationManager.getInstance()
             authManager.setActiveAccount(null)
             authManager.removeAll()

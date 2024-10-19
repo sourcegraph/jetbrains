@@ -29,6 +29,7 @@ object ConfigUtil {
   const val CODY_DISPLAY_NAME = "Cody"
   const val CODE_SEARCH_DISPLAY_NAME = "Code Search"
   const val SOURCEGRAPH_DISPLAY_NAME = "Sourcegraph"
+  const val PLUGIN_ID = "com.sourcegraph.jetbrains"
   private const val FEATURE_FLAGS_ENV_VAR = "CODY_JETBRAINS_FEATURES"
 
   private val logger = Logger.getInstance(ConfigUtil::class.java)
@@ -149,11 +150,13 @@ object ConfigUtil {
     return settingsProperties + additionalProperties
   }
 
+  @JvmStatic @Contract(pure = true) fun getPluginId(): PluginId = PluginId.getId(PLUGIN_ID)
+
   @JvmStatic
   @Contract(pure = true)
   fun getPluginVersion(): String {
     // Internal version
-    val plugin = PluginManagerCore.getPlugin(PluginId.getId("com.sourcegraph.jetbrains"))
+    val plugin = PluginManagerCore.getPlugin(getPluginId())
     return if (plugin != null) plugin.version else "unknown"
   }
 
