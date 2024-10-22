@@ -1,6 +1,6 @@
 ---
-name: '❌ Do not submit feedback or feature requests here'
-about: 'We are *not* accepting feedback or feature requests through GitHub issues, instead please submit feedback directly to the Community Forum.'
+name: '❌ Please do not use GitHub issues for feedback or feature requests'
+about: 'We are *not* accepting feedback or feature requests through GitHub issues, instead please head over to our Community Forum to share your feedback!'
 title: ''
 labels: 'customer-feedback'
 assignees: ''
