@@ -33,6 +33,7 @@ import com.sourcegraph.cody.agent.protocol_generated.EditTask_UndoParams
 import com.sourcegraph.cody.agent.protocol_generated.ExecuteCommandParams
 import com.sourcegraph.cody.agent.protocol_generated.ExtensionConfiguration
 import com.sourcegraph.cody.agent.protocol_generated.Null
+import com.sourcegraph.cody.agent.protocol_generated.ProtocolAuthStatus
 import com.sourcegraph.cody.agent.protocol_generated.ServerInfo
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -75,12 +76,12 @@ interface _SubsetGeneratedCodyAgentServer {
   @JsonRequest("extensionConfiguration/getSettingsSchema")
   fun extensionConfiguration_getSettingsSchema(params: Null?): CompletableFuture<String>
 
+  @JsonNotification("extensionConfiguration/change")
+  fun extensionConfiguration_change(params: ExtensionConfiguration): CompletableFuture<ProtocolAuthStatus?>
+
   //  // =============
   //  // Notifications
   //  // =============
-
-  @JsonNotification("extensionConfiguration/didChange")
-  fun extensionConfiguration_didChange(params: ExtensionConfiguration)
 }
 
 // TODO: Requests waiting to be migrated & tested for compatibility. Avoid placing new protocol
