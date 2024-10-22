@@ -1,6 +1,10 @@
 package com.sourcegraph.cody.autocomplete
 
-import com.intellij.codeInsight.inline.completion.*
+import com.intellij.codeInsight.inline.completion.InlineCompletionElement
+import com.intellij.codeInsight.inline.completion.InlineCompletionEvent
+import com.intellij.codeInsight.inline.completion.InlineCompletionProvider
+import com.intellij.codeInsight.inline.completion.InlineCompletionProviderID
+import com.intellij.codeInsight.inline.completion.InlineCompletionRequest
 import com.intellij.codeInsight.inline.completion.elements.InlineCompletionGrayTextElement
 import com.intellij.codeInsight.inline.completion.suggestion.InlineCompletionSingleSuggestion
 import com.intellij.codeInsight.inline.completion.suggestion.InlineCompletionSuggestion
@@ -18,6 +22,7 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.AutocompleteResult
 import com.sourcegraph.cody.agent.protocol.CompletionItemParams
+import com.sourcegraph.cody.editor.CodyLookupListener
 import com.sourcegraph.cody.statusbar.CodyStatusService.Companion.resetApplication
 import com.sourcegraph.cody.vscode.CancellationToken
 import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
@@ -42,14 +47,16 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
     if (!isImplicitAutocompleteEnabledForEditor(editor)) {
       return InlineCompletionSuggestion.Empty
     }
-    val lookupString: String? = null // todo: can we use this provider for lookups?
 
     cancelCurrentJob(project)
     val cancellationToken = CancellationToken()
     currentJob.set(cancellationToken)
 
+    var lookupString: String? = null
     val triggerKind =
         if (request.event is InlineCompletionEvent.DirectCall) {
+          lookupString =
+              request.event.context?.getData(CodyLookupListener.LOOKUP_STRING_DATA_ID) as? String
           InlineCompletionTriggerKind.INVOKE
         } else {
           InlineCompletionTriggerKind.AUTOMATIC

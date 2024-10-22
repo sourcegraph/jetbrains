@@ -1,5 +1,7 @@
 package com.sourcegraph.cody.editor
 
+import com.intellij.codeInsight.inline.completion.InlineCompletion
+import com.intellij.codeInsight.inline.completion.InlineCompletionEvent
 import com.intellij.codeInsight.lookup.Lookup
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupListener
@@ -11,6 +13,11 @@ import com.sourcegraph.cody.config.CodyApplicationSettings
 import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
 
 class CodyLookupListener : LookupManagerListener {
+
+  companion object {
+    const val LOOKUP_STRING_DATA_ID = "CodyLookupListener.lookupString"
+  }
+
   private val logger = Logger.getInstance(CodyLookupListener::class.java)
 
   override fun activeLookupChanged(oldLookup: Lookup?, newLookup: Lookup?) {
@@ -28,8 +35,19 @@ class CodyLookupListener : LookupManagerListener {
                   }
                   val offset = newEditor.caretModel.offset
                   logger.debug("Triggering autocompletion for lookup element: $lookupString")
+
                   instance.triggerAutocomplete(
                       newEditor, offset, InlineCompletionTriggerKind.AUTOMATIC, lookupString)
+
+                  InlineCompletion.getHandlerOrNull(newEditor)
+                      ?.invokeEvent(
+                          InlineCompletionEvent.DirectCall(
+                              newEditor, newEditor.caretModel.currentCaret) { dataId ->
+                                when (dataId) {
+                                  LOOKUP_STRING_DATA_ID -> lookupString
+                                  else -> null
+                                }
+                              })
                 }
                 super.uiRefreshed()
               }

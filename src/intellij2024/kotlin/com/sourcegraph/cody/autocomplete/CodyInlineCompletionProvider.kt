@@ -42,14 +42,16 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
     if (!isImplicitAutocompleteEnabledForEditor(editor)) {
       return InlineCompletionSuggestion.Empty
     }
-    val lookupString: String? = null // todo: can we use this provider for lookups?
 
     cancelCurrentJob(project)
     val cancellationToken = CancellationToken()
     currentJob.set(cancellationToken)
 
+    var lookupString: String? = null
     val triggerKind =
         if (request.event is InlineCompletionEvent.DirectCall) {
+          lookupString =
+              request.event.context?.getData(CodyLookupListener.LOOKUP_STRING_DATA_ID) as? String
           InlineCompletionTriggerKind.INVOKE
         } else {
           InlineCompletionTriggerKind.AUTOMATIC
