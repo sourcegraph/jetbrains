@@ -66,7 +66,6 @@ class CodyErrorSubmitter : ErrorReportSubmitter() {
 
   private fun getTitle(throwableText: String): String {
     return trimPostfix(throwableText.lines().first(), 128)
-    return "$title"
   }
 
   private fun getAboutText(project: Project?): CompletableFuture<String> {
