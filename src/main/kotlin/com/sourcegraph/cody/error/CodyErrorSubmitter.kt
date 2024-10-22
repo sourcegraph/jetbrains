@@ -65,7 +65,7 @@ class CodyErrorSubmitter : ErrorReportSubmitter() {
   }
 
   private fun getTitle(throwableText: String): String {
-    val title = trimPostfix(throwableText.lines().first(), 128)
+    return trimPostfix(throwableText.lines().first(), 128)
     return "$title"
   }
 
