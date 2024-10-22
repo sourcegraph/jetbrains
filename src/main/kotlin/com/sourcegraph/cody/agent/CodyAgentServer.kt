@@ -33,8 +33,8 @@ import com.sourcegraph.cody.agent.protocol_generated.EditTask_UndoParams
 import com.sourcegraph.cody.agent.protocol_generated.ExecuteCommandParams
 import com.sourcegraph.cody.agent.protocol_generated.ExtensionConfiguration
 import com.sourcegraph.cody.agent.protocol_generated.Null
+import com.sourcegraph.cody.agent.protocol_generated.ProtocolAuthStatus
 import com.sourcegraph.cody.agent.protocol_generated.ServerInfo
-import com.sourcegraph.cody.agent.protocol_generated.Window_DidChangeFocusParams
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
@@ -83,6 +83,9 @@ interface _SubsetGeneratedCodyAgentServer {
   @JsonRequest("extensionConfiguration/getSettingsSchema")
   fun extensionConfiguration_getSettingsSchema(params: Null?): CompletableFuture<String>
 
+  @JsonNotification("extensionConfiguration/change")
+  fun extensionConfiguration_change(params: ExtensionConfiguration): CompletableFuture<ProtocolAuthStatus?>
+
   //  // =============
   //  // Notifications
   //  // =============
@@ -90,9 +93,6 @@ interface _SubsetGeneratedCodyAgentServer {
   @JsonNotification("initialized") fun initialized(params: Null?)
 
   @JsonNotification("exit") fun exit(params: Null?)
-
-  @JsonNotification("extensionConfiguration/didChange")
-  fun extensionConfiguration_didChange(params: ExtensionConfiguration)
 
   @JsonNotification("window/didChangeFocus")
   fun window_didChangeFocus(params: Window_DidChangeFocusParams)
