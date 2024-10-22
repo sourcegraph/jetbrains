@@ -1,6 +1,6 @@
 ---
 name: '❌ Please do not use GitHub issues for feedback or feature requests'
-about: 'We are *not* accepting feedback or feature requests through GitHub issues, instead please head over to our Community Forum to share your feedback!'
+about: 'We value your input! Head over to our Community Forum to share feedback and feature requests - it helps us make Cody better.'
 title: ''
 labels: 'customer-feedback'
 assignees: ''
