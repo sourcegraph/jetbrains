@@ -229,7 +229,7 @@ class CodyAuthenticationManager :
       ProjectManager.getInstance().openProjects.forEach { project ->
         CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
           if (!project.isDisposed) {
-            agent.server.extensionConfiguration_didChange(ConfigUtil.getAgentConfiguration(project))
+            agent.server.extensionConfiguration_change(ConfigUtil.getAgentConfiguration(project))
             publisher(project).afterAction(AccountSettingChangeContext(accessTokenChanged = true))
           }
         }
@@ -253,7 +253,7 @@ class CodyAuthenticationManager :
     ProjectManager.getInstance().openProjects.forEach { project ->
       CodyAgentService.withAgentRestartIfNeeded(project) { agent ->
         if (!project.isDisposed) {
-          agent.server.extensionConfiguration_didChange(ConfigUtil.getAgentConfiguration(project))
+          agent.server.extensionConfiguration_change(ConfigUtil.getAgentConfiguration(project))
           if (serverUrlChanged || tierChanged || accountChanged) {
             publisher(project)
                 .afterAction(
