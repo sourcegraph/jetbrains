@@ -8,7 +8,7 @@ import com.sourcegraph.cody.edit.lenses.providers.EditAcceptCodeVisionProvider
 import com.sourcegraph.cody.edit.lenses.providers.EditCancelCodeVisionProvider
 import com.sourcegraph.cody.edit.lenses.providers.EditUndoCodeVisionProvider
 import com.sourcegraph.cody.edit.lenses.providers.EditWorkingCodeVisionProvider
-import com.sourcegraph.cody.util.CodyIntegrationTextFixture
+import com.sourcegraph.cody.util.CodyIntegrationTestFixture
 import com.sourcegraph.cody.util.CustomJunitClassRunner
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.startsWith
@@ -16,7 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(CustomJunitClassRunner::class)
-class DocumentCodeTest : CodyIntegrationTextFixture() {
+class DocumentCodeTest : CodyIntegrationTestFixture() {
 
   @Test
   fun testGetsWorkingGroupLens() {

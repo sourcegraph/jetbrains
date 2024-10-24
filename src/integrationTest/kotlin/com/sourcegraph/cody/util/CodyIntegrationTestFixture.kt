@@ -31,8 +31,8 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import junit.framework.TestCase
 
-open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
-  private val logger = Logger.getInstance(CodyIntegrationTextFixture::class.java)
+open class CodyIntegrationTestFixture : BasePlatformTestCase(), LensListener {
+  private val logger = Logger.getInstance(CodyIntegrationTestFixture::class.java)
   private val lensSubscribers = mutableListOf<(List<ProtocolCodeLens>) -> Boolean>()
 
   override fun setUp() {
