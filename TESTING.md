@@ -37,6 +37,7 @@
     - [ ] [Automatic repository recognition](#automatic-repository-recognition)
     - [ ] [Persistent custom repository](#persistent-custom-repository)
     - [ ] [Colour scheme changes](#colour-scheme-changes)
+    - [ ] [Claude 3 Enterprise Testing](#claude-3-enterprise-testing)
 - Context
     - [ ] [PLG / SYMF / Local Keyword search](#local-keyword-search)
 - Model dropdown
@@ -718,20 +719,48 @@ To open the context menu:
 2. Create new chat
 3. User doesn't see model dropdown
 
-### Enterprise account
+### Cody Enterprise - Cody Gateway Instance
 
 #### Chat
 
-1. Login to Cody Enterprise account
-2. Create new chat
-3. User should see the default model in the dropdown but is unable to change it
+1. Login to the Cody Enterprise Gateway Instance
+2. Create a new chat
+3. User should not be able to change the LLM model on the chat window
+4. Ask Cody a question in the new chat window, Cody should respond. 
 
 #### Commands
 
-1. Login to Cody Enterprise account
+1. Login to the Cody Enterprise Cody Gateway Instance
 2. Go to commands panel
 3. Trigger command
-4. Command should be executed with default model
+4. Command should be executed
+
+#### Completions
+
+1. Login to the Cody Enterprise Cody Gateway Instance
+2. Generate a completion using the manual-trigger key binding on any primary languages (Javascript, Typescript, TypescriptReact, Python, Go).
+ 
+
+### Cody Enterprise - AWS Bedrock Instance 
+
+#### Chat
+
+1. Login to the Cody Enterprise AWS Bedrock Instance
+2. Create a new chat
+3. User should not be able to change the LLM model on the chat window
+4. Ask Cody a question in the new chat window. 
+
+#### Commands
+
+1. Login to the Cody Enterprise AWS Bedrock Instance
+2. Go to commands panel
+3. Trigger command
+4. Command should be executed
+
+#### Completions
+
+1. Login to the Cody Enterprise AWS Bedrock Instance
+2. Generate a completion using the manual-trigger key binding on any primary languages (Javascript, Typescript, TypescriptReact, Python, Go).
 
 ## Other
 
