@@ -66,6 +66,8 @@
                         serviceImplementation="com.sourcegraph.find.FindService"/>
         <postStartupActivity
                 implementation="com.sourcegraph.cody.initialization.PostStartupActivity"/>
+        <postStartupActivity
+                implementation="com.sourcegraph.cody.initialization.UninstallListener"/>
 
         <!-- Cody -->
         <toolWindow
