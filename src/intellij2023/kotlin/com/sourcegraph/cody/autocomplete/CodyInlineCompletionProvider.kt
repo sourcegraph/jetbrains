@@ -2,6 +2,8 @@ package com.sourcegraph.cody.autocomplete
 
 import com.intellij.codeInsight.inline.completion.*
 import com.intellij.codeInsight.inline.completion.elements.InlineCompletionGrayTextElement
+import com.intellij.codeInsight.inline.completion.suggestion.InlineCompletionSingleSuggestion
+import com.intellij.codeInsight.inline.completion.suggestion.InlineCompletionSuggestion
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
@@ -31,14 +33,15 @@ import java.util.concurrent.atomic.AtomicReference
 class CodyInlineCompletionProvider : InlineCompletionProvider {
   private val logger = Logger.getInstance(CodyInlineCompletionProvider::class.java)
   private val currentJob = AtomicReference(CancellationToken())
-  val id = InlineCompletionProviderID("Cody")
+  val id
+    get() = InlineCompletionProviderID("Cody")
 
   suspend fun getSuggestion(request: InlineCompletionRequest): InlineCompletionSuggestion {
     ApplicationManager.getApplication().assertIsNonDispatchThread()
     val editor = request.editor
-    val project = editor.project ?: return InlineCompletionSuggestion.empty()
+    val project = editor.project ?: return InlineCompletionSuggestion.Empty
     if (!isImplicitAutocompleteEnabledForEditor(editor)) {
-      return InlineCompletionSuggestion.empty()
+      return InlineCompletionSuggestion.Empty
     }
     val lookupString: String? = null // todo: can we use this provider for lookups?
 
@@ -56,9 +59,9 @@ class CodyInlineCompletionProvider : InlineCompletionProvider {
     val completions =
         fetchCompletions(project, editor, triggerKind, cancellationToken, lookupString)
             .completeOnTimeout(null, 1, TimeUnit.SECONDS)
-            .get() ?: return InlineCompletionSuggestion.empty()
+            .get() ?: return InlineCompletionSuggestion.Empty
 
-    return InlineCompletionSuggestion.withFlow {
+    return InlineCompletionSingleSuggestion.build {
       completions.items
           .firstNotNullOfOrNull {
             WriteCommandAction.runWriteCommandAction<InlineCompletionGrayTextElement?>(
