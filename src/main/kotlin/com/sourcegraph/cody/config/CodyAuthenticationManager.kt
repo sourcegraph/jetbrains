@@ -14,8 +14,6 @@ import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.wm.WindowManager
 import com.intellij.util.AuthData
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.CodyAgentService
@@ -104,13 +102,6 @@ class CodyAuthenticationManager :
 
   private val accountManager: CodyAccountManager
     get() = service()
-
-  fun addAuthChangeListener(project: Project) {
-    val frame = WindowManager.getInstance().getFrame(project)
-    val listener = CodyWindowAdapter(project)
-    frame?.addWindowListener(listener)
-    Disposer.register(this) { frame?.removeWindowListener(listener) }
-  }
 
   @CalledInAny fun getAccounts(): Set<CodyAccount> = accountManager.accounts
 

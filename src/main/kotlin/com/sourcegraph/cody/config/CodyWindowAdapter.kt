@@ -2,6 +2,8 @@ package com.sourcegraph.cody.config
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.wm.WindowManager
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol_generated.Window_DidChangeFocusParams
@@ -9,12 +11,11 @@ import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 
 class CodyWindowAdapter(private val project: Project) : WindowAdapter() {
-  private val authManager = CodyAuthenticationManager.getInstance()
 
   override fun windowActivated(e: WindowEvent?) {
     super.windowActivated(e)
     ApplicationManager.getApplication().executeOnPooledThread {
-      authManager.getAuthenticationState()
+      CodyAuthenticationManager.getInstance().getAuthenticationState()
     }
     CodyAgentService.withAgent(project) { agent: CodyAgent ->
       agent.server.window_didChangeFocus(Window_DidChangeFocusParams(true))
@@ -25,6 +26,17 @@ class CodyWindowAdapter(private val project: Project) : WindowAdapter() {
     super.windowDeactivated(e)
     CodyAgentService.withAgent(project) { agent: CodyAgent ->
       agent.server.window_didChangeFocus(Window_DidChangeFocusParams(false))
+    }
+  }
+
+  companion object {
+    fun addAuthChangeListener(project: Project) {
+      val frame = WindowManager.getInstance().getFrame(project)
+      val listener = CodyWindowAdapter(project)
+      frame?.addWindowListener(listener)
+      Disposer.register(CodyAuthenticationManager.getInstance()) {
+        frame?.removeWindowListener(listener)
+      }
     }
   }
 }
