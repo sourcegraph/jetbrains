@@ -18,7 +18,9 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.util.AuthData
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
+import com.sourcegraph.cody.agent.protocol_generated.Window_DidChangeFocusParams
 import com.sourcegraph.cody.api.SourcegraphApiRequestExecutor
 import com.sourcegraph.cody.api.SourcegraphApiRequests
 import com.sourcegraph.cody.config.notification.AccountSettingChangeActionNotifier
@@ -114,6 +116,16 @@ class CodyAuthenticationManager :
           override fun windowActivated(e: WindowEvent?) {
             super.windowActivated(e)
             ApplicationManager.getApplication().executeOnPooledThread { getAuthenticationState() }
+            CodyAgentService.withAgent(project) { agent: CodyAgent ->
+              agent.server.window_didChangeFocus(Window_DidChangeFocusParams(true))
+            }
+          }
+
+          override fun windowDeactivated(e: WindowEvent?) {
+            super.windowDeactivated(e)
+            CodyAgentService.withAgent(project) { agent: CodyAgent ->
+              agent.server.window_didChangeFocus(Window_DidChangeFocusParams(false))
+            }
           }
         }
     frame?.addWindowListener(listener)
