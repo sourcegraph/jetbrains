@@ -70,7 +70,10 @@ group = properties("pluginGroup")!!
 version = properties("pluginVersion")!!
 
 repositories {
-  maven { url = uri("https://www.jetbrains.com/intellij-repository/releases") }
+  maven {
+    url = uri("https://www.jetbrains.com/intellij-repository/releases")
+    url = uri("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
+  }
   mavenCentral()
   gradlePluginPortal()
   intellijPlatform {
@@ -143,6 +146,9 @@ dependencies {
   testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.0.0")
   testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1")
+  testImplementation("com.intellij.remoterobot:remote-robot:0.11.23")
+  testImplementation("com.intellij.remoterobot:remote-fixtures:0.11.23")
+  testImplementation("com.squareup.okhttp3:okhttp:3.2.0")
 }
 
 spotless {
@@ -543,6 +549,7 @@ tasks {
       intellijPlatformTesting.runIde.registering {
         task.get().dependsOn(project.tasks.getByPath("buildCody"))
         task.get().jvmArgs("-Djdk.module.illegalAccess.silent=true")
+        task.get().systemProperty("ide.browser.jcef.jsQueryPoolSize", 1000)
 
         version.set(properties("platformRuntimeVersion"))
         val myType = IntelliJPlatformType.fromCode(properties("platformRuntimeType") ?: "IC")
@@ -551,6 +558,8 @@ tasks {
         splitMode.set(properties("splitMode")?.toBoolean() ?: false)
 
         agentProperties.forEach { (key, value) -> task.get().systemProperty(key, value) }
+
+        plugins { robotServerPlugin() }
       }
 
   runIde {

@@ -47,14 +47,18 @@ private constructor(
       if (!TestingParams.doIncludeTestingParam) {
         return null
       }
+
+      // We do not want to send full content of the huge files just for testing purposes
+      val documentCharacterLimit = 20000
+      val sourceOfTruthDocument =
+          if (content?.let { it.length > documentCharacterLimit } == true) {
+            ProtocolTextDocument(uri = uri, content = content, selection = selection)
+          } else {
+            null
+          }
+
       return TestingParams(
-          selectedText = selectedText,
-          sourceOfTruthDocument =
-              ProtocolTextDocument(
-                  uri = uri,
-                  content = content,
-                  selection = selection,
-              ))
+          selectedText = selectedText, sourceOfTruthDocument = sourceOfTruthDocument)
     }
 
     @RequiresEdt
