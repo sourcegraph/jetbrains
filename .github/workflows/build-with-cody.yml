@@ -7,7 +7,7 @@ on:
         required: false
         type: string
 jobs:
-  publish:
+  build_with_cody:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,10 +30,12 @@ jobs:
         uses: gradle/wrapper-validation-action@v3
       - run: yarn global add pnpm@8.6.7
       - run: |
-          echo "LATEST_COMMIT=$(git ls-remote https://github.com/sourcegraph/cody refs/heads/main | cut -f1)" >> $GITHUB_ENV 
-          echo "CODY_COMMIT=${{ github.event.inputs.cody-commit || LATEST_COMMIT }}" >> $GITHUB_ENV
-          echo "JB_VERSION=$(git describe --tags)" >> $GITHUB_ENV
-          echo "RELEASE_VERSION=$JB_VERSION-$CODY_COMMIT" >> $GITHUB_ENV
+          if [ -z "${{ github.event.inputs.cody-commit }}" ]; then
+            echo "CODY_COMMIT=$(git ls-remote https://github.com/sourcegraph/cody refs/heads/main | cut -f1)" >> $GITHUB_ENV
+          else
+            echo "CODY_COMMIT=${{ github.event.inputs.cody-commit }}" >> $GITHUB_ENV
+          fi
+          echo "RELEASE_VERSION=$(git describe --tags)-$CODY_COMMIT" >> $GITHUB_ENV
       - run: echo "Publishing version $RELEASE_VERSION"
       - run: ./gradlew buildPlugin "-PpluginVersion=$RELEASE_VERSION" "-Pcody.commit=$CODY_COMMIT"
       - run: ./gradlew --stop
