@@ -35,14 +35,15 @@ jobs:
           else
             echo "CODY_COMMIT=${{ github.event.inputs.cody-commit }}" >> $GITHUB_ENV
           fi
+      - run: |
+          git fetch --prune --unshallow
           echo "RELEASE_VERSION=$(git describe --tags)-$CODY_COMMIT" >> $GITHUB_ENV
-      - run: echo "Publishing version $RELEASE_VERSION"
       - run: ./gradlew buildPlugin "-PpluginVersion=$RELEASE_VERSION" "-Pcody.commit=$CODY_COMMIT"
       - run: ./gradlew --stop
       - name: Upload the plugin package
         uses: actions/upload-artifact@v4
         with:
-          name: Plugin package for $RELEASE_VERSION
+          name: plugin-${{ env.RELEASE_VERSION }}
           path: './build/distributions/Sourcegraph-*.zip'
           compression-level: 0
           retention-days: 3
