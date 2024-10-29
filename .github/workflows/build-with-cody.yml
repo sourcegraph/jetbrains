@@ -42,7 +42,7 @@ jobs:
       - name: Upload the plugin package
         uses: actions/upload-artifact@v4
         with:
-          name: plugin
+          name: Plugin package for $RELEASE_VERSION
           path: './build/distributions/Sourcegraph-*.zip'
           compression-level: 0
           retention-days: 3
