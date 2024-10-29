@@ -1,5 +1,18 @@
 /**
  * A REPL for evaluating Rhino JS in the IDE via the IDEA Remote Robot.
+ *
+ * Robot JavaScript tips:
+ *
+ * log.info, warn and error for logging.
+ *
+ * Use Rhino Java interop, for example importPackage(com.intellij.openapi.application);
+ * ApplicationInfo.getInstance().getMajorVersion() etc.
+ *
+ * robot can click, move the mouse, type, etc. See
+ * github.com/JetBrains/intellij-ui-test-robot
+ * robot-server-core/src/main/kotlin/com/intellij/remoterobot/robot/SmoothRobot.kt#L4
+ *
+ * component is a component when using the component variations.
  */
 
 const readline = require('readline');
@@ -44,6 +57,9 @@ async function main() {
                 });
                 const result = await response.json();
                 console.log(result);
+                if (result.log) {
+                    process.stdout.write(result.log);
+                }
                 // Read object and return whole info
 //                const ios = new InputObjectStream(Buffer.from(result.bytes), true);
 //                const obj = ios.readObject();
