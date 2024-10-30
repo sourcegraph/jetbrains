@@ -10,9 +10,7 @@ plugins {
 
 repositories {
   mavenCentral()
-  intellijPlatform {
-    defaultRepositories()
-  }
+  intellijPlatform { defaultRepositories() }
 }
 
 dependencies {
@@ -30,22 +28,27 @@ intellijPlatform {
     id = "cody-test-support"
     name = "Cody Test Support"
     version = "1.0.0"
-    ideaVersion {
-      sinceBuild = "242"
-    }
+    ideaVersion { sinceBuild = "242" }
   }
 }
 
 tasks {
-  val runIdeForTesting by intellijPlatformTesting.runIde.registering {
-    // TODO: Add the ability to test different products and versions.
-    version.set("2024.2")
-    type.set(IntelliJPlatformType.IntellijIdeaCommunity)
-    task.get().dependsOn(rootProject.tasks.named("buildPlugin"))
-    plugins {
-      localPlugin(rootProject.tasks.named<BuildPluginTask>("buildPlugin").get().outputs.files.singleFile)
-    }
-  }
+  val runIdeForTesting by
+      intellijPlatformTesting.runIde.registering {
+        // TODO: Add the ability to test different products and versions.
+        version.set("2024.2")
+        type.set(IntelliJPlatformType.IntellijIdeaCommunity)
+        task.get().dependsOn(rootProject.tasks.named("buildPlugin"))
+        plugins {
+          localPlugin(
+              rootProject.tasks
+                  .named<BuildPluginTask>("buildPlugin")
+                  .get()
+                  .outputs
+                  .files
+                  .singleFile)
+        }
+      }
 }
 
 java {

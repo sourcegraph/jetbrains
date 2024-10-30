@@ -146,9 +146,7 @@ dependencies {
 }
 
 spotless {
-  kotlin {
-    targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**")
-  }
+  kotlin { targetExclude("src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated/**") }
 }
 
 java {
@@ -532,9 +530,7 @@ tasks {
         version.set(properties("platformRuntimeVersion"))
         val myType = IntelliJPlatformType.fromCode(properties("platformRuntimeType") ?: "IC")
         type.set(myType)
-        plugins {
-          plugins(properties("platformRuntimePlugins").orEmpty())
-        }
+        plugins { plugins(properties("platformRuntimePlugins").orEmpty()) }
         splitMode.set(properties("splitMode")?.toBoolean() ?: false)
 
         agentProperties.forEach { (key, value) -> task.get().systemProperty(key, value) }
@@ -649,24 +645,25 @@ intellijPlatformTesting {
         splitMode.set(properties("splitMode")?.toBoolean() ?: false)
 
         // TODO: The cody-agent.directory property is necessary because node bundling is not done
-        val buildCodyDir = layout.buildDirectory.asFile.get().resolve("sourcegraph").resolve("agent")
+        val buildCodyDir =
+            layout.buildDirectory.asFile.get().resolve("sourcegraph").resolve("agent")
         // TODO: Remove as many of these as possible to create a realistic runtime environment
         val agentProperties =
-        mapOf<String, Any>(
-          "cody-agent.trace-path" to
-                  "${layout.buildDirectory.asFile.get()}/sourcegraph/cody-agent-trace.json",
-          "cody-agent.directory" to buildCodyDir.parent,
-          "sourcegraph.verbose-logging" to "true")
+            mapOf<String, Any>(
+                "cody-agent.trace-path" to
+                    "${layout.buildDirectory.asFile.get()}/sourcegraph/cody-agent-trace.json",
+                "cody-agent.directory" to buildCodyDir.parent,
+                "sourcegraph.verbose-logging" to "true")
 
         agentProperties.forEach { (key, value) -> task.get().systemProperty(key, value) }
 
         jvmArgumentProviders += CommandLineArgumentProvider {
           listOf(
-            "-Drobot-server.port=8082",
-            "-Drobot.encryption.enabled=false",
-            "-Dide.mac.message.dialogs.as.sheets=false",
-            "-Djb.privacy.policy.text=<!--999.999-->",
-            "-Djb.consents.confirmation.enabled=false",
+              "-Drobot-server.port=8082",
+              "-Drobot.encryption.enabled=false",
+              "-Dide.mac.message.dialogs.as.sheets=false",
+              "-Djb.privacy.policy.text=<!--999.999-->",
+              "-Djb.consents.confirmation.enabled=false",
           )
         }
       }
