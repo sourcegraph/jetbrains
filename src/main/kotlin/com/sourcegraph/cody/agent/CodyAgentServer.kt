@@ -35,6 +35,7 @@ import com.sourcegraph.cody.agent.protocol_generated.ExtensionConfiguration
 import com.sourcegraph.cody.agent.protocol_generated.Null
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolAuthStatus
 import com.sourcegraph.cody.agent.protocol_generated.ServerInfo
+import com.sourcegraph.cody.agent.protocol_generated.Window_DidChangeFocusParams
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
