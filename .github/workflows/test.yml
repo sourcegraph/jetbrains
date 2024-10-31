@@ -7,7 +7,7 @@ on:
 jobs:
   test:
     name: JetBrains tests
-    runs-on: ubuntu-20.04
+    runs-on: macos-latest
     steps:
       - name: Fetch Sources
         uses: actions/checkout@v4
