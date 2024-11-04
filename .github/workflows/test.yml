@@ -80,7 +80,7 @@ jobs:
           plugin-location: '*.zip'
           ide-versions: |
             ideaIC:2023.2
-            ideaIC:2024.2.3
+            ideaIC:2024.2.4
           failure-levels: |
             OVERRIDE_ONLY_API_USAGES
             NON_EXTENDABLE_API_USAGES
