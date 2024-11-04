@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.EditorTestUtil
 import com.intellij.testFramework.PlatformTestUtil
@@ -37,6 +38,7 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
 
   override fun setUp() {
     super.setUp()
+    Registry.get("ide.browser.jcef.headless.enabled").setValue(true)
 
     myProject = project
     myFixture.testDataPath = System.getProperty("test.resources.dir")
