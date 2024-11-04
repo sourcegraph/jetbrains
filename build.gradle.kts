@@ -45,11 +45,12 @@ val skippedFailureLevels =
             .COMPATIBILITY_PROBLEMS, // blocked by the hacks with the completion provider for the
         // remote IDE
         FailureLevel.DEPRECATED_API_USAGES,
-        FailureLevel.INTERNAL_API_USAGES,
-        FailureLevel
-            .SCHEDULED_FOR_REMOVAL_API_USAGES, // HttpConfigurable, migration to coroutines, others
         FailureLevel.EXPERIMENTAL_API_USAGES,
-        FailureLevel.NOT_DYNAMIC)!!
+        FailureLevel.INTERNAL_API_USAGES,
+        FailureLevel.NOT_DYNAMIC,
+        FailureLevel
+            .SCHEDULED_FOR_REMOVAL_API_USAGES // HttpConfigurable, migration to coroutines, others
+        )!!
 
 plugins {
   id("java")
