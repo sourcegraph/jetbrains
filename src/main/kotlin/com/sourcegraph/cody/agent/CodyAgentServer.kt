@@ -22,7 +22,6 @@ import com.sourcegraph.cody.agent.protocol_generated.CodeActions_ProvideResult
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_TriggerParams
 import com.sourcegraph.cody.agent.protocol_generated.Commands_CustomParams
 import com.sourcegraph.cody.agent.protocol_generated.CustomCommandResult
-import com.sourcegraph.cody.agent.protocol_generated.CompletionItemParams
 import com.sourcegraph.cody.agent.protocol_generated.Diagnostics_PublishParams
 import com.sourcegraph.cody.agent.protocol_generated.EditTask
 import com.sourcegraph.cody.agent.protocol_generated.EditTask_AcceptParams
@@ -104,10 +103,14 @@ interface _SubsetGeneratedCodyAgentServer {
   fun autocomplete_clearLastCandidate(params: Null?)
 
   @JsonNotification("autocomplete/completionSuggested")
-  fun autocomplete_completionSuggested(params: com.sourcegraph.cody.agent.protocol_generated.CompletionItemParams)
+  fun autocomplete_completionSuggested(
+      params: com.sourcegraph.cody.agent.protocol_generated.CompletionItemParams
+  )
 
   @JsonNotification("autocomplete/completionAccepted")
-  fun autocomplete_completionAccepted(params: com.sourcegraph.cody.agent.protocol_generated.CompletionItemParams)
+  fun autocomplete_completionAccepted(
+      params: com.sourcegraph.cody.agent.protocol_generated.CompletionItemParams
+  )
 
   @JsonNotification("window/didChangeFocus")
   fun window_didChangeFocus(params: Window_DidChangeFocusParams)
