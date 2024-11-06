@@ -1,6 +1,7 @@
 package com.sourcegraph.config
 
 import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
@@ -16,9 +17,6 @@ import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.cody.config.ServerAuthLoader
 import com.sourcegraph.cody.config.SourcegraphServerPath
 import com.sourcegraph.cody.config.SourcegraphServerPath.Companion.from
-import com.typesafe.config.ConfigFactory
-import com.typesafe.config.ConfigRenderOptions
-import com.typesafe.config.ConfigValueFactory
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.readText
@@ -141,11 +139,11 @@ object ConfigUtil {
 
     return try {
       val text = customConfigContent ?: getSettingsFile(project).readText()
-      val config = ConfigFactory.parseString(text).resolve()
+      val config = JsonParser.parseString(text).asJsonObject
       additionalProperties.forEach { (key, value) ->
-        config.withValue(key, ConfigValueFactory.fromAnyRef(value))
+        config.add(key, JsonParser.parseString(value))
       }
-      config.root().render(ConfigRenderOptions.defaults().setOriginComments(false))
+      config.toString()
     } catch (e: Exception) {
       logger.info("No user defined settings file found. Proceeding with empty custom config")
       ""
