@@ -172,6 +172,7 @@ class CodyAgentService(private val project: Project) : Disposable {
       if (CodyApplicationSettings.instance.isCodyEnabled) {
         ApplicationManager.getApplication().executeOnPooledThread {
           try {
+            if (project.isDisposed) return@executeOnPooledThread
             val instance = getInstance(project)
             val isReadyButNotFunctional = instance.codyAgent.getNow(null)?.isConnected() == false
             val agent =
