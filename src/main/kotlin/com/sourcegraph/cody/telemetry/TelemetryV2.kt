@@ -39,7 +39,9 @@ class TelemetryV2 {
           mapOf(
               "ideProductCode" to intellijProductCodeMap.getOrDefault(build.productCode, 0L),
               "ideBaselineVersion" to build.baselineVersion.toLong())
-      val newParameters = parameters?.copy(metadata = parameters.metadata?.plus(versionParameters))
+      val baseParameters = parameters ?: TelemetryEventParameters()
+      val newParameters =
+          baseParameters.copy(metadata = baseParameters.metadata?.plus(versionParameters))
 
       CodyAgentService.withAgent(project) { agent ->
         agent.server.recordEvent(
