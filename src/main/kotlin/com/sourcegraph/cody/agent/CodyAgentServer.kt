@@ -3,8 +3,6 @@
 package com.sourcegraph.cody.agent
 
 import com.sourcegraph.cody.agent.protocol.IgnorePolicySpec
-import com.sourcegraph.cody.agent.protocol.IgnoreTestParams
-import com.sourcegraph.cody.agent.protocol.IgnoreTestResponse
 import com.sourcegraph.cody.agent.protocol.NetworkRequest
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteParams
@@ -31,6 +29,8 @@ import com.sourcegraph.cody.agent.protocol_generated.EditTask_UndoParams
 import com.sourcegraph.cody.agent.protocol_generated.ExecuteCommandParams
 import com.sourcegraph.cody.agent.protocol_generated.ExtensionConfiguration
 import com.sourcegraph.cody.agent.protocol_generated.FeatureFlags_GetFeatureFlagParams
+import com.sourcegraph.cody.agent.protocol_generated.Ignore_TestParams
+import com.sourcegraph.cody.agent.protocol_generated.Ignore_TestResult
 import com.sourcegraph.cody.agent.protocol_generated.Null
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolAuthStatus
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolTextDocument
@@ -129,6 +129,9 @@ interface _SubsetGeneratedCodyAgentServer {
   @JsonRequest("chat/web/new")
   fun chat_web_new(params: Null?): CompletableFuture<Chat_Web_NewResult>
 
+  @JsonRequest("ignore/test")
+  fun ignore_test(params: Ignore_TestParams): CompletableFuture<Ignore_TestResult>
+
   //  // =============
   //  // Notifications
   //  // =============
@@ -179,9 +182,6 @@ interface _LegacyAgentServer {
 
   @JsonRequest("telemetry/recordEvent")
   fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
-
-  @JsonRequest("ignore/test")
-  fun ignoreTest(params: IgnoreTestParams): CompletableFuture<IgnoreTestResponse>
 
   @JsonRequest("testing/ignore/overridePolicy")
   fun testingIgnoreOverridePolicy(params: IgnorePolicySpec?): CompletableFuture<Unit>
