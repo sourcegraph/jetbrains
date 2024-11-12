@@ -2,7 +2,6 @@
 
 package com.sourcegraph.cody.agent
 
-import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
 import com.sourcegraph.cody.agent.protocol.IgnorePolicySpec
 import com.sourcegraph.cody.agent.protocol.IgnoreTestParams
 import com.sourcegraph.cody.agent.protocol.IgnoreTestResponse
@@ -20,6 +19,7 @@ import com.sourcegraph.cody.agent.protocol_generated.CodeActions_ProvideParams
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_ProvideResult
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_TriggerParams
 import com.sourcegraph.cody.agent.protocol_generated.Commands_CustomParams
+import com.sourcegraph.cody.agent.protocol_generated.CurrentUserCodySubscription
 import com.sourcegraph.cody.agent.protocol_generated.CustomCommandResult
 import com.sourcegraph.cody.agent.protocol_generated.Diagnostics_PublishParams
 import com.sourcegraph.cody.agent.protocol_generated.EditTask
@@ -96,6 +96,11 @@ interface _SubsetGeneratedCodyAgentServer {
       params: FeatureFlags_GetFeatureFlagParams
   ): CompletableFuture<Boolean?>
 
+  @JsonRequest("graphql/getCurrentUserCodySubscription")
+  fun graphql_getCurrentUserCodySubscription(
+      params: Null?
+  ): CompletableFuture<CurrentUserCodySubscription?>
+
   //  // =============
   //  // Notifications
   //  // =============
@@ -133,11 +138,6 @@ interface _LegacyAgentServer {
 
   @JsonRequest("telemetry/recordEvent")
   fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
-
-  // TODO(CODY-2827): To avoid having to pass annoying null values we should generate a default
-  // value
-  @JsonRequest("graphql/getCurrentUserCodySubscription")
-  fun getCurrentUserCodySubscription(): CompletableFuture<CurrentUserCodySubscription?>
 
   @JsonNotification("textDocument/didFocus")
   fun textDocumentDidFocus(document: ProtocolTextDocument)
