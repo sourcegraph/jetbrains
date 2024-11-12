@@ -35,6 +35,9 @@ import com.sourcegraph.cody.agent.protocol_generated.ProtocolAuthStatus
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolTextDocument
 import com.sourcegraph.cody.agent.protocol_generated.ServerInfo
 import com.sourcegraph.cody.agent.protocol_generated.TextDocument_DidFocusParams
+import com.sourcegraph.cody.agent.protocol_generated.Webview_DidDisposeNativeParams
+import com.sourcegraph.cody.agent.protocol_generated.Webview_ReceiveMessageStringEncodedParams
+import com.sourcegraph.cody.agent.protocol_generated.Webview_ResolveWebviewViewParams
 import com.sourcegraph.cody.agent.protocol_generated.Window_DidChangeFocusParams
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -114,6 +117,14 @@ interface _SubsetGeneratedCodyAgentServer {
   @JsonRequest("editCommands/code")
   fun editCommands_code(params: EditCommands_CodeParams): CompletableFuture<EditTask>
 
+  @JsonRequest("webview/resolveWebviewView")
+  fun webview_resolveWebviewView(params: Webview_ResolveWebviewViewParams): CompletableFuture<Null?>
+
+  @JsonRequest("webview/receiveMessageStringEncoded")
+  fun webview_receiveMessageStringEncoded(
+      params: Webview_ReceiveMessageStringEncodedParams
+  ): CompletableFuture<Null?>
+
   //  // =============
   //  // Notifications
   //  // =============
@@ -147,6 +158,9 @@ interface _SubsetGeneratedCodyAgentServer {
 
   @JsonNotification("window/didChangeFocus")
   fun window_didChangeFocus(params: Window_DidChangeFocusParams)
+
+  @JsonNotification("webview/didDisposeNative")
+  fun webview_didDisposeNative(params: Webview_DidDisposeNativeParams)
 }
 
 // TODO: Requests waiting to be migrated & tested for compatibility. Avoid placing new protocol
@@ -163,17 +177,6 @@ interface _LegacyAgentServer {
   fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
 
   @JsonRequest("chat/web/new") fun chatNew(): CompletableFuture<Any>
-
-  @JsonRequest("webview/receiveMessageStringEncoded")
-  fun webviewReceiveMessageStringEncoded(
-      params: WebviewReceiveMessageStringEncodedParams
-  ): CompletableFuture<Void?>
-
-  @JsonNotification("webview/didDisposeNative")
-  fun webviewDidDisposeNative(webviewDidDisposeParams: WebviewDidDisposeParams)
-
-  @JsonRequest("webview/resolveWebviewView")
-  fun webviewResolveWebviewView(params: WebviewResolveWebviewViewParams): CompletableFuture<Any>
 
   @JsonRequest("ignore/test")
   fun ignoreTest(params: IgnoreTestParams): CompletableFuture<IgnoreTestResponse>
