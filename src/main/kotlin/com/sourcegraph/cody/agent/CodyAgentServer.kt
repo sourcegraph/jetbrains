@@ -102,6 +102,15 @@ interface _SubsetGeneratedCodyAgentServer {
       params: Null?
   ): CompletableFuture<CurrentUserCodySubscription?>
 
+  @JsonRequest("editTask/accept")
+  fun editTask_accept(params: EditTask_AcceptParams): CompletableFuture<Null?>
+
+  @JsonRequest("editTask/undo")
+  fun editTask_undo(params: EditTask_UndoParams): CompletableFuture<Null?>
+
+  @JsonRequest("editTask/cancel")
+  fun editTask_cancel(params: EditTask_CancelParams): CompletableFuture<Null?>
+
   //  // =============
   //  // Notifications
   //  // =============
@@ -149,15 +158,6 @@ interface _LegacyAgentServer {
 
   @JsonRequest("telemetry/recordEvent")
   fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
-
-  @JsonRequest("editTask/accept")
-  fun acceptEditTask(params: EditTask_AcceptParams): CompletableFuture<Void?>
-
-  @JsonRequest("editTask/undo")
-  fun undoEditTask(params: EditTask_UndoParams): CompletableFuture<Void?>
-
-  @JsonRequest("editTask/cancel")
-  fun cancelEditTask(params: EditTask_CancelParams): CompletableFuture<Void?>
 
   @JsonRequest("editCommands/code")
   fun commandsEdit(params: InlineEditParams): CompletableFuture<EditTask>
