@@ -5,7 +5,6 @@ package com.sourcegraph.cody.agent
 import com.sourcegraph.cody.agent.protocol.IgnorePolicySpec
 import com.sourcegraph.cody.agent.protocol.IgnoreTestParams
 import com.sourcegraph.cody.agent.protocol.IgnoreTestResponse
-import com.sourcegraph.cody.agent.protocol.InlineEditParams
 import com.sourcegraph.cody.agent.protocol.NetworkRequest
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteParams
@@ -21,6 +20,7 @@ import com.sourcegraph.cody.agent.protocol_generated.Commands_CustomParams
 import com.sourcegraph.cody.agent.protocol_generated.CurrentUserCodySubscription
 import com.sourcegraph.cody.agent.protocol_generated.CustomCommandResult
 import com.sourcegraph.cody.agent.protocol_generated.Diagnostics_PublishParams
+import com.sourcegraph.cody.agent.protocol_generated.EditCommands_CodeParams
 import com.sourcegraph.cody.agent.protocol_generated.EditTask
 import com.sourcegraph.cody.agent.protocol_generated.EditTask_AcceptParams
 import com.sourcegraph.cody.agent.protocol_generated.EditTask_CancelParams
@@ -111,6 +111,9 @@ interface _SubsetGeneratedCodyAgentServer {
   @JsonRequest("editTask/cancel")
   fun editTask_cancel(params: EditTask_CancelParams): CompletableFuture<Null?>
 
+  @JsonRequest("editCommands/code")
+  fun editCommands_code(params: EditCommands_CodeParams): CompletableFuture<EditTask>
+
   //  // =============
   //  // Notifications
   //  // =============
@@ -158,9 +161,6 @@ interface _LegacyAgentServer {
 
   @JsonRequest("telemetry/recordEvent")
   fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
-
-  @JsonRequest("editCommands/code")
-  fun commandsEdit(params: InlineEditParams): CompletableFuture<EditTask>
 
   @JsonRequest("chat/web/new") fun chatNew(): CompletableFuture<Any>
 
