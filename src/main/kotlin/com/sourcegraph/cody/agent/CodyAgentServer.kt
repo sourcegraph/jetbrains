@@ -12,6 +12,7 @@ import com.sourcegraph.cody.agent.protocol_generated.AutocompleteResult
 import com.sourcegraph.cody.agent.protocol_generated.Chat_ImportParams
 import com.sourcegraph.cody.agent.protocol_generated.Chat_ModelsParams
 import com.sourcegraph.cody.agent.protocol_generated.Chat_ModelsResult
+import com.sourcegraph.cody.agent.protocol_generated.Chat_Web_NewResult
 import com.sourcegraph.cody.agent.protocol_generated.ClientInfo
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_ProvideParams
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_ProvideResult
@@ -125,6 +126,9 @@ interface _SubsetGeneratedCodyAgentServer {
       params: Webview_ReceiveMessageStringEncodedParams
   ): CompletableFuture<Null?>
 
+  @JsonRequest("chat/web/new")
+  fun chat_web_new(params: Null?): CompletableFuture<Chat_Web_NewResult>
+
   //  // =============
   //  // Notifications
   //  // =============
@@ -175,8 +179,6 @@ interface _LegacyAgentServer {
 
   @JsonRequest("telemetry/recordEvent")
   fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
-
-  @JsonRequest("chat/web/new") fun chatNew(): CompletableFuture<Any>
 
   @JsonRequest("ignore/test")
   fun ignoreTest(params: IgnoreTestParams): CompletableFuture<IgnoreTestResponse>
