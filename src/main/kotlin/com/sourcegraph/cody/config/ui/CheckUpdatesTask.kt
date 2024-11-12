@@ -7,7 +7,6 @@ import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.notification.impl.NotificationFullContent
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
@@ -16,13 +15,15 @@ import com.intellij.openapi.updateSettings.impl.PluginDownloader
 import com.intellij.openapi.updateSettings.impl.UpdateChecker
 import com.intellij.openapi.util.BuildNumber
 import com.sourcegraph.common.NotificationGroups
+import com.sourcegraph.config.ConfigUtil
 import java.lang.reflect.InvocationTargetException
 
 class CheckUpdatesTask(project: Project) :
     Task.Backgroundable(project, "Checking for Sourcegraph Cody + Code Search update...", false) {
 
   override fun run(indicator: ProgressIndicator) {
-    val availableUpdate = getAvailablePluginDownloaders(indicator).find { it.id == pluginId }
+    val availableUpdate =
+        getAvailablePluginDownloaders(indicator).find { it.id == ConfigUtil.getPluginId() }
     if (availableUpdate != null) {
       CustomPluginRepositoryService.getInstance().clearCache()
       notifyAboutTheUpdate(project)
@@ -31,7 +32,6 @@ class CheckUpdatesTask(project: Project) :
 
   companion object {
     private val logger = Logger.getInstance(CheckUpdatesTask::class.java)
-    private val pluginId = PluginId.getId("com.sourcegraph.jetbrains")
 
     fun getAvailablePluginDownloaders(indicator: ProgressIndicator): Collection<PluginDownloader> {
       try {

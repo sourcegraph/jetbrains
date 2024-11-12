@@ -3,7 +3,6 @@ package com.sourcegraph.cody.agent
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.util.net.HttpConfigurable
@@ -93,7 +92,6 @@ private constructor(
 
   companion object {
     private val logger = Logger.getInstance(CodyAgent::class.java)
-    private val PLUGIN_ID = PluginId.getId("com.sourcegraph.jetbrains")
     private const val DEFAULT_AGENT_DEBUG_PORT = 3113 // Also defined in agent/src/cli/jsonrpc.ts
 
     @JvmField val executorService: ExecutorService = Executors.newCachedThreadPool()
@@ -343,7 +341,7 @@ private constructor(
       return if (fromProperty.isNotEmpty()) {
         Paths.get(fromProperty)
       } else {
-        PluginManagerCore.getPlugin(PLUGIN_ID)?.pluginPath
+        PluginManagerCore.getPlugin(ConfigUtil.getPluginId())?.pluginPath
       }
     }
 
