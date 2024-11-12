@@ -2,7 +2,6 @@
 
 package com.sourcegraph.cody.agent
 
-import com.sourcegraph.cody.agent.protocol.TelemetryEvent
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteParams
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteResult
 import com.sourcegraph.cody.agent.protocol_generated.Chat_ImportParams
@@ -44,7 +43,7 @@ import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
 
-interface CodyAgentServer : _LegacyAgentServer, _SubsetGeneratedCodyAgentServer
+interface CodyAgentServer : _SubsetGeneratedCodyAgentServer
 
 // This is subset of the generated protocol bindings.
 // This is only temporary until all legacy bindings are made redundant.
@@ -138,6 +137,11 @@ interface _SubsetGeneratedCodyAgentServer {
   @JsonRequest("testing/requestErrors")
   fun testing_requestErrors(params: Null?): CompletableFuture<Testing_RequestErrorsResult>
 
+  @JsonRequest("telemetry/recordEvent")
+  fun telemetry_recordEvent(
+      params: com.sourcegraph.cody.agent.protocol_generated.TelemetryEvent
+  ): CompletableFuture<Null?>
+
   //  // =============
   //  // Notifications
   //  // =============
@@ -174,21 +178,4 @@ interface _SubsetGeneratedCodyAgentServer {
 
   @JsonNotification("webview/didDisposeNative")
   fun webview_didDisposeNative(params: Webview_DidDisposeNativeParams)
-}
-
-// TODO: Requests waiting to be migrated & tested for compatibility. Avoid placing new protocol
-// messages here.
-/**
- * Interface for the server-part of the Cody agent protocol. The implementation of this interface is
- * written in TypeScript in the file "cody/agent/src/agent.ts". The Eclipse LSP4J bindings create a
- * Java implementation of this interface by using a JVM-reflection feature called "Proxy", which
- * works similar to JavaScript Proxy.
- */
-interface _LegacyAgentServer {
-
-  @JsonRequest("telemetry/recordEvent")
-  fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
-
-  @JsonRequest("testing/requestErrors")
-  fun testingRequestErrors(): CompletableFuture<List<NetworkRequest>>
 }

@@ -4,8 +4,8 @@ import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.BillingMetadata
-import com.sourcegraph.cody.agent.protocol.TelemetryEvent
 import com.sourcegraph.cody.agent.protocol.TelemetryEventParameters
+import com.sourcegraph.cody.agent.protocol_generated.TelemetryEvent
 import com.sourcegraph.config.ConfigUtil
 
 class TelemetryV2 {
@@ -25,8 +25,12 @@ class TelemetryV2 {
           baseParameters.copy(metadata = baseParameters.metadata?.plus(versionParameters))
 
       CodyAgentService.withAgent(project) { agent ->
-        agent.server.recordEvent(
-            TelemetryEvent(feature = "cody.$feature", action = action, parameters = newParameters))
+        agent.server.telemetry_recordEvent(
+            TelemetryEvent(
+                feature = "cody.$feature",
+                action = action,
+                parameters = newParameters
+            ))
       }
     }
 
