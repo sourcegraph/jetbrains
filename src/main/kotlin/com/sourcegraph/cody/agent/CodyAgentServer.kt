@@ -3,7 +3,6 @@
 package com.sourcegraph.cody.agent
 
 import com.sourcegraph.cody.agent.protocol.CurrentUserCodySubscription
-import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.agent.protocol.IgnorePolicySpec
 import com.sourcegraph.cody.agent.protocol.IgnoreTestParams
 import com.sourcegraph.cody.agent.protocol.IgnoreTestResponse
@@ -31,6 +30,7 @@ import com.sourcegraph.cody.agent.protocol_generated.EditTask_RetryParams
 import com.sourcegraph.cody.agent.protocol_generated.EditTask_UndoParams
 import com.sourcegraph.cody.agent.protocol_generated.ExecuteCommandParams
 import com.sourcegraph.cody.agent.protocol_generated.ExtensionConfiguration
+import com.sourcegraph.cody.agent.protocol_generated.FeatureFlags_GetFeatureFlagParams
 import com.sourcegraph.cody.agent.protocol_generated.Null
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolAuthStatus
 import com.sourcegraph.cody.agent.protocol_generated.ServerInfo
@@ -91,6 +91,11 @@ interface _SubsetGeneratedCodyAgentServer {
       params: ExtensionConfiguration
   ): CompletableFuture<ProtocolAuthStatus?>
 
+  @JsonRequest("featureFlags/getFeatureFlag")
+  fun featureFlags_getFeatureFlag(
+      params: FeatureFlags_GetFeatureFlagParams
+  ): CompletableFuture<Boolean?>
+
   //  // =============
   //  // Notifications
   //  // =============
@@ -128,11 +133,6 @@ interface _LegacyAgentServer {
 
   @JsonRequest("telemetry/recordEvent")
   fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
-
-  // TODO(CODY-2826): Would be nice if we can generate some set of "known" feature flags from the
-  // protocol
-  @JsonRequest("featureFlags/getFeatureFlag")
-  fun evaluateFeatureFlag(flagName: GetFeatureFlag): CompletableFuture<Boolean?>
 
   // TODO(CODY-2827): To avoid having to pass annoying null values we should generate a default
   // value

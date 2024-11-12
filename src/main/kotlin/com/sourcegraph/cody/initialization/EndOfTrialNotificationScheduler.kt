@@ -53,13 +53,13 @@ class EndOfTrialNotificationScheduler private constructor(val project: Project) 
 
             val codyProTrialEnded =
                 agent.server
-                    .evaluateFeatureFlag(GetFeatureFlag.CodyProTrialEnded)
+                    .featureFlags_getFeatureFlag(GetFeatureFlag.CodyProTrialEnded)
                     .completeOnTimeout(false, 4, TimeUnit.SECONDS)
                     .get() == true
 
             val useSscForCodySubscription =
                 agent.server
-                    .evaluateFeatureFlag(GetFeatureFlag.UseSscForCodySubscription)
+                    .featureFlags_getFeatureFlag(GetFeatureFlag.UseSscForCodySubscription)
                     .orTimeout(4, TimeUnit.SECONDS)
                     .completeOnTimeout(false, 4, TimeUnit.SECONDS)
                     .get() == true
