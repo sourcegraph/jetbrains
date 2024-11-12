@@ -13,23 +13,17 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.sourcegraph.cody.agent.intellij_extensions.codyPosition
 import com.sourcegraph.cody.agent.intellij_extensions.codyRange
 import com.sourcegraph.cody.agent.protocol_extensions.Position
+import com.sourcegraph.cody.agent.protocol_generated.ProtocolTextDocument
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolTextDocumentContentChangeEvent
 import com.sourcegraph.cody.agent.protocol_generated.Range
+import com.sourcegraph.cody.agent.protocol_generated.TestingParams
 import java.awt.Point
 import java.nio.file.FileSystems
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
-class ProtocolTextDocument
-private constructor(
-    val uri: String,
-    val content: String? = null,
-    val selection: Range? = null,
-    val visibleRange: Range? = null,
-    val contentChanges: List<ProtocolTextDocumentContentChangeEvent>? = null,
-    val testing: TestingParams? = null,
-) {
+class ProtocolTextDocumentUtil {
 
   init {
     if (!ApplicationManager.getApplication().isDispatchThread) {
@@ -45,7 +39,7 @@ private constructor(
         selection: Range? = null,
         selectedText: String? = null
     ): TestingParams? {
-      if (!TestingParams.doIncludeTestingParam) {
+      if (!TestingParamsUtil.doIncludeTestingParam) {
         return null
       }
       return TestingParams(

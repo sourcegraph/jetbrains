@@ -115,7 +115,7 @@ private constructor(
                       version = ConfigUtil.getPluginVersion(),
                       ideVersion = ApplicationInfo.getInstance().build.toString(),
                       workspaceRootUri =
-                          ProtocolTextDocument.normalizeUriOrPath(
+                          ProtocolTextDocumentUtil.normalizeUriOrPath(
                               ConfigUtil.getWorkspaceRootPath(project).toUri().toString()),
                       extensionConfiguration = ConfigUtil.getAgentConfiguration(project),
                       capabilities =
