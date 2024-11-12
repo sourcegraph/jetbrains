@@ -2,7 +2,6 @@
 
 package com.sourcegraph.cody.agent
 
-import com.sourcegraph.cody.agent.protocol.NetworkRequest
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteParams
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteResult
@@ -35,6 +34,7 @@ import com.sourcegraph.cody.agent.protocol_generated.Null
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolAuthStatus
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolTextDocument
 import com.sourcegraph.cody.agent.protocol_generated.ServerInfo
+import com.sourcegraph.cody.agent.protocol_generated.Testing_RequestErrorsResult
 import com.sourcegraph.cody.agent.protocol_generated.TextDocument_DidFocusParams
 import com.sourcegraph.cody.agent.protocol_generated.Webview_DidDisposeNativeParams
 import com.sourcegraph.cody.agent.protocol_generated.Webview_ReceiveMessageStringEncodedParams
@@ -134,6 +134,9 @@ interface _SubsetGeneratedCodyAgentServer {
 
   @JsonRequest("testing/ignore/overridePolicy")
   fun testing_ignore_overridePolicy(params: ContextFilters?): CompletableFuture<Null?>
+
+  @JsonRequest("testing/requestErrors")
+  fun testing_requestErrors(params: Null?): CompletableFuture<Testing_RequestErrorsResult>
 
   //  // =============
   //  // Notifications
