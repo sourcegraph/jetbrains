@@ -2,8 +2,6 @@
 
 package com.sourcegraph.cody.agent
 
-import com.sourcegraph.cody.agent.protocol.IgnorePolicySpec
-import com.sourcegraph.cody.agent.protocol.NetworkRequest
 import com.sourcegraph.cody.agent.protocol.TelemetryEvent
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteParams
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteResult
@@ -16,6 +14,7 @@ import com.sourcegraph.cody.agent.protocol_generated.CodeActions_ProvideParams
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_ProvideResult
 import com.sourcegraph.cody.agent.protocol_generated.CodeActions_TriggerParams
 import com.sourcegraph.cody.agent.protocol_generated.Commands_CustomParams
+import com.sourcegraph.cody.agent.protocol_generated.ContextFilters
 import com.sourcegraph.cody.agent.protocol_generated.CurrentUserCodySubscription
 import com.sourcegraph.cody.agent.protocol_generated.CustomCommandResult
 import com.sourcegraph.cody.agent.protocol_generated.Diagnostics_PublishParams
@@ -35,6 +34,7 @@ import com.sourcegraph.cody.agent.protocol_generated.Null
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolAuthStatus
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolTextDocument
 import com.sourcegraph.cody.agent.protocol_generated.ServerInfo
+import com.sourcegraph.cody.agent.protocol_generated.Testing_RequestErrorsResult
 import com.sourcegraph.cody.agent.protocol_generated.TextDocument_DidFocusParams
 import com.sourcegraph.cody.agent.protocol_generated.Webview_DidDisposeNativeParams
 import com.sourcegraph.cody.agent.protocol_generated.Webview_ReceiveMessageStringEncodedParams
@@ -132,6 +132,12 @@ interface _SubsetGeneratedCodyAgentServer {
   @JsonRequest("ignore/test")
   fun ignore_test(params: Ignore_TestParams): CompletableFuture<Ignore_TestResult>
 
+  @JsonRequest("testing/ignore/overridePolicy")
+  fun testing_ignore_overridePolicy(params: ContextFilters?): CompletableFuture<Null?>
+
+  @JsonRequest("testing/requestErrors")
+  fun testing_requestErrors(params: Null?): CompletableFuture<Testing_RequestErrorsResult>
+
   //  // =============
   //  // Notifications
   //  // =============
@@ -182,10 +188,4 @@ interface _LegacyAgentServer {
 
   @JsonRequest("telemetry/recordEvent")
   fun recordEvent(event: TelemetryEvent): CompletableFuture<Void?>
-
-  @JsonRequest("testing/ignore/overridePolicy")
-  fun testingIgnoreOverridePolicy(params: IgnorePolicySpec?): CompletableFuture<Unit>
-
-  @JsonRequest("testing/requestErrors")
-  fun testingRequestErrors(): CompletableFuture<List<NetworkRequest>>
 }
