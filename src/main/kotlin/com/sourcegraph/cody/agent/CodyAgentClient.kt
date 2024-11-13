@@ -11,8 +11,8 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.rd.util.firstOrNull
 import com.sourcegraph.cody.CodyToolWindowContent
-import com.sourcegraph.cody.agent.protocol.ProtocolTextDocumentUtil
 import com.sourcegraph.cody.agent.protocol.WebviewCreateWebviewPanelParams
+import com.sourcegraph.cody.agent.protocol_extensions.fromVirtualFile
 import com.sourcegraph.cody.agent.protocol_generated.DebugMessage
 import com.sourcegraph.cody.agent.protocol_generated.DisplayCodeLensParams
 import com.sourcegraph.cody.agent.protocol_generated.Env_OpenExternalParams
@@ -124,7 +124,7 @@ class CodyAgentClient(private val project: Project, private val webview: NativeW
   ): CompletableFuture<ProtocolTextDocument?> {
     return acceptOnEventThreadAndGet {
       val vf = CodyEditorUtil.createFileOrScratchFromUntitled(project, params.uri, params.content)
-      vf?.let { ProtocolTextDocumentUtil.fromVirtualFile(it) }
+      vf?.let { fromVirtualFile(it) }
     }
   }
 

@@ -8,9 +8,9 @@ import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.ErrorCode
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
-import com.sourcegraph.cody.agent.protocol.ProtocolTextDocumentUtil.Companion.uriFor
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
 import com.sourcegraph.cody.agent.protocol_extensions.Position
+import com.sourcegraph.cody.agent.protocol_extensions.uriFor
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteParams
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteResult
 import com.sourcegraph.cody.agent.protocol_generated.Position

@@ -10,7 +10,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService.Companion.withAgent
-import com.sourcegraph.cody.agent.protocol.ProtocolTextDocumentUtil
+import com.sourcegraph.cody.agent.protocol_extensions.fromVirtualEditorFile
+import com.sourcegraph.cody.agent.protocol_extensions.fromVirtualFile
 import com.sourcegraph.cody.agent.protocol_generated.TextDocument_DidFocusParams
 import com.sourcegraph.utils.CodyEditorUtil
 
@@ -21,7 +22,7 @@ class CodyFileEditorListener : FileEditorManagerListener {
     try {
       val textEditor = source.getSelectedEditor(file) as? TextEditor ?: return
       val editor = textEditor.editor
-      val protocolTextFile = ProtocolTextDocumentUtil.fromVirtualEditorFile(editor, file)
+      val protocolTextFile = fromVirtualEditorFile(editor, file)
       EditorChangesBus.documentChanged(editor.project, protocolTextFile)
 
       withAgent(source.project) { agent: CodyAgent ->
@@ -34,7 +35,7 @@ class CodyFileEditorListener : FileEditorManagerListener {
 
   override fun fileClosed(source: FileEditorManager, file: VirtualFile) {
     try {
-      val protocolTextFile = ProtocolTextDocumentUtil.fromVirtualFile(file)
+      val protocolTextFile = fromVirtualFile(file)
       EditorChangesBus.documentChanged(source.project, protocolTextFile)
       withAgent(source.project) { agent: CodyAgent ->
         agent.server.textDocument_didClose(protocolTextFile)
@@ -57,7 +58,7 @@ class CodyFileEditorListener : FileEditorManagerListener {
         CodyEditorUtil.getAllOpenEditors().forEach { editor ->
           fileDocumentManager.getFile(editor.document)?.let { file ->
             try {
-              val textDocument = ProtocolTextDocumentUtil.fromVirtualEditorFile(editor, file)
+              val textDocument = fromVirtualEditorFile(editor, file)
               codyAgent.server.textDocument_didOpen(textDocument)
             } catch (x: Exception) {
               logger.warn("Error calling textDocument/didOpen for file: ${file.path}", x)
@@ -69,7 +70,7 @@ class CodyFileEditorListener : FileEditorManagerListener {
         CodyEditorUtil.getSelectedEditors(project).forEach { editor ->
           val file = fileDocumentManager.getFile(editor.document)
           try {
-            val textDocument = ProtocolTextDocumentUtil.fromVirtualEditorFile(editor, file!!)
+            val textDocument = fromVirtualEditorFile(editor, file!!)
             codyAgent.server.textDocument_didFocus(TextDocument_DidFocusParams(textDocument.uri))
           } catch (x: Exception) {
             logger.warn("Error calling textDocument/didFocus on ${file?.path}", x)

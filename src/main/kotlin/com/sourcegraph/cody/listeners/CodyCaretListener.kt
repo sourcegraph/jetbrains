@@ -7,7 +7,7 @@ import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgent
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.ProtocolTextDocumentUtil
+import com.sourcegraph.cody.agent.protocol_extensions.fromEditorWithOffsetSelection
 import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager
 import com.sourcegraph.cody.vscode.InlineCompletionTriggerKind
 import com.sourcegraph.config.ConfigUtil
@@ -24,7 +24,7 @@ class CodyCaretListener(val project: Project) : CaretListener {
       return
     }
 
-    ProtocolTextDocumentUtil.fromEditorWithOffsetSelection(e.editor, e)?.let { textDocument ->
+    fromEditorWithOffsetSelection(e.editor, e)?.let { textDocument ->
       EditorChangesBus.documentChanged(project, textDocument)
       CodyAgentService.withAgent(project) { agent: CodyAgent ->
         agent.server.textDocument_didChange(textDocument)

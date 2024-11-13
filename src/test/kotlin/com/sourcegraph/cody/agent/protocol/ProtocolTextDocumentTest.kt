@@ -6,6 +6,9 @@ import com.intellij.openapi.fileEditor.FileEditorProvider
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.sourcegraph.cody.agent.protocol_extensions.fromEditor
+import com.sourcegraph.cody.agent.protocol_extensions.fromVirtualEditorFile
+import com.sourcegraph.cody.agent.protocol_extensions.normalizeUriOrPath
 import com.sourcegraph.cody.agent.protocol_generated.Position
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolTextDocument
 import com.sourcegraph.cody.agent.protocol_generated.Range
@@ -16,7 +19,7 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
   private val filename = "test.txt"
   private val file: VirtualFile by lazy { myFixture.createFile(filename, content) }
 
-  fun fromOffset(document: Document, offset: Int): Position {
+  private fun fromOffset(document: Document, offset: Int): Position {
     val line = document.getLineNumber(offset)
     val lineStartOffset = document.getLineStartOffset(line)
     return Position(line.toLong(), (offset - lineStartOffset).toLong())
@@ -34,7 +37,7 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
   }
 
   fun test_emptySelection() {
-    val protocolTextFile = ProtocolTextDocumentUtil.fromVirtualEditorFile(myFixture.editor, file)
+    val protocolTextFile = fromVirtualEditorFile(myFixture.editor, file)
     assertEquals("file:///src/test.txt", protocolTextFile.uri)
     assertEquals(content, protocolTextFile.content)
     assertEquals(Range(Position(0, 0), Position(0, 0)), protocolTextFile.selection)
@@ -42,7 +45,7 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
 
   fun test_singleLineSelection() {
     myFixture.editor.testing_selectSubstring("ine 1")
-    val range = ProtocolTextDocumentUtil.fromEditor(myFixture.editor)!!.selection!!
+    val range = fromEditor(myFixture.editor)!!.selection!!
     assertEquals(0, range.start.line) // should be zero-based
     assertEquals(
         myFixture.editor.selectionModel.selectedText, myFixture.editor.testing_substring(range))
@@ -50,7 +53,7 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
 
   fun test_multiLineSelection() {
     myFixture.editor.testing_selectSubstring("ine 1\nli")
-    val range = ProtocolTextDocumentUtil.fromEditor(myFixture.editor)!!.selection!!
+    val range = fromEditor(myFixture.editor)!!.selection!!
     assertEquals(0, range.start.line)
     assertEquals(1, range.end.line) // should be zero-based
     assertEquals(
@@ -59,7 +62,7 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
 
   fun test_selectEntireFile() {
     myFixture.editor.testing_selectSubstring(content)
-    val range = ProtocolTextDocumentUtil.fromEditor(myFixture.editor)!!.selection!!
+    val range = fromEditor(myFixture.editor)!!.selection!!
     assertEquals(
         myFixture.editor.selectionModel.selectedText, myFixture.editor.testing_substring(range))
   }
@@ -69,7 +72,7 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
       myFixture.editor.document.setText("This is an evil range test\nHello 🤦🏿‍ bugs")
     }
     myFixture.editor.testing_selectSubstring("bugs")
-    val range = ProtocolTextDocumentUtil.fromEditor(myFixture.editor)!!.selection!!
+    val range = fromEditor(myFixture.editor)!!.selection!!
     assertEquals(
         myFixture.editor.selectionModel.selectedText, myFixture.editor.testing_substring(range))
   }
@@ -79,7 +82,7 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
     myFixture.openFileInEditor(emptyFile)
     assertEquals(
         Range(Position(0, 0), Position(0, 0)),
-        ProtocolTextDocumentUtil.fromVirtualEditorFile(myFixture.editor, emptyFile).selection)
+        fromVirtualEditorFile(myFixture.editor, emptyFile).selection)
   }
 
   fun test_selectionListener() {
@@ -240,55 +243,55 @@ class ProtocolTextDocumentTest : BasePlatformTestCase() {
             "file:///home/person/documents" to "file:///home/person/documents")
 
     for ((input, expected) in testCases) {
-      assertEquals(expected, ProtocolTextDocumentUtil.normalizeUriOrPath(input))
+      assertEquals(expected, normalizeUriOrPath(input))
     }
   }
 
   fun test_wsl_path_with_backslashes() {
     val input = "\\\\wsl$\\Ubuntu\\home\\person"
     val expected = "//wsl.localhost/Ubuntu/home/person"
-    assertEquals(expected, ProtocolTextDocumentUtil.normalizeUriOrPath(input))
+    assertEquals(expected, normalizeUriOrPath(input))
   }
 
   fun test_wsl_path_with_forward_slashes() {
     val input = "//wsl$/Ubuntu/home/person"
     val expected = "//wsl.localhost/Ubuntu/home/person"
-    assertEquals(expected, ProtocolTextDocumentUtil.normalizeUriOrPath(input))
+    assertEquals(expected, normalizeUriOrPath(input))
   }
 
   fun testWindowsPathLowerCase() {
     val input = "c:/home/person"
     val expected = "c:/home/person"
-    assertEquals(expected, ProtocolTextDocumentUtil.normalizeUriOrPath(input))
+    assertEquals(expected, normalizeUriOrPath(input))
   }
 
   fun testWindowsPathUpperCase() {
     val input = "D:/home/person"
     val expected = "d:/home/person"
-    assertEquals(expected, ProtocolTextDocumentUtil.normalizeUriOrPath(input))
+    assertEquals(expected, normalizeUriOrPath(input))
   }
 
   fun testWslPathWithFileScheme() {
     val input = "file://\\\\wsl$\\Ubuntu\\home\\person"
     val expected = "file:////wsl.localhost/Ubuntu/home/person"
-    assertEquals(expected, ProtocolTextDocumentUtil.normalizeUriOrPath(input))
+    assertEquals(expected, normalizeUriOrPath(input))
   }
 
   fun testWindowsPathWithFileScheme() {
     val input = "file://c:/home/person"
     val expected = "file:///c:/home/person"
-    assertEquals(expected, ProtocolTextDocumentUtil.normalizeUriOrPath(input))
+    assertEquals(expected, normalizeUriOrPath(input))
   }
 
   fun testLinuxPath() {
     val input = "/home/person/documents"
     val expected = "/home/person/documents"
-    assertEquals(expected, ProtocolTextDocumentUtil.normalizeUriOrPath(input))
+    assertEquals(expected, normalizeUriOrPath(input))
   }
 
   fun testLinuxPathWithFileScheme() {
     val input = "file:///home/person/documents"
     val expected = "file:///home/person/documents"
-    assertEquals(expected, ProtocolTextDocumentUtil.normalizeUriOrPath(input))
+    assertEquals(expected, normalizeUriOrPath(input))
   }
 }
