@@ -5,8 +5,9 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.sourcegraph.cody.agent.CodyAgentService
-import com.sourcegraph.cody.agent.protocol.GetCurrentUserCodySubscription
 import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
+import com.sourcegraph.cody.agent.protocol_extensions.isPendingStatus
+import com.sourcegraph.cody.agent.protocol_extensions.isProPlan
 import com.sourcegraph.cody.agent.protocol_generated.CurrentUserCodySubscription
 import com.sourcegraph.cody.config.CodyAuthenticationManager
 import com.sourcegraph.config.ConfigUtil
@@ -77,8 +78,8 @@ class EndOfTrialNotificationScheduler private constructor(val project: Project) 
       codyProTrialEnded: Boolean,
       useSscForCodySubscription: Boolean
   ) {
-    if (currentUserCodySubscription.plan == GetCurrentUserCodySubscription.Plan.PRO &&
-        currentUserCodySubscription.status == GetCurrentUserCodySubscription.Status.PENDING &&
+    if (currentUserCodySubscription.isProPlan() &&
+        currentUserCodySubscription.isPendingStatus() &&
         useSscForCodySubscription) {
       if (codyProTrialEnded) {
         if (PropertiesComponent.getInstance().getBoolean(TrialEndedNotification.ignore)) {
