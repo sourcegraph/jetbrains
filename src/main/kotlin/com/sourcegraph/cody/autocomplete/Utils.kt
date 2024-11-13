@@ -10,7 +10,7 @@ import com.sourcegraph.cody.agent.protocol.ErrorCode
 import com.sourcegraph.cody.agent.protocol.ErrorCodeUtils.toErrorCode
 import com.sourcegraph.cody.agent.protocol.RateLimitError.Companion.toRateLimitError
 import com.sourcegraph.cody.agent.protocol_extensions.Position
-import com.sourcegraph.cody.agent.protocol_extensions.uriFor
+import com.sourcegraph.cody.agent.protocol_extensions.ProtocolTextDocumentExt
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteParams
 import com.sourcegraph.cody.agent.protocol_generated.AutocompleteResult
 import com.sourcegraph.cody.agent.protocol_generated.Position
@@ -58,7 +58,7 @@ object Utils {
     val params =
         if (lookupString.isNullOrEmpty())
             AutocompleteParams(
-                uri = uriFor(virtualFile),
+                uri = ProtocolTextDocumentExt.uriFor(virtualFile),
                 position = Position(position.line, position.character),
                 triggerKind =
                     if (triggerKind == InlineCompletionTriggerKind.INVOKE)
@@ -66,7 +66,7 @@ object Utils {
                     else AutocompleteParams.TriggerKindEnum.Automatic)
         else
             AutocompleteParams(
-                uri = uriFor(virtualFile),
+                uri = ProtocolTextDocumentExt.uriFor(virtualFile),
                 position = Position(position.line, position.character),
                 triggerKind = AutocompleteParams.TriggerKindEnum.Automatic,
                 selectedCompletionInfo =

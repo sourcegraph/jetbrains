@@ -8,7 +8,7 @@ import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol.BillingCategory
 import com.sourcegraph.cody.agent.protocol.BillingMetadata
 import com.sourcegraph.cody.agent.protocol.BillingProduct
-import com.sourcegraph.cody.agent.protocol_extensions.fromEditorForDocumentEvent
+import com.sourcegraph.cody.agent.protocol_extensions.ProtocolTextDocumentExt
 import com.sourcegraph.cody.agent.protocol_generated.CompletionItemParams
 import com.sourcegraph.cody.autocomplete.CodyAutocompleteManager
 import com.sourcegraph.cody.autocomplete.action.AcceptCodyAutocompleteAction
@@ -53,7 +53,7 @@ class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
     // This is esp. important with incremental document synchronization where the server goes out
     // of sync if it doesn't get all changes.
 
-    fromEditorForDocumentEvent(editor, event)?.let { textDocument ->
+    ProtocolTextDocumentExt.fromEditorForDocumentEvent(editor, event)?.let { textDocument ->
       EditorChangesBus.documentChanged(project, textDocument)
       CodyAgentService.withAgent(project) { agent ->
         agent.server.textDocument_didChange(textDocument)
