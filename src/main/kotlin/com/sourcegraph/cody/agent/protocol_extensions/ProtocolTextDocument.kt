@@ -28,7 +28,7 @@ object ProtocolTextDocumentExt {
       selection: Range? = null,
       selectedText: String? = null
   ): TestingParams? {
-    if (!TestingParamsUtil.doIncludeTestingParam) {
+    if (!TestingParamsExt.doIncludeTestingParam) {
       return null
     }
     return TestingParams(
