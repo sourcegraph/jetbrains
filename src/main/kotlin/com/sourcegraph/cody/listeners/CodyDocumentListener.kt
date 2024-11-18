@@ -18,6 +18,7 @@ import com.sourcegraph.utils.CodyEditorUtil
 
 class CodyDocumentListener(val project: Project) : BulkAwareDocumentListener {
 
+  // todo: it does not work after the migration to webview. see: linear.app/sourcegraph/issue/QA-78
   private fun logCodeCopyPastedFromChat(event: DocumentEvent) {
     val pastedCode = event.newFragment.toString()
     if (pastedCode.isNotBlank() && CodeEditorFactory.lastCopiedText == pastedCode) {
