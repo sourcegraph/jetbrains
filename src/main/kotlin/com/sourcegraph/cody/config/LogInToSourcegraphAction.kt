@@ -94,12 +94,6 @@ abstract class BaseAddAccountWithTokenAction : DumbAwareEDTAction() {
           ?: DataManager.getInstance().loadFromDataContext(e.dataContext, CodyAccountsHost.KEY))
 }
 
-fun signInWithSourcegraphDialog(project: Project?, parent: Component?): BaseLoginDialog =
-    SourcegraphTokenLoginDialog(project, parent, SsoAuthMethod.DEFAULT).apply {
-      title = "Sign in with Sourcegraph"
-      setLoginButtonText("Sign in")
-    }
-
 internal class SourcegraphTokenLoginDialog(
     project: Project?,
     parent: Component?,
