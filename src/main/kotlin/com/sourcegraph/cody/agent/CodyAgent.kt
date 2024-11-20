@@ -141,7 +141,9 @@ private constructor(
                                           "https://file+.sourcegraphstatic.com",
                                   ),
                               webviewMessages =
-                                  ClientCapabilities.WebviewMessagesEnum.`String-encoded`)))
+                                  ClientCapabilities.WebviewMessagesEnum.`String-encoded`,
+                              accountSwitchingInWebview =
+                                  ClientCapabilities.AccountSwitchingInWebviewEnum.Enabled)))
               .thenApply { info ->
                 logger.warn("Connected to Cody agent " + info.name)
                 server.initialized(null)
