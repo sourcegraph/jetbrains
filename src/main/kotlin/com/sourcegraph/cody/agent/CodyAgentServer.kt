@@ -95,6 +95,9 @@ interface _SubsetGeneratedCodyAgentServer {
       params: ExtensionConfiguration
   ): CompletableFuture<ProtocolAuthStatus?>
 
+  @JsonRequest("extensionConfiguration/status")
+  fun extensionConfiguration_status(params: Null?): CompletableFuture<ProtocolAuthStatus?>
+
   @JsonRequest("featureFlags/getFeatureFlag")
   fun featureFlags_getFeatureFlag(
       params: FeatureFlags_GetFeatureFlagParams
