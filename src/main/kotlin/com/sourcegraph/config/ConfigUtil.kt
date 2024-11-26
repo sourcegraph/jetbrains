@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Contract
 import org.jetbrains.annotations.VisibleForTesting
 
 object ConfigUtil {
-  const val DOTCOM_URL = "https://sourcegraph.com/"
+  const val DOTCOM_URL = "http://sourcegraph.com/"
   const val CODY_DISPLAY_NAME = "Cody"
   const val CODE_SEARCH_DISPLAY_NAME = "Code Search"
   const val SOURCEGRAPH_DISPLAY_NAME = "Sourcegraph"
