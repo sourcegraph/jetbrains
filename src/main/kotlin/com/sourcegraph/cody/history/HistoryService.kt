@@ -14,8 +14,7 @@ import com.sourcegraph.cody.history.state.LLMState
 
 @State(name = "ChatHistory", storages = [Storage("cody_history.xml")])
 @Service(Service.Level.PROJECT)
-class HistoryService(private val project: Project) :
-    SimplePersistentStateComponent<HistoryState>(HistoryState()) {
+class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState()) {
 
   @Synchronized
   fun getDefaultLlm(): LLMState? {
