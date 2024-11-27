@@ -28,7 +28,7 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
   fun setDefaultLlm(defaultLlm: LLMState) {
     val newDefaultLlm = LLMState()
     newDefaultLlm.copyFrom(defaultLlm)
-    getOrCreateActiveAccountEntry().defaultLlm = newDefaultLlm
+    getOrCreateActiveAccountData()?.defaultLlm = newDefaultLlm
   }
 
   @Synchronized
@@ -37,11 +37,8 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
   private fun findEntry(accountId: String): AccountData? =
       state.accountData.find { it.accountId == accountId }
 
-  private fun getOrCreateActiveAccountEntry(): AccountData {
-    val activeAccount =
-        DeprecatedCodyAccountManager.getInstance().account
-            ?: throw IllegalStateException("No active account")
-
+  private fun getOrCreateActiveAccountData(): AccountData? {
+    val activeAccount = DeprecatedCodyAccountManager.getInstance().account ?: return null
     val existingEntry = findEntry(activeAccount.id)
     return existingEntry ?: AccountData(activeAccount.id).also { state.accountData += it }
   }
