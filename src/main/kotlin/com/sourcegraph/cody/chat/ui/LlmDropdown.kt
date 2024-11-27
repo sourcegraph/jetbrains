@@ -1,7 +1,6 @@
 package com.sourcegraph.cody.chat.ui
 
 import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.MutableCollectionComboBoxModel
@@ -29,7 +28,6 @@ class LlmDropdown(
     val parentDialog: EditCommandPrompt?,
     private val model: String? = null
 ) : ComboBox<ModelAvailabilityStatus>(MutableCollectionComboBoxModel()) {
-  private var hasServerSentModels = project.service<CurrentConfigFeatures>().get().serverSentModels
 
   init {
     renderer = LlmComboBoxRenderer(this)
@@ -57,7 +55,6 @@ class LlmDropdown(
   }
 
   private fun handleConfigUpdate(config: ConfigFeatures) {
-    hasServerSentModels = config.serverSentModels
     if (!isVisible && config.serverSentModels) {
       isVisible = true
       revalidate()
