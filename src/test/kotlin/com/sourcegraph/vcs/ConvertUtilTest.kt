@@ -149,9 +149,10 @@ class ConvertUtilTest : TestCase() {
   // sourcegraph/jetbrains#1194 the add repository dialog has a fallback when the user enters a repo
   // name instead of a clone URL. If changing the failure behavior here, ensure the add repository
   // dialog can still add "literal" repo names successfully.
-  fun `converting incomplete URLs without protocols, paths should throw`() {
-    assertThrows(Exception::class.java, "Cody could not extract repo name from clone URL host") {
-      convertGitCloneURLToCodebaseNameOrError("cool-repo-name")
-    }
+  fun `test converting incomplete URLs without protocols, paths should throw`() {
+    assertThrows(
+        Exception::class.java, "Cody could not extract repo name from clone URL cool-repo-name") {
+          convertGitCloneURLToCodebaseNameOrError("cool-repo-name")
+        }
   }
 }
