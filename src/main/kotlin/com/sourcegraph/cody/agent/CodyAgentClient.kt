@@ -264,8 +264,7 @@ class CodyAgentClient(private val project: Project, private val webview: NativeW
     }
     if (params.key == "cody.serverEndpoint") {
       val endpoint = params.value ?: return
-      val server = SourcegraphServerPath(endpoint)
-      CodyAccount.setActiveAccount(CodyAccount(server))
+      CodyAccount.setActiveAccount(CodyAccount(SourcegraphServerPath(endpoint)))
       CodyStatusService.resetApplication(project)
     }
   }
