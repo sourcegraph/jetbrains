@@ -27,7 +27,6 @@ class LlmDropdown(
     private val project: Project,
     private val onSetSelectedItem: (Model) -> Unit,
     val parentDialog: EditCommandPrompt?,
-    private val chatModelFromState: Model?,
     private val model: String? = null
 ) : ComboBox<ModelAvailabilityStatus>(MutableCollectionComboBoxModel()) {
   private var hasServerSentModels = project.service<CurrentConfigFeatures>().get().serverSentModels
@@ -83,9 +82,7 @@ class LlmDropdown(
               it.model.id == selectedFromChatState?.id
         } ?: models.firstOrNull()
 
-    // If the dropdown is already disabled, don't change it. It can happen
-    // in the case of the legacy commands (updateAfterFirstMessage happens before this call).
-    isEnabled = isEnabled && chatModelFromState == null
+    isEnabled = true
     isVisible = selectedItem != null
     setMaximumRowCount(15)
 

@@ -135,7 +135,6 @@ class EditCommandPrompt(
               project = project,
               onSetSelectedItem = { model = it.id },
               this,
-              chatModelFromState = null,
               model = model)
           .apply {
             foreground = boldLabelColor()
