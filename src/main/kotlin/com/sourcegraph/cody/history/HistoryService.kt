@@ -32,23 +32,10 @@ class HistoryService : SimplePersistentStateComponent<HistoryState>(HistoryState
   }
 
   @Synchronized
-  fun remove(internalId: String?) {
-    getOrCreateActiveAccountEntry().chats.removeIf { it.internalId == internalId }
-  }
-
-  @Synchronized
-  fun findActiveAccountChat(internalId: String): ChatState? =
-      getActiveAccountHistory()?.chats?.find { it.internalId == internalId }
-
-  @Synchronized
   fun getChatHistoryFor(accountId: String): List<ChatState>? = findEntry(accountId)?.chats
 
   private fun findEntry(accountId: String): AccountData? =
       state.accountData.find { it.accountId == accountId }
-
-  @Synchronized
-  fun getActiveAccountHistory(): AccountData? =
-      DeprecatedCodyAccountManager.getInstance().account?.let { findEntry(it.id) }
 
   private fun getOrCreateActiveAccountEntry(): AccountData {
     val activeAccount =
