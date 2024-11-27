@@ -15,9 +15,9 @@ import com.sourcegraph.cody.agent.protocol_extensions.isDeprecated
 import com.sourcegraph.cody.agent.protocol_generated.Chat_ModelsParams
 import com.sourcegraph.cody.agent.protocol_generated.Model
 import com.sourcegraph.cody.agent.protocol_generated.ModelAvailabilityStatus
+import com.sourcegraph.cody.auth.CodyAccount
+import com.sourcegraph.cody.config.DefaultLlmStorage
 import com.sourcegraph.cody.edit.EditCommandPrompt
-import com.sourcegraph.cody.history.HistoryService
-import com.sourcegraph.cody.history.state.LLMState
 import com.sourcegraph.cody.ui.LlmComboBoxRenderer
 import com.sourcegraph.common.BrowserOpener
 import java.util.concurrent.TimeUnit
@@ -72,15 +72,12 @@ class LlmDropdown(
     val availableModels = models.map { it }.filterNot { it.model.isDeprecated() }
     availableModels.sortedBy { it.model.isCodyProOnly() }.forEach { addItem(it) }
 
-    val selectedFromChatState = chatModelFromState
-    val selectedFromHistory = HistoryService.getInstance(project).getDefaultLlm()
+    val defaultLlm =
+        DefaultLlmStorage.getInstance(project).get(CodyAccount.getActiveAccount()?.server)
 
     selectedItem =
-        availableModels.find {
-          it.model.id == model ||
-              it.model.id == selectedFromHistory?.model ||
-              it.model.id == selectedFromChatState?.id
-        } ?: models.firstOrNull()
+        availableModels.find { it.model.id == model || it.model.id == defaultLlm?.id }
+            ?: models.firstOrNull()
 
     isEnabled = true
     isVisible = selectedItem != null
@@ -103,7 +100,8 @@ class LlmDropdown(
         return
       }
 
-      HistoryService.getInstance(project).setDefaultLlm(LLMState.fromChatModel(modelProvider.model))
+      DefaultLlmStorage.getInstance(project)
+          .store(CodyAccount.getActiveAccount()?.server, modelProvider.model)
 
       super.setSelectedItem(anObject)
       onSetSelectedItem(modelProvider.model)
