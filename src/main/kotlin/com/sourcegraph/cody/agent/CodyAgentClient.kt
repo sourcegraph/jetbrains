@@ -28,6 +28,8 @@ import com.sourcegraph.cody.agent.protocol_generated.Window_DidChangeContextPara
 import com.sourcegraph.cody.agent.protocol_generated.WorkspaceEditParams
 import com.sourcegraph.cody.auth.CodyAccount
 import com.sourcegraph.cody.auth.SourcegraphServerPath
+import com.sourcegraph.cody.auth.deprecated.DeprecatedCodyAccount
+import com.sourcegraph.cody.auth.deprecated.DeprecatedCodyAccountManager
 import com.sourcegraph.cody.edit.EditService
 import com.sourcegraph.cody.edit.lenses.LensesService
 import com.sourcegraph.cody.error.CodyConsole
@@ -264,7 +266,11 @@ class CodyAgentClient(private val project: Project, private val webview: NativeW
     }
     if (params.key == "cody.serverEndpoint") {
       val endpoint = params.value ?: return
-      CodyAccount.setActiveAccount(CodyAccount(SourcegraphServerPath(endpoint)))
+      val server = SourcegraphServerPath(endpoint)
+      CodyAccount.setActiveAccount(CodyAccount(server))
+      DeprecatedCodyAccountManager.getInstance()
+          .setActiveAccount(
+              DeprecatedCodyAccount(name = "user", displayName = "User", server = server))
       CodyStatusService.resetApplication(project)
     }
   }
