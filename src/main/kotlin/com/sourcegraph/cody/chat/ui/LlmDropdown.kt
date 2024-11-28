@@ -29,8 +29,6 @@ class LlmDropdown(
     private val fixedModel: String? = null
 ) : ComboBox<ModelAvailabilityStatus>(MutableCollectionComboBoxModel()) {
 
-  private val serverToRecentModel = HashMap<SourcegraphServerPath, Model>()
-
   init {
     renderer = LlmComboBoxRenderer(this)
     isVisible = false
@@ -77,7 +75,7 @@ class LlmDropdown(
         availableModels.find { it.model.id == fixedModel || it.model.id == defaultLlm?.id }
             ?: models.firstOrNull()
 
-    isEnabled = fixedModel != null
+    isEnabled = fixedModel == null
     isVisible = selectedItem != null
     setMaximumRowCount(15)
 
@@ -103,5 +101,9 @@ class LlmDropdown(
       super.setSelectedItem(anObject)
       onSetSelectedItem(modelProvider.model)
     }
+  }
+
+  companion object {
+    private val serverToRecentModel = HashMap<SourcegraphServerPath, Model>()
   }
 }
