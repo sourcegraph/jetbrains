@@ -15,7 +15,7 @@ import com.sourcegraph.cody.agent.protocol_generated.Chat_ModelsParams
 import com.sourcegraph.cody.agent.protocol_generated.Model
 import com.sourcegraph.cody.agent.protocol_generated.ModelAvailabilityStatus
 import com.sourcegraph.cody.auth.CodyAccount
-import com.sourcegraph.cody.config.DefaultLlmStorage
+import com.sourcegraph.cody.auth.SourcegraphServerPath
 import com.sourcegraph.cody.edit.EditCommandPrompt
 import com.sourcegraph.cody.ui.LlmComboBoxRenderer
 import com.sourcegraph.common.BrowserOpener
@@ -28,6 +28,8 @@ class LlmDropdown(
     val parentDialog: EditCommandPrompt?,
     private val model: String? = null
 ) : ComboBox<ModelAvailabilityStatus>(MutableCollectionComboBoxModel()) {
+
+  private val serverToRecentModel = HashMap<SourcegraphServerPath, Model>()
 
   init {
     renderer = LlmComboBoxRenderer(this)
@@ -69,8 +71,7 @@ class LlmDropdown(
     val availableModels = models.map { it }.filterNot { it.model.isDeprecated() }
     availableModels.sortedBy { it.model.isCodyProOnly() }.forEach { addItem(it) }
 
-    val defaultLlm =
-        DefaultLlmStorage.getInstance(project).get(CodyAccount.getActiveAccount()?.server)
+    val defaultLlm = serverToRecentModel[CodyAccount.getActiveAccount()?.server]
 
     selectedItem =
         availableModels.find { it.model.id == model || it.model.id == defaultLlm?.id }
@@ -97,8 +98,7 @@ class LlmDropdown(
         return
       }
 
-      DefaultLlmStorage.getInstance(project)
-          .store(CodyAccount.getActiveAccount()?.server, modelProvider.model)
+      CodyAccount.getActiveAccount()?.server?.also { serverToRecentModel[it] = modelProvider.model }
 
       super.setSelectedItem(anObject)
       onSetSelectedItem(modelProvider.model)
