@@ -135,7 +135,7 @@ class EditCommandPrompt(
               project = project,
               onSetSelectedItem = { model = it.id },
               this,
-              model = model)
+              fixedModel = model)
           .apply {
             foreground = boldLabelColor()
             background = textFieldBackground()

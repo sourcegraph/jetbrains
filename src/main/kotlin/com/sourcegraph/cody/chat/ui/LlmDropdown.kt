@@ -26,7 +26,7 @@ class LlmDropdown(
     private val project: Project,
     private val onSetSelectedItem: (Model) -> Unit,
     val parentDialog: EditCommandPrompt?,
-    private val model: String? = null
+    private val fixedModel: String? = null
 ) : ComboBox<ModelAvailabilityStatus>(MutableCollectionComboBoxModel()) {
 
   private val serverToRecentModel = HashMap<SourcegraphServerPath, Model>()
@@ -74,10 +74,10 @@ class LlmDropdown(
     val defaultLlm = serverToRecentModel[CodyAccount.getActiveAccount()?.server]
 
     selectedItem =
-        availableModels.find { it.model.id == model || it.model.id == defaultLlm?.id }
+        availableModels.find { it.model.id == fixedModel || it.model.id == defaultLlm?.id }
             ?: models.firstOrNull()
 
-    isEnabled = true
+    isEnabled = fixedModel != null
     isVisible = selectedItem != null
     setMaximumRowCount(15)
 
