@@ -51,8 +51,7 @@ class CodyErrorSubmitter : ErrorReportSubmitter() {
     val baseUrl =
         "https://github.com/sourcegraph/jetbrains/issues/new" +
             "?template=bug_report.yml" +
-            "&labels=bug,repo/jetbrains" +
-            "&projects=sourcegraph/381"
+            "&labels=bug,repo/jetbrains"
 
     val title = throwableText?.let { "&title=${encode(getTitle(it))}" } ?: ""
     val about = "&about=${encode(getAboutText(project).get())}"
@@ -66,8 +65,7 @@ class CodyErrorSubmitter : ErrorReportSubmitter() {
   }
 
   private fun getTitle(throwableText: String): String {
-    val title = trimPostfix(throwableText.lines().first(), 128)
-    return "bug: $title"
+    return trimPostfix(throwableText.lines().first(), 128)
   }
 
   private fun getAboutText(project: Project?): CompletableFuture<String> {
