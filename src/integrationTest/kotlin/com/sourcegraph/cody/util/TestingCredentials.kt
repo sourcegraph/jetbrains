@@ -27,12 +27,12 @@ data class TestingCredentials(
             token = System.getenv("SRC_ENTERPRISE_ACCESS_TOKEN"),
             redactedToken =
                 "REDACTED_b20717265e7ab1d132874d8ff0be053ab9c1dacccec8dce0bbba76888b6a0a69",
-            serverEndpoint = "https://demo.sourcegraph.com/")
+            serverEndpoint = "http://demo.sourcegraph.com/")
     val s2 =
         TestingCredentials(
             token = System.getenv("SRC_S2_ACCESS_TOKEN"),
             redactedToken =
                 "REDACTED_964f5256e709a8c5c151a63d8696d5c7ac81604d179405864d88ff48a9232364",
-            serverEndpoint = "https://sourcegraph.sourcegraph.com/")
+            serverEndpoint = "http://sourcegraph.sourcegraph.com/")
   }
 }
