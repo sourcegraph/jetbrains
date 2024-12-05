@@ -10,7 +10,7 @@ import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.sourcegraph.Icons
-import com.sourcegraph.cody.auth.CodyAccount
+import com.sourcegraph.cody.auth.CodyAccountService
 import com.sourcegraph.cody.statusbar.CodyStatus
 import com.sourcegraph.cody.statusbar.CodyStatusService
 import com.sourcegraph.common.CodyBundle
@@ -31,7 +31,7 @@ class ActionInIgnoredFileNotification :
 
     fun maybeNotify(project: Project) {
       val status = CodyStatusService.getCurrentStatus(project)
-      val account = CodyAccount.getActiveAccount()
+      val account = CodyAccountService.getInstance(project).getActiveAccount()
       when {
         status == CodyStatus.CodyUninit ||
             status == CodyStatus.CodyDisabled ||

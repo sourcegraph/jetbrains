@@ -9,7 +9,7 @@ import com.sourcegraph.cody.agent.protocol.GetFeatureFlag
 import com.sourcegraph.cody.agent.protocol_extensions.isPendingStatus
 import com.sourcegraph.cody.agent.protocol_extensions.isProPlan
 import com.sourcegraph.cody.agent.protocol_generated.CurrentUserCodySubscription
-import com.sourcegraph.cody.auth.CodyAccount
+import com.sourcegraph.cody.auth.CodyAccountService
 import com.sourcegraph.config.ConfigUtil
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -31,7 +31,8 @@ class EndOfTrialNotificationScheduler private constructor(val project: Project) 
             this.dispose()
           }
 
-          if (CodyAccount.getActiveAccount()?.isDotcomAccount() != true) {
+          if (CodyAccountService.getInstance(project).getActiveAccount()?.isDotcomAccount() !=
+              true) {
             return@scheduleAtFixedRate
           }
 

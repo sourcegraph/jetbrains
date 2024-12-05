@@ -89,7 +89,7 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
               try {
                 url =
                     URLBuilder.buildCommitUrl(
-                        ConfigUtil.getServerPath().getUrl(),
+                        ConfigUtil.getServerPath(project).getUrl(),
                         context.getRevisionNumber(),
                         remoteUrl,
                         productName,
@@ -97,7 +97,7 @@ public class OpenRevisionAction extends DumbAwareEDTAction {
               } catch (IllegalArgumentException e) {
                 logger.warn(
                     "Unable to build commit view URI for url "
-                        + ConfigUtil.getServerPath().getUrl()
+                        + ConfigUtil.getServerPath(project).getUrl()
                         + ", revision "
                         + context.getRevisionNumber()
                         + ", product "

@@ -1,6 +1,7 @@
 package com.sourcegraph.website;
 
 import com.intellij.openapi.editor.LogicalPosition;
+import com.intellij.openapi.project.Project;
 import com.sourcegraph.common.RegexEscaper;
 import com.sourcegraph.config.ConfigUtil;
 import java.net.URI;
@@ -10,14 +11,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class URLBuilder {
+  Project project;
+
+  public URLBuilder(Project project) {
+    this.project = project;
+  }
+
   @NotNull
-  public static String buildEditorFileUrl(
+  public String buildEditorFileUrl(
       @NotNull String remoteUrl,
       @NotNull String branchName,
       @NotNull String relativePath,
       @Nullable LogicalPosition start,
       @Nullable LogicalPosition end) {
-    return ConfigUtil.getServerPath().getUrl()
+    return ConfigUtil.getServerPath(project).getUrl()
         + "-/editor"
         + "?remote_url="
         + URLEncoder.encode(remoteUrl, StandardCharsets.UTF_8)
@@ -42,10 +49,10 @@ public class URLBuilder {
   }
 
   @NotNull
-  public static String buildEditorSearchUrl(
+  public String buildEditorSearchUrl(
       @NotNull String search, @Nullable String remoteUrl, @Nullable String remoteBranchName) {
     String url =
-        ConfigUtil.getServerPath().getUrl()
+        ConfigUtil.getServerPath(project).getUrl()
             + "-/editor"
             + "?"
             + buildVersionParams()
@@ -63,13 +70,13 @@ public class URLBuilder {
   }
 
   @NotNull
-  public static String buildDirectSearchUrl(
+  public String buildDirectSearchUrl(
       @NotNull String search, @Nullable String codeHost, @Nullable String repoName) {
     String repoFilter =
         (codeHost != null && repoName != null)
             ? "repo:^" + RegexEscaper.INSTANCE.escapeRegexChars(codeHost + "/" + repoName) + "$"
             : null;
-    return ConfigUtil.getServerPath().getUrl()
+    return ConfigUtil.getServerPath(project).getUrl()
         + "/search"
         + "?patternType=literal"
         + "&q="
@@ -117,13 +124,13 @@ public class URLBuilder {
 
   @NotNull
   // repoUrl should be like "github.com/sourcegraph/sourcegraph"
-  public static String buildSourcegraphBlobUrl(
+  public String buildSourcegraphBlobUrl(
       @NotNull String repoUrl,
       @Nullable String commit,
       @NotNull String path,
       @Nullable LogicalPosition start,
       @Nullable LogicalPosition end) {
-    return ConfigUtil.getServerPath().getUrl()
+    return ConfigUtil.getServerPath(project).getUrl()
         + repoUrl
         + (commit != null ? "@" + commit : "")
         + "/-/blob/"

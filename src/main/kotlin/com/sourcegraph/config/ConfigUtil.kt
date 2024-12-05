@@ -12,7 +12,7 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.sourcegraph.cody.agent.protocol_generated.ExtensionConfiguration
-import com.sourcegraph.cody.auth.CodyAccount
+import com.sourcegraph.cody.auth.CodyAccountService
 import com.sourcegraph.cody.auth.SourcegraphServerPath
 import com.sourcegraph.cody.auth.SourcegraphServerPath.Companion.from
 import com.sourcegraph.cody.config.CodyApplicationSettings
@@ -92,12 +92,12 @@ object ConfigUtil {
       project: Project,
       customConfigContent: String? = null
   ): ExtensionConfiguration {
-    val account = CodyAccount.getActiveAccount()
+    val account = CodyAccountService.getInstance(project).getActiveAccount()
 
     return ExtensionConfiguration(
         anonymousUserID = CodyApplicationSettings.instance.anonymousUserId,
         serverEndpoint = account?.server?.url ?: "",
-        accessToken = account?.getToken() ?: "",
+        accessToken = account?.token ?: "",
         customHeaders = emptyMap(),
         proxy = UserLevelConfig.getProxy(),
         autocompleteAdvancedProvider =
@@ -109,11 +109,11 @@ object ConfigUtil {
   }
 
   @JvmStatic
-  fun getConfigAsJson(): JsonObject {
-    val account = CodyAccount.getActiveAccount()
+  fun getConfigAsJson(project: Project): JsonObject {
+    val account = CodyAccountService.getInstance(project).getActiveAccount()
     return JsonObject().apply {
       addProperty("instanceURL", account?.server?.url)
-      addProperty("accessToken", account?.getToken())
+      addProperty("accessToken", account?.token)
       addProperty("customRequestHeadersAsString", "")
       addProperty("pluginVersion", getPluginVersion())
       addProperty("anonymousUserId", CodyApplicationSettings.instance.anonymousUserId)
@@ -121,8 +121,8 @@ object ConfigUtil {
   }
 
   @JvmStatic
-  fun getServerPath(): SourcegraphServerPath {
-    val activeAccount = CodyAccount.getActiveAccount()
+  fun getServerPath(project: Project): SourcegraphServerPath {
+    val activeAccount = CodyAccountService.getInstance(project).getActiveAccount()
     return activeAccount?.server ?: from(DOTCOM_URL, "")
   }
 

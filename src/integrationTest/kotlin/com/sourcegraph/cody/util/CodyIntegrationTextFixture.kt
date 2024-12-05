@@ -22,6 +22,7 @@ import com.intellij.testFramework.runInEdtAndWait
 import com.sourcegraph.cody.agent.CodyAgentService
 import com.sourcegraph.cody.agent.protocol_generated.ProtocolCodeLens
 import com.sourcegraph.cody.auth.CodyAccount
+import com.sourcegraph.cody.auth.CodyAccountService
 import com.sourcegraph.cody.auth.SourcegraphServerPath
 import com.sourcegraph.cody.edit.lenses.LensListener
 import com.sourcegraph.cody.edit.lenses.LensesService
@@ -94,11 +95,10 @@ open class CodyIntegrationTextFixture : BasePlatformTestCase(), LensListener {
   // change anything.
   private fun initCredentialsAndAgent() {
     val credentials = TestingCredentials.dotcom
-    val account = CodyAccount(SourcegraphServerPath.from(credentials.serverEndpoint, ""))
-    account.storeToken(
-        credentials.token ?: credentials.redactedToken,
-    )
-    CodyAccount.setActiveAccount(account)
+    val serverPath = SourcegraphServerPath.from(credentials.serverEndpoint, "")
+    val token = credentials.token ?: credentials.redactedToken
+    val account = CodyAccount(serverPath, token)
+    CodyAccountService.getInstance(project).setActiveAccount(account)
 
     assertNotNull(
         "Unable to start agent in a timely fashion!",

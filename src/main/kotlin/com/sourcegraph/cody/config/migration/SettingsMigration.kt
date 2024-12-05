@@ -70,7 +70,7 @@ class SettingsMigration : Activity {
       ChatHistoryMigration.migrate(project)
     }
     RunOnceUtil.runOnceForProject(project, "AccountsToCodyMigration") {
-      AccountsMigration.migrate()
+      AccountsMigration.migrate(project)
     }
   }
 

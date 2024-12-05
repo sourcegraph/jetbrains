@@ -12,7 +12,7 @@ import java.net.URISyntaxException
 
 object BrowserOpener {
   fun openRelativeUrlInBrowser(project: Project, relativeUrl: String) {
-    openInBrowser(project, getServerPath().url + "/" + relativeUrl)
+    openInBrowser(project, getServerPath(project).url + "/" + relativeUrl)
   }
 
   fun openInBrowser(project: Project?, absoluteUrl: String) {
