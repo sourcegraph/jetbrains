@@ -9,7 +9,7 @@ Use Cody, the AI coding assistant, plus Code Search directly from your JetBrains
 
 ## Cody Features
 
-### Autocomplete
+### Auto-edit
 
 Cody autocompletes single lines or whole functions in any programming language, configuration file, or documentation. It’s powered by the latest instant LLMs for accuracy and performance.
 
