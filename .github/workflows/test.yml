@@ -44,14 +44,6 @@ jobs:
           cache: gradle
       # Skip Code Search build in CI because it's slow, and we don't use it anyway for testing purposes.
       - run: echo "SKIP_CODE_SEARCH_BUILD=true" >> $GITHUB_ENV
-      # Use a local copy of Cody instead of downloading from private repo
-      - name: Checkout Cody
-        uses: actions/checkout@v4
-        with:
-          repository: sourcegraph/cody
-          token: ${{ secrets.CODY_GITHUB_TOKEN }}
-          path: .cody-repo
-      - run: echo "CODY_DIR=${{ github.workspace }}/.cody-repo" >> $GITHUB_ENV
       - run: ./gradlew spotlessCheck
         env:
           GITHUB_TOKEN: ${{ secrets.CODY_GITHUB_TOKEN }}
