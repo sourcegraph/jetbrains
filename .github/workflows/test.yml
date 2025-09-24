@@ -45,7 +45,11 @@ jobs:
       # Skip Code Search build in CI because it's slow, and we don't use it anyway for testing purposes.
       - run: echo "SKIP_CODE_SEARCH_BUILD=true" >> $GITHUB_ENV
       - run: ./gradlew spotlessCheck
+        env:
+          GITHUB_TOKEN: ${{ secrets.CODY_GITHUB_TOKEN }}
       - run: ./gradlew check
+        env:
+          GITHUB_TOKEN: ${{ secrets.CODY_GITHUB_TOKEN }}
       - name: Upload the test report
         if: always()
         uses: actions/upload-artifact@v4
@@ -54,6 +58,8 @@ jobs:
           path: build/reports/tests/
           compression-level: 9
       - run: ./gradlew buildPlugin
+        env:
+          GITHUB_TOKEN: ${{ secrets.CODY_GITHUB_TOKEN }}
       - run: ./gradlew --stop
       - name: Upload the plugin package
         uses: actions/upload-artifact@v4

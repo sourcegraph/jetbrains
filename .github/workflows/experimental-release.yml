@@ -33,3 +33,4 @@ jobs:
           ./gradlew "-PpluginVersion=${RELEASE_VERSION}" publishPlugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CODY_GITHUB_TOKEN }}

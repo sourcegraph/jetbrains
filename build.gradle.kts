@@ -185,7 +185,18 @@ fun download(url: String, output: File) {
   }
   println("Downloading... $url")
   assert(output.parentFile.mkdirs()) { output.parentFile }
-  Files.copy(URL(url).openStream(), output.toPath())
+
+  val githubToken = System.getenv("GITHUB_TOKEN")
+  if (url.contains("github.com") && !githubToken.isNullOrEmpty()) {
+    val connection = URL(url).openConnection() as java.net.HttpURLConnection
+    connection.setRequestProperty("Authorization", "token $githubToken")
+    connection.setRequestProperty("User-Agent", "Gradle-Build")
+    connection.instanceFollowRedirects = true
+    connection.connect()
+    Files.copy(connection.inputStream, output.toPath())
+  } else {
+    Files.copy(URL(url).openStream(), output.toPath())
+  }
 }
 
 fun copyRecursively(input: File, output: File) {
@@ -383,7 +394,7 @@ tasks {
           }
       return Paths.get(pathString).toFile()
     }
-    val url = "https://github.com/sourcegraph/cody/archive/$codyCommit.zip"
+    val url = "https://api.github.com/repos/sourcegraph/cody/zipball/$codyCommit"
     val zipFile = githubArchiveCache.resolve("$codyCommit.zip")
     download(url, zipFile)
     val destination = githubArchiveCache.resolve("cody").resolve("cody-$codyCommit")
@@ -492,7 +503,7 @@ tasks {
 
   register("copyProtocol") { copyProtocol() }
   register("buildCodeSearch") { buildCodeSearch() }
-  register("buildCody") { buildCody() }
+  register("buildCody") { doLast { buildCody() } }
 
   processResources { dependsOn(":buildCodeSearch") }
 
@@ -508,13 +519,16 @@ tasks {
   buildPlugin {
     dependsOn(project.tasks.getByPath("buildCody"))
     composedJar.get().exclude("com/intellij/codeInsight/inline/completion/**")
-    from(
-        fileTree(buildCodyDir) {
-          include("*")
-          include("webviews/**")
-        },
-    ) {
-      into("agent/")
+
+    doFirst {
+      from(
+          fileTree(buildCodyDir) {
+            include("*")
+            include("webviews/**")
+          },
+      ) {
+        into("agent/")
+      }
     }
 
     doLast {
