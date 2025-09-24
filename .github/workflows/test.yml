@@ -51,12 +51,10 @@ jobs:
           repository: sourcegraph/cody
           token: ${{ secrets.CODY_GITHUB_TOKEN }}
           path: .cody-repo
-      - name: Generate Cody Protocol Files
+      - name: Install Cody Dependencies
         run: |
           cd .cody-repo
           pnpm install --prefer-offline
-          pnpm build
-          pnpm exec ts-node agent/src/cli/scip-codegen/command.ts --output agent/bindings/kotlin/lib/src/main/kotlin/com/sourcegraph/cody/agent/protocol_generated
       - run: echo "CODY_DIR=${{ github.workspace }}/.cody-repo" >> $GITHUB_ENV
       - run: ./gradlew spotlessCheck
         env:
