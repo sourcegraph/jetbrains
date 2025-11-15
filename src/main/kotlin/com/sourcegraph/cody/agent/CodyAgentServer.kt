@@ -117,6 +117,9 @@ interface _SubsetGeneratedCodyAgentServer {
   @JsonRequest("editCommands/code")
   fun editCommands_code(params: EditCommands_CodeParams): CompletableFuture<EditTask>
 
+  @JsonRequest("editCommands/document")
+  fun editCommands_document(params: Null?): CompletableFuture<EditTask>
+
   @JsonRequest("webview/resolveWebviewView")
   fun webview_resolveWebviewView(params: Webview_ResolveWebviewViewParams): CompletableFuture<Null?>
 
