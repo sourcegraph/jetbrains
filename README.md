@@ -129,7 +129,7 @@ The plugin works with all JetBrains IDEs, including:
 - To search with Sourcegraph, press <kbd>Alt+S</kbd> (<kbd>⌥S</kbd> on Mac).
 - To share a link to your code or search through the website, right-click in the editor, and choose an action under
   the `Sourcegraph` context menu item.
-- To use your private Sourcegraph instance, open `Settings | Tools | Sourcegraph` and enter your URL and access token.
+- To use your private Sourcegraph instance, ensure that you are logged in with Cody via your instance URL and access token (please ensure you use an access token during auth).
 
 ## Settings
 
